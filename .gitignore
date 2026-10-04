@@ -1,0 +1,12 @@
+# backend/ y aurora_ui/ son proyectos independientes con su propio repo git
+# (ver CLAUDE.md: "Two independent projects, no shared tooling or root package").
+# No se anidan aqui para evitar confusion con submodulos; cada uno se clona/versiona
+# por separado.
+/backend/
+/aurora_ui/
+
+# Configuracion local de Claude Code (no compartida, no reproducible)
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+.DS_Store
