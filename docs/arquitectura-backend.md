@@ -1,4 +1,4 @@
-> Parte de `CLAUDE.md`, separada en la fase 8 del plan de remodelación (ver `PLAN_REMODELACION_ARQUITECTURA.md`). Arquitectura general del backend: cómo están organizados los módulos, migraciones, y el historial de la auditoría de concurrencia/lógica.
+> Parte de `CLAUDE.md`, separada en la fase 8 del plan de remodelación de arquitectura (ver [docs/gaps-pendientes.md](gaps-pendientes.md) para los principios que la guiaron). Arquitectura general del backend: cómo están organizados los módulos, migraciones, y el historial de la auditoría de concurrencia/lógica.
 
 ## Backend architecture
 

@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [Commands](#commands)
 - [Documentación detallada](#documentación-detallada) — el resto de la arquitectura vive en `docs/`, ver el índice temático al final de este archivo.
 
-Fase 8 del `PLAN_REMODELACION_ARQUITECTURA.md`: este archivo se dividió de verdad en `docs/*.md` por tema (sección 8.2 del plan) — la variante conservadora de solo agregar una tabla de contenido (sección 8.3) fue el primer paso de una sesión anterior; esta sesión completó el split real. Cada sección se movió verbatim (corte-y-pega, nunca reescritura) a su archivo de `docs/`, con sus enlaces relativos ajustados de `backend/`/`aurora_ui/` a `../backend/`/`../aurora_ui/`.
+Este archivo se dividió de verdad en `docs/*.md` por tema (fase 8 de la remodelación de arquitectura que ejecutó este repo — el plan que la guió, `PLAN_REMODELACION_ARQUITECTURA.md`, ya se borró una vez completadas sus ocho fases; sus principios rectores y el checklist de Cyber que seguía pendiente se migraron a [docs/gaps-pendientes.md](docs/gaps-pendientes.md) antes de borrarlo). Cada sección se movió verbatim (corte-y-pega, nunca reescritura) a su archivo de `docs/`, con sus enlaces relativos ajustados de `backend/`/`aurora_ui/` a `../backend/`/`../aurora_ui/`.
 
 ## What this is
 
@@ -50,7 +50,7 @@ The repository has no git (`git init` has never been run here); there's no commi
 
 ## Documentación detallada
 
-Fase 8 del plan de remodelación de arquitectura (ver `PLAN_REMODELACION_ARQUITECTURA.md`): este archivo ya no incluye la prosa detallada de cada subsistema — vive en `docs/`, dividida por tema. Cada archivo es autocontenido, mantiene los mismos enlaces relativos a `backend/`/`aurora_ui/` (ajustados a `../`) y se puede leer completo en una sola sesión. Nada del contenido se reescribió al moverlo — solo se reorganizó.
+Este archivo ya no incluye la prosa detallada de cada subsistema — vive en `docs/`, dividida por tema. Cada archivo es autocontenido, mantiene los mismos enlaces relativos a `backend/`/`aurora_ui/` (ajustados a `../`) y se puede leer completo en una sola sesión. Nada del contenido se reescribió al moverlo — solo se reorganizó.
 
 - **[Arquitectura del backend](docs/arquitectura-backend.md)** — cómo están organizados los 5 módulos bajo `/api`, el chain de migraciones de Alembic desde una base vacía, y la auditoría posterior que cerró ocho bugs reales de concurrencia/lógica.
 - **[Multi-tenancy y permisos](docs/multi-tenancy-y-permisos.md)** — el invariante central (`institucion_id` en `core/deps.py`), JWT credential versioning, protección SSRF del logo, rate limiting del examen público, y la remediación de cinco pasos que cerró el acceso del rol `colegio` a contenido clínico.
