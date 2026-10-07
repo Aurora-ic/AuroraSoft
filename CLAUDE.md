@@ -2,6 +2,58 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Índice
+
+- [What this is](#what-this-is)
+- [Commands](#commands)
+- [Backend architecture](#backend-architecture)
+  - [Multi-tenancy is the central invariant](#multi-tenancy-is-the-central-invariant)
+  - [Scoring engine](#scoring-engine)
+  - [Informante: who answers is not always who the result is about](#informante-who-answers-is-not-always-who-the-result-is-about)
+  - [Catálogo de pruebas cargadas: qué hay más allá de PHQ-9, y tres límites reales del motor que esto sacó a la luz](#catálogo-de-pruebas-cargadas-qué-hay-más-allá-de-phq-9-y-tres-límites-reales-del-motor-que-esto-sacó-a-la-luz)
+  - [Interpreting a result: `es_alerta` and `estado_interpretacion` are the only signals that matter](#interpreting-a-result-es_alerta-and-estado_interpretacion-are-the-only-signals-that-matter)
+  - [Interpretation rules: `ReglaInterpretacion` — a second, independent way to force alert](#interpretation-rules-reglainterpretacion-a-second-independent-way-to-force-alert)
+  - [Interpretación por perfil: `crud.interpretar_perfil_alumno`](#interpretación-por-perfil-crudinterpretar_perfil_alumno)
+  - [Baremo trazabilidad y soft-delete](#baremo-trazabilidad-y-soft-delete)
+  - [Criterio normativo de Baremo: `Baremo.criterio_normativo` y `Prueba.criterio_normativo_activo`](#criterio-normativo-de-baremo-baremocriterio_normativo-y-pruebacriterio_normativo_activo)
+  - [Dimensión compuesta: `Dimension.tipo_calculo` y `DimensionComponente`](#dimensión-compuesta-dimensiontipo_calculo-y-dimensioncomponente)
+  - [Conteo de síntomas: `Dimension.tipo_calculo='conteo_sintomas'` y `conteo_umbral_item`](#conteo-de-síntomas-dimensiontipo_calculoconteo_sintomas-y-conteo_umbral_item)
+  - [Ciclo de vida de campaña y reproceso de informe](#ciclo-de-vida-de-campaña-y-reproceso-de-informe)
+  - [Exam finalization is transactional](#exam-finalization-is-transactional)
+  - [Exam resumption](#exam-resumption)
+  - [JWT credential versioning](#jwt-credential-versioning)
+  - [SSRF protection on `Institucion.logo_url`](#ssrf-protection-on-institucionlogo_url)
+  - [Rate limiting on the public exam endpoints](#rate-limiting-on-the-public-exam-endpoints)
+  - [Migrations: a reproducible chain from an empty database](#migrations-a-reproducible-chain-from-an-empty-database)
+  - [Student core: `Persona` + academic structure](#student-core-persona-academic-structure)
+  - [Promoción anual de estudiantes: `ProcesoPromocion`](#promoción-anual-de-estudiantes-procesopromocion)
+  - [Two independent consents: apoderado and estudiante](#two-independent-consents-apoderado-and-estudiante)
+  - [Excel import: bulk-onboarding students](#excel-import-bulk-onboarding-students)
+  - [Auditoría de cambios a Persona: `RegistroCambiosPersona`](#auditoría-de-cambios-a-persona-registrocambiospersona)
+  - [Privacy / legal constraints (Ley 29733)](#privacy-legal-constraints-ley-29733)
+  - [Informes: `Informe`/`InformeVersion`, storage, and the professional psychometric report](#informes-informeinformeversion-storage-and-the-professional-psychometric-report)
+  - [Informe PDF — ordenar dimensiones por puntaje ("Diseño A" para pruebas de perfil)](#informe-pdf-ordenar-dimensiones-por-puntaje-diseño-a-para-pruebas-de-perfil)
+  - [Expediente clínico individual: `EntradaExpediente`/`EntradaExpedienteVersion`](#expediente-clínico-individual-entradaexpedienteentradaexpedienteversion)
+  - [Motor de documentos institucionales: `TipoDocumento`/`PlantillaDocumento`/`DocumentoInstitucional`](#motor-de-documentos-institucionales-tipodocumentoplantilladocumentodocumentoinstitucional)
+  - [Enganche automático: motor de pruebas → motor de documentos](#enganche-automático-motor-de-pruebas-motor-de-documentos)
+  - [Auditoría posterior: ocho bugs reales de concurrencia/lógica, todos cerrados](#auditoría-posterior-ocho-bugs-reales-de-concurrencialógica-todos-cerrados)
+- [Frontend architecture](#frontend-architecture)
+  - [Known rough edges](#known-rough-edges)
+- [Known backend gaps (not blocking, not yet built)](#known-backend-gaps-not-blocking-not-yet-built)
+  - [Permission surface: `colegio` and clinical content — closed by a five-step remediation](#permission-surface-colegio-and-clinical-content-closed-by-a-five-step-remediation)
+
+Esta tabla de contenido es la Fase 8 del `PLAN_REMODELACION_ARQUITECTURA.md`,
+en su variante conservadora (sección 8.3, "Alternativa más conservadora"):
+dividir este archivo en `docs/*.md` sigue pendiente, deliberadamente
+deferido por ser "la de menor urgencia técnica" del plan — este archivo es
+la memoria de arquitectura más valiosa del proyecto, y el riesgo real de un
+corte-y-pega manual de ~80K tokens de prosa densa (perder una frase, romper
+un enlace relativo al mover texto a una carpeta distinta) no se justificaba
+frente al beneficio puramente organizativo de dividirlo, en la misma sesión
+que ejecutó el resto del plan. Si se decide dividirlo de verdad más
+adelante, los encabezados de abajo (y sus anclas de esta tabla) son el
+punto de partida — no hace falta volver a inventariarlos.
+
 ## What this is
 
 AuroraSoft — a multi-tenant psychometric evaluation SaaS for schools (Peru). A psychologist creates an evaluation campaign, each student gets a unique magic link (`/examen/[token]`), answers a test without logging in, and the backend scores it, interprets it against baremos (norm tables), and withholds at-risk reports until a professional reviews them.
