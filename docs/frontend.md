@@ -18,7 +18,7 @@ Tailwind v4 is configured entirely through the `@theme` block in [app/globals.cs
 
 ### Known rough edges
 
-- `AuthContext.login` still hardcodes `http://127.0.0.1:8000/api/auth/login` (`contexts/AuthContext.tsx`) instead of using the `login()` helper in `lib/api-client.ts` that respects `NEXT_PUBLIC_API_URL` — a deployment with a different API origin breaks login silently.
+- **Fixed**: `AuthContext.login` no longer hardcodes `http://127.0.0.1:8000/api/auth/login` — it now calls the `login()` helper in `lib/api-client.ts`, which respects `NEXT_PUBLIC_API_URL` and already handled token storage (`guardarToken`) correctly; that helper existed since Fase 7 but had zero callers until now (nothing else in the app imports the named `login` export, only the default `apiClient` object). A deployment with a different API origin no longer breaks login silently.
 - **`app/(educativo)/pruebas/page.tsx`, `campanas/nueva/`, `campanas/[id]/dashboard/`, and the public exam page (`app/(examen)/examen/[token]/`) are no longer empty/placeholder** — all four now have real, functional (deliberately undesigned — no visual polish invested, plain Tailwind utility classes matching the rest of the app) implementations:
   - `/pruebas` — read-only catalog browser (`GET /educativo/pruebas/`), expandable per test to show its dimensions (`GET .../{id}/completa`). Loading a new instrument's items/baremos is still a data exercise (seed script), never a form on this page, on purpose.
   - `/campanas/nueva` — create a campaign (`POST /educativo/campanas/`), then matricular a chosen subset of the padrón (`POST .../matricular-roster`, raw `persona_ids: number[]` body — not wrapped in an object), then copy each generated magic link.
