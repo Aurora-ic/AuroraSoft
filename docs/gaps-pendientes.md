@@ -14,22 +14,21 @@ Migrado de `PLAN_REMODELACION_ARQUITECTURA.md` (sección 0) antes de borrarlo �
 4. **Los tres repos (`/`, `backend/`, `aurora_ui/`) son independientes** (ver `CLAUDE.md` raíz) — cada fase que toque más de uno debe commitear por separado en cada repo, nunca un commit mezclado.
 5. **Todo lo nuevo sigue las convenciones ya establecidas del propio código** (español en identificadores/comentarios, el estilo de test ya usado — scripts con `comprobar()`, no pytest —, el estilo de commit ya usado). No se introduce un segundo estilo en paralelo.
 
-## Checklist de cierre — informes psicométricos e individuales/grupales (Cyber)
+## Checklist de cierre — informes psicométricos e individuales/grupales
 
 Esto no es remodelación de arquitectura, es el estado real de negocio que motivó todo lo anterior — para que la próxima sesión no tenga que redescubrirlo:
 
 **Ya cerrado, verificado de punta a punta:**
 - Motor de scoring genérico + informe psicométrico fijo — se genera automáticamente al finalizar cualquier examen, para cualquier prueba.
 - Motor de documentos institucionales (backend) — `TipoDocumento`/`PlantillaDocumento`/`PlantillaSeccion`, generación/reemisión versionada, enganche automático al finalizar examen.
-- Primera pantalla del motor de documentos, embebida en la ficha del alumno — crear, editar `texto_libre`/`grupo_campos`/diagnóstico presuntivo, generar/reemitir, descargar PDF.
+- Pantalla dedicada del motor de documentos en el sidebar (`/documentos`, reemplazó por completo la versión embebida en la ficha del alumno) — el constructor de plantillas completo (secciones, tipografía de cuerpo y de título, membrete/pie), crear documentos para uno/varios alumnos o un salón/grado/nivel, editar contenido (incluidos `grafico_barras`/`imagen_anexo`), generar/reemitir, descargar PDF. Ver `docs/frontend.md`.
 - `/pruebas`, `/campanas/nueva`, `/campanas/[id]/dashboard` — catálogo, creación de campaña, matriculación, dashboard, cerrar/cancelar.
 - `/examen/[token]` — flujo público completo del alumno, con autoguardado y reanudación.
-
-**En curso, con su propio registro de proyecto: [docs/formatos-cyber.md](formatos-cyber.md).** El encargo real terminó siendo más grande que lo que este checklist anticipaba (no 4 categorías genéricas, sino 12 formatos reales del colegio, pasados de a uno por PDF de ejemplo) — ese archivo nuevo es la fuente de verdad actualizada de cuántos van, cuáles decisiones de diseño ya se tomaron, y qué bugs/pendientes operativos quedaron en el camino; este checklist ya no se mantiene al día formato por formato.
-- Institución real "Corporación Educativa Cyber" + su primer `TipoDocumento`/`PlantillaDocumento` — **creados** (vía seed script, `backend/seeds/seed_documentos_reporte_incidente_cyber.py`, mismo patrón que `seed_phq9.py` et al.), pero solo en la base de datos LOCAL de desarrollo usada para construirlo — falta correr el mismo seed (es idempotente) contra cualquier ambiente real desplegado.
-- Formato 1/12 ("Reporte de Incidente de Convivencia Escolar", fusionado con la respuesta al apoderado) — completo y validado. Construirlo exigió capacidades nuevas del motor, genéricas para los 11 que faltan: noveno `tipo_seccion` (`firma_doble`), `salto_pagina_antes`, viñetas reales en `texto_libre`, membrete/pie solo-imagen, branding/firma autoalojados — todo documentado en `docs/motor-documentos.md`.
-- Quedan 11 formatos del colegio por pasar y construir (el usuario los entrega de a uno).
+- Constructor de plantillas (`PlantillaDocumento`/`PlantillaSeccion`) abierto a `admin`/`psicólogo` de la propia institución, no solo superadmin — ver "Constructor de plantillas" en `docs/motor-documentos.md`. Decisión de producto vigente: **no se construyen formatos a medida por colegio** — cada institución arma su propia estructura con este constructor, según sus propias necesidades. (El encargo real de Corporación Educativa Cyber, que exploró esto mismo "a mano" vía seed scripts antes de que existiera el constructor, se descartó por completo — institución, usuarios y datos de prueba borrados de la base local; las capacidades genéricas del motor que esa exploración sacó a la luz, SÍ se quedaron, documentadas en `docs/motor-documentos.md`.)
 
 **Pendiente, sin decisión tomada todavía (preguntar antes de ejecutar):**
-- Vinculación manual de `resultados_prueba` desde la UI (`PUT/DELETE .../resultados-prueba`) — quedó deliberadamente fuera de la primera pantalla de documentos. Si Cyber necesita combinar resultados de una prueba proyectiva (sin motor de scoring) con un resultado psicométrico real en el mismo documento, esto se vuelve necesario antes de lo esperado.
-- Edición de campaña (`PATCH /educativo/campanas/{id}`) y `reprocesar` (`POST /educativo/inscripciones/{id}/reprocesar`) no tienen UI — si el flujo real de Cyber corrige baremos con frecuencia, esto sube de prioridad.
+- Vinculación manual de `resultados_prueba` desde la UI (`PUT/DELETE .../resultados-prueba`) — quedó deliberadamente fuera de la primera pantalla de documentos. Se vuelve necesario si una institución quiere combinar el resultado de una prueba proyectiva (sin motor de scoring) con un resultado psicométrico real en el mismo documento.
+- Edición de campaña (`PATCH /educativo/campanas/{id}`) y `reprocesar` (`POST /educativo/inscripciones/{id}/reprocesar`) no tienen UI.
+- Galería de modelos predeterminados (plantillas de referencia, editables solo por superadmin, que cualquier institución puede clonar y después personalizar con el constructor) — todavía no existe ningún mecanismo para que una plantilla no pertenezca a una institución puntual; la opción más simple es reusar `clonar_plantilla_documento` desde una institución técnica "de catálogo", sin migración nueva. Decisión tomada, construcción pendiente.
+
+**Ya cerrado**: los dos `tipo_seccion` identificados como realmente necesarios para informes psicológicos reales — `grafico_barras` (manual o automático desde una `Inscripcion` real, con el mismo candado de retención que `resultados_prueba`) e `imagen_anexo` (subida directa, nunca URL externa) — ver "Undécimo y duodécimo tipo_seccion" en `docs/motor-documentos.md`.
