@@ -67,7 +67,9 @@ Tres auditorías dedicadas y en paralelo (escalabilidad de backend, bugs/concurr
 - **PDF/email vía `BackgroundTasks` de FastAPI, no una cola real** — ya señalado como "Fase 1" en los propios comentarios de `core/tareas_async.py`, pero vale remarcarlo como riesgo concreto una vez haya varios colegios con campañas concurrentes: sin reintento, sin recuperación si el proceso se reinicia a mitad de una generación de PDF o un envío SMTP.
 - **Listas de frontend sin paginar a la escala que el propio load test del backend ya contempla** (2000-5000 filas): el padrón completo en `estudiantes/page.tsx`, el preview de `estudiantes/importar/page.tsx`, y la tabla de alumnos de `campanas/[id]/dashboard/page.tsx` renderizan todas las filas de una sola vez, sin paginación ni virtualización.
 
-**Bajo, abierto:**
+**Bajo, abierto (notas de vigilancia, sin cambio de código esperado):**
 - Cadena de Alembic en 67 revisiones (este archivo decía "60+" hasta esta sesión) — no urgente todavía, pero vigilar antes de 100-150 sin una migración baseline/squash.
-- N+1 menor en `listar_historial_informes_de_persona` (`modulos/educativo/crud.py:2448-2484`, línea 2469) — una query extra por informe en vez de incluirla en el join inicial; bajo impacto real porque está acotado al historial de UN alumno.
 - El storage ya es S3-capable (`core/storage/`) — el riesgo real, si existe, es que algún deploy real todavía tenga `STORAGE_BACKEND=local` configurado, no el código en sí.
+
+**Bajo, cerrado:**
+- ~~N+1 menor en `listar_historial_informes_de_persona`~~ — **🆕 cerrado**: hacía una query extra por cada fila del historial (`DiagnosticoAlumno` por `inscripcion_id`, para saber si tuvo alguna alerta) en vez de precargar en bloque. Reemplazado por una sola query `IN (...)` sobre todas las inscripciones del historial antes del lazo, con el mismo resultado exacto por fila. Bajo impacto real (acotado al historial de UN alumno, nunca miles de filas), pero igual de fácil de evitar. Verificado manualmente contra el servidor real: dos aplicaciones del mismo alumno, una con alerta y otra sin, devuelven `es_alerta=True`/`False` correctamente en `GET /educativo/personas/{id}/informes`; `test_matriz_permisos_unitario.py` sin regresión (56/56).
