@@ -1,9 +1,6 @@
-# backend/ y aurora_ui/ son proyectos independientes con su propio repo git
-# (ver CLAUDE.md: "Two independent projects, no shared tooling or root package").
-# No se anidan aqui para evitar confusion con submodulos; cada uno se clona/versiona
-# por separado.
-/backend/
-/aurora_ui/
+# backend/ y aurora_ui/ se fusionaron a este repo vía `git subtree`
+# (historial completo de cada uno preservado) — sus propios .gitignore
+# siguen vigentes para lo que no debe subir (.env, venv/, node_modules/, etc.).
 
 # Configuracion local de Claude Code (no compartida, no reproducible)
 .claude/settings.local.json
