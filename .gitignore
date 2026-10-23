@@ -1,9 +1,16 @@
-# backend/ y aurora_ui/ se fusionaron a este repo vía `git subtree`
-# (historial completo de cada uno preservado) — sus propios .gitignore
-# siguen vigentes para lo que no debe subir (.env, venv/, node_modules/, etc.).
+# backend/ y aurora_ui/ se fusionaron a este repo (snapshot único, el
+# historial commit-a-commit de cada uno quedó solo en sus .git locales
+# previos). Sus propios .gitignore siguen vigentes para lo que no debe
+# subir (.env, venv/, node_modules/, etc.).
+
+# Logs de sesiones locales (uvicorn/celery/next dev) — nunca contenido real
+*.log
 
 # Configuracion local de Claude Code (no compartida, no reproducible)
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+
+# Configuracion local del editor (no compartida)
+.vscode/
 
 .DS_Store

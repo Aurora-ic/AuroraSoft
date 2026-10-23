@@ -1,5 +1,11 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
+// "ngrok-skip-browser-warning" (presente en los 4 fetch de este archivo):
+// solo importa cuando API_URL apunta a un túnel ngrok free tier (pruebas
+// temporales) — sin este header, ngrok devuelve su propia página HTML de
+// advertencia en vez de reenviar la request al backend real, y el fetch
+// recibe HTML donde esperaba JSON. No-op contra cualquier otro backend.
+
 function obtenerToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("aurora_token");
@@ -49,6 +55,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
@@ -66,7 +73,10 @@ async function requestForm<T>(path: string, formData: FormData, method: "POST" |
   const token = obtenerToken();
   const res = await fetch(`${API_URL}${path}`, {
     method,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers: {
+      "ngrok-skip-browser-warning": "true",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     body: formData,
   });
   await lanzarSiError(res);
@@ -77,7 +87,10 @@ async function requestForm<T>(path: string, formData: FormData, method: "POST" |
 async function requestBlob(path: string): Promise<Blob> {
   const token = obtenerToken();
   const res = await fetch(`${API_URL}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    headers: {
+      "ngrok-skip-browser-warning": "true",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
   });
   await lanzarSiError(res);
   return res.blob();
@@ -142,7 +155,10 @@ export async function login(email: string, password: string) {
 
   const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "ngrok-skip-browser-warning": "true",
+    },
     body,
   });
   if (!res.ok) {
