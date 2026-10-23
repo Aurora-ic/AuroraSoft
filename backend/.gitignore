@@ -1,0 +1,29 @@
+# Archivos de entorno y credenciales (NUNCA SUBIR A GIT)
+.env
+.env.*
+
+# Cache de Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Cobertura y testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Base de datos SQLite local (si existiera)
+*.db
+*.sqlite3
+
+# Storage local de informes
+storage_local/
+
+# Node.js y Next.js
+node_modules/
+.next/

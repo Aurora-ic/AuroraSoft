@@ -1,0 +1,27 @@
+import type { ButtonHTMLAttributes } from "react";
+
+export type VarianteBoton = "primario" | "secundario";
+
+const CLASES_BASE =
+  "rounded-card text-sm px-4 py-2 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+
+const CLASES_VARIANTE: Record<VarianteBoton, string> = {
+  primario: "bg-teal-600 text-white hover:bg-teal-900 shadow-sm",
+  secundario: "border border-border bg-white text-ink hover:bg-mist",
+};
+
+/** Las mismas clases que usa <Boton>, para cuando la acción es en realidad
+ * un <Link> de navegación con apariencia de botón (ej. "Importar Excel",
+ * "Ver en el padrón") — evita que ese caso reinvente el estilo aparte y se
+ * desalinee del resto. */
+export function claseBoton(variante: VarianteBoton = "primario", className = ""): string {
+  return `${CLASES_BASE} ${CLASES_VARIANTE[variante]} ${className}`.trim();
+}
+
+type BotonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variante?: VarianteBoton;
+};
+
+export function Boton({ variante = "primario", className = "", ...props }: BotonProps) {
+  return <button className={claseBoton(variante, className)} {...props} />;
+}

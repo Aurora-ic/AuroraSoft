@@ -1,0 +1,40 @@
+# 🆕 Fase 2 de core/models_tareas.py (Celery+Redis, ver su docstring y
+# core/cola_tareas.py) — antes el Dockerfile era de un solo proceso
+# (CMD uvicorn ...), suficiente cuando BackgroundTasks corría in-process.
+# Ahora hacen falta 3 servicios: web (el de siempre), worker (consume la
+# cola real) y redis (el broker). `DATABASE_URL`/`SECRET_KEY`/etc. se
+# siguen leyendo del `.env` de siempre (`env_file`), nada nuevo ahí —
+# `CELERY_BROKER_URL`/`CELERY_RESULT_BACKEND` ya traen un default a
+# `redis` (el nombre de este mismo servicio) para no tener que repetirlos.
+services:
+  web:
+    build: .
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    # 🔒 Concurrencia en 1 a propósito: las tareas reales (generar PDF,
+    # enganche de documentos, emails) ya abren su propia sesión de DB cada
+    # una — nada impide subir esto en un deploy real con más carga, pero
+    # un default conservador evita saturar el pool de Postgres con un
+    # primer despliegue sin ajustar.
+    command: celery -A core.cola_tareas worker --loglevel=info --concurrency=1
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

@@ -1,0 +1,1339 @@
+{
+  "descripcion": "Snapshot aprobado a mano de la matriz endpoint x rol bajo /api, generado por introspeccion real de FastAPI (Depends(requerir_rol(...)) / Depends(obtener_usuario_actual) / Depends(verificar_acceso_institucion)) via tests/test_matriz_permisos_unitario.py::calcular_matriz_actual(). No se regenera solo: un cambio real de permisos debe revisarse a mano y reflejarse aqui a proposito.",
+  "roles_conocidos": [
+    "admin",
+    "colegio",
+    "psicologo",
+    "superadmin"
+  ],
+  "endpoints": {
+    "DELETE /api/admin/personas/citas/{cita_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/admin/personas/contactos/{contacto_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/documentos/secciones/{seccion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/documentos/{documento_id}/secciones/{plantilla_seccion_id}/resultados-prueba/{persona_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/educativo/alumnos/{inscripcion_id}/soft-delete": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/educativo/baremos/{baremo_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/educativo/dimensiones/{dimension_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/educativo/opciones/{opcion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/educativo/preguntas/{pregunta_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/educativo/seguimiento/{sesion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/academico/grados/{nivel_educativo_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/academico/niveles/{institucion_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": true
+    },
+    "GET /api/admin/personas/academico/secciones/{grado_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/citas/mi-agenda": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/consentimiento/{consentimiento_id}/evidencia": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/expediente/{entrada_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/importar/plantilla": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/por-codigo/{codigo_institucional}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/promocion/procesos": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/promocion/procesos/{proceso_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{institucion_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": true
+    },
+    "GET /api/admin/personas/{persona_id}/antecedentes-clinicos": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/autorizacion-colegio": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/citas": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/consentimiento": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/consentimientos": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/contactos": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/datos-familiares": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/detalle": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/expediente": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/exportar-datos-arco": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/ficha-completa": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/historial-academico": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/historial-cambios": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/{persona_id}/historico-campanas": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/auth/me": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/auth/usuarios/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/auth/usuarios/{usuario_id}/firma": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/anios-oficiales": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/plantillas": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/plantillas/predeterminadas": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/plantillas/{plantilla_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/plantillas/{plantilla_id}/secciones": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/tipos": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/tipos/{tipo_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/{documento_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/{documento_id}/secciones": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/{documento_id}/versiones": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/documentos/{documento_id}/versiones/{numero_version}/descargar": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/asentimiento-textos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/baremos/{dimension_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/campanas/": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/campanas/{evaluacion_id}/dashboard": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/campanas/{evaluacion_id}/exportar-excel": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/campanas/{evaluacion_id}/links": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/casos-pendientes": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/dashboard/academico": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/dashboard/academico/exportar-excel": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/dashboard/academico/tendencia": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/dimensiones/{dimension_id}/componentes": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/asentimiento-texto": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/campos-socio": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/estado-resultados": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/informe-pdf": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/intake": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/preguntas": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/examen/{token}/progreso": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/inscripciones/{inscripcion_id}/informe": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/inscripciones/{inscripcion_id}/informe-pdf": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/personas/{persona_id}/informes": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/procesos/dashboard": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/pruebas/": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/pruebas/{prueba_id}/completa": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/pruebas/{prueba_id}/reglas": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/seguimiento/{persona_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/instituciones/": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/instituciones/me": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/instituciones/{institucion_id}/branding/{tipo}": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/citas/{cita_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/contactos/{contacto_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/promocion/procesos/{proceso_id}/detalle": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/{persona_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/{persona_id}/antecedentes-clinicos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/{persona_id}/datos-familiares": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/auth/usuarios/{usuario_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/documentos/plantillas/{plantilla_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/documentos/secciones/{seccion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/documentos/tipos/{tipo_id}": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/baremos/{baremo_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/campanas/{evaluacion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/dimensiones/{dimension_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/inscripciones/{inscripcion_id}/liberar-informe": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/inscripciones/{inscripcion_id}/revision-informe": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/opciones/{opcion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/preguntas/{pregunta_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/pruebas/{prueba_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/reglas/{regla_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/seguimiento/{sesion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/instituciones/{institucion_id}": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/instituciones/{institucion_id}/anio-escolar-activo": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/instituciones/{institucion_id}/politica-consentimientos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/academico/grados": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/academico/niveles": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/academico/secciones": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/autorizacion-colegio/{autorizacion_id}/revocar": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/citas/": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/consentimiento/{consentimiento_id}/evidencia": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/contactos/{contacto_id}/reactivar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/expediente/{entrada_id}/versiones": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/importar/confirmar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/importar/validar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/promocion/procesos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/promocion/procesos/{proceso_id}/cancelar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/promocion/procesos/{proceso_id}/confirmar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/anonimizar-arco": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/autorizacion-colegio": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/consentimiento": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/consentimiento/asentimiento": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/consentimiento/asentimiento/revocar": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/consentimiento/revocar": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/contactos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/expediente": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/matricula": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/login": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/registro": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/resetear-password": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/solicitar-recuperacion": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/usuarios/{usuario_id}/firma": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/anios-oficiales": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/plantillas": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/plantillas/{plantilla_id}/clonar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/plantillas/{plantilla_id}/secciones": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/tipos": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/{documento_id}/generar-version": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/{documento_id}/reemitir": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/documentos/{documento_id}/secciones/{plantilla_seccion_id}/imagen": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/alumnos/{inscripcion_id}/anonimizar-arco": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/asentimiento-textos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/baremos/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/campanas/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/campanas/{evaluacion_id}/cancelar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/campanas/{evaluacion_id}/cerrar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/campanas/{evaluacion_id}/matricular-roster": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/campos-socio/": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/comenzar-test/{token}": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/dimensiones/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/examen/{token}/campos-socio": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/examen/{token}/finalizar": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/examen/{token}/guardar": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/inscripciones/{inscripcion_id}/informe/reemitir": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/inscripciones/{inscripcion_id}/reprocesar": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/opciones/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/preguntas/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/pruebas/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/pruebas/carga-masiva/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/pruebas/{prueba_id}/reglas": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/seguimiento/": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/instituciones/": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/instituciones/{institucion_id}/branding/{tipo}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PUT /api/documentos/{documento_id}/secciones/{plantilla_seccion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PUT /api/documentos/{documento_id}/secciones/{plantilla_seccion_id}/resultados-prueba": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PUT /api/documentos/{documento_id}/secciones/{plantilla_seccion_id}/resultados-prueba-multiple": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PUT /api/educativo/dimensiones/{dimension_id}/componentes": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    }
+  }
+}

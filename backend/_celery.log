@@ -1,0 +1,26 @@
+ 
+ -------------- celery@LAPTOP-TUIJOQSU v5.5.3 (immunity)
+--- ***** ----- 
+-- ******* ---- Windows-10-10.0.19045-SP0 2026-10-23 14:52:25
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         aurorasoft:0x1c68fa4fcb0
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/1
+- *** --- * --- .> concurrency: 8 (solo)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . core.email_service.enviar_alerta_regresion_informe_liberado
+  . core.email_service.enviar_alerta_riesgo
+  . modulos.documentos.crud.tarea_generar_documentos_automaticos_en_segundo_plano
+  . modulos.educativo.crud.tarea_generar_informe_en_segundo_plano
+
+[2026-10-23 14:52:28,089: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2026-10-23 14:52:32,197: INFO/MainProcess] mingle: searching for neighbors
+[2026-10-23 14:52:39,424: INFO/MainProcess] mingle: all alone
+[2026-10-23 14:52:47,694: INFO/MainProcess] celery@LAPTOP-TUIJOQSU ready.

@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  /* Paleta AuroraSoft — moderno/tech, teal como color de marca */
+  --color-teal-900: #0B3D34;   /* texto de énfasis, headers */
+  --color-teal-600: #12796B;   /* acción primaria */
+  --color-teal-400: #35A794;   /* hover, estados secundarios */
+  --color-mist: #F3F7F5;       /* fondo de app */
+  --color-ink: #1C2321;        /* texto principal */
+  --color-amber: #E2A33B;      /* único acento — reservado para alertas de riesgo */
+  --color-border: #DCE5E1;
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --radius-card: 12px;
+}
+
+body {
+  background-color: var(--color-mist);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+}
+
+/* Si tu proyecto en realidad usa Tailwind v3 (revisa si tienes
+   tailwind.config.ts): borra el bloque @theme de arriba y usa en su
+   lugar un tailwind.config.ts con:
+   theme: { extend: { colors: { teal: {900:"#0B3D34",600:"#12796B",400:"#35A794"},
+   mist:"#F3F7F5", ink:"#1C2321", amber:"#E2A33B", border:"#DCE5E1" } } } */
+@import "tailwindcss";
+
+@theme {
+  /* Paleta AuroraSoft — moderno/tech, teal como color de marca */
+  --color-teal-900: #0B3D34;   /* texto de énfasis, headers */
+  --color-teal-600: #12796B;   /* acción primaria */
+  --color-teal-400: #35A794;   /* hover, estados secundarios */
+  --color-mist: #F3F7F5;       /* fondo de app */
+  --color-ink: #1C2321;        /* texto principal */
+  --color-amber: #E2A33B;      /* único acento — reservado para alertas de riesgo */
+  --color-border: #DCE5E1;
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --radius-card: 12px;
+}
+
+body {
+  background-color: var(--color-mist);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+}
+
+/* Si tu proyecto en realidad usa Tailwind v3 (revisa si tienes
+   tailwind.config.ts): borra el bloque @theme de arriba y usa en su
+   lugar un tailwind.config.ts con:
+   theme: { extend: { colors: { teal: {900:"#0B3D34",600:"#12796B",400:"#35A794"},
+   mist:"#F3F7F5", ink:"#1C2321", amber:"#E2A33B", border:"#DCE5E1" } } } */
