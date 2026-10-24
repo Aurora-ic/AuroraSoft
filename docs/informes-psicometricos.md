@@ -61,6 +61,8 @@ INFORME PSICOMÉTRICO
 
 Format: Arial at 11pt body text (registered from the OS's font files when present — `arial.ttf`/`arialbd.ttf`/`ariali.ttf` on the usual Windows/Linux/macOS paths — falling back silently to Helvetica, its metric equivalent, when not; this is verified in the tests by inspecting the PDF's actual `Tf` content-stream operators, not just that a font resource is declared), justified paragraphs, a running header (institution name + "DOCUMENTO CONFIDENCIAL") and footer (prueba name + page number) drawn per-page via a reportlab canvas callback (not flowables, which would scroll away from a fixed position), and `KeepTogether` around each heading plus its first paragraph to avoid orphaned titles.
 
+**🆕 An optional "ANEXOS" section can follow 8. FIRMA** (session 2026-10-23) — scanned evidence from the student's expediente clínico (`EntradaExpediente` tipo='evidencia', see "Expediente clínico individual" in docs/motor-documentos.md for the full writeup: upload/storage, the `informe_id`/`incluir_en_pdf_informe` wiring, and the `pypdf` merge used for PDF-type attachments). Never present unless at least one evidence entry is explicitly marked for this specific informe — every informe generated before this feature, or without any marked evidence, renders byte-identical to before.
+
 Every piece of content is traceable to one of three sources, and the PDF itself marks which one it came from so a configured suggestion is never mistaken for something a psychologist wrote:
 
 - **Automatic** — filiación (all from the `Inscripcion` snapshot, never live `Persona`), fecha, prueba, puntajes, dimensiones, niveles, `es_alerta`/`alerta_por`/`estado_interpretacion`/`reglas_con_error`.

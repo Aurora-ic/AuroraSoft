@@ -118,6 +118,26 @@ def construir_storage_key_imagen_seccion_documento(
     return f"instituciones/{institucion_id}/documentos/{documento_institucional_id}/secciones/{plantilla_seccion_id}/{token}{extension}"
 
 
+def construir_storage_key_evidencia_expediente(
+    institucion_id: int, persona_id: int, token: str, extension: str
+) -> str:
+    """Key del archivo escaneado de una `EntradaExpediente` tipo 'evidencia'
+    (modulos/superadmin/models.py) — un dibujo/ficha/hoja física subida como
+    evidencia en el expediente clínico de un estudiante, suelta o vinculada
+    a un `Informe` puntual. Mismo criterio "sin versionado" que branding/
+    firma/evidencia de consentimiento: no es un documento legal que se
+    corrige con una nueva versión, es un archivo fijo — si se subió el
+    escaneo equivocado, se crea una entrada NUEVA en el expediente (línea de
+    tiempo append-only), nunca se sobrescribe esta key.
+
+    `token` (uuid4 hex, igual que construir_storage_key_imagen_seccion_
+    documento) en vez del id de la entrada: el storage se escribe ANTES de
+    insertar la fila (storage_key es NOT NULL desde el primer INSERT, ver
+    ck_expediente_campos_segun_tipo), así que el id todavía no existe
+    cuando hace falta la key."""
+    return f"instituciones/{institucion_id}/personas/{persona_id}/expediente/evidencias/{token}{extension}"
+
+
 def construir_storage_key_evidencia_consentimiento(
     institucion_id: int, consentimiento_id: int, extension: str
 ) -> str:

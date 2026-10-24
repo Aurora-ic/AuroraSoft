@@ -2487,7 +2487,53 @@ def _snapshot_json_seguro(datos: dict) -> dict:
     }
 
 
-def construir_contenido_pdf(datos: dict, institucion=None, numero_version: int | None = None, motivo_version: str | None = None) -> dict:
+def obtener_anexos_evidencia_informe(db: Session, informe_id: int) -> list[dict]:
+    """Evidencia del expediente clínico (EntradaExpediente tipo='evidencia')
+    marcada para incluirse en el PDF de ESTE informe puntual —
+    informe_id=informe_id e incluir_en_pdf_informe=True. Se consulta en CADA
+    generación de versión (automática/reemisión/reproceso) y nunca se
+    congela en el snapshot: una versión ya emitida es inmutable como
+    siempre, pero si se agrega o se desmarca evidencia después, la PRÓXIMA
+    versión (reemitir/reprocesar) sí refleja el estado actual.
+
+    Devuelve el formato exacto que pdf_generator.generar_pdf() espera en
+    contenido["anexos"]: tipo ('imagen'/'pdf', por content_type),
+    titulo/descripcion/fecha y los bytes ya leídos de storage. Una
+    evidencia cuyo archivo ya no está en storage se omite (con un warning
+    en logs) en vez de reventar la generación de todo el informe por un
+    solo anexo faltante."""
+    entradas = db.query(superadmin_models.EntradaExpediente).filter(
+        superadmin_models.EntradaExpediente.tipo_entrada == superadmin_crud.TIPO_ENTRADA_EVIDENCIA,
+        superadmin_models.EntradaExpediente.informe_id == informe_id,
+        superadmin_models.EntradaExpediente.incluir_en_pdf_informe.is_(True),
+    ).order_by(superadmin_models.EntradaExpediente.fecha_entrada.asc()).all()
+    if not entradas:
+        return []
+
+    from core.storage import obtener_storage_service
+    storage = obtener_storage_service()
+    anexos = []
+    for entrada in entradas:
+        try:
+            contenido_bytes = storage.leer(entrada.storage_key)
+        except FileNotFoundError:
+            logger.warning(f"Evidencia {entrada.id} marcada para el PDF del informe {informe_id} pero sin archivo en storage; se omite.")
+            continue
+        tipo = "pdf" if (entrada.content_type or "").lower() == "application/pdf" else "imagen"
+        anexos.append({
+            "tipo": tipo,
+            "titulo": entrada.titulo,
+            "descripcion": entrada.descripcion,
+            "fecha": entrada.fecha_entrada,
+            "bytes": contenido_bytes,
+        })
+    return anexos
+
+
+def construir_contenido_pdf(
+    datos: dict, institucion=None, numero_version: int | None = None, motivo_version: str | None = None,
+    anexos: list[dict] | None = None,
+) -> dict:
     """Arma el dict `contenido` que espera pdf_generator.generar_pdf() a
     partir de lo que devuelve obtener_datos_para_pdf(). Centralizado para que
     el PDF ya almacenado y el generado al vuelo (fallback de inscripciones
@@ -2525,6 +2571,7 @@ def construir_contenido_pdf(datos: dict, institucion=None, numero_version: int |
         "interpretacion_clinica": datos["estado_revision"]["interpretacion_clinica"],
         "nombre_grupo": datos["nombre_grupo"],
         "fecha_aplicacion": datos["fecha_aplicacion"],
+        "anexos": anexos or [],
     }
 
 
@@ -2583,7 +2630,10 @@ def generar_y_almacenar_informe(
     numero_version = informe.version_actual + 1
 
     try:
-        contenido_pdf = construir_contenido_pdf(datos, institucion=institucion, numero_version=numero_version, motivo_version=motivo)
+        anexos = obtener_anexos_evidencia_informe(db, informe.id)
+        contenido_pdf = construir_contenido_pdf(
+            datos, institucion=institucion, numero_version=numero_version, motivo_version=motivo, anexos=anexos,
+        )
         pdf_buffer = generar_pdf(contenido_pdf)
         contenido_bytes = pdf_buffer.getvalue()
         checksum = hashlib.sha256(contenido_bytes).hexdigest()

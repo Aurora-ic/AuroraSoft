@@ -68,6 +68,7 @@ const ETIQUETAS_TIPO_ENTRADA: Record<TipoEntradaExpediente, string> = {
   derivacion: "Derivación",
   sesion: "Sesión de seguimiento",
   aplicacion_prueba: "Aplicación de prueba",
+  evidencia: "Evidencia",
 };
 
 function esTipoEntradaNarrativo(tipo: TipoEntradaExpediente): boolean {
@@ -316,6 +317,22 @@ export default function FichaAlumnoPage() {
   } | null>(null);
   const [guardandoEntrada, setGuardandoEntrada] = useState(false);
   const [errorFormularioEntrada, setErrorFormularioEntrada] = useState<string | null>(null);
+
+  // 🆕 Formulario de evidencia (archivo escaneado) — multipart, nunca pasa
+  // por formEntrada/crearEntrada (esos solo manejan los 3 tipos narrativos
+  // en JSON). archivo=null hasta que el usuario elige un File real.
+  const [formEvidencia, setFormEvidencia] = useState<{
+    archivo: File | null;
+    titulo: string;
+    descripcion: string;
+    fecha_entrada: string;
+    informe_id: string;
+    incluir_en_pdf_informe: boolean;
+  } | null>(null);
+  const [subiendoEvidencia, setSubiendoEvidencia] = useState(false);
+  const [errorFormularioEvidencia, setErrorFormularioEvidencia] = useState<string | null>(null);
+  const [actualizandoIncluirPdfId, setActualizandoIncluirPdfId] = useState<number | null>(null);
+  const [descargandoEvidenciaExpedienteId, setDescargandoEvidenciaExpedienteId] = useState<number | null>(null);
 
   const [mostrarFormularioVersion, setMostrarFormularioVersion] = useState(false);
   const [formVersion, setFormVersion] = useState({
@@ -1041,6 +1058,73 @@ export default function FichaAlumnoPage() {
       setErrorFormularioEntrada(err.message || "No se pudo crear la entrada.");
     } finally {
       setGuardandoEntrada(false);
+    }
+  }
+
+  function abrirFormularioEvidencia() {
+    setFormEvidencia({
+      archivo: null,
+      titulo: "",
+      descripcion: "",
+      fecha_entrada: "",
+      informe_id: "",
+      incluir_en_pdf_informe: false,
+    });
+    setErrorFormularioEvidencia(null);
+  }
+
+  async function subirEvidencia(e: React.FormEvent) {
+    e.preventDefault();
+    if (!formEvidencia || !formEvidencia.archivo) {
+      setErrorFormularioEvidencia("Elige un archivo para subir.");
+      return;
+    }
+    setSubiendoEvidencia(true);
+    setErrorFormularioEvidencia(null);
+    try {
+      const fd = new FormData();
+      fd.append("archivo", formEvidencia.archivo);
+      fd.append("titulo", formEvidencia.titulo);
+      if (formEvidencia.descripcion) fd.append("descripcion", formEvidencia.descripcion);
+      if (formEvidencia.fecha_entrada) fd.append("fecha_entrada", new Date(formEvidencia.fecha_entrada).toISOString());
+      if (formEvidencia.informe_id) fd.append("informe_id", formEvidencia.informe_id);
+      fd.append("incluir_en_pdf_informe", String(formEvidencia.informe_id ? formEvidencia.incluir_en_pdf_informe : false));
+
+      const nueva = await apiClient.postForm<EntradaExpediente>(`/admin/personas/${personaId}/expediente/evidencia`, fd);
+      setEntradas((prev) =>
+        [nueva, ...prev].sort((a, b) => new Date(b.fecha_entrada).getTime() - new Date(a.fecha_entrada).getTime()),
+      );
+      setFormEvidencia(null);
+    } catch (err: any) {
+      setErrorFormularioEvidencia(err.message || "No se pudo subir la evidencia.");
+    } finally {
+      setSubiendoEvidencia(false);
+    }
+  }
+
+  async function alternarIncluirEnPdf(entrada: EntradaExpediente, valor: boolean) {
+    setActualizandoIncluirPdfId(entrada.id);
+    try {
+      const actualizada = await apiClient.patch<EntradaExpediente>(`/admin/personas/expediente/evidencia/${entrada.id}`, {
+        incluir_en_pdf_informe: valor,
+      });
+      setEntradas((prev) => prev.map((en) => (en.id === entrada.id ? actualizada : en)));
+    } catch (err: any) {
+      setErrorEntradas(err.message || "No se pudo actualizar la evidencia.");
+    } finally {
+      setActualizandoIncluirPdfId(null);
+    }
+  }
+
+  async function descargarEvidenciaExpediente(entrada: EntradaExpediente) {
+    setDescargandoEvidenciaExpedienteId(entrada.id);
+    try {
+      const blob = await apiClient.descargarArchivo(`/admin/personas/expediente/evidencia/${entrada.id}/archivo`);
+      descargarBlob(blob, entrada.nombre_archivo_original || `evidencia-${entrada.id}`);
+    } catch (err: any) {
+      setErrorEntradas(err.message || "No se pudo descargar la evidencia.");
+    } finally {
+      setDescargandoEvidenciaExpedienteId(null);
     }
   }
 
@@ -2348,14 +2432,97 @@ export default function FichaAlumnoPage() {
       <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
           <h2 className="font-display text-xl text-teal-900 font-semibold">Expediente clínico</h2>
-          {puedeEscribirExpediente && !formEntrada && (
-            <Boton onClick={abrirFormularioEntrada}>+ Nueva entrada</Boton>
+          {puedeEscribirExpediente && !formEntrada && !formEvidencia && (
+            <div className="flex items-center gap-2">
+              <Boton onClick={abrirFormularioEntrada}>+ Nueva entrada</Boton>
+              <button onClick={abrirFormularioEvidencia} className={claseBoton("secundario")}>
+                + Subir evidencia
+              </button>
+            </div>
           )}
         </div>
 
         <p className="text-xs text-ink/50 italic">{notaAccesoExpediente(sesion?.rol)}</p>
 
         <TextoError>{errorEntradas}</TextoError>
+
+        {formEvidencia && (
+          <form onSubmit={subirEvidencia} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4">
+            <CampoEditable etiqueta="Archivo (PDF/JPG/PNG, máx. 10 MB)" className="sm:col-span-2">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+                onChange={(e) => setFormEvidencia({ ...formEvidencia, archivo: e.target.files?.[0] ?? null })}
+                className="block w-full text-sm text-ink/70 file:mr-3 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-teal-700 hover:file:bg-teal-100"
+              />
+            </CampoEditable>
+            <CampoEditable etiqueta="Título (obligatorio)" className="sm:col-span-2">
+              <Input
+                required
+                placeholder='Ej. "Dibujo bajo la lluvia"'
+                value={formEvidencia.titulo}
+                onChange={(e) => setFormEvidencia({ ...formEvidencia, titulo: e.target.value })}
+              />
+            </CampoEditable>
+            <CampoEditable etiqueta="Descripción (opcional)" className="sm:col-span-2">
+              <Textarea
+                rows={2}
+                value={formEvidencia.descripcion}
+                onChange={(e) => setFormEvidencia({ ...formEvidencia, descripcion: e.target.value })}
+              />
+            </CampoEditable>
+            <CampoEditable etiqueta="Fecha (opcional, por defecto ahora)">
+              <Input
+                type="datetime-local"
+                value={formEvidencia.fecha_entrada}
+                onChange={(e) => setFormEvidencia({ ...formEvidencia, fecha_entrada: e.target.value })}
+              />
+            </CampoEditable>
+            <CampoEditable etiqueta="Vincular a un informe (opcional)">
+              <Select
+                value={formEvidencia.informe_id}
+                onChange={(e) =>
+                  setFormEvidencia({ ...formEvidencia, informe_id: e.target.value, incluir_en_pdf_informe: false })
+                }
+              >
+                <option value="">(suelta — no vinculada a ningún informe)</option>
+                {(pruebasAplicadas ?? []).map((p) => (
+                  <option key={p.informe_id} value={p.informe_id}>
+                    {p.prueba_nombre_publico} — {p.fecha_aplicacion ? new Date(p.fecha_aplicacion).toLocaleDateString() : "sin fecha"}
+                  </option>
+                ))}
+              </Select>
+            </CampoEditable>
+
+            {formEvidencia.informe_id && (
+              <label className="sm:col-span-2 flex items-center gap-2 text-sm text-ink/70">
+                <input
+                  type="checkbox"
+                  checked={formEvidencia.incluir_en_pdf_informe}
+                  onChange={(e) => setFormEvidencia({ ...formEvidencia, incluir_en_pdf_informe: e.target.checked })}
+                />
+                Incluir como anexo la próxima vez que se genere una versión de ese informe (automática, &quot;Reemitir
+                informe&quot; o &quot;Reprocesar&quot;) — nunca modifica una versión ya emitida.
+              </label>
+            )}
+
+            <TextoError className="sm:col-span-2">{errorFormularioEvidencia}</TextoError>
+
+            <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+              <Boton type="submit" disabled={subiendoEvidencia}>
+                {subiendoEvidencia ? "Subiendo..." : "Subir evidencia"}
+              </Boton>
+              <button
+                type="button"
+                onClick={() => setFormEvidencia(null)}
+                className="text-sm text-ink/60 hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
 
         {formEntrada && (
           <form onSubmit={crearEntrada} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4">
@@ -2449,6 +2616,55 @@ export default function FichaAlumnoPage() {
         ) : (
           <div className="space-y-3">
             {entradas.map((entrada) => {
+              // 🆕 'evidencia' no es narrativa ni puente (ver docstring de
+              // EntradaExpediente en models.py) — título/descripción/descarga
+              // ya vienen en el listado (metadata, no contenido narrativo),
+              // así que no necesita el toggle con fetch+auditoría de abajo:
+              // la propia descarga del archivo es lo que se audita.
+              if (entrada.tipo_entrada === "evidencia") {
+                return (
+                  <div key={entrada.id} className="rounded-card border border-border p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-teal-900">{entrada.titulo || "Evidencia"}</span>
+                        <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-teal-900/10 text-teal-900">
+                          Evidencia
+                        </span>
+                        {entrada.informe_id && (
+                          <span className="text-xs text-ink/50">vinculada a informe #{entrada.informe_id}</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-ink/60 whitespace-nowrap">
+                        {new Date(entrada.fecha_entrada).toLocaleString()}
+                      </span>
+                    </div>
+                    {entrada.descripcion && <p className="text-sm text-ink/70">{entrada.descripcion}</p>}
+                    <div className="flex items-center gap-4 flex-wrap pt-1">
+                      <button
+                        onClick={() => descargarEvidenciaExpediente(entrada)}
+                        disabled={descargandoEvidenciaExpedienteId === entrada.id}
+                        className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-50"
+                      >
+                        {descargandoEvidenciaExpedienteId === entrada.id
+                          ? "Descargando..."
+                          : `Descargar (${entrada.nombre_archivo_original || "archivo"})`}
+                      </button>
+                      {entrada.informe_id && puedeEscribirExpediente && (
+                        <label className="flex items-center gap-2 text-xs text-ink/70">
+                          <input
+                            type="checkbox"
+                            checked={entrada.incluir_en_pdf_informe}
+                            disabled={actualizandoIncluirPdfId === entrada.id}
+                            onChange={(e) => alternarIncluirEnPdf(entrada, e.target.checked)}
+                          />
+                          Incluir en la próxima versión del PDF
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+
               const narrativa = esTipoEntradaNarrativo(entrada.tipo_entrada);
               const expandida = entradaExpandidaId === entrada.id;
               return (

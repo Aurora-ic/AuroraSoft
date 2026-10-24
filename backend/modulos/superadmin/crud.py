@@ -2039,6 +2039,11 @@ TIPO_ENTRADA_CONTACTO_APODERADO = "contacto_apoderado"
 TIPO_ENTRADA_DERIVACION = "derivacion"
 TIPO_ENTRADA_SESION = "sesion"
 TIPO_ENTRADA_APLICACION_PRUEBA = "aplicacion_prueba"
+# 🆕 'evidencia' — igual que 'documento_institucional', deliberadamente NO
+# entra en TIPOS_ENTRADA_VALIDOS/_TIPOS_ENTRADA_EXPEDIENTE_VALIDOS (schemas.py):
+# tiene su propio endpoint multipart dedicado (POST .../expediente/evidencia),
+# nunca el genérico POST .../expediente (que solo acepta JSON, sin archivo).
+TIPO_ENTRADA_EVIDENCIA = "evidencia"
 TIPOS_ENTRADA_VALIDOS = (
     TIPO_ENTRADA_OBSERVACION, TIPO_ENTRADA_CONTACTO_APODERADO, TIPO_ENTRADA_DERIVACION,
     TIPO_ENTRADA_SESION, TIPO_ENTRADA_APLICACION_PRUEBA,
@@ -2192,6 +2197,98 @@ def crear_entrada_expediente_documento_institucional(
     return entrada
 
 
+def crear_entrada_expediente_evidencia(
+    db: Session, persona: models.Persona, autor_usuario_id: int,
+    contenido: bytes, nombre_archivo: str, content_type: str,
+    titulo: str, descripcion: Optional[str], fecha_entrada: Optional[datetime],
+    informe_id: Optional[int], incluir_en_pdf_informe: bool,
+) -> models.EntradaExpediente:
+    """Registra un archivo escaneado (dibujo proyectivo, ficha física,
+    cualquier hoja) como entrada 'evidencia' del expediente — suelta
+    (informe_id=None) o vinculada a una aplicación puntual. Reutiliza
+    exactamente la misma lista blanca/tope de tamaño/storage que
+    guardar_evidencia_consentimiento(), sin inventar un segundo mecanismo de
+    saneo de archivos.
+
+    `incluir_en_pdf_informe=True` exige informe_id (ver
+    ck_expediente_incluir_pdf_requiere_evidencia_con_informe) — validado acá
+    con un 422 claro, igual criterio que _validar_enlaces_segun_tipo, en vez
+    de dejar que el CHECK reviente como IntegrityError crudo.
+    """
+    if not titulo or not titulo.strip():
+        raise HTTPException(status_code=422, detail="El título de la evidencia es obligatorio.")
+    if informe_id is not None:
+        informe = db.query(educativo_models.Informe).filter(educativo_models.Informe.id == informe_id).first()
+        if not informe or informe.persona_id != persona.id:
+            raise HTTPException(status_code=404, detail="Ese informe no pertenece a este estudiante.")
+    if incluir_en_pdf_informe and informe_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Solo se puede incluir en el PDF una evidencia vinculada a un informe (informe_id).",
+        )
+    if len(contenido) > TAMANO_MAXIMO_EVIDENCIA_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"El archivo supera el tamaño máximo permitido ({TAMANO_MAXIMO_EVIDENCIA_BYTES // (1024*1024)} MB).",
+        )
+    extension = _extension_segura(nombre_archivo)
+
+    # Se escribe el storage ANTES de insertar la fila — storage_key es
+    # NOT NULL desde el primer INSERT (ck_expediente_campos_segun_tipo), así
+    # que no se puede depender de entrada.id (que recién existiría después
+    # de un flush/insert) como hace, por ejemplo, el informe PDF con su
+    # propio id de versión. Mismo criterio de "token, no id" que
+    # construir_storage_key_imagen_seccion_documento.
+    import uuid as _uuid
+    from core.storage import obtener_storage_service, construir_storage_key_evidencia_expediente
+    token = _uuid.uuid4().hex
+    key = construir_storage_key_evidencia_expediente(persona.institucion_id, persona.id, token, extension)
+    obtener_storage_service().guardar(key, contenido, content_type or "application/octet-stream")
+
+    entrada = models.EntradaExpediente(
+        persona_id=persona.id,
+        institucion_id=persona.institucion_id,
+        tipo_entrada=TIPO_ENTRADA_EVIDENCIA,
+        autor_usuario_id=autor_usuario_id,
+        fecha_entrada=fecha_entrada or datetime.now(timezone.utc),
+        version_actual=None,  # archivo fijo, no narrativo — ver docstring de la clase
+        informe_id=informe_id,
+        titulo=titulo.strip(),
+        descripcion=descripcion,
+        storage_key=key,
+        nombre_archivo_original=nombre_archivo,
+        content_type=content_type,
+        incluir_en_pdf_informe=incluir_en_pdf_informe,
+    )
+    db.add(entrada)
+    db.commit()
+    db.refresh(entrada)
+    return entrada
+
+
+def leer_evidencia_expediente(entrada: models.EntradaExpediente) -> bytes:
+    """Lee el binario de storage. Lanza FileNotFoundError si la key no
+    existe (mismo contrato que StorageService.leer)."""
+    from core.storage import obtener_storage_service
+    return obtener_storage_service().leer(entrada.storage_key)
+
+
+def actualizar_evidencia_expediente(
+    db: Session, entrada: models.EntradaExpediente, incluir_en_pdf_informe: bool,
+) -> models.EntradaExpediente:
+    """Único campo editable de una evidencia ya subida — ver
+    EntradaExpedienteEvidenciaUpdate."""
+    if incluir_en_pdf_informe and entrada.informe_id is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Solo se puede incluir en el PDF una evidencia vinculada a un informe.",
+        )
+    entrada.incluir_en_pdf_informe = incluir_en_pdf_informe
+    db.commit()
+    db.refresh(entrada)
+    return entrada
+
+
 def usuario_puede_ver_contenido_completo(db: Session, entrada: models.EntradaExpediente, usuario_actual):
     """LA regla de acceso — ver el comentario del bloque. Devuelve
     (autorizado, autorizacion_usada); la segunda solo viene poblada cuando
@@ -2286,6 +2383,11 @@ def obtener_detalle_entrada_expediente(
         "informe_id": entrada.informe_id,
         "contacto_familiar_id": entrada.contacto_familiar_id,
         "documento_institucional_id": entrada.documento_institucional_id,
+        "titulo": entrada.titulo,
+        "descripcion": entrada.descripcion,
+        "nombre_archivo_original": entrada.nombre_archivo_original,
+        "content_type": entrada.content_type,
+        "incluir_en_pdf_informe": entrada.incluir_en_pdf_informe,
         "version": _describir_version_expediente(version),
     }
 

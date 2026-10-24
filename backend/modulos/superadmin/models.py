@@ -744,6 +744,28 @@ class EntradaExpediente(Base):
     'derivacion') SÍ tienen contenido narrativo propio, en sus
     `EntradaExpedienteVersion`.
 
+    🆕 Séptimo tipo, 'evidencia' (migración `b85b001b2e64`) — un ARCHIVO
+    escaneado/fotografiado (dibujo proyectivo, ficha física, hoja de
+    respuestas en papel...) registrado en la línea de tiempo del alumno.
+    Ni puente ni narrativo-versionado: tiene contenido propio (el archivo +
+    `titulo`/`descripcion`), pero ese contenido es un binario fijo, no texto
+    que se "corrige" — por eso tampoco usa `EntradaExpedienteVersion`
+    (`version_actual` queda NULL, igual que los puentes). Si se subió el
+    escaneo equivocado, se registra una entrada NUEVA (línea de tiempo
+    append-only, mismo criterio que el resto del expediente) en vez de
+    sobrescribir esta.
+
+    `informe_id` (reutilizado del propio bridge de 'aplicacion_prueba', pero
+    OPCIONAL aquí) decide dónde aparece: NULL = evidencia suelta del
+    estudiante; con valor = vinculada a una aplicación puntual. Marcar
+    `incluir_en_pdf_informe=True` (solo válido con `informe_id` presente) le
+    pide a `core.pdf_generator.generar_pdf` que la incruste como anexo la
+    PRÓXIMA vez que se genere una versión de ese informe (automática,
+    `reemitir` o `reprocesar` — ver `modulos/educativo/crud.py:
+    obtener_anexos_evidencia_informe`) — una versión YA emitida nunca
+    cambia; agregar/desmarcar evidencia después solo se refleja en la
+    siguiente versión que se genere.
+
     🔒 Confidencialidad (regla de la psicóloga, sin nivel intermedio y sin
     excepción para "admin"): el contenido completo de CUALQUIER entrada —
     sin importar su tipo — solo lo puede leer `autor_usuario_id` o
@@ -759,7 +781,7 @@ class EntradaExpediente(Base):
         CheckConstraint(
             "tipo_entrada IN "
             "('observacion_conducta', 'contacto_apoderado', 'derivacion', 'sesion', "
-            "'aplicacion_prueba', 'documento_institucional')",
+            "'aplicacion_prueba', 'documento_institucional', 'evidencia')",
             name="ck_expediente_tipo_entrada_valido",
         ),
         # 🔒 Coherencia entre tipo_entrada y qué enlace trae la fila — mismo
@@ -782,8 +804,24 @@ class EntradaExpediente(Base):
             " OR "
             "(tipo_entrada = 'documento_institucional' "
             " AND documento_institucional_id IS NOT NULL AND sesion_seguimiento_id IS NULL"
-            " AND informe_id IS NULL AND contacto_familiar_id IS NULL)",
+            " AND informe_id IS NULL AND contacto_familiar_id IS NULL)"
+            " OR "
+            # 🆕 'evidencia' — informe_id es el ÚNICO enlace que admite, y es
+            # OPCIONAL (a diferencia de 'aplicacion_prueba', donde es
+            # obligatorio): NULL = evidencia suelta, con valor = vinculada a
+            # una aplicación puntual. storage_key siempre presente (el
+            # archivo es el contenido propio de esta entrada).
+            "(tipo_entrada = 'evidencia' "
+            " AND storage_key IS NOT NULL AND sesion_seguimiento_id IS NULL"
+            " AND contacto_familiar_id IS NULL AND documento_institucional_id IS NULL)",
             name="ck_expediente_campos_segun_tipo",
+        ),
+        # 🔒 incluir_en_pdf_informe solo tiene sentido (y solo se permite)
+        # para 'evidencia' vinculada a un informe — nunca para una evidencia
+        # suelta (no hay PDF al que incrustarla) ni para ningún otro tipo.
+        CheckConstraint(
+            "incluir_en_pdf_informe = false OR (tipo_entrada = 'evidencia' AND informe_id IS NOT NULL)",
+            name="ck_expediente_incluir_pdf_requiere_evidencia_con_informe",
         ),
     )
 
@@ -828,6 +866,14 @@ class EntradaExpediente(Base):
         ),
         nullable=True, index=True,
     )
+
+    # --- Solo 'evidencia' (ver docstring de la clase) ---
+    titulo = Column(String, nullable=True)
+    descripcion = Column(Text, nullable=True)
+    storage_key = Column(String, nullable=True)
+    nombre_archivo_original = Column(String, nullable=True)
+    content_type = Column(String, nullable=True)
+    incluir_en_pdf_informe = Column(Boolean, nullable=False, server_default="false")
 
 
 class EntradaExpedienteVersion(Base):

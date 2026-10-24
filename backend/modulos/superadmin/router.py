@@ -1,5 +1,6 @@
 import io
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, status
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -1135,6 +1136,109 @@ def agregar_version_expediente_endpoint(
         raise HTTPException(status_code=404, detail="Entrada de expediente no encontrada.")
     _verificar_misma_institucion_o_403(usuario_actual, entrada.institucion_id, "No puedes editar el expediente de otro colegio.")
     return crud.agregar_version_expediente(db=db, entrada=entrada, usuario_actual=usuario_actual, datos=datos)
+
+
+@router.post("/{persona_id}/expediente/evidencia", response_model=schemas.EntradaExpedienteResponse, status_code=status.HTTP_201_CREATED)
+def subir_evidencia_expediente_endpoint(
+    persona_id: int,
+    archivo: UploadFile = File(...),
+    titulo: str = Form(...),
+    descripcion: Optional[str] = Form(None),
+    fecha_entrada: Optional[datetime] = Form(None),
+    informe_id: Optional[int] = Form(None),
+    incluir_en_pdf_informe: bool = Form(False),
+    db: Session = Depends(get_db),
+    # 🔒 Mismo rol que el resto del expediente — ver crear_entrada_expediente_endpoint.
+    usuario_actual: auth_models.Usuario = Depends(permisos.GESTION_EXPEDIENTE),
+):
+    """Sube un archivo escaneado/fotografiado (dibujo proyectivo, ficha
+    física, hoja de respuestas en papel...) como entrada 'evidencia' del
+    expediente clínico — PDF/JPG/PNG, máx. 10 MB, misma lista blanca que la
+    evidencia de consentimientos. `informe_id` es opcional: ausente =
+    evidencia suelta del estudiante; presente = vinculada a esa aplicación
+    puntual. `incluir_en_pdf_informe=True` (exige informe_id) la marca para
+    incrustarse como anexo la próxima vez que se genere una versión de ese
+    informe (automática, "Reemitir informe" o "Reprocesar") — nunca
+    modifica una versión ya emitida."""
+    persona = _obtener_persona_o_404(db, persona_id)
+    _verificar_misma_institucion_o_403(usuario_actual, persona.institucion_id, "No puedes subir evidencia al expediente de otro colegio.")
+    contenido = leer_archivo_con_limite(archivo, crud.TAMANO_MAXIMO_EVIDENCIA_BYTES, "archivo de evidencia")
+    return crud.crear_entrada_expediente_evidencia(
+        db=db, persona=persona, autor_usuario_id=usuario_actual.id,
+        contenido=contenido, nombre_archivo=archivo.filename or "evidencia",
+        content_type=archivo.content_type or "application/octet-stream",
+        titulo=titulo, descripcion=descripcion, fecha_entrada=fecha_entrada,
+        informe_id=informe_id, incluir_en_pdf_informe=incluir_en_pdf_informe,
+    )
+
+
+@router.get("/expediente/evidencia/{entrada_id}/archivo")
+def descargar_evidencia_expediente_endpoint(
+    entrada_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(obtener_usuario_actual),
+):
+    """Descarga el archivo de una entrada 'evidencia' — misma regla de
+    acceso y el mismo registro de auditoría que el detalle de cualquier
+    otra entrada del expediente (ver obtener_detalle_entrada_expediente):
+    autor/superadmin, o 'colegio' con AutorizacionAccesoColegio vigente."""
+    entrada = db.query(models.EntradaExpediente).filter(
+        models.EntradaExpediente.id == entrada_id,
+        models.EntradaExpediente.tipo_entrada == crud.TIPO_ENTRADA_EVIDENCIA,
+    ).first()
+    if not entrada:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada.")
+    _verificar_misma_institucion_o_403(usuario_actual, entrada.institucion_id, "No puedes ver evidencia de otro colegio.")
+    autorizado, autorizacion = crud.usuario_puede_ver_contenido_completo(db, entrada, usuario_actual)
+    if not autorizado:
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta evidencia.")
+    try:
+        contenido = crud.leer_evidencia_expediente(entrada)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="El archivo ya no está disponible en el almacenamiento.")
+
+    db.add(models.RegistroLecturasExpediente(
+        entrada_expediente_id=entrada.id,
+        persona_id=entrada.persona_id,
+        institucion_id=entrada.institucion_id,
+        leido_por_usuario_id=usuario_actual.id,
+        rol_lector=usuario_actual.rol,
+        ip_lectura=ip_del_cliente(request),
+        numero_version_leida=None,
+        autorizacion_acceso_colegio_id=autorizacion.id if autorizacion else None,
+    ))
+    db.commit()
+
+    nombre_descarga = entrada.nombre_archivo_original or "evidencia"
+    return StreamingResponse(
+        io.BytesIO(contenido),
+        media_type=entrada.content_type or "application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{nombre_descarga}"'},
+    )
+
+
+@router.patch("/expediente/evidencia/{entrada_id}", response_model=schemas.EntradaExpedienteResponse)
+def actualizar_evidencia_expediente_endpoint(
+    entrada_id: int,
+    datos: schemas.EntradaExpedienteEvidenciaUpdate,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.GESTION_EXPEDIENTE),
+):
+    """Alterna `incluir_en_pdf_informe` — único campo editable de una
+    evidencia ya subida (el archivo/título no se corrigen in-place, se
+    registra una entrada nueva). Solo el propio autor o superadmin, mismo
+    criterio que agregar_version_expediente."""
+    entrada = db.query(models.EntradaExpediente).filter(
+        models.EntradaExpediente.id == entrada_id,
+        models.EntradaExpediente.tipo_entrada == crud.TIPO_ENTRADA_EVIDENCIA,
+    ).first()
+    if not entrada:
+        raise HTTPException(status_code=404, detail="Evidencia no encontrada.")
+    _verificar_misma_institucion_o_403(usuario_actual, entrada.institucion_id, "No puedes editar evidencia de otro colegio.")
+    if entrada.autor_usuario_id != usuario_actual.id and usuario_actual.rol != "superadmin":
+        raise HTTPException(status_code=403, detail="Solo quien registró esta evidencia (o superadmin) puede editarla.")
+    return crud.actualizar_evidencia_expediente(db=db, entrada=entrada, incluir_en_pdf_informe=datos.incluir_en_pdf_informe)
 
 
 # ------------------------------------------

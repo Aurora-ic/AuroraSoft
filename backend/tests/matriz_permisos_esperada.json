@@ -135,6 +135,22 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
+    "GET /api/admin/personas/expediente/evidencia/{entrada_id}/archivo": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/expediente/evidencia/{entrada_id}": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
     "GET /api/admin/personas/importar/plantilla": {
       "admin": true,
       "colegio": false,
@@ -992,6 +1008,14 @@
       "verifica_institucion": false
     },
     "POST /api/admin/personas/{persona_id}/expediente": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/admin/personas/{persona_id}/expediente/evidencia": {
       "admin": false,
       "colegio": false,
       "psicologo": true,

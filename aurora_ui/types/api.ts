@@ -338,13 +338,18 @@ export type PersonaAntecedentesClinicosUpdate = {
 // Debe coincidir con crud.TIPOS_ENTRADA_VALIDOS (backend). Los primeros 3
 // tienen contenido narrativo propio y versionado; "sesion"/"aplicacion_prueba"
 // son entradas puente que solo enlazan a una SesionSeguimiento/Informe ya
-// existente y nunca tienen contenido ni versión propios.
+// existente y nunca tienen contenido ni versión propios. "evidencia" (🆕)
+// no es ninguna de las dos cosas: tiene contenido propio (el archivo +
+// titulo/descripcion) pero ese contenido es un binario fijo, no texto que
+// se corrige — nunca pasa por EntradaExpedienteCreate/POST .../expediente
+// (que solo acepta JSON), tiene su propio endpoint multipart dedicado.
 export type TipoEntradaExpediente =
   | "observacion_conducta"
   | "contacto_apoderado"
   | "derivacion"
   | "sesion"
-  | "aplicacion_prueba";
+  | "aplicacion_prueba"
+  | "evidencia";
 
 // GET /admin/personas/{persona_id}/expediente — solo metadata, nunca
 // contenido narrativo. El backend ya filtra esta lista por la regla de
@@ -362,6 +367,33 @@ export type EntradaExpediente = {
   sesion_seguimiento_id: number | null;
   informe_id: number | null;
   contacto_familiar_id: number | null;
+  // 🆕 Solo poblados para tipo_entrada="evidencia" — null para el resto.
+  titulo: string | null;
+  descripcion: string | null;
+  nombre_archivo_original: string | null;
+  content_type: string | null;
+  incluir_en_pdf_informe: boolean;
+};
+
+// POST /admin/personas/{persona_id}/expediente/evidencia (multipart, nunca
+// JSON) — informe_id ausente = evidencia suelta del estudiante; presente =
+// vinculada a esa aplicación puntual. incluir_en_pdf_informe=true (exige
+// informe_id) la marca para incrustarse como anexo la PRÓXIMA vez que se
+// genere una versión de ese informe (automática/"Reemitir informe"/
+// "Reprocesar") — nunca modifica una versión ya emitida.
+export type EntradaExpedienteEvidenciaCreate = {
+  archivo: File;
+  titulo: string;
+  descripcion?: string | null;
+  fecha_entrada?: string | null;
+  informe_id?: number | null;
+  incluir_en_pdf_informe?: boolean;
+};
+
+// PATCH /admin/personas/expediente/evidencia/{entrada_id} — único campo
+// editable de una evidencia ya subida.
+export type EntradaExpedienteEvidenciaUpdate = {
+  incluir_en_pdf_informe: boolean;
 };
 
 // El contenido narrativo de una versión concreta — solo existe para los 3

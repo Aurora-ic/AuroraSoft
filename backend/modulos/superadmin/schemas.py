@@ -528,9 +528,24 @@ class EntradaExpedienteResponse(BaseModel):
     # forma de saber a qué DocumentoInstitucional apunta una entrada
     # tipo_entrada='documento_institucional' sin ir directo a la BD.
     documento_institucional_id: Optional[int] = None
+    # 🆕 Solo poblados para tipo_entrada='evidencia' (ver EntradaExpediente
+    # en models.py) — None para los otros 6 tipos. Nunca el binario en sí:
+    # eso se descarga aparte, GET /expediente/evidencia/{id}/archivo.
+    titulo: Optional[str] = None
+    descripcion: Optional[str] = None
+    nombre_archivo_original: Optional[str] = None
+    content_type: Optional[str] = None
+    incluir_en_pdf_informe: bool = False
 
     class Config:
         from_attributes = True
+
+
+class EntradaExpedienteEvidenciaUpdate(BaseModel):
+    """Único campo editable de una evidencia ya subida — para cambiar el
+    archivo/título hay que registrar una entrada nueva (ver docstring de
+    EntradaExpediente: append-only, nunca se sobrescribe)."""
+    incluir_en_pdf_informe: bool
 
 
 class AutorizacionAccesoColegioCreate(BaseModel):

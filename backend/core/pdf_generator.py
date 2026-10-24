@@ -15,6 +15,12 @@
 # 7. Recomendaciones, Firma. El CONTENIDO de cada sección cambia según los
 # resultados reales; la ESTRUCTURA es estable y reutilizable para cualquier
 # prueba futura — nada aquí menciona PHQ-9 ni ningún instrumento concreto.
+#
+# 🆕 Sección ANEXOS (opcional, tras la firma) — evidencia del expediente
+# clínico (EntradaExpediente tipo='evidencia') que el psicólogo marcó para
+# incrustarse en ESTE informe (`contenido["anexos"]`, poblado por modulos/
+# educativo/crud.py:obtener_anexos_evidencia_informe). Vacío para cualquier
+# informe sin evidencia marcada — no cambia nada de lo anterior.
 
 import io
 import logging
@@ -39,7 +45,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import (
-    Image, KeepTogether, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
+    Image, KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle,
 )
 
 # ============================================================
@@ -290,6 +296,87 @@ def _bloque_contenido(bloque: dict | None, estilos, placeholder: str) -> list:
             estilos["aviso_fuente"],
         ))
     return elementos
+
+
+def _encabezado_anexo(anexo: dict, estilos) -> list:
+    """Título/fecha/descripción de un anexo de evidencia — compartido por
+    el anexo de tipo imagen (se intercala tal cual en el flujo del propio
+    documento) y la portada de un anexo tipo PDF (ver _portada_anexo_pdf,
+    que arma un PDF de una sola página con exactamente este mismo bloque)."""
+    elementos = [Paragraph(escape(anexo.get("titulo") or "Evidencia"), estilos["subseccion"])]
+    if anexo.get("fecha"):
+        elementos.append(Paragraph(f"Fecha: {formatear_fecha(anexo['fecha'])}", estilos["normal_izq"]))
+    if anexo.get("descripcion"):
+        elementos.append(Paragraph(escape(anexo["descripcion"]).replace("\n", "<br/>"), estilos["normal"]))
+    return elementos
+
+
+def _elemento_anexo_imagen(anexo: dict, estilos) -> list:
+    """Evidencia tipo imagen, embebida directamente en el flujo del propio
+    documento — mismo cálculo de aspecto que modulos/documentos/
+    pdf_generador.py:_renderizar_imagen_anexo (no duplicar la lógica, solo
+    el mismo criterio: PIL para no deformar, con un tamaño fijo de reserva
+    si PIL no puede abrir el archivo)."""
+    elementos = _encabezado_anexo(anexo, estilos)
+    buffer = io.BytesIO(anexo["bytes"])
+    try:
+        from PIL import Image as PILImage
+        with PILImage.open(buffer) as img:
+            ancho_px, alto_px = img.size
+        buffer.seek(0)
+        ancho_max = 15 * cm
+        alto = ancho_max * (alto_px / ancho_px) if ancho_px else 10 * cm
+        alto_max = 19 * cm
+        if alto > alto_max:
+            alto = alto_max
+            ancho_max = alto_max * (ancho_px / alto_px) if alto_px else ancho_max
+        elementos.append(Image(buffer, width=ancho_max, height=alto))
+    except Exception:
+        buffer.seek(0)
+        elementos.append(Image(buffer, width=15 * cm, height=15 * cm))
+    return elementos
+
+
+def _portada_anexo_pdf(anexo: dict) -> io.BytesIO:
+    """PDF de una sola página con título/fecha/descripción de un anexo tipo
+    'pdf' — se antepone a sus propias páginas cuando se fusiona al final de
+    generar_pdf() (ver bloque ANEXOS). Un documento aparte y minúsculo en
+    vez de una página más de `elementos`: a diferencia de una imagen, un PDF
+    externo no es un flowable de reportlab, se fusiona con pypdf DESPUÉS de
+    doc.build() — necesita sus propios bytes de PDF, no puede vivir a mitad
+    de la lista `elementos`."""
+    estilos = _construir_estilos()
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        rightMargin=2 * cm, leftMargin=2 * cm, topMargin=2.3 * cm, bottomMargin=2.3 * cm,
+    )
+    doc.build(_encabezado_anexo(anexo, estilos))
+    buffer.seek(0)
+    return buffer
+
+
+def _fusionar_anexos_pdf(buffer_base: io.BytesIO, anexos_pdf: list[dict]) -> io.BytesIO:
+    """Agrega, al final del PDF ya construido, cada anexo tipo 'pdf' completo
+    (todas sus páginas, precedidas por su propia portada de una página) — la
+    única forma de incluir un archivo PDF ajeno dentro de este documento:
+    reportlab solo sabe dibujar flowables propios, nunca páginas de otro PDF,
+    así que esto corre DESPUÉS de doc.build(), con pypdf, nunca antes."""
+    from pypdf import PdfReader, PdfWriter
+
+    writer = PdfWriter()
+    for pagina in PdfReader(buffer_base).pages:
+        writer.add_page(pagina)
+    for anexo in anexos_pdf:
+        for pagina in PdfReader(_portada_anexo_pdf(anexo)).pages:
+            writer.add_page(pagina)
+        for pagina in PdfReader(io.BytesIO(anexo["bytes"])).pages:
+            writer.add_page(pagina)
+
+    buffer_final = io.BytesIO()
+    writer.write(buffer_final)
+    buffer_final.seek(0)
+    return buffer_final
 
 
 def generar_pdf(contenido: dict) -> io.BytesIO:
@@ -649,9 +736,33 @@ def generar_pdf(contenido: dict) -> io.BytesIO:
         bloque_firma.append(Paragraph("(Sello)", estilos["firma_linea"]))
         elementos.append(KeepTogether(bloque_firma))
 
+        # ── ANEXOS: evidencia del expediente clínico vinculada a este
+        # informe (EntradaExpediente tipo='evidencia', incluir_en_pdf_informe
+        # =True — ver modulos/educativo/crud.py:obtener_anexos_evidencia_informe).
+        # Los de tipo imagen se intercalan aquí mismo, como un flowable más;
+        # los de tipo pdf (un escaneo multipágina ya en PDF) no pueden vivir
+        # en `elementos` — se fusionan aparte, después de doc.build().
+        anexos = contenido.get("anexos") or []
+        anexos_imagen = [a for a in anexos if a.get("tipo") == "imagen"]
+        anexos_pdf = [a for a in anexos if a.get("tipo") == "pdf"]
+        if anexos_imagen:
+            elementos.append(PageBreak())
+            elementos.append(Paragraph("ANEXOS: EVIDENCIA COMPLEMENTARIA", estilos["seccion"]))
+            elementos.append(Paragraph(
+                "Material adicional registrado en el expediente clínico del estudiante, vinculado a esta aplicación.",
+                estilos["aviso_fuente"],
+            ))
+            for anexo in anexos_imagen:
+                elementos.append(KeepTogether(_elemento_anexo_imagen(anexo, estilos)))
+                elementos.append(Spacer(1, 0.8 * cm))
+
         marco = partial(_dibujar_marco_pagina, nombre_institucion=nombre_institucion, nombre_prueba=nombre_prueba)
         doc.build(elementos, onFirstPage=marco, onLaterPages=marco)
         buffer.seek(0)
+
+        if anexos_pdf:
+            buffer = _fusionar_anexos_pdf(buffer, anexos_pdf)
+
         logger.info(f"Informe PDF generado para la prueba: {nombre_prueba}")
         return buffer
 
