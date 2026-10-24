@@ -75,7 +75,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (nuevaSesion.rol === "superadmin") {
       router.push("/master");
     } else {
-      router.push("/estudiantes");
+      // 🆕 Antes caía directo en /estudiantes (un listado crudo, sin ningún
+      // "qué tengo que atender hoy"). /inicio es el dashboard de aterrizaje.
+      router.push("/inicio");
     }
   }
 

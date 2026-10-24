@@ -11,6 +11,7 @@ import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
+import { Migas } from "@/components/ui/Migas";
 import type { Institucion, InstitucionUpdate, Usuario, UsuarioCreate, Rol } from "@/types/api";
 
 const ROLES_ASIGNABLES: Rol[] = ["admin", "psicologo", "colegio"];
@@ -154,6 +155,7 @@ export default function DetalleInstitucionPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <Migas items={[{ label: "Instituciones", href: "/master/clientes" }, { label: institucion.nombre }]} />
       <div>
         <Link href="/master/clientes" className="text-xs text-ink/50 hover:underline">
           ← Instituciones

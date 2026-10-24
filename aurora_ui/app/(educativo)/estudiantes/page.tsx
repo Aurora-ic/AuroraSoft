@@ -10,6 +10,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
+import { EsqueletoFilasTabla } from "@/components/ui/Esqueleto";
 
 type FiltroEstado = "activos" | "inactivos" | "todos";
 
@@ -324,13 +325,7 @@ export default function PadronPage() {
             </TheadFila>
           </thead>
           <tbody>
-            {cargando && (
-              <tr>
-                <td colSpan={esAdmin ? 5 : 4} className="px-5 py-10 text-center text-sm text-ink/40">
-                  Cargando…
-                </td>
-              </tr>
-            )}
+            {cargando && <EsqueletoFilasTabla filas={8} columnas={esAdmin ? 5 : 4} />}
             {!cargando && personasFiltradas.length === 0 && (
               <tr>
                 <td colSpan={esAdmin ? 5 : 4} className="px-5 py-10 text-center text-sm text-ink/40">

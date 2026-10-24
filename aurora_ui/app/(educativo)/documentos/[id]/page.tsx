@@ -9,6 +9,8 @@ import { TextoError } from "@/components/ui/TextoError";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { ETIQUETAS_TIPO_SECCION } from "@/lib/documentos-constantes";
+import { VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
+import { Migas } from "@/components/ui/Migas";
 import type {
   DocumentoInstitucionalDetalle,
   DocumentoInstitucionalSeccionContenido,
@@ -62,6 +64,10 @@ export default function DetalleDocumentoPage() {
   const [mostrarReemision, setMostrarReemision] = useState(false);
   const [motivoReemision, setMotivoReemision] = useState("");
   const [descargandoVersionId, setDescargandoVersionId] = useState<number | null>(null);
+  const [visorAbierto, setVisorAbierto] = useState(false);
+  const [visorArchivo, setVisorArchivo] = useState<ArchivoParaVisor | null>(null);
+  const [visorCargando, setVisorCargando] = useState(false);
+  const [visorError, setVisorError] = useState<string | null>(null);
 
   function cargar() {
     setCargando(true);
@@ -284,6 +290,23 @@ export default function DetalleDocumentoPage() {
     }
   }
 
+  // 🆕 "Ver" (react-pdf, ver components/ui/VisorArchivo.tsx) — mismo
+  // endpoint que descargar(), pero abre el modal en vez de guardar a disco.
+  async function ver(version: DocumentoInstitucionalVersion) {
+    setVisorAbierto(true);
+    setVisorArchivo(null);
+    setVisorError(null);
+    setVisorCargando(true);
+    try {
+      const blob = await apiClient.descargarArchivo(`/documentos/${documentoId}/versiones/${version.numero_version}/descargar`);
+      setVisorArchivo({ blob, contentType: "application/pdf", nombreArchivo: version.nombre_archivo });
+    } catch (err: any) {
+      setVisorError(err.message || "No se pudo cargar el PDF.");
+    } finally {
+      setVisorCargando(false);
+    }
+  }
+
   if (cargando) return <div className="p-6 text-sm text-ink/60">Cargando...</div>;
   if (!documento) return <div className="p-6"><TextoError>{error}</TextoError></div>;
 
@@ -291,6 +314,7 @@ export default function DetalleDocumentoPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <Migas items={[{ label: "Documentos", href: "/documentos" }, { label: documento.titulo }]} />
       <div>
         <Link href="/documentos" className="text-xs text-ink/50 hover:underline">
           ← Documentos
@@ -490,18 +514,31 @@ export default function DetalleDocumentoPage() {
                     v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
                     {v.motivo_version && <span className="text-ink/50"> ({v.motivo_version})</span>}
                   </span>
-                  <button
-                    onClick={() => descargar(v)}
-                    disabled={descargandoVersionId === v.id}
-                    className="text-teal-700 hover:underline text-xs"
-                  >
-                    {descargandoVersionId === v.id ? "Descargando..." : "Descargar PDF"}
-                  </button>
+                  <span className="flex items-center gap-3">
+                    <button onClick={() => ver(v)} className="text-teal-700 hover:underline text-xs">
+                      Ver
+                    </button>
+                    <button
+                      onClick={() => descargar(v)}
+                      disabled={descargandoVersionId === v.id}
+                      className="text-teal-700 hover:underline text-xs"
+                    >
+                      {descargandoVersionId === v.id ? "Descargando..." : "Descargar PDF"}
+                    </button>
+                  </span>
                 </div>
               ))}
           </div>
         )}
       </section>
+
+      <VisorArchivoModal
+        abierto={visorAbierto}
+        onCerrar={() => setVisorAbierto(false)}
+        archivo={visorArchivo}
+        cargando={visorCargando}
+        error={visorError}
+      />
     </div>
   );
 }

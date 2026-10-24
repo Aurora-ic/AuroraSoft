@@ -9,6 +9,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { DimensionBar } from "@/components/ui/DimensionBar";
 import { ResumenEstadisticoPrueba } from "@/components/ui/ResumenEstadisticoPrueba";
 import { GraficoTendenciaDimension } from "@/components/ui/GraficoTendenciaDimension";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 import type {
   Prueba,
   PruebaDetalle,
@@ -212,7 +213,7 @@ export default function PruebasPage() {
       </p>
 
       <TextoError>{error}</TextoError>
-      {loading && <p className="text-sm text-ink/40">Cargando...</p>}
+      {loading && <EsqueletoLista cantidad={6} />}
 
       {pruebas && pruebas.length === 0 && (
         <p className="text-sm text-ink/60 italic">No hay ninguna prueba disponible para tu institución todavía.</p>

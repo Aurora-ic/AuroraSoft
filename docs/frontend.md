@@ -6,7 +6,7 @@ Read [aurora_ui/AGENTS.md](../aurora_ui/AGENTS.md) first: this is Next.js 16, wh
 
 Route groups map to audiences, and the group name never appears in the URL:
 
-- `app/(educativo)/` → `/estudiantes`, `/campanas`, `/documentos`, `/agenda`, `/academico`, `/casos-riesgo`, `/pruebas` — the psychologist's app. `/agenda` is a hand-rolled weekly calendar grid of the logged-in psychologist's `CitaProgramada` rows (`GET /personas/citas/mi-agenda`), with reprogramar/cancelar inline per day — see "Known rough edges" below for the session that closed this (it used to be a plain text list). `/academico` is a real CRUD for `NivelEducativo`/`Grado`/`Seccion` (create/list against `GET/POST /admin/personas/academico/{niveles,grados,secciones}`), not a dashboard.
+- `app/(educativo)/` → `/inicio`, `/estudiantes`, `/campanas`, `/documentos`, `/agenda`, `/academico`, `/casos-riesgo`, `/pruebas`, `/asentimiento`, `/configuracion` — the psychologist's app (🆕 `/inicio` and `/configuracion`, see "UI/UX: dashboard de inicio, configuración, búsqueda global..." below). `/agenda` is a hand-rolled weekly calendar grid of the logged-in psychologist's `CitaProgramada` rows (`GET /personas/citas/mi-agenda`), with reprogramar/cancelar inline per day — see "Known rough edges" below for the session that closed this (it used to be a plain text list). `/academico` is a real CRUD for `NivelEducativo`/`Grado`/`Seccion` (create/list against `GET/POST /admin/personas/academico/{niveles,grados,secciones}`), not a dashboard.
 - `app/(superadmin)/master/` → AuroraSoft's own back office, guarded by `<RequireAuth rolesPermitidos={["superadmin"]}>`.
 - `app/(examen)/examen/[token]/` → the student's public exam, intentionally with no sidebar and no auth guard. Keep it that way; a guard here would lock students out.
 
@@ -67,4 +67,67 @@ Tailwind v4 is configured entirely through the `@theme` block in [app/globals.cs
   Ahora los 6 huecos originales de esta lista están cubiertos: documentos, agenda/citas/seguimiento, datos de filiación, master, y dashboard académico/tendencias. **Ninguno de los 6 specs nuevos se ejecutó realmente contra un servidor en esta sesión** (no hay backend+Postgres+`npm run dev` disponibles en este entorno) — verificados solo con `tsc --noEmit` limpio, `next build` limpio, y `npx playwright test --list` (confirma que los 6 archivos cargan y Playwright los reconoce, 11 tests en 9 archivos en total, incluidos los 4 originales). Correrlos de verdad contra un servidor real sigue siendo el paso que falta antes de confiar en ellos como regresión real para el piloto. El cómputo total de logins reales contra `/auth/login` en una corrida completa de la suite es 4 (2 de `global-setup.ts` + 2 de `login.spec.ts`), bien por debajo del rate limit de 5/minuto — todos los specs nuevos reusan `fixtures.psicologoToken`/`fixtures.superadminToken` ya cacheados, nunca un login propio.
 
 Building this surfaced two real, narrow findings. (1) `next dev` (Next.js 16) silently blocks its own client bundle/HMR for any origin other than `localhost` (`allowedDevOrigins`) — hitting the dev server via `127.0.0.1` loads the raw server-rendered HTML but never hydrates, so every click falls back to the browser's native (wrong) behavior; `playwright.config.ts`'s default `baseURL` is `localhost` specifically because of this — left as-is, out of scope. (2) ~~`lib/api-client.ts`'s dedicated `login()` falls back to the literal string `"Email o contraseña incorrectos."` whenever the error response has no `.detail` field~~ — **🆕 cerrado (sesión 2026-10-17, antes de un piloto con usuarios reales)**: `login()` ahora distingue explícitamente `res.status === 429` (la forma real de la respuesta de `slowapi`, confirmada en el código del backend: `{"error": "Rate limit exceeded: ..."}`, nunca `.detail`) y muestra "Demasiados intentos. Espera un momento antes de volver a intentarlo." en vez de caer en el mensaje de credenciales incorrectas. El spec `e2e/login.spec.ts` (que sí asume `"Email o contraseña incorrectos"` para un 401 real) no se vio afectado — el caso especial es estrictamente aditivo, solo para 429. `tsc --noEmit`/`next build` limpios; sin ejecución real de Playwright en esta sesión (no hay backend+Postgres disponibles en este entorno).
+
+## 🆕 UI/UX: visor de PDF, dashboard de inicio, configuración, búsqueda global, sidebar agrupado, migas de pan, estados de carga y acciones masivas (sesión 2026-10-24)
+
+Pasada de UI/UX dedicada — hasta esta sesión el sistema era funcional pero sin pulido: sin previsualización de nada (todo PDF se descargaba a disco para poder verlo), sin pantalla de aterrizaje tras el login, sin autoservicio para configuración de institución (el backend ya la tenía, nada en el frontend la usaba), sin búsqueda, un sidebar plano de 10 ítems, sin rastro de navegación en páginas anidadas, estados de carga de una sola línea de texto, y todo uno-por-uno (sin acciones masivas). Cada punto de abajo es independiente — se puede leer y verificar por separado.
+
+### Visor de archivos embebido — `components/ui/VisorArchivo.tsx`
+
+Antes, el informe/documento/evidencia que fuera se traía como `Blob` y se disparaba la descarga directa siempre — nunca se mostraba en pantalla. Nuevo componente con dos formas: `ContenidoVisorArchivo` (el renderizador en sí: páginas PDF o imagen, con paginación/zoom) embebido inline donde hace falta ver el contenido al lado de un formulario (el panel "Revisar informe" de la ficha del alumno, que ya tenía una vista previa con `<iframe>` nativo — reemplazada), y `VisorArchivoModal` (el mismo renderizador + chrome de modal) para el "Ver" rápido desde una lista.
+
+Usa `react-pdf` (envoltorio de `pdf.js`, el mismo motor que Chrome/Firefox usan nativamente) en vez de `<iframe>`/`<embed>` apuntando al navegador: en móvil (Chrome Android, Safari iOS) el visor nativo de PDF suele forzar la descarga en vez de mostrarlo inline, mientras que `react-pdf` dibuja cada página en un `<canvas>` propio. El worker de pdf.js (`pdf.worker.min.mjs`) se sirve como asset estático desde `public/` — copiado a mano desde `node_modules/pdfjs-dist/build/` al instalar el paquete (si se actualiza `react-pdf`/`pdfjs-dist`, hay que volver a copiarlo para que la versión del worker coincida exactamente con la del paquete, o pdf.js rechaza con un error de versión). Detecta el tipo de contenido automáticamente (PDF vs. imagen) — relevante para la evidencia del expediente clínico, que puede ser cualquiera de las dos.
+
+Botón "Ver" agregado en los 3 lugares que antes solo tenían "Descargar": la lista "Pruebas aplicadas" de la ficha del alumno, cada versión de un documento institucional (`documentos/[id]/page.tsx`), y la evidencia del expediente clínico (`estudiantes/[personaId]/page.tsx`, ver "Evidencia" en docs/motor-documentos.md).
+
+**Verificado sin navegador disponible en esta sesión**: se tomó un informe PDF real generado por el backend y se parseó con la misma versión exacta de `pdfjs-dist` y el mismo archivo de worker que usa la app, confirmando que no hay desajuste de versión (si lo hubiera, pdf.js lanza un error duro) y que el PDF real se lee sin problemas. `tsc --noEmit`/`next build` limpios — falta una pasada visual real de un humano antes de confiar en esto para el piloto.
+
+### `/configuracion` — autoservicio de institución (antes: nada)
+
+El backend ya tenía 3 endpoints sin ninguna pantalla que los llamara: `PATCH /instituciones/{id}/anio-escolar-activo`, `PATCH /instituciones/{id}/politica-consentimientos` (el toggle de `exigir_asentimiento_estudiante`, ver docs/estudiante-nucleo-y-privacidad.md), y `POST /instituciones/{id}/branding/{tipo}` (logo de encabezado/pie/fondo autoalojado). La única forma de usarlos era ir directo a Swagger. Nueva pantalla con los 3, más un bloque de solo-lectura de los datos generales (nombre/dirección/licencia/plan) con una nota de que esos los administra AuroraSoft directamente desde `/master/clientes/[id]` — **no se duplica esa pantalla de superadmin**, `PATCH /instituciones/{id}` (el endpoint genérico que sí toca esos campos) sigue siendo exclusivo de superadmin, intencional.
+
+Solo `admin` puede editar (mismo criterio que `permisos.SOLO_ADMINISTRATIVO` del backend — superadmin nunca llega a esta ruta porque el route group `(educativo)` no lo incluye); `psicólogo`/`colegio` ven todo en modo lectura.
+
+**Verificado contra el backend real** con `qa.admin@aurorasoft-pruebas.local`: activé el año escolar, prendí y revertí la política de consentimientos, y subí/descargué una imagen de branding real de punta a punta (confirmando que la URL pública que el backend devuelve sirve de vuelta exactamente la misma imagen, byte a byte). Esto último necesitó configurar `PUBLIC_BACKEND_URL` en `backend/.env` (antes sin configurar, daba 503 "por diseño" — el candado SSRF documentado en `core/branding.py`) apuntando al túnel ngrok de pruebas; mismo caveat que el resto de lo que depende de ese túnel, hay que actualizarlo si se reinicia.
+
+### `/inicio` — dashboard de aterrizaje (antes: el login caía directo en `/estudiantes`)
+
+`contexts/AuthContext.tsx`'s `login()` redirige a `/inicio` en vez de `/estudiantes` para cualquier rol no-superadmin (`e2e/login.spec.ts` actualizado para asertar esto). Tres tarjetas, cada una reusando un endpoint que ya existía — ningún endpoint nuevo:
+
+- **Casos en riesgo sin seguimiento** — `GET /educativo/casos-pendientes` (alumnos con `es_alerta=True` sin ninguna `SesionSeguimiento` posterior, el worklist clínico real de `crud.obtener_casos_pendientes_de_seguimiento`). Solo se pide si el rol es psicólogo/admin — para `colegio` el backend ya la bloquea con 403 (`requerir_staff_clinico`), así que la tarjeta ni se muestra ni se pide.
+- **Citas de hoy** — mismo `GET /admin/personas/citas/mi-agenda` que ya usa el badge del sidebar, filtrado a `estado="Programada"` y la fecha de hoy.
+- **Campañas activas** — `GET /educativo/campanas/?institucion_id=...&limit=200`, filtrado a `estado="activa"` en cliente, con aviso si alguna `fecha_fin` cae dentro de los próximos 7 días.
+
+**Verificado contra el backend real** con `qa.psicologo`/`qa.colegio`: `casos-pendientes` da 200 para psicólogo y 403 para colegio exactamente como se esperaba, `mi-agenda`/`campanas` devuelven datos reales con la forma exacta que el componente espera.
+
+### Búsqueda global (Ctrl+K / Cmd+K) — `components/educativo/BusquedaGlobal.tsx`
+
+Antes, encontrar un alumno exigía ir primero a `/estudiantes` y filtrar ahí. Nuevo buscador accesible desde cualquier pantalla del grupo `(educativo)` (botón visible en el sidebar + atajo de teclado global, con `preventDefault()` porque Chrome usa la misma combinación para el buscador de la barra de direcciones — mismo patrón que Linear/GitHub/Notion/Vercel). Busca por nombre, apellido, documento o código institucional sobre el mismo padrón que ya trae `/estudiantes` (`apiClient.getTodasLasPaginas` sobre `/admin/personas/{institucion_id}`) — ningún endpoint nuevo.
+
+**Primer uso real de `@tanstack/react-query` en este proyecto** — la dependencia y el `QueryProvider` ya estaban cableados desde la fase 5 del plan de remodelación (ver su propio docstring: "ninguna página existente se migra en esta fase... solo las páginas nuevas que se escriban de ahora en adelante usan `useQuery`"), pero ninguna pantalla lo usaba todavía. `enabled: abierto` + `staleTime` de 5 minutos: el padrón se trae una sola vez por apertura del buscador y se reutiliza mientras la caché siga fresca.
+
+**Verificado contra el backend real** con psicólogo y colegio (ambos acceden al padrón) — la forma de los datos, incluido `seccion_actual` (ya viene embebido en cada `Persona`, no hace falta una llamada aparte), coincide exactamente con lo que el componente espera.
+
+### Sidebar agrupado por flujo de trabajo (antes: lista plana de 10 ítems)
+
+`components/educativo/Sidebar.tsx` — reorganizado en 4 grupos colapsables (Estudiantes: Padrón/Estructura académica; Evaluación: Campañas/Pruebas/Casos en riesgo; Documentos: Documentos/Asentimiento informado; Gestión: Agenda/Configuración), con "Inicio" afuera de los grupos a propósito (es el aterrizaje, no una sección más). El grupo que contiene la ruta activa se expande automáticamente al navegar — mismo patrón de "ajustar estado durante el render" (no en un `useEffect`, ver `react-hooks/set-state-in-effect`) ya usado en `VisorArchivo.tsx`/`BusquedaGlobal.tsx` para evitar el render-commit-efecto-render en cascada que un `useEffect` con `setState` produciría acá.
+
+### Migas de pan — `components/ui/Migas.tsx`
+
+Antes, en páginas anidadas (`campanas/[id]/dashboard`, `documentos/[id]`, `documentos/plantillas/[id]`, `estudiantes/[personaId]` y sus dos subrutas de cita/seguimiento nuevos, `master/clientes/[id]`) la única forma de "volver atrás" visualmente era el botón del navegador — varias ya tenían un link "← Volver a X" propio, que se mantiene tal cual (las migas se agregan arriba, no lo reemplazan). Componente reusable, último ítem sin `href` (la página actual).
+
+### Estados de carga con forma — `components/ui/Esqueleto.tsx`
+
+Antes, varias pantallas iban de vacío a lleno con solo un texto "Cargando..." — en `documentos/page.tsx`, la página *entera* se reemplazaba por esa única línea. Tres variantes (`EsqueletoFilasTabla`, `EsqueletoTarjetas`, `EsqueletoLista`) aplicadas en las 4 pantallas de listado principales (`estudiantes`, `campanas`, `documentos`, `pruebas`) — ninguna reemplaza un mensaje de error/vacío existente, solo el estado intermedio mientras `cargando` es `true`.
+
+### Acciones masivas — `campanas/[id]/dashboard/page.tsx`
+
+Dos acciones nuevas, reusando exactamente los endpoints que ya existían (nada nuevo en el backend):
+
+- **Descargar varios informes a la vez** — columna de checkbox (solo en filas `estado="Finalizado"`, las únicas con PDF) en la tabla virtualizada de alumnos, con "seleccionar todos los finalizados" en el encabezado. El botón dispara el mismo `GET /educativo/inscripciones/{id}/informe-pdf` que ya usa la ficha del alumno, en secuencia (nunca en paralelo, con una pausa de 300ms entre cada una) para no saturar al navegador con descargas simultáneas ni disparar el bloqueo de "múltiples descargas" de algunos navegadores; un informe que falla (ej. retenido) no aborta el resto del lote, solo se cuenta y se avisa al final. Visible solo para `puedeAdministrar` (psicólogo/admin/superadmin — mismo criterio que el resto del dashboard, `colegio` ve resultados redactados y no debería poder bajar PDFs individuales).
+- **Copiar todos los links pendientes** — dentro del panel "Links mágicos" (que ya tenía "Copiar link" por fila): un botón copia al portapapeles, uno por línea, el link de examen de cada inscripción *no* finalizada — para pegar de una sola vez en un mensaje de WhatsApp/correo a los alumnos que todavía no rindieron, en vez de copiar uno por uno.
+
+**Verificado contra el backend real**: 3 llamadas sucesivas a `informe-pdf` (simulando el loop de descarga masiva) devuelven 200 con PDFs reales cada vez, sin problema de límite de tasa ni de conexión.
+
+`tsc --noEmit` y `next build` limpios para todo lo de esta sección en conjunto.
 

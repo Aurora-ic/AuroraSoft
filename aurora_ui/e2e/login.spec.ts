@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { leerFixtures } from "./global-setup";
 
 test.describe("Login", () => {
-  test("credenciales correctas entra y redirige a /estudiantes", async ({ page }) => {
+  test("credenciales correctas entra y redirige a /inicio", async ({ page }) => {
     const fixtures = leerFixtures();
     await page.goto("/");
     // Espera a que React hidrate antes de interactuar -- sin esto, un click
@@ -12,7 +12,7 @@ test.describe("Login", () => {
     await page.getByLabel("Correo electrónico").fill(fixtures.psicologoEmail);
     await page.getByLabel("Contraseña").fill(fixtures.psicologoPassword);
     await page.getByRole("button", { name: "Ingresar al sistema" }).click();
-    await expect(page).toHaveURL(/\/estudiantes/);
+    await expect(page).toHaveURL(/\/inicio/);
   });
 
   test("credenciales incorrectas muestra un error y no entra", async ({ page }) => {

@@ -8,6 +8,7 @@ import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Textarea } from "@/components/ui/Textarea";
+import { Migas } from "@/components/ui/Migas";
 import type { Persona, SesionSeguimientoCreate } from "@/types/api";
 
 // Formulario real para el botón "+ Registrar Sesión" de la ficha del
@@ -69,6 +70,13 @@ export default function NuevaSesionSeguimientoPage() {
 
   return (
     <div className="p-6 max-w-xl mx-auto space-y-6">
+      <Migas
+        items={[
+          { label: "Padrón", href: "/estudiantes" },
+          { label: alumno ? `${alumno.nombres} ${alumno.apellidos}` : "Alumno", href: `/estudiantes/${personaId}` },
+          { label: "Nueva sesión" },
+        ]}
+      />
       <div>
         <Link
           href={`/estudiantes/${personaId}`}

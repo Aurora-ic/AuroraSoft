@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
+import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 import type { RespuestaPaginada } from "@/types/api";
 
 // Refleja schemas.EvaluacionResponse tal cual está en el backend —
@@ -77,11 +78,11 @@ export default function CampanasPage() {
         )}
       </div>
 
-      {cargando && <p className="text-sm text-ink/40">Cargando...</p>}
       <TextoError className="mb-4">{error}</TextoError>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {campanas.map((campana) => (
+        {cargando && <EsqueletoTarjetas cantidad={4} />}
+        {!cargando && campanas.map((campana) => (
           <Link
             key={campana.id}
             href={`/campanas/${campana.id}/dashboard`}

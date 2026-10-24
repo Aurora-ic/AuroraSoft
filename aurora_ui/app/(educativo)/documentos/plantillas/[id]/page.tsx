@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TextoError } from "@/components/ui/TextoError";
 import { ETIQUETAS_TIPO_SECCION, TIPOS_SECCION_ORDENADOS, TIPOS_CON_CONFIG_SIMPLE } from "@/lib/documentos-constantes";
+import { Migas } from "@/components/ui/Migas";
 import type {
   PlantillaDocumento,
   PlantillaDocumentoUpdate,
@@ -212,6 +213,7 @@ export default function ConstructorPlantillaPage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-6">
+      <Migas items={[{ label: "Documentos", href: "/documentos" }, { label: plantilla.nombre }]} />
       <div>
         <Link href="/documentos" className="text-xs text-ink/50 hover:underline">
           ← Documentos

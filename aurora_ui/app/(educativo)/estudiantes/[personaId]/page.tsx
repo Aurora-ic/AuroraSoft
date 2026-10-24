@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { TheadFila, Th } from "@/components/ui/Tabla";
+import { ContenidoVisorArchivo, VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
+import { Migas } from "@/components/ui/Migas";
 import type {
   Persona,
   PersonaUpdate,
@@ -228,21 +230,24 @@ export default function FichaAlumnoPage() {
   const [descargandoInformeId, setDescargandoInformeId] = useState<number | null>(null);
   // 🆕 Vista previa del PDF embebida junto al formulario de revisión, para no
   // tener que descargar el archivo cada vez que se quiere ver el resultado
-  // de una edición/reemisión. Un solo blob URL vivo a la vez (el panel de
+  // de una edición/reemisión. Un solo archivo vivo a la vez (el panel de
   // revisión también muestra una sola inscripción expandida a la vez).
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
+  // 🆕 Renderizado con <ContenidoVisorArchivo> (react-pdf) en vez del
+  // <iframe> nativo de antes — el visor nativo del navegador fuerza la
+  // descarga en vez de mostrar inline en varios móviles (Chrome Android,
+  // Safari iOS), ver components/ui/VisorArchivo.tsx.
+  const [pdfPreviewArchivo, setPdfPreviewArchivo] = useState<ArchivoParaVisor | null>(null);
   const [cargandoPreviewPdf, setCargandoPreviewPdf] = useState(false);
   const [errorPreviewPdf, setErrorPreviewPdf] = useState<string | null>(null);
 
-  // Libera el blob URL de la vista previa al desmontar la página (evita fugas de memoria).
-  useEffect(() => {
-    return () => {
-      setPdfPreviewUrl((actual) => {
-        if (actual) URL.revokeObjectURL(actual);
-        return actual;
-      });
-    };
-  }, []);
+  // 🆕 Modal "Ver" rápido desde una lista (pruebas aplicadas, documentos
+  // institucionales, evidencia del expediente) — independiente del panel de
+  // revisión de arriba, que muestra el PDF embebido al lado del formulario.
+  const [visorModalAbierto, setVisorModalAbierto] = useState(false);
+  const [visorModalArchivo, setVisorModalArchivo] = useState<ArchivoParaVisor | null>(null);
+  const [visorModalCargando, setVisorModalCargando] = useState(false);
+  const [visorModalError, setVisorModalError] = useState<string | null>(null);
+  const [visorModalTitulo, setVisorModalTitulo] = useState<string | undefined>(undefined);
 
   const [editandoMatricula, setEditandoMatricula] = useState(false);
   const [niveles, setNiveles] = useState<NivelEducativo[]>([]);
@@ -499,10 +504,7 @@ export default function FichaAlumnoPage() {
   }
 
   function cerrarPreviewPdf() {
-    setPdfPreviewUrl((actual) => {
-      if (actual) URL.revokeObjectURL(actual);
-      return null;
-    });
+    setPdfPreviewArchivo(null);
     setErrorPreviewPdf(null);
   }
 
@@ -511,15 +513,53 @@ export default function FichaAlumnoPage() {
     setErrorPreviewPdf(null);
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/inscripciones/${inscripcionId}/informe-pdf`);
-      const url = URL.createObjectURL(blob);
-      setPdfPreviewUrl((anterior) => {
-        if (anterior) URL.revokeObjectURL(anterior);
-        return url;
-      });
+      setPdfPreviewArchivo({ blob, contentType: "application/pdf", nombreArchivo: `informe_${inscripcionId}.pdf` });
     } catch (err: any) {
       setErrorPreviewPdf(err.message || "No se pudo cargar la vista previa del informe.");
     } finally {
       setCargandoPreviewPdf(false);
+    }
+  }
+
+  function cerrarVisorModal() {
+    setVisorModalAbierto(false);
+    setVisorModalArchivo(null);
+    setVisorModalError(null);
+  }
+
+  async function verInformeDesdeFicha(inscripcionId: number) {
+    setVisorModalAbierto(true);
+    setVisorModalArchivo(null);
+    setVisorModalError(null);
+    setVisorModalTitulo("Informe");
+    setVisorModalCargando(true);
+    try {
+      const blob = await apiClient.descargarArchivo(`/educativo/inscripciones/${inscripcionId}/informe-pdf`);
+      setVisorModalArchivo({ blob, contentType: "application/pdf", nombreArchivo: `informe_${inscripcionId}.pdf` });
+    } catch (err: any) {
+      setVisorModalError(err.message || "No se pudo cargar el informe.");
+    } finally {
+      setVisorModalCargando(false);
+    }
+  }
+
+  async function verEvidenciaExpediente(entrada: EntradaExpediente) {
+    setVisorModalAbierto(true);
+    setVisorModalArchivo(null);
+    setVisorModalError(null);
+    setVisorModalTitulo(entrada.titulo || "Evidencia");
+    setVisorModalCargando(true);
+    try {
+      const blob = await apiClient.descargarArchivo(`/admin/personas/expediente/evidencia/${entrada.id}/archivo`);
+      setVisorModalArchivo({
+        blob,
+        contentType: entrada.content_type,
+        nombreArchivo: entrada.nombre_archivo_original || `evidencia-${entrada.id}`,
+      });
+    } catch (err: any) {
+      setVisorModalError(err.message || "No se pudo cargar la evidencia.");
+    } finally {
+      setVisorModalCargando(false);
     }
   }
 
@@ -1382,6 +1422,7 @@ export default function FichaAlumnoPage() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      <Migas items={[{ label: "Padrón", href: "/estudiantes" }, { label: `${alumno.nombres} ${alumno.apellidos}` }]} />
       {/* Cabecera y Navegación */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
         <div>
@@ -2212,6 +2253,12 @@ export default function FichaAlumnoPage() {
                       {fila.informe_liberado ? "Liberado" : "Retenido"}
                     </span>
                     <button
+                      onClick={() => verInformeDesdeFicha(fila.inscripcion_id)}
+                      className="text-sm text-teal-600 hover:underline font-medium"
+                    >
+                      Ver
+                    </button>
+                    <button
                       onClick={() => descargarInformeDesdeFicha(fila.inscripcion_id)}
                       disabled={descargandoInformeId === fila.inscripcion_id}
                       className="text-sm text-teal-600 hover:underline font-medium"
@@ -2233,8 +2280,8 @@ export default function FichaAlumnoPage() {
                       <p className="text-sm text-ink/60">Cargando...</p>
                     ) : detalleInforme ? (
                       <div className="lg:flex lg:gap-6 lg:items-start">
-                        {/* 🆕 Vista previa del PDF embebida — el navegador la renderiza con su
-                            propio visor nativo (sin librerías extra), así la psicóloga ve el
+                        {/* 🆕 Vista previa del PDF embebida (react-pdf, ver
+                            components/ui/VisorArchivo.tsx) — así la psicóloga ve el
                             informe sin descargarlo cada vez. Muestra siempre la ÚLTIMA versión
                             emitida; "Guardar revisión" no la cambia (el PDF no se regenera
                             solo), por eso el botón "Actualizar vista previa" y el refresco
@@ -2251,17 +2298,11 @@ export default function FichaAlumnoPage() {
                             </button>
                           </div>
                           <TextoError>{errorPreviewPdf}</TextoError>
-                          {pdfPreviewUrl ? (
-                            <iframe
-                              src={pdfPreviewUrl}
-                              title={`Vista previa del informe — ${fila.prueba_nombre_publico}`}
-                              className="w-full h-[70vh] rounded-card border border-border bg-mist/20"
-                            />
-                          ) : (
-                            <p className="text-sm text-ink/50 italic">
-                              {cargandoPreviewPdf ? "Cargando vista previa..." : "Sin informe generado todavía."}
-                            </p>
-                          )}
+                          <ContenidoVisorArchivo
+                            archivo={pdfPreviewArchivo}
+                            cargando={cargandoPreviewPdf}
+                            alturaClase="h-[70vh]"
+                          />
                         </div>
 
                         <div className="flex-1 min-w-0 space-y-4">
@@ -2640,6 +2681,12 @@ export default function FichaAlumnoPage() {
                     </div>
                     {entrada.descripcion && <p className="text-sm text-ink/70">{entrada.descripcion}</p>}
                     <div className="flex items-center gap-4 flex-wrap pt-1">
+                      <button
+                        onClick={() => verEvidenciaExpediente(entrada)}
+                        className="text-xs text-teal-600 hover:underline font-medium"
+                      >
+                        Ver
+                      </button>
                       <button
                         onClick={() => descargarEvidenciaExpediente(entrada)}
                         disabled={descargandoEvidenciaExpedienteId === entrada.id}
@@ -3188,6 +3235,15 @@ export default function FichaAlumnoPage() {
           </div>
         )}
       </section>
+
+      <VisorArchivoModal
+        abierto={visorModalAbierto}
+        onCerrar={cerrarVisorModal}
+        archivo={visorModalArchivo}
+        cargando={visorModalCargando}
+        error={visorModalError}
+        titulo={visorModalTitulo}
+      />
     </div>
   );
 }

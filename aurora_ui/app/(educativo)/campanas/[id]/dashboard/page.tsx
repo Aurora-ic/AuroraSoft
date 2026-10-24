@@ -13,6 +13,7 @@ import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
+import { Migas } from "@/components/ui/Migas";
 import type { DashboardCampana, InscripcionCampana, Prueba } from "@/types/api";
 
 // Convierte el datetime que manda el backend al formato que acepta
@@ -64,6 +65,15 @@ export default function DashboardCampanaPage() {
   // un PDF que el alumno ya pudo haber descargado — lo único que la
   // plataforma puede hacer es dejarlo explícito aquí mismo.
   const [avisoRetraccion, setAvisoRetraccion] = useState<string | null>(null);
+
+  // 🆕 Acciones masivas (sesión 2026-10-24) — antes todo era uno por uno.
+  // Reusa exactamente los mismos endpoints que ya existían (el de descargar
+  // un informe, el de "Copiar link" de cada fila) — nada nuevo en el
+  // backend, solo dispararlos en secuencia sobre la selección.
+  const [seleccionados, setSeleccionados] = useState<Set<number>>(new Set());
+  const [descargandoMasivo, setDescargandoMasivo] = useState(false);
+  const [errorMasivo, setErrorMasivo] = useState<string | null>(null);
+  const [copiadoLinksPendientes, setCopiadoLinksPendientes] = useState(false);
 
   // 🆕 Virtualización de la tabla de alumnos (hallazgo de escala, docs/
   // gaps-pendientes.md) — una campaña de un colegio grande puede matricular
@@ -197,6 +207,62 @@ export default function DashboardCampanaPage() {
     }
   }
 
+  function alternarSeleccion(inscripcionId: number) {
+    setSeleccionados((prev) => {
+      const siguiente = new Set(prev);
+      if (siguiente.has(inscripcionId)) siguiente.delete(inscripcionId);
+      else siguiente.add(inscripcionId);
+      return siguiente;
+    });
+  }
+
+  const finalizados = dashboard?.alumnos.filter((a) => a.estado === "Finalizado") ?? [];
+
+  function alternarSeleccionTodos() {
+    setSeleccionados((prev) =>
+      prev.size === finalizados.length ? new Set() : new Set(finalizados.map((a) => a.inscripcion_id)),
+    );
+  }
+
+  // Mismo endpoint que ya usa la ficha del alumno para "Descargar PDF" —
+  // disparado en secuencia (no en paralelo) para no saturar al navegador
+  // con decenas de descargas simultáneas ni al backend con un burst de
+  // requests; una pausa corta entre cada una evita que el navegador
+  // bloquee "múltiples descargas" como si fuera spam.
+  async function descargarInformesSeleccionados() {
+    setDescargandoMasivo(true);
+    setErrorMasivo(null);
+    let fallos = 0;
+    for (const inscripcionId of seleccionados) {
+      try {
+        const blob = await apiClient.descargarArchivo(`/educativo/inscripciones/${inscripcionId}/informe-pdf`);
+        descargarBlob(blob, `informe_${inscripcionId}.pdf`);
+      } catch {
+        fallos++;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+    if (fallos > 0) {
+      setErrorMasivo(`${fallos} de ${seleccionados.size} informes no se pudieron descargar (puede que estén retenidos).`);
+    }
+    setDescargandoMasivo(false);
+  }
+
+  // Copia TODOS los links de inscripciones pendientes (nunca los ya
+  // finalizados) a la vez, uno por línea — mismo texto/formato que "Copiar
+  // link" ya usa por fila, pero en lote, para pegar de una sola vez en un
+  // mensaje de WhatsApp/correo a los alumnos que todavía no rindieron.
+  async function copiarLinksPendientes() {
+    if (!links) return;
+    const pendientes = links.filter((ins) => ins.estado !== "Finalizado");
+    const texto = pendientes
+      .map((ins) => `${ins.nombre_completo ?? "(sin nombre)"}: ${window.location.origin}/examen/${ins.token}`)
+      .join("\n");
+    await navigator.clipboard.writeText(texto);
+    setCopiadoLinksPendientes(true);
+    setTimeout(() => setCopiadoLinksPendientes(false), 2000);
+  }
+
   async function cerrar() {
     setAccionando(true);
     setErrorAccion(null);
@@ -232,6 +298,7 @@ export default function DashboardCampanaPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <Migas items={[{ label: "Campañas", href: "/campanas" }, { label: dashboard.nombre_grupo }]} />
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -341,7 +408,21 @@ export default function DashboardCampanaPage() {
       )}
 
       <div className="bg-white rounded-card border border-border p-6 space-y-3">
-        <h2 className="font-display text-lg text-teal-900">Alumnos</h2>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h2 className="font-display text-lg text-teal-900">Alumnos</h2>
+          {puedeAdministrar && seleccionados.size > 0 && (
+            <button
+              onClick={descargarInformesSeleccionados}
+              disabled={descargandoMasivo}
+              className="text-sm text-teal-600 hover:underline font-medium disabled:opacity-50"
+            >
+              {descargandoMasivo
+                ? `Descargando... (${seleccionados.size})`
+                : `Descargar ${seleccionados.size} informe${seleccionados.size === 1 ? "" : "s"} seleccionado${seleccionados.size === 1 ? "" : "s"}`}
+            </button>
+          )}
+        </div>
+        <TextoError>{errorMasivo}</TextoError>
         {dashboard.alumnos.length === 0 ? (
           <p className="text-sm text-ink/60 italic">Todavía no hay alumnos matriculados en esta campaña.</p>
         ) : (
@@ -356,6 +437,16 @@ export default function DashboardCampanaPage() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10 bg-white">
                 <TheadFila>
+                  {puedeAdministrar && (
+                    <Th className="px-2 py-1 w-8">
+                      <input
+                        type="checkbox"
+                        checked={finalizados.length > 0 && seleccionados.size === finalizados.length}
+                        onChange={alternarSeleccionTodos}
+                        title="Seleccionar todos los finalizados"
+                      />
+                    </Th>
+                  )}
                   <Th className="px-2 py-1">Alumno</Th>
                   <Th className="px-2 py-1">Estado</Th>
                   <Th className="px-2 py-1">Resultados</Th>
@@ -367,7 +458,7 @@ export default function DashboardCampanaPage() {
                     estudiantes/importar/page.tsx (vista previa de Excel). */}
                 {virtualizadorAlumnos.getVirtualItems().length > 0 && (
                   <tr style={{ height: virtualizadorAlumnos.getVirtualItems()[0].start }} aria-hidden>
-                    <td colSpan={puedeReprocesar ? 4 : 3} />
+                    <td colSpan={3 + (puedeReprocesar ? 1 : 0) + (puedeAdministrar ? 1 : 0)} />
                   </tr>
                 )}
                 {virtualizadorAlumnos.getVirtualItems().map((item) => {
@@ -379,6 +470,17 @@ export default function DashboardCampanaPage() {
                     ref={virtualizadorAlumnos.measureElement}
                     className="border-b border-border"
                   >
+                    {puedeAdministrar && (
+                      <td className="px-2 py-1">
+                        {a.estado === "Finalizado" && (
+                          <input
+                            type="checkbox"
+                            checked={seleccionados.has(a.inscripcion_id)}
+                            onChange={() => alternarSeleccion(a.inscripcion_id)}
+                          />
+                        )}
+                      </td>
+                    )}
                     <td className="px-2 py-1">{a.nombre_completo || "(sin nombre)"}</td>
                     <td className="px-2 py-1">{a.estado}</td>
                     <td className="px-2 py-1">
@@ -476,7 +578,7 @@ export default function DashboardCampanaPage() {
                     }}
                     aria-hidden
                   >
-                    <td colSpan={puedeReprocesar ? 4 : 3} />
+                    <td colSpan={3 + (puedeReprocesar ? 1 : 0) + (puedeAdministrar ? 1 : 0)} />
                   </tr>
                 )}
               </tbody>
@@ -496,6 +598,16 @@ export default function DashboardCampanaPage() {
         {mostrarLinks && (
           <>
             <TextoError>{errorLinks}</TextoError>
+            {links !== null && links.some((ins) => ins.estado !== "Finalizado") && (
+              <button
+                onClick={copiarLinksPendientes}
+                className="text-xs text-teal-600 hover:underline font-medium"
+              >
+                {copiadoLinksPendientes
+                  ? "¡Copiado!"
+                  : `Copiar todos los links pendientes (${links.filter((ins) => ins.estado !== "Finalizado").length})`}
+              </button>
+            )}
             {links === null ? (
               <p className="text-sm text-ink/60">Cargando...</p>
             ) : links.length === 0 ? (

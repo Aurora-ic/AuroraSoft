@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
 import type {
   TipoDocumento,
   PlantillaDocumento,
@@ -109,7 +110,14 @@ export default function DocumentosPage() {
     return tipos.find((t) => t.id === tipoId)?.nombre ?? `Tipo #${tipoId}`;
   }
 
-  if (cargando) return <div className="p-6 text-sm text-ink/60">Cargando...</div>;
+  if (cargando) {
+    return (
+      <div className="p-6 max-w-4xl mx-auto space-y-8">
+        <h1 className="font-display text-2xl text-teal-900">Documentos institucionales</h1>
+        <EsqueletoLista cantidad={5} />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-8">

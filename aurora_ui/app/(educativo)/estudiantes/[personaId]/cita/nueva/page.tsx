@@ -9,6 +9,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { Migas } from "@/components/ui/Migas";
 import type { Persona, CitaCreate } from "@/types/api";
 
 // Formulario real para el botón "+ Nueva Cita" de la ficha del alumno, que
@@ -75,6 +76,13 @@ export default function NuevaCitaPage() {
 
   return (
     <div className="p-6 max-w-xl mx-auto space-y-6">
+      <Migas
+        items={[
+          { label: "Padrón", href: "/estudiantes" },
+          { label: alumno ? `${alumno.nombres} ${alumno.apellidos}` : "Alumno", href: `/estudiantes/${personaId}` },
+          { label: "Nueva cita" },
+        ]}
+      />
       <div>
         <Link
           href={`/estudiantes/${personaId}`}
