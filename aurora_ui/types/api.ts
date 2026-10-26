@@ -748,6 +748,16 @@ export type PruebaDetalle = Prueba & {
   dimensiones: Dimension[];
 };
 
+// GET /educativo/inicio/resumen — dashboard de aterrizaje (ver /inicio).
+// requerir_staff_clinico: 'colegio' no lo pide (ver AuthContext/página).
+export type ResumenInicio = {
+  total_alumnos: number;
+  pruebas_finalizadas_mes: number;
+  estudiantes_con_seguimiento_mes: number;
+  campanas_activas: number;
+  mes: string; // "YYYY-MM"
+};
+
 export type Evaluacion = {
   id: number;
   prueba_id: number;
@@ -897,7 +907,7 @@ export type DashboardCampana = {
 // GET .../exportar-excel (mismo query, nueva) descarga el mismo Excel que ya
 // existía para la campaña puntual, incluida la hoja de resumen estadístico.
 export type AmbitoDashboardAcademico = {
-  tipo: "seccion" | "grado";
+  tipo: "seccion" | "grado" | "institucion";
   id: number;
   nombre: string;
 };

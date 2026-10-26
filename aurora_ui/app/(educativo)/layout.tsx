@@ -1,5 +1,6 @@
 import { RequireAuth } from "@/contexts/AuthContext";
 import { SidebarEducativo } from "@/components/educativo/Sidebar";
+import { Topbar } from "@/components/educativo/Topbar";
 
 // Este es el layout que Next.js realmente resuelve para /estudiantes,
 // /campanas, /pruebas, /agenda y /casos-riesgo — el nombre entre paréntesis
@@ -21,9 +22,14 @@ import { SidebarEducativo } from "@/components/educativo/Sidebar";
 export default function EducativoLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireAuth rolesPermitidos={["psicologo", "admin", "colegio"]}>
-      <div className="flex min-h-screen">
+      <div className="flex h-screen bg-mist dark:bg-mist-dark">
         <SidebarEducativo />
-        <main className="flex-1 p-8">{children}</main>
+        {/* 🆕 Topbar (sesión 2026-10-25) — persiste entre pantallas, por
+            fuera del scroll del contenido (solo <main> scrollea). */}
+        <div className="flex-1 min-w-0 flex flex-col h-screen">
+          <Topbar />
+          <main className="flex-1 overflow-y-auto p-8">{children}</main>
+        </div>
       </div>
     </RequireAuth>
   );

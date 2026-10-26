@@ -35,10 +35,13 @@ export default function PruebasPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [errorDetalle, setErrorDetalle] = useState<string | null>(null);
 
-  // --- Dashboard por salón o grado (cruza todas las campañas de una
-  // prueba) — ver GET /educativo/dashboard/academico. ---
+  // --- Dashboard por salón, grado o colegio completo (cruza todas las
+  // campañas de una prueba) — ver GET /educativo/dashboard/academico.
+  // 🆕 "institucion" (sesión 2026-10-25, docs/gaps-pendientes.md): antes
+  // una prueba aplicada en varios grados a la vez solo se podía revisar
+  // salón por salón. ---
   const [dashPruebaId, setDashPruebaId] = useState("");
-  const [dashAmbito, setDashAmbito] = useState<"seccion" | "grado">("seccion");
+  const [dashAmbito, setDashAmbito] = useState<"seccion" | "grado" | "institucion">("seccion");
   const [niveles, setNiveles] = useState<NivelEducativo[]>([]);
   const [grados, setGrados] = useState<Grado[]>([]);
   const [secciones, setSecciones] = useState<Seccion[]>([]);
@@ -108,8 +111,12 @@ export default function PruebasPage() {
     if (dashAmbito === "seccion" && !dashSeccionId) return null;
     if (dashAmbito === "grado" && !dashGradoId) return null;
     const params = new URLSearchParams({ prueba_id: dashPruebaId });
+    // "institucion" no agrega ningún parámetro más — el backend asume la
+    // propia institución del caller cuando no se manda seccion_id/grado_id
+    // (ver router.ver_dashboard_academico). sesion.institucionId es null
+    // para superadmin, que no tiene esta pantalla disponible de todos modos.
     if (dashAmbito === "seccion") params.set("seccion_id", dashSeccionId);
-    else params.set("grado_id", dashGradoId);
+    else if (dashAmbito === "grado") params.set("grado_id", dashGradoId);
     return params;
   }
 
@@ -205,7 +212,7 @@ export default function PruebasPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto space-y-4">
       <h1 className="font-display text-2xl text-teal-900">Pruebas</h1>
       <p className="text-sm text-ink/60">
         Catálogo de instrumentos disponibles para crear una campaña. Cargar un instrumento nuevo (ítems, dimensiones,
@@ -306,35 +313,48 @@ export default function PruebasPage() {
 
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-ink/70 font-medium">Ámbito</span>
-              <Select value={dashAmbito} onChange={(e) => setDashAmbito(e.target.value as "seccion" | "grado")}>
+              <Select
+                value={dashAmbito}
+                onChange={(e) => setDashAmbito(e.target.value as "seccion" | "grado" | "institucion")}
+              >
                 <option value="seccion">Un salón puntual</option>
                 <option value="grado">Grado completo (todas sus secciones)</option>
+                <option value="institucion">Todo el colegio</option>
               </Select>
             </label>
 
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink/70 font-medium">Nivel</span>
-              <Select required value={dashNivelId} onChange={(e) => setDashNivelId(e.target.value)}>
-                <option value="">Elige un nivel...</option>
-                {niveles.map((n) => (
-                  <option key={n.id} value={n.id}>
-                    {n.nombre}
-                  </option>
-                ))}
-              </Select>
-            </label>
+            {dashAmbito !== "institucion" && (
+              <>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-ink/70 font-medium">Nivel</span>
+                  <Select required value={dashNivelId} onChange={(e) => setDashNivelId(e.target.value)}>
+                    <option value="">Elige un nivel...</option>
+                    {niveles.map((n) => (
+                      <option key={n.id} value={n.id}>
+                        {n.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
 
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-ink/70 font-medium">Grado</span>
-              <Select required value={dashGradoId} onChange={(e) => setDashGradoId(e.target.value)} disabled={!dashNivelId}>
-                <option value="">Elige un grado...</option>
-                {grados.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.nombre}
-                  </option>
-                ))}
-              </Select>
-            </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="text-ink/70 font-medium">Grado</span>
+                  <Select
+                    required
+                    value={dashGradoId}
+                    onChange={(e) => setDashGradoId(e.target.value)}
+                    disabled={!dashNivelId}
+                  >
+                    <option value="">Elige un grado...</option>
+                    {grados.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.nombre}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </>
+            )}
 
             {dashAmbito === "seccion" && (
               <label className="flex flex-col gap-1 text-sm">

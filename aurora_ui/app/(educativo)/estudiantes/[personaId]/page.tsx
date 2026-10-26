@@ -1421,7 +1421,7 @@ export default function FichaAlumnoPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="max-w-5xl mx-auto space-y-6">
       <Migas items={[{ label: "Padrón", href: "/estudiantes" }, { label: `${alumno.nombres} ${alumno.apellidos}` }]} />
       {/* Cabecera y Navegación */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
@@ -2965,12 +2965,21 @@ export default function FichaAlumnoPage() {
 
       {/* Documentos institucionales — listado simple con link a la pantalla
           dedicada del sidebar (/documentos), donde se arman las plantillas y
-          se edita el contenido de cada documento — ver docs/motor-documentos.md. */}
+          se edita el contenido de cada documento — ver docs/motor-documentos.md.
+          🆕 "+ Nuevo documento" pasa personaId por query string: /documentos/nuevo
+          lo lee y precarga el alcance "uno o varios alumnos" con este alumno ya
+          marcado (ver ese archivo), para no tener que volver a buscarlo. Se abre
+          en pestaña nueva (target=_blank) para no perder la ficha de donde se vino. */}
       <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
           <h2 className="font-display text-xl text-teal-900 font-semibold">Documentos institucionales</h2>
-          <Link href="/documentos/nuevo" className="text-sm font-medium text-teal-700 hover:underline">
-            + Nuevo documento
+          <Link
+            href={`/documentos/nuevo?persona_id=${personaId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-teal-700 hover:underline"
+          >
+            + Nuevo documento ↗
           </Link>
         </div>
 

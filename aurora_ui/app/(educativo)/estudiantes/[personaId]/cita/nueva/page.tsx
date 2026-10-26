@@ -75,7 +75,7 @@ export default function NuevaCitaPage() {
   }
 
   return (
-    <div className="p-6 max-w-xl mx-auto space-y-6">
+    <div className="max-w-xl mx-auto space-y-6">
       <Migas
         items={[
           { label: "Padrón", href: "/estudiantes" },

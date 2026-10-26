@@ -42,16 +42,56 @@ function avisarNoAutorizado() {
   }
 }
 
+// 🆕 Bug real (hallazgo de sesión, reportado por el usuario con captura:
+// "[object Object]" en vez de un mensaje) — `detail` de un error del
+// backend NO siempre es un string. Un `raise HTTPException(detail="...")`
+// escrito a mano sí lo es, pero un 422 que dispara la validación nativa de
+// Pydantic (ej. `titulo: str = Field(min_length=2)`) trae
+// `detail: [{"loc": [...], "msg": "...", "type": "..."}, ...]` — una LISTA.
+// `new Error(listaDeObjetos)` coacciona ese array con `Array.prototype.
+// toString()`, que junta cada item con ",": como un objeto plano no tiene
+// `toString()` propio, el resultado es literalmente "[object Object]" (o
+// "[object Object],[object Object]" con más de un error). Afecta a
+// CUALQUIER POST/PATCH/PUT de la app que dispare una validación de Pydantic,
+// no solo a un formulario puntual — por eso se arregla acá, en el único
+// lugar que construye el mensaje, no en cada página que lo muestra.
+function extraerMensajeError(cuerpo: any): string {
+  const detail = cuerpo?.detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const mensajes = detail.map((d) => (typeof d?.msg === "string" ? d.msg : null)).filter(Boolean);
+    if (mensajes.length > 0) return mensajes.join(" — ");
+  }
+  return "Error inesperado del servidor.";
+}
+
 async function lanzarSiError(res: Response): Promise<void> {
   if (res.ok) return;
   if (res.status === 401) avisarNoAutorizado();
   const cuerpo = await res.json().catch(() => ({}));
-  throw new ApiError(res.status, cuerpo.detail ?? "Error inesperado del servidor.");
+  throw new ApiError(res.status, extraerMensajeError(cuerpo));
+}
+
+// 🆕 Distinto del bug de arriba: acá `fetch()` ni siquiera llega a recibir
+// una respuesta (backend caído, sin conexión, CORS) -- el navegador tira un
+// TypeError genérico cuyo .message es literalmente "Failed to fetch" (en
+// inglés, sea cual sea el idioma de la UI, porque es el motor del
+// navegador, no texto nuestro). lanzarSiError() nunca llega a correr para
+// este caso porque el propio `fetch()` es el que rechaza. Se traduce acá,
+// en el único lugar que hace el fetch real, para que las ~15 pantallas que
+// consumen apiClient no tengan que reconocer un TypeError de red aparte de
+// un ApiError de negocio.
+async function fetchSeguro(path: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(`${API_URL}${path}`, init);
+  } catch {
+    throw new ApiError(0, "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.");
+  }
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = obtenerToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchSeguro(path, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -71,7 +111,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 // boundary, así que aquí no se fija Content-Type en absoluto.
 async function requestForm<T>(path: string, formData: FormData, method: "POST" | "PATCH" = "POST"): Promise<T> {
   const token = obtenerToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchSeguro(path, {
     method,
     headers: {
       "ngrok-skip-browser-warning": "true",
@@ -86,7 +126,7 @@ async function requestForm<T>(path: string, formData: FormData, method: "POST" |
 // Descarga binaria (ej. la plantilla .xlsx) — la respuesta nunca es JSON.
 async function requestBlob(path: string): Promise<Blob> {
   const token = obtenerToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetchSeguro(path, {
     headers: {
       "ngrok-skip-browser-warning": "true",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -153,7 +193,7 @@ export async function login(email: string, password: string) {
   body.set("username", email);
   body.set("password", password);
 
-  const res = await fetch(`${API_URL}/auth/login`, {
+  const res = await fetchSeguro("/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -172,7 +212,7 @@ export async function login(email: string, password: string) {
     const mensaje =
       res.status === 429
         ? "Demasiados intentos. Espera un momento antes de volver a intentarlo."
-        : (cuerpo.detail ?? "Email o contraseña incorrectos.");
+        : (typeof cuerpo.detail === "string" && cuerpo.detail.trim() ? cuerpo.detail : "Email o contraseña incorrectos.");
     throw new ApiError(res.status, mensaje);
   }
   const data: { access_token: string; token_type: string } = await res.json();

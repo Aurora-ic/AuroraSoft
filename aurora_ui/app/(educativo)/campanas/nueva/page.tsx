@@ -146,14 +146,14 @@ export default function NuevaCampanaPage() {
   const puedeCrearCampana = sesion?.rol === "psicologo" || sesion?.rol === "admin" || sesion?.rol === "superadmin";
   if (!puedeCrearCampana) {
     return (
-      <div className="p-6 max-w-3xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <TextoError>Esta sección es solo para psicólogos y administradores de tu institución.</TextoError>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <h1 className="font-display text-2xl text-teal-900">Nueva campaña</h1>
 
       {/* Paso 1: crear la campaña */}

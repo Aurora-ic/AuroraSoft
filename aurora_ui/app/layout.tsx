@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css"; // Solo un punto, porque este layout está al mismo nivel que globals.css
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 export const metadata: Metadata = {
   title: "AuroraSoft",
@@ -20,9 +21,11 @@ export default function RootLayout({
             de la sesión, así que una pantalla nueva puede usar React Query
             para datos públicos (p.ej. el examen por token) sin necesitar
             auth. */}
-        <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

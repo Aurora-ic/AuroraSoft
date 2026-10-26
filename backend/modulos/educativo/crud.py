@@ -3065,11 +3065,13 @@ def obtener_dashboard_campana(db: Session, evaluacion_id: int):
 
 def obtener_dashboard_academico(
     db: Session, prueba_id: int, seccion_id: int | None = None, grado_id: int | None = None,
+    institucion_id: int | None = None,
 ):
-    """Mismo tipo de resumen que `obtener_dashboard_campana`, pero por SALÓN
-    o GRADO en vez de por campaña puntual — cruza TODAS las campañas en que
-    se aplicó `prueba_id`, no una sola. Responde "¿cómo está 3° B en PHQ-9?"
-    en vez de "¿cómo salió esta campaña de marzo?".
+    """Mismo tipo de resumen que `obtener_dashboard_campana`, pero por SALÓN,
+    GRADO o INSTITUCIÓN COMPLETA en vez de por campaña puntual — cruza TODAS
+    las campañas en que se aplicó `prueba_id`, no una sola. Responde "¿cómo
+    está 3° B en PHQ-9?" (o "¿cómo está TODO el colegio en PHQ-9?") en vez
+    de "¿cómo salió esta campaña de marzo?".
 
     Usa el snapshot histórico `Inscripcion.seccion_id` (la sección vigente
     al momento de ESA aplicación puntual — ver `matricular_roster_en_
@@ -3080,9 +3082,23 @@ def obtener_dashboard_academico(
     la sección que tenía en CADA aplicación, no bajo la actual — igual que
     ya pasa con el dashboard de campaña para `grado_seccion_historico`.
 
-    Exactamente uno de `seccion_id`/`grado_id` debe venir con valor — lo
-    valida el router, no esta función. Devuelve None si la prueba o el
-    salón/grado no existen.
+    🆕 Ámbito "institución" (sesión 2026-10-25, a pedido del usuario — ver
+    docs/gaps-pendientes.md): antes esta función exigía exactamente uno de
+    `seccion_id`/`grado_id`, así que ver una prueba a escala de todo el
+    colegio (aplicada en varios grados a la vez) significaba revisar cada
+    salón/grado por separado. Reusa la MISMA agregación (`_armar_alumnos_y_
+    distribucion`/`calcular_resumen_estadistico_dashboard`) que ya corre
+    para "grado" — cero lógica nueva de estadística, solo un filtro más
+    amplio (`Evaluacion.institucion_id` en vez de `seccion_id`/`grado_id`).
+    `incluir_seccion=True` reusa `grado_seccion_historico` tal cual (ver
+    `_armar_alumnos_y_distribucion`), que ya combina grado+sección en un
+    solo string — necesario acá porque, a diferencia del ámbito "grado"
+    (una sola sección letra por fila alcanza), varios grados a la vez sí
+    necesitan distinguir "3° A" de "4° A".
+
+    Como mucho uno de `seccion_id`/`grado_id`/`institucion_id` debe venir
+    con valor — lo valida el router, no esta función. Devuelve None si la
+    prueba o el salón/grado/institución no existen.
     """
     prueba = db.query(models.Prueba).filter(models.Prueba.id == prueba_id).first()
     if not prueba:
@@ -3100,21 +3116,35 @@ def obtener_dashboard_academico(
         if not seccion:
             return None
         grado = db.query(superadmin_models.Grado).filter(superadmin_models.Grado.id == seccion.grado_id).first()
-        institucion_id = seccion.institucion_id
+        resuelto_institucion_id = seccion.institucion_id
         nombre_ambito = f'{grado.nombre + " " if grado else ""}"{seccion.nombre}"'.strip()
+        tipo_ambito = "seccion"
+        id_ambito = seccion_id
         query = query.filter(models.Inscripcion.seccion_id == seccion_id)
         incluir_seccion = False  # un solo salón: la columna sería redundante en cada fila
     elif grado_id is not None:
         grado = db.query(superadmin_models.Grado).filter(superadmin_models.Grado.id == grado_id).first()
         if not grado:
             return None
-        institucion_id = grado.institucion_id
+        resuelto_institucion_id = grado.institucion_id
         nombre_ambito = grado.nombre
+        tipo_ambito = "grado"
+        id_ambito = grado_id
         secciones_del_grado = db.query(superadmin_models.Seccion.id).filter(
             superadmin_models.Seccion.grado_id == grado_id
         )
         query = query.filter(models.Inscripcion.seccion_id.in_(secciones_del_grado))
         incluir_seccion = True  # varias secciones combinadas: hace falta distinguirlas
+    elif institucion_id is not None:
+        institucion = db.query(inst_models.Institucion).filter(inst_models.Institucion.id == institucion_id).first()
+        if not institucion:
+            return None
+        resuelto_institucion_id = institucion_id
+        nombre_ambito = institucion.nombre
+        tipo_ambito = "institucion"
+        id_ambito = institucion_id
+        query = query.filter(models.Evaluacion.institucion_id == institucion_id)
+        incluir_seccion = True  # varios grados/secciones combinados: hace falta distinguirlos
     else:
         return None
 
@@ -3127,15 +3157,15 @@ def obtener_dashboard_academico(
         # 🆕 Título corto para la UI — ver Prueba.nombre_corto en models.py.
         "nombre_corto_prueba": prueba.nombre_corto or prueba.nombre_tecnico,
         "ambito": {
-            "tipo": "seccion" if seccion_id is not None else "grado",
-            "id": seccion_id if seccion_id is not None else grado_id,
+            "tipo": tipo_ambito,
+            "id": id_ambito,
             "nombre": nombre_ambito,
         },
         **agregado,
         # 🆕 Ver calcular_resumen_estadistico_dashboard / obtener_dashboard_
         # campana arriba — mismo criterio, calculado antes de la redacción.
         "resumen_estadistico": calcular_resumen_estadistico_dashboard(db, prueba, agregado["alumnos"]),
-        "institucion_id": institucion_id,  # se usa solo para el candado, no viaja en la respuesta
+        "institucion_id": resuelto_institucion_id,  # se usa solo para el candado, no viaja en la respuesta
     }
 
 
@@ -3590,6 +3620,53 @@ def redactar_resultados_dashboard_institucional(dashboard: dict) -> dict:
             {**alumno, "pruebas": [{**p, "resultados": []} for p in alumno["pruebas"]]}
             for alumno in dashboard["alumnos"]
         ],
+    }
+
+
+def obtener_resumen_inicio(db: Session, institucion_id: int) -> dict:
+    """🆕 Resumen operativo del mes para `/inicio` (sesión 2026-10-25) — ver
+    docstring del router. `inicio_mes` es naive-UTC, mismo criterio que
+    `campana_esta_expirada`/`Inscripcion.fecha_resolucion` (ambos sin zona
+    horaria), para no mezclar aware/naive en la comparación."""
+    ahora = datetime.utcnow()
+    inicio_mes = ahora.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    total_alumnos = db.query(superadmin_models.Persona).filter(
+        superadmin_models.Persona.institucion_id == institucion_id,
+        superadmin_models.Persona.tipo_perfil == "estudiante",
+        superadmin_models.Persona.activo == True,  # noqa: E712
+    ).count()
+
+    pruebas_finalizadas_mes = db.query(models.Inscripcion).join(
+        models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id
+    ).filter(
+        models.Evaluacion.institucion_id == institucion_id,
+        models.Inscripcion.estado == "Finalizado",
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+        models.Inscripcion.fecha_resolucion >= inicio_mes,
+    ).count()
+
+    # DISTINCT persona_id — un alumno con dos sesiones el mismo mes cuenta
+    # una sola vez ("cuántos alumnos" recibieron seguimiento, no cuántas
+    # sesiones hubo).
+    estudiantes_con_seguimiento_mes = db.query(
+        func.count(func.distinct(models.SesionSeguimiento.persona_id))
+    ).filter(
+        models.SesionSeguimiento.institucion_id == institucion_id,
+        models.SesionSeguimiento.fecha >= inicio_mes,
+    ).scalar() or 0
+
+    campanas_activas = db.query(models.Evaluacion).filter(
+        models.Evaluacion.institucion_id == institucion_id,
+        models.Evaluacion.estado == models.ESTADO_CAMPANA_ACTIVA,
+    ).count()
+
+    return {
+        "total_alumnos": total_alumnos,
+        "pruebas_finalizadas_mes": pruebas_finalizadas_mes,
+        "estudiantes_con_seguimiento_mes": estudiantes_con_seguimiento_mes,
+        "campanas_activas": campanas_activas,
+        "mes": inicio_mes.strftime("%Y-%m"),
     }
 
 

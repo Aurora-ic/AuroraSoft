@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* 🆕 Modo oscuro explícito (sesión 2026-10-25, rediseño UI/UX a pedido del
+   usuario) — por atributo (`<html data-tema="oscuro">`, ver contexts/
+   ThemeContext.tsx), nunca solo `prefers-color-scheme`: el usuario pidió un
+   campo de configuración real ("color oscuro o blanco"), no que siga a
+   ciegas el SO. Con esto, cualquier componente nuevo puede usar `dark:`
+   normal de Tailwind y responde al toggle, no al SO. */
+@custom-variant dark (&:where([data-tema="oscuro"], [data-tema="oscuro"] *));
+
 @theme {
   /* Paleta AuroraSoft — moderno/tech, teal como color de marca */
   --color-teal-900: #0B3D34;   /* texto de énfasis, headers */
@@ -9,6 +17,23 @@
   --color-ink: #1C2321;        /* texto principal */
   --color-amber: #E2A33B;      /* único acento — reservado para alertas de riesgo */
   --color-border: #DCE5E1;
+
+  /* 🆕 Tokens de modo oscuro — derivados del propio teal de marca, nunca
+     gris/negro genérico. `surface`/`surface-raised` son nuevos incluso en
+     claro (= blanco ahí): `surface` para tarjetas/paneles sobre `mist`,
+     `surface-raised` para la barra lateral/superior (mismo blanco en claro,
+     un tono apenas distinto del fondo en oscuro — evita que todo sea un
+     solo bloque plano). El ámbar NO tiene variante oscura a propósito:
+     sigue siendo el único acento reservado para alerta clínica real, en
+     los dos modos. */
+  --color-surface: #FFFFFF;
+  --color-surface-dark: #0F201B;
+  --color-surface-raised-dark: #13251F;
+  --color-mist-dark: #081611;
+  --color-ink-dark: #E7EEEC;
+  --color-border-dark: #1E332B;
+  /* más claro que teal-600: el de siempre pierde contraste sobre fondo oscuro */
+  --color-teal-accent-dark: #2FB49D;
 
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -23,38 +48,12 @@ body {
   font-family: var(--font-body);
 }
 
-h1, h2, h3, h4 {
-  font-family: var(--font-display);
-}
-
-/* Si tu proyecto en realidad usa Tailwind v3 (revisa si tienes
-   tailwind.config.ts): borra el bloque @theme de arriba y usa en su
-   lugar un tailwind.config.ts con:
-   theme: { extend: { colors: { teal: {900:"#0B3D34",600:"#12796B",400:"#35A794"},
-   mist:"#F3F7F5", ink:"#1C2321", amber:"#E2A33B", border:"#DCE5E1" } } } */
-@import "tailwindcss";
-
-@theme {
-  /* Paleta AuroraSoft — moderno/tech, teal como color de marca */
-  --color-teal-900: #0B3D34;   /* texto de énfasis, headers */
-  --color-teal-600: #12796B;   /* acción primaria */
-  --color-teal-400: #35A794;   /* hover, estados secundarios */
-  --color-mist: #F3F7F5;       /* fondo de app */
-  --color-ink: #1C2321;        /* texto principal */
-  --color-amber: #E2A33B;      /* único acento — reservado para alertas de riesgo */
-  --color-border: #DCE5E1;
-
-  --font-display: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
-
-  --radius-card: 12px;
-}
-
-body {
-  background-color: var(--color-mist);
-  color: var(--color-ink);
-  font-family: var(--font-body);
+/* 🆕 `@custom-variant dark` de arriba solo resuelve utilidades de Tailwind
+   (`dark:bg-x`) — `body` usa `var(--color-x)` en CSS plano, así que
+   necesita su propio override bajo el mismo atributo. */
+[data-tema="oscuro"] body {
+  background-color: var(--color-mist-dark);
+  color: var(--color-ink-dark);
 }
 
 h1, h2, h3, h4 {

@@ -82,7 +82,7 @@ export default function AsentimientoInformadoPage() {
   const versionActiva = versiones?.find((v) => v.activo) ?? null;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <div>
         <h1 className="font-display text-2xl text-teal-900">Asentimiento informado</h1>
         <p className="text-sm text-ink/60 mt-1">
