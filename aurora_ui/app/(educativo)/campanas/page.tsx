@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 import type { RespuestaPaginada } from "@/types/api";
+import { estadoVisibleCampana, etiquetaEstadoCampana, claseBadgeEstadoCampana } from "@/lib/campanas";
 
 // Refleja schemas.EvaluacionResponse tal cual está en el backend —
 // no tiene "nombre_grupo" separado de nombre de prueba, ni conteo de
@@ -14,11 +15,19 @@ import type { RespuestaPaginada } from "@/types/api";
 // prueba o el total matriculado, hay que pedirlo aparte o ampliar el
 // schema en el backend (no lo agrego yo aquí para no inventar un
 // endpoint que no existe).
+//
+// 🆕 `activo` ya NO se usa para el badge (hallazgo real: ni cerrar_campana
+// ni cancelar_campana lo tocan nunca — ver crud.py, `_cerrar_o_cancelar_
+// campana` solo mueve `estado`. Confirmado contra la BD real: 2 campañas
+// canceladas seguían con activo=True). Se mantiene en el tipo porque el
+// backend lo sigue devolviendo, pero la fuente de verdad es `estado` +
+// `fecha_fin` (ver lib/campanas.ts).
 type Campana = {
   id: number;
   prueba_id: number;
   nombre_grupo: string;
   activo: boolean;
+  estado: string;
   fecha_fin: string | null;
   fecha_creacion: string;
 };
@@ -90,9 +99,14 @@ export default function CampanasPage() {
           >
             <div className="flex items-center justify-between mb-2">
               <h2 className="font-display text-base text-ink">{campana.nombre_grupo}</h2>
-              <span className={`text-xs rounded-full px-2 py-0.5 ${campana.activo ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/50"}`}>
-                {campana.activo ? "Activa" : "Cerrada"}
-              </span>
+              {(() => {
+                const estado = estadoVisibleCampana(campana.estado, campana.fecha_fin);
+                return (
+                  <span className={`text-xs rounded-full px-2 py-0.5 ${claseBadgeEstadoCampana(estado)}`}>
+                    {etiquetaEstadoCampana(estado)}
+                  </span>
+                );
+              })()}
             </div>
             <p className="text-xs text-ink/60 font-mono">
               Creada {campana.fecha_creacion.slice(0, 10)}

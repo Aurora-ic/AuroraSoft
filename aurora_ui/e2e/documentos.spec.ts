@@ -29,8 +29,13 @@ test.describe("Motor de documentos institucionales", () => {
     await autenticarEnNavegador(page, token);
 
     // --- Paso 1: /documentos -- crear una plantilla a partir del tipo recién creado ---
+    // 🆕 Rediseño en pestañas (sesión 2026-10-25, docs/frontend.md): el
+    // formulario "nueva desde cero" vive en la pestaña "Mis plantillas"
+    // (activa por defecto) detrás de un toggle, para no competir en
+    // pantalla con el catálogo para clonar.
     await page.goto("/documentos");
     await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: "+ Nueva desde cero" }).click();
     await page.getByLabel("Nueva plantilla a partir de un tipo de documento").selectOption({ label: `ZZPLAYWRIGHT Tipo ${fixtures.sello}` });
     await page.getByRole("button", { name: "Crear y abrir el constructor" }).click();
 
@@ -42,8 +47,15 @@ test.describe("Motor de documentos institucionales", () => {
     // falta tocar el <select>, solo el título y agregar.
     await page.getByLabel("Título (opcional)").fill(tituloSeccion);
     await page.getByRole("button", { name: "+ Agregar sección" }).click();
-    await expect(page.getByText(tituloSeccion)).toBeVisible();
-    await expect(page.getByText("Texto libre")).toBeVisible();
+    // El título de la sección se edita inline (su nombre accesible queda
+    // fijo como "(sin título propio)" — lo que cambia es el VALOR del
+    // campo, nunca texto estático), por eso se verifica con toHaveValue,
+    // no con getByText.
+    const filaSeccion = page.getByRole("textbox", { name: "(sin título propio)" }).locator("..");
+    await expect(filaSeccion.getByRole("textbox", { name: "(sin título propio)" })).toHaveValue(tituloSeccion);
+    // Acotado a la fila de la sección -- "Texto libre" a secas también
+    // matchea la <option> del <select> "Tipo" en el resto de la pantalla.
+    await expect(filaSeccion.getByText("Texto libre")).toBeVisible();
 
     const urlPlantilla = page.url();
     const plantillaId = urlPlantilla.match(/\/documentos\/plantillas\/(\d+)/)?.[1];

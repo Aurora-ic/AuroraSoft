@@ -1587,24 +1587,40 @@ def ver_dashboard_academico(
     prueba_id: int,
     seccion_id: Optional[int] = None,
     grado_id: Optional[int] = None,
+    # 🆕 Ámbito "todo el colegio" (sesión 2026-10-25, docs/gaps-pendientes.md)
+    # — opcional incluso para un no-superadmin: si no lo manda, se asume su
+    # propia institución (mismo criterio que GET /casos-pendientes). Un
+    # superadmin SÍ debe mandarlo explícito, porque no tiene una
+    # institución propia de la que asumir.
+    institucion_id: Optional[int] = None,
     db: Session = Depends(get_db),
     usuario_actual: auth_models.Usuario = Depends(obtener_usuario_actual),
 ):
-    """Resumen de UNA prueba para un salón o grado — cruza todas las
-    campañas en las que se aplicó, a diferencia del dashboard de campaña
-    (una sola). Exactamente uno de `seccion_id`/`grado_id` es obligatorio.
-    Ver crud.obtener_dashboard_academico."""
-    if (seccion_id is None) == (grado_id is None):
+    """Resumen de UNA prueba para un salón, un grado o la institución
+    completa — cruza todas las campañas en las que se aplicó, a diferencia
+    del dashboard de campaña (una sola). Como mucho uno de `seccion_id`/
+    `grado_id`/`institucion_id`; si no se manda ninguno, se asume la
+    institución propia del caller (nunca la de un superadmin). Ver
+    crud.obtener_dashboard_academico."""
+    especificados = sum(x is not None for x in (seccion_id, grado_id, institucion_id))
+    if especificados > 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pasa exactamente uno de seccion_id o grado_id, nunca ambos ni ninguno.",
+            detail="Pasa como máximo uno de seccion_id, grado_id o institucion_id, nunca varios juntos.",
         )
+    if especificados == 0:
+        if usuario_actual.rol == "superadmin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Como superadmin, especifica institucion_id, seccion_id o grado_id.",
+            )
+        institucion_id = usuario_actual.institucion_id
 
     dashboard = crud.obtener_dashboard_academico(
-        db=db, prueba_id=prueba_id, seccion_id=seccion_id, grado_id=grado_id,
+        db=db, prueba_id=prueba_id, seccion_id=seccion_id, grado_id=grado_id, institucion_id=institucion_id,
     )
     if not dashboard:
-        raise HTTPException(status_code=404, detail="Prueba, salón o grado no encontrado.")
+        raise HTTPException(status_code=404, detail="Prueba, salón, grado o institución no encontrados.")
 
     # 🔒 Mismo candado multi-tenant que el resto de los dashboards.
     if usuario_actual.rol != "superadmin" and dashboard["institucion_id"] != usuario_actual.institucion_id:
@@ -1657,26 +1673,35 @@ def exportar_dashboard_academico_excel(
     prueba_id: int,
     seccion_id: Optional[int] = None,
     grado_id: Optional[int] = None,
+    institucion_id: Optional[int] = None,  # 🆕 ver ver_dashboard_academico — mismo criterio
     db: Session = Depends(get_db),
     usuario_actual: auth_models.Usuario = Depends(obtener_usuario_actual),
 ):
     """Mismo Excel que `/campanas/{id}/exportar-excel` (incluida la hoja
     "Resumen estadístico" — ver generar_excel_dashboard), pero para el
-    dashboard por salón/grado, que hasta ahora no tenía ninguna forma de
-    exportarse. Mismas reglas que `ver_dashboard_academico` de arriba:
-    exactamente uno de seccion_id/grado_id, mismo candado multi-tenant,
-    misma redacción para 'colegio'."""
-    if (seccion_id is None) == (grado_id is None):
+    dashboard por salón/grado/institución, que hasta ahora no tenía ninguna
+    forma de exportarse. Mismas reglas que `ver_dashboard_academico` de
+    arriba: como mucho uno de seccion_id/grado_id/institucion_id, mismo
+    candado multi-tenant, misma redacción para 'colegio'."""
+    especificados = sum(x is not None for x in (seccion_id, grado_id, institucion_id))
+    if especificados > 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pasa exactamente uno de seccion_id o grado_id, nunca ambos ni ninguno.",
+            detail="Pasa como máximo uno de seccion_id, grado_id o institucion_id, nunca varios juntos.",
         )
+    if especificados == 0:
+        if usuario_actual.rol == "superadmin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Como superadmin, especifica institucion_id, seccion_id o grado_id.",
+            )
+        institucion_id = usuario_actual.institucion_id
 
     dashboard = crud.obtener_dashboard_academico(
-        db=db, prueba_id=prueba_id, seccion_id=seccion_id, grado_id=grado_id,
+        db=db, prueba_id=prueba_id, seccion_id=seccion_id, grado_id=grado_id, institucion_id=institucion_id,
     )
     if not dashboard:
-        raise HTTPException(status_code=404, detail="Prueba, salón o grado no encontrado.")
+        raise HTTPException(status_code=404, detail="Prueba, salón, grado o institución no encontrados.")
     if usuario_actual.rol != "superadmin" and dashboard["institucion_id"] != usuario_actual.institucion_id:
         raise HTTPException(status_code=403, detail="No puedes exportar el dashboard académico de otro colegio.")
 
@@ -1803,6 +1828,36 @@ def ver_casos_pendientes(
         institucion_id = usuario_actual.institucion_id
 
     return crud.obtener_casos_pendientes_de_seguimiento(db=db, institucion_id=institucion_id)
+
+
+@router.get("/inicio/resumen")
+def ver_resumen_inicio(
+    institucion_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """🆕 Resumen operativo del mes para el dashboard de aterrizaje
+    (sesión 2026-10-25, rediseño de `/inicio` a pedido del usuario) — total
+    de alumnos del padrón, pruebas finalizadas y alumnos con al menos una
+    sesión de seguimiento este mes calendario, y campañas activas ahora
+    mismo. Mismo criterio de `institucion_id` que `/casos-pendientes`
+    (obligatorio para superadmin, implícito para el resto).
+
+    🔒 `requerir_staff_clinico`: `estudiantes_con_seguimiento_mes` cuenta
+    sesiones de seguimiento clínico (mismo nivel de sensibilidad que
+    `casos-pendientes`, aunque acá solo viaje un número, nunca nombres) —
+    'colegio' no debe verlo, igual que el resto de este worklist.
+    """
+    if usuario_actual.rol == "superadmin":
+        if institucion_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Como superadmin, debes especificar ?institucion_id=",
+            )
+    else:
+        institucion_id = usuario_actual.institucion_id
+
+    return crud.obtener_resumen_inicio(db=db, institucion_id=institucion_id)
 
 # ==========================================
 # RUTAS PARA DERECHOS ARCO (LEY 29733 - PASO 3.5)

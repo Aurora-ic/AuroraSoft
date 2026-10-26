@@ -131,3 +131,53 @@ Dos acciones nuevas, reusando exactamente los endpoints que ya existían (nada n
 
 `tsc --noEmit` y `next build` limpios para todo lo de esta sección en conjunto.
 
+## 🆕 `/documentos` rediseñado en pestañas + atajo desde la ficha del alumno (sesión 2026-10-25)
+
+A pedido del usuario ("documentos... es algo complejo por las diversas pestañas o pantallas que se tiene que realizar... vamos a hacerlo lo más flexible y sencillo de entender"). Antes las 3 piezas del motor (catálogo predeterminado, plantillas propias, documentos generados) vivían apiladas en un solo scroll largo de `/documentos`, sin ninguna explicación de cómo se relacionan entre sí — confirmado con un mockup (Artifact, canvas de diseño) antes de tocar código real.
+
+**`documentos/page.tsx` reorganizado en 3 pestañas** reflejando el único flujo real del motor (catálogo → se clona → plantilla propia → se activa → documento generado): tira "cómo funciona" siempre visible (3 pasos, nunca se esconde), pestañas "Mis plantillas"/"Catálogo para clonar"/"Documentos generados" en vez de 3 secciones apiladas, catálogo agrupado por tipo de documento en un acordeón (antes una lista plana — ya hay 8 tipos reales cargados) en vez de una lista plana. "Documentos generados" pasó de una lista de links sueltos a una tabla real con tipo + estado (`Sin versión`/`Generado vN`, nunca un estado inventado — ver el hallazgo de "Retenido" más abajo).
+
+**`documentos/nuevo/page.tsx` gana dos atajos por query string**, combinables: `?plantilla_id=X` (desde el botón "Generar documento" de una tarjeta de plantilla, la precarga) y `?persona_id=X` (desde el nuevo botón "+ Nuevo documento ↗" de la ficha del alumno — `estudiantes/[personaId]/page.tsx`, que antes solo enlazaba al formulario genérico sin ningún contexto, perdiendo la selección del alumno ya hecha). Con `persona_id`, el alumno aparece fijo ("Documento para: {nombre}") con un botón "Elegir otro alumno" para no perder flexibilidad; el link de la ficha abre en pestaña nueva (`target="_blank"`) para no perder el lugar de donde se vino.
+
+**Hallazgo descartado, no implementado a propósito**: el primer mockup le puso a cada documento generado un badge "Retenido" (ámbar) imitando el estado de un informe clínico — revisando `DocumentoInstitucional` real, ese estado no existe a ese nivel (solo existe *dentro* de una sección `resultados_prueba`, atado al `informe_liberado` de la `Inscripcion` vinculada, nunca como estado del documento completo). Se corrigió antes de tocar código real — la tabla de "Documentos generados" solo muestra `Sin versión`/`Generado vN`, ambos campos reales.
+
+Verificado en vivo contra el backend real, incluido el spec oficial de Playwright `e2e/documentos.spec.ts` (que necesitó 2 ajustes propios — no relacionados con este rediseño, bugs preexistentes del test: comparaba texto contra el *valor* de un campo editable, y un `getByText` ambiguo que también matcheaba una `<option>`) corrido de punta a punta: crear plantilla → agregar sección → crear documento → generar v1 → reemitir v2, 100% verde. `tsc --noEmit`/`next build` limpios.
+
+## 🆕 Modo oscuro, Topbar, Centro de ayuda y dashboard de Inicio con KPIs reales (sesión 2026-10-25)
+
+A pedido del usuario ("ahora eres ingeniero senior en frontend... que no sature demasiado la vista, todo ordenado"), con el mockup de `/documentos` de arriba como base de dirección visual aprobada.
+
+### Modo oscuro explícito — `app/globals.css`, `contexts/ThemeContext.tsx`
+
+Nuevo `@custom-variant dark (&:where([data-tema="oscuro"], [data-tema="oscuro"] *));` (Tailwind v4) — por atributo en `<html>`, nunca `prefers-color-scheme`: el usuario pidió un campo de configuración real, no que siga al SO. `ThemeProvider` (mismo patrón que `AuthContext`) persiste la elección en `localStorage`. Tokens oscuros nuevos (`--color-surface-dark`, `--color-surface-raised-dark`, `--color-mist-dark`, `--color-ink-dark`, `--color-border-dark`, `--color-teal-accent-dark`) derivados del propio teal de marca, nunca gris/negro genérico — el ámbar queda **sin** variante oscura a propósito, sigue siendo el único acento reservado para alerta clínica real en los dos modos.
+
+**Bug real encontrado y cerrado en el mismo pase**: un comentario CSS sin cerrar dentro del bloque `@theme` (la `/*` de la línea que explicaba los tokens oscuros nunca tenía su `*/`) se tragaba las 7 declaraciones de color siguientes enteras — todas las utilidades `dark:bg-surface-dark`/`dark:text-ink-dark`/etc. compilaban sin error pero no pintaban ningún color (la variable CSS referenciada nunca llegaba a existir). Encontrado verificando en vivo contra el navegador real (color computado = el de claro, no el oscuro), no solo mirando el archivo — un `grep` del CSS compilado por `var(--color-surface-dark)`/`--color-surface-dark` directamente confirmó que la declaración nunca llegaba a existir. Corregido cerrando el comentario antes de la primera declaración.
+
+Componentes base (`Input`, `Select`, `Boton`, `CampoEditable`) migrados a tokens oscuros — alto impacto, bajo riesgo: cualquier pantalla que ya los use (son los más repetidos de todo el proyecto) hereda modo oscuro gratis sin tocarla. `Sidebar.tsx`, el nuevo `Topbar.tsx`, `CentroAyuda.tsx`, `BusquedaGlobal.tsx`, `/inicio` y las 3 pantallas de `/documentos` migrados por completo (incluido un pase mecánico de `bg-white`→`bg-surface dark:bg-surface-dark`, `border-border`→+dark, `text-ink(/NN)?`→+dark, `bg-mist(/NN)?`→+dark, `text-teal-900`/`text-teal-700`→+`dark:text-teal-accent-dark`, verificado con `tsc`/`build` después de cada pase). **El resto de la app (campañas, estudiantes, agenda, configuración, casos-riesgo, pruebas, master) todavía NO tiene compañero oscuro** — funciona sin cambios en claro, pero hoy se vería a medio terminar (tarjetas blancas) si se activa oscuro ahí; pendiente para una pasada futura, pantalla por pantalla, mismo criterio ya usado en esta sesión.
+
+### Topbar — `components/educativo/Topbar.tsx` (antes: no existía)
+
+El buscador global se mudó del sidebar acá (`BusquedaGlobal`, sin cambios de lógica, solo de ubicación + tokens oscuros) — el sidebar queda 100% navegación, sin mezclar una acción de otra naturaleza. Suma el toggle de tema (ícono sol/luna) y el acceso al Centro de ayuda.
+
+### Centro de ayuda — `components/educativo/CentroAyuda.tsx` (nuevo)
+
+Panel lateral con acordeón de preguntas — contenido real, no inventado: cada respuesta describe literalmente cómo funciona hoy la pantalla correspondiente (clonar/activar una plantilla, qué significa "retenido", qué significa "Vencida"). El dato de contacto de soporte queda como `[correo o canal de soporte]` entre corchetes a propósito — no hay uno real definido todavía.
+
+### Sidebar — iconos + distinción grupo/enlace (`components/educativo/Sidebar.tsx`)
+
+Hallazgo real: `lucide-react` estaba en `package.json` desde siempre y **cero archivos lo importaban** en todo el proyecto. Ahora cada grupo y "Inicio" tiene su ícono. Más importante, el hallazgo de UX real: un grupo (toggler, ej. "Documentos") y un enlace real (ej. "Padrón") se veían casi idénticos — la única pista era un "›" delgado. Ahora un GRUPO **nunca** recibe la pastilla sólida de "seleccionado" (solo un tinte suave si contiene la ruta activa) y sus hijos cuelgan de una guía vertical indentada; solo un enlace de verdad recibe esa pastilla — la ausencia de "seleccionado" sólido es en sí misma la señal de "esto expande, no navega".
+
+### `/inicio` — de 3 tarjetas a un dashboard real con KPIs del mes
+
+A pedido explícito del usuario, con una imagen de referencia (un dashboard de un producto propio del cliente, "Aurora Integrated Consulting") como inspiración de estructura (encabezado + accesos rápidos + resumen por apartado), nunca de contenido — "lo que menos se desea es lo genérico": sin foto de stock (no hay una real que usar con honestidad), cada número de la pantalla es una consulta real.
+
+**Backend nuevo, chico y real**: `GET /educativo/inicio/resumen` (`crud.obtener_resumen_inicio`, mismo patrón de `institucion_id` opcional que `/casos-pendientes`, `requerir_staff_clinico`) — total de alumnos del padrón, pruebas finalizadas este mes calendario, alumnos con al menos una sesión de seguimiento este mes (`DISTINCT persona_id`, para no contar dos veces a quien tuvo 2 sesiones), y campañas activas. Verificado en vivo contra Postgres real (institución con datos reales: 10 alumnos, 3 pruebas finalizadas, 6 campañas activas).
+
+Estructura nueva: encabezado con saludo + fecha + institución (gradiente teal, sin foto), fila "Accesos rápidos" (Nueva campaña/Padrón/Documentos/Casos en riesgo), grid de 4 tarjetas KPI del mes, y las 3 tarjetas de resumen que ya existían (casos pendientes/citas de hoy/campañas activas) restyladas con el mismo lenguaje visual nuevo — mismos 3 endpoints de antes, sin cambios de lógica.
+
+### Espaciado — doble padding real encontrado y cerrado
+
+Hallazgo real (a pedido del usuario: "no debe haber espacios sueltos... sin estar ajustados o sobrando espacio"): 12 pantallas envolvían su propio contenido en `p-6` **además** del `p-8` que ya pone `<main>` en el layout — padding doblado en cada uno de sus bordes. Quitado el `p-6` redundante de las 12 (cada uno de sus 3 posibles returns — cargando/error/contenido —, no solo el primero). `documentos/page.tsx` además pasó de `max-w-5xl` a `max-w-6xl` para igualar el ancho de contenido de `/inicio`.
+
+**Verificado en vivo** contra un navegador real (no solo capturas): modo claro sin ningún cambio visual respecto a antes (confirmado por captura lado a lado), modo oscuro con los colores exactos de los tokens definidos (`rgb(8,22,17)` = `--color-mist-dark`, etc., confirmado leyendo `getComputedStyle` real, no asumido), toggle persiste en `localStorage` y sobrevive a una recarga completa de página. `tsc --noEmit`/`next build` limpios.
+

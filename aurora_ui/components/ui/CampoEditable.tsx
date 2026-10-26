@@ -16,7 +16,7 @@ export function CampoEditable({
 }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
-      <span className="text-ink/70 font-medium">{etiqueta}</span>
+      <span className="text-ink/70 dark:text-ink-dark/70 font-medium">{etiqueta}</span>
       {children}
     </label>
   );

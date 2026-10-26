@@ -307,13 +307,13 @@ export default function DetalleDocumentoPage() {
     }
   }
 
-  if (cargando) return <div className="p-6 text-sm text-ink/60">Cargando...</div>;
-  if (!documento) return <div className="p-6"><TextoError>{error}</TextoError></div>;
+  if (cargando) return <div className="text-sm text-ink/60">Cargando...</div>;
+  if (!documento) return <div><TextoError>{error}</TextoError></div>;
 
   const puedeVincular = documento.estudiantes.length === 1;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <Migas items={[{ label: "Documentos", href: "/documentos" }, { label: documento.titulo }]} />
       <div>
         <Link href="/documentos" className="text-xs text-ink/50 hover:underline">

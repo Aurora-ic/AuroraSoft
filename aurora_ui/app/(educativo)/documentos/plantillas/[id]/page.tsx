@@ -88,6 +88,37 @@ export default function ConstructorPlantillaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plantillaId]);
 
+  // 🆕 Activar/desactivar — hallazgo real (sesión 2026-10-25): esta
+  // pantalla no mostraba el estado activa/inactiva en ningún lado, ni
+  // daba forma de cambiarlo. Resultado real en la BD de producción: una
+  // plantilla recién clonada queda inactiva por diseño (clonar_plantilla_
+  // documento, activar=False por defecto, para no reemplazar sin querer
+  // la que ya estaba en uso) y nada en pantalla lo explicaba ni ofrecía
+  // activarla — y, al revés, "+ Nueva desde cero" crea con activa=True
+  // por defecto y la exclusividad de una sola activa por tipo apagaba en
+  // silencio la que ya estaba bien armada, dejando activa una plantilla
+  // recién creada sin ninguna sección. Acción propia (no mezclada con
+  // "Guardar formato") porque activar tiene un efecto colateral real:
+  // desactiva cualquier otra plantilla activa de esta institución para el
+  // mismo tipo de documento (ver _desactivar_plantillas_activas, crud.py).
+  const [alternandoActiva, setAlternandoActiva] = useState(false);
+  const [errorActiva, setErrorActiva] = useState<string | null>(null);
+
+  async function alternarActiva() {
+    setAlternandoActiva(true);
+    setErrorActiva(null);
+    try {
+      const actualizada = await apiClient.patch<PlantillaDocumento>(`/documentos/plantillas/${plantillaId}`, {
+        activa: !plantilla?.activa,
+      });
+      setPlantilla(actualizada);
+    } catch (err: any) {
+      setErrorActiva(err.message || "No se pudo cambiar el estado.");
+    } finally {
+      setAlternandoActiva(false);
+    }
+  }
+
   async function guardarForm(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
@@ -206,37 +237,76 @@ export default function ConstructorPlantillaPage() {
     }
   }
 
-  if (cargando) return <div className="p-6 text-sm text-ink/60">Cargando...</div>;
-  if (!plantilla || !form) return <div className="p-6"><TextoError>{error}</TextoError></div>;
+  if (cargando) return <div className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</div>;
+  if (!plantilla || !form) return <div><TextoError>{error}</TextoError></div>;
 
   const puedeEditarBranding = sesion?.rol === "admin" || sesion?.rol === "superadmin";
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-6">
       <Migas items={[{ label: "Documentos", href: "/documentos" }, { label: plantilla.nombre }]} />
       <div>
-        <Link href="/documentos" className="text-xs text-ink/50 hover:underline">
+        <Link href="/documentos" className="text-xs text-ink/50 dark:text-ink-dark/50 hover:underline">
           ← Documentos
         </Link>
-        <h1 className="font-display text-2xl text-teal-900 mt-1">{plantilla.nombre}</h1>
+        <h1 className="font-display text-2xl text-teal-900 dark:text-teal-accent-dark mt-1">{plantilla.nombre}</h1>
       </div>
+
+      {/* 🆕 Estado activa/inactiva — ver docstring de alternarActiva() más
+          arriba. Antes esta pantalla no lo mostraba en ningún lado. */}
+      <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-4 flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3">
+          <span
+            className={`text-xs font-semibold rounded-full px-2.5 py-0.5 mt-0.5 whitespace-nowrap ${
+              plantilla.activa ? "bg-teal-600 text-white" : "bg-mist dark:bg-surface-dark border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
+            }`}
+          >
+            {plantilla.activa ? "Activa" : "Inactiva"}
+          </span>
+          <div className="text-xs text-ink/55 dark:text-ink-dark/55 max-w-md">
+            {plantilla.institucion_id === null ? (
+              <p>
+                Plantilla predeterminada del catálogo global — varias pueden estar activas a la vez para el mismo tipo
+                de documento, es un menú, no compite con las demás.
+              </p>
+            ) : (
+              <>
+                <p>
+                  Solo la plantilla <strong>activa</strong> de cada tipo de documento aparece al crear un documento
+                  nuevo. Activar esta desactiva automáticamente cualquier otra plantilla activa del mismo tipo en tu
+                  institución.
+                </p>
+                {plantilla.activa && secciones.length === 0 && (
+                  <p className="text-red-700 font-medium mt-1">
+                    ⚠ Está activa pero no tiene ninguna sección — un documento generado con ella saldría vacío.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+        <Boton variante={plantilla.activa ? "secundario" : "primario"} onClick={alternarActiva} disabled={alternandoActiva}>
+          {alternandoActiva ? "Guardando..." : plantilla.activa ? "Desactivar" : "Activar"}
+        </Boton>
+      </div>
+      <TextoError>{errorActiva}</TextoError>
 
       <TextoError>{error}</TextoError>
 
       {/* Tipografía y datos de la plantilla */}
-      <form onSubmit={guardarForm} className="bg-white rounded-card border border-border p-6 space-y-4">
-        <h2 className="font-display text-lg text-teal-900 font-semibold border-b border-border pb-2">
+      <form onSubmit={guardarForm} className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-4">
+        <h2 className="font-display text-lg text-teal-900 dark:text-teal-accent-dark font-semibold border-b border-border dark:border-border-dark pb-2">
           Formato del documento
         </h2>
 
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/70 font-medium">Nombre de la plantilla</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Nombre de la plantilla</span>
           <Input value={form.nombre ?? ""} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
         </label>
 
         <div className="grid sm:grid-cols-3 gap-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 font-medium">Tipo de letra</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Tipo de letra</span>
             <Select value={form.fuente} onChange={(e) => setForm({ ...form, fuente: e.target.value })}>
               {FUENTES.map((f) => (
                 <option key={f} value={f}>
@@ -246,11 +316,11 @@ export default function ConstructorPlantillaPage() {
             </Select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 font-medium">Tamaño del cuerpo (pt)</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Tamaño del cuerpo (pt)</span>
             <Input type="number" min={6} max={48} value={form.tamano_pt} onChange={(e) => setForm({ ...form, tamano_pt: Number(e.target.value) })} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 font-medium">Interlineado</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Interlineado</span>
             <Input type="number" step={0.05} min={1} max={3} value={form.interlineado} onChange={(e) => setForm({ ...form, interlineado: Number(e.target.value) })} />
           </label>
         </div>
@@ -260,8 +330,8 @@ export default function ConstructorPlantillaPage() {
           Texto justificado
         </label>
 
-        <div className="border-t border-border pt-4 space-y-3">
-          <p className="text-sm font-medium text-ink/70">Título del documento (el grande, arriba de todo)</p>
+        <div className="border-t border-border dark:border-border-dark pt-4 space-y-3">
+          <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Título del documento (el grande, arriba de todo)</p>
           <div className="flex items-center gap-4 flex-wrap text-sm">
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={!!form.titulo_negrita} onChange={(e) => setForm({ ...form, titulo_negrita: e.target.checked })} />
@@ -272,7 +342,7 @@ export default function ConstructorPlantillaPage() {
               Cursiva
             </label>
             <label className="flex items-center gap-2">
-              <span className="text-ink/70">Tamaño (pt)</span>
+              <span className="text-ink/70 dark:text-ink-dark/70">Tamaño (pt)</span>
               <Input
                 type="number"
                 min={6}
@@ -284,13 +354,13 @@ export default function ConstructorPlantillaPage() {
               />
             </label>
           </div>
-          <p className="text-xs text-ink/50 italic">Vacío = automático (tamaño del cuerpo + 5pt).</p>
+          <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Vacío = automático (tamaño del cuerpo + 5pt).</p>
         </div>
 
-        <div className="border-t border-border pt-4 space-y-3">
-          <p className="text-sm font-medium text-ink/70">Subtítulo de cada sección (ej. &quot;ANTECEDENTES FAMILIARES&quot;)</p>
+        <div className="border-t border-border dark:border-border-dark pt-4 space-y-3">
+          <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Subtítulo de cada sección (ej. &quot;ANTECEDENTES FAMILIARES&quot;)</p>
           <label className="flex items-center gap-2 text-sm">
-            <span className="text-ink/70">Tamaño (pt)</span>
+            <span className="text-ink/70 dark:text-ink-dark/70">Tamaño (pt)</span>
             <Input
               type="number"
               min={6}
@@ -301,7 +371,7 @@ export default function ConstructorPlantillaPage() {
               onChange={(e) => setForm({ ...form, subtitulo_tamano_pt: e.target.value ? Number(e.target.value) : null })}
             />
           </label>
-          <p className="text-xs text-ink/50 italic">Vacío = automático (tamaño del cuerpo + 1pt). Siempre en negrita.</p>
+          <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Vacío = automático (tamaño del cuerpo + 1pt). Siempre en negrita.</p>
         </div>
 
         <TextoError>{errorForm}</TextoError>
@@ -312,11 +382,11 @@ export default function ConstructorPlantillaPage() {
 
       {/* Membrete / pie / fondo de página del colegio */}
       {puedeEditarBranding && (
-        <section className="bg-white rounded-card border border-border p-6 space-y-4">
-          <h2 className="font-display text-lg text-teal-900 font-semibold border-b border-border pb-2">
+        <section className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-4">
+          <h2 className="font-display text-lg text-teal-900 dark:text-teal-accent-dark font-semibold border-b border-border dark:border-border-dark pb-2">
             Encabezado, pie y fondo de página
           </h2>
-          <p className="text-xs text-ink/50">
+          <p className="text-xs text-ink/50 dark:text-ink-dark/50">
             Una imagen para el membrete (arriba de cada página), otra para el pie (abajo) y otra para el fondo de
             página completa — vale para todos los documentos de tu institución, no solo esta plantilla.
           </p>
@@ -331,11 +401,11 @@ export default function ConstructorPlantillaPage() {
                   : institucion?.fondo_documento_url;
               return (
                 <div key={tipo} className="space-y-2">
-                  <span className="text-sm font-medium text-ink/70 capitalize">{tipo}</span>
+                  <span className="text-sm font-medium text-ink/70 dark:text-ink-dark/70 capitalize">{tipo}</span>
                   {urlActual ? (
-                    <p className="text-xs text-teal-700">Imagen cargada ✓</p>
+                    <p className="text-xs text-teal-700 dark:text-teal-accent-dark">Imagen cargada ✓</p>
                   ) : (
-                    <p className="text-xs text-ink/40 italic">Sin imagen todavía</p>
+                    <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin imagen todavía</p>
                   )}
                   <input
                     type="file"
@@ -349,7 +419,7 @@ export default function ConstructorPlantillaPage() {
             })}
           </div>
 
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-border dark:border-border-dark pt-4">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -358,7 +428,7 @@ export default function ConstructorPlantillaPage() {
               />
               Mostrar el fondo de página en ESTA plantilla
             </label>
-            <p className="text-xs text-ink/50 italic mt-1">
+            <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic mt-1">
               Apagado por defecto: un fondo detrás del texto afecta la legibilidad, así que cada plantilla lo activa
               a propósito. Se guarda junto con el resto del formato, con el botón &quot;Guardar formato&quot; de arriba.
             </p>
@@ -367,12 +437,12 @@ export default function ConstructorPlantillaPage() {
       )}
 
       {/* Secciones */}
-      <section className="bg-white rounded-card border border-border p-6 space-y-4">
-        <h2 className="font-display text-lg text-teal-900 font-semibold border-b border-border pb-2">Secciones</h2>
+      <section className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-4">
+        <h2 className="font-display text-lg text-teal-900 dark:text-teal-accent-dark font-semibold border-b border-border dark:border-border-dark pb-2">Secciones</h2>
 
-        <div className="flex items-end gap-3 flex-wrap border-b border-border pb-4">
+        <div className="flex items-end gap-3 flex-wrap border-b border-border dark:border-border-dark pb-4">
           <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 font-medium">Tipo</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Tipo</span>
             <Select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value as TipoSeccionDocumento)}>
               {TIPOS_SECCION_ORDENADOS.map((t) => (
                 <option key={t} value={t}>
@@ -382,7 +452,7 @@ export default function ConstructorPlantillaPage() {
             </Select>
           </label>
           <label className="flex flex-col gap-1 text-sm flex-1 min-w-[160px]">
-            <span className="text-ink/70 font-medium">Título (opcional)</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Título (opcional)</span>
             <Input value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} placeholder="Ej. Motivo de evaluación" />
           </label>
           <Boton onClick={agregarSeccion} disabled={agregando}>
@@ -392,22 +462,22 @@ export default function ConstructorPlantillaPage() {
         <TextoError>{errorAgregar}</TextoError>
 
         {secciones.length === 0 ? (
-          <p className="text-sm text-ink/60 italic py-2">Esta plantilla todavía no tiene secciones.</p>
+          <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic py-2">Esta plantilla todavía no tiene secciones.</p>
         ) : (
           <div className="space-y-2">
             {secciones.map((seccion, idx) => (
-              <div key={seccion.id} className="border border-border rounded-card">
+              <div key={seccion.id} className="border border-border dark:border-border-dark rounded-card">
                 <div className="flex items-center gap-2 p-3">
                   <div className="flex flex-col">
-                    <button type="button" disabled={idx === 0} onClick={() => moverSeccion(seccion, -1)} className="text-ink/40 hover:text-ink disabled:opacity-20 text-xs leading-none">
+                    <button type="button" disabled={idx === 0} onClick={() => moverSeccion(seccion, -1)} className="text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:text-ink-dark disabled:opacity-20 text-xs leading-none">
                       ▲
                     </button>
-                    <button type="button" disabled={idx === secciones.length - 1} onClick={() => moverSeccion(seccion, 1)} className="text-ink/40 hover:text-ink disabled:opacity-20 text-xs leading-none">
+                    <button type="button" disabled={idx === secciones.length - 1} onClick={() => moverSeccion(seccion, 1)} className="text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:text-ink-dark disabled:opacity-20 text-xs leading-none">
                       ▼
                     </button>
                   </div>
-                  <span className="text-xs font-mono text-ink/40 w-6">{idx + 1}.</span>
-                  <span className="text-xs bg-mist text-ink/60 rounded px-2 py-0.5">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>
+                  <span className="text-xs font-mono text-ink/40 dark:text-ink-dark/40 w-6">{idx + 1}.</span>
+                  <span className="text-xs bg-mist dark:bg-surface-dark text-ink/60 dark:text-ink-dark/60 rounded px-2 py-0.5">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>
                   <Input
                     value={seccion.titulo ?? ""}
                     placeholder="(sin título propio)"
@@ -416,7 +486,7 @@ export default function ConstructorPlantillaPage() {
                     className="flex-1 text-sm"
                   />
                   {TIPOS_CON_CONFIG_SIMPLE.includes(seccion.tipo_seccion) && (
-                    <button type="button" onClick={() => abrirConfig(seccion)} className="text-xs text-teal-700 hover:underline whitespace-nowrap">
+                    <button type="button" onClick={() => abrirConfig(seccion)} className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline whitespace-nowrap">
                       Configurar
                     </button>
                   )}
@@ -426,7 +496,7 @@ export default function ConstructorPlantillaPage() {
                 </div>
 
                 {seccionAbierta === seccion.id && (
-                  <div className="border-t border-border p-3 bg-mist/30">
+                  <div className="border-t border-border dark:border-border-dark p-3 bg-mist/30 dark:bg-surface-dark/30">
                     <EditorConfigSeccion
                       seccion={seccion}
                       configTexto={configTexto[seccion.id] ?? "{}"}
@@ -531,7 +601,7 @@ function EditorConfigSeccion({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-ink/50">
+      <p className="text-xs text-ink/50 dark:text-ink-dark/50">
         Configuración avanzada en JSON — ver la sección &quot;{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}&quot; en
         docs/motor-documentos.md para el formato exacto.
       </p>
@@ -540,7 +610,7 @@ function EditorConfigSeccion({
         value={configTexto}
         onChange={(e) => onCambiarTexto(e.target.value)}
         className={`w-full rounded-card border px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-teal-400 ${
-          error ? "border-red-400" : "border-border"
+          error ? "border-red-400" : "border-border dark:border-border-dark"
         }`}
       />
       <Boton onClick={onGuardarJson}>Guardar configuración</Boton>
@@ -560,7 +630,7 @@ function EditorListaTexto({
   const [nuevo, setNuevo] = useState("");
   return (
     <div className="space-y-2 text-sm">
-      <span className="text-ink/70 font-medium">{etiqueta}</span>
+      <span className="text-ink/70 dark:text-ink-dark/70 font-medium">{etiqueta}</span>
       {valores.map((v, i) => (
         <div key={i} className="flex items-center gap-2">
           <Input
@@ -615,9 +685,9 @@ function EditorTablaDinamicaConfig({ config, onGuardar }: { config: ConfigTablaD
         Una fila por cada estudiante de la lista congelada del documento (en vez de filas libres)
       </label>
 
-      <span className="text-ink/70 font-medium">Columnas</span>
+      <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Columnas</span>
       {columnas.map((col, i) => (
-        <div key={i} className="flex items-center gap-2 flex-wrap border border-border rounded-card p-2">
+        <div key={i} className="flex items-center gap-2 flex-wrap border border-border dark:border-border-dark rounded-card p-2">
           <Input
             placeholder="Título de la columna"
             value={col.titulo}
@@ -663,7 +733,7 @@ function EditorFirmaDobleConfig({ config, onGuardar }: { config: ConfigFirmaDobl
   return (
     <div className="grid sm:grid-cols-2 gap-4 text-sm">
       <div className="space-y-2">
-        <span className="text-ink/70 font-medium">Izquierda (siempre nombre/cargo del usuario responsable)</span>
+        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Izquierda (siempre nombre/cargo del usuario responsable)</span>
         <EditorListaTexto
           etiqueta="Líneas fijas"
           valores={izquierda.lineas_fijas ?? []}
@@ -671,9 +741,9 @@ function EditorFirmaDobleConfig({ config, onGuardar }: { config: ConfigFirmaDobl
         />
       </div>
       <div className="space-y-2">
-        <span className="text-ink/70 font-medium">Derecha (nunca lleva nombre de una persona)</span>
+        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Derecha (nunca lleva nombre de una persona)</span>
         <label className="flex flex-col gap-1">
-          <span className="text-ink/70 text-xs">Cargo (en negrita, ej. «Convivencia escolar»)</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 text-xs">Cargo (en negrita, ej. «Convivencia escolar»)</span>
           <Input
             value={derecha.cargo_fijo ?? ""}
             onChange={(e) => onGuardar({ ...config, derecha: { ...derecha, cargo_fijo: e.target.value } })}
@@ -706,7 +776,7 @@ function EditorFirmaTripleConfig({ config, onGuardar }: { config: ConfigFirmaTri
     <div className="space-y-4 text-sm">
       <div className="grid sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <span className="text-ink/70 font-medium">Izquierda (siempre nombre/cargo del usuario responsable)</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Izquierda (siempre nombre/cargo del usuario responsable)</span>
           <EditorListaTexto
             etiqueta="Líneas fijas"
             valores={izquierda.lineas_fijas ?? []}
@@ -714,9 +784,9 @@ function EditorFirmaTripleConfig({ config, onGuardar }: { config: ConfigFirmaTri
           />
         </div>
         <div className="space-y-2">
-          <span className="text-ink/70 font-medium">Derecha (nunca lleva nombre de una persona)</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Derecha (nunca lleva nombre de una persona)</span>
           <label className="flex flex-col gap-1">
-            <span className="text-ink/70 text-xs">Cargo (en negrita)</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 text-xs">Cargo (en negrita)</span>
             <Input
               value={derecha.cargo_fijo ?? ""}
               onChange={(e) => onGuardar({ ...config, derecha: { ...derecha, cargo_fijo: e.target.value } })}
@@ -729,10 +799,10 @@ function EditorFirmaTripleConfig({ config, onGuardar }: { config: ConfigFirmaTri
           />
         </div>
       </div>
-      <div className="space-y-2 border-t border-border pt-3">
-        <span className="text-ink/70 font-medium">Centro (debajo, centrado a todo el ancho — tampoco lleva nombre de una persona)</span>
+      <div className="space-y-2 border-t border-border dark:border-border-dark pt-3">
+        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Centro (debajo, centrado a todo el ancho — tampoco lleva nombre de una persona)</span>
         <label className="flex flex-col gap-1">
-          <span className="text-ink/70 text-xs">Cargo (en negrita)</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 text-xs">Cargo (en negrita)</span>
           <Input
             value={centro.cargo_fijo ?? ""}
             onChange={(e) => onGuardar({ ...config, centro: { ...centro, cargo_fijo: e.target.value } })}
@@ -765,7 +835,7 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
   }
   return (
     <div className="space-y-4 text-sm">
-      <p className="text-xs text-ink/50">
+      <p className="text-xs text-ink/50 dark:text-ink-dark/50">
         Formulario EN BLANCO para imprimir y completar a mano — nunca se llena desde la app, lo que configurás acá es
         exactamente lo que sale impreso.
       </p>
@@ -775,7 +845,7 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
         onCambiar={(v) => onGuardar({ ...config, campos_encabezado: v })}
       />
       <label className="flex flex-col gap-1">
-        <span className="text-ink/70 font-medium">Leyenda (línea fija, ej. la escala de valoración)</span>
+        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Leyenda (línea fija, ej. la escala de valoración)</span>
         <Input value={config.leyenda ?? ""} onChange={(e) => onGuardar({ ...config, leyenda: e.target.value })} />
       </label>
       <div className="grid sm:grid-cols-2 gap-4">
@@ -792,9 +862,9 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
       </div>
 
       <div className="space-y-2">
-        <span className="text-ink/70 font-medium">Listas de opciones con casillero [ ]</span>
+        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Listas de opciones con casillero [ ]</span>
         {listas.map((lista, i) => (
-          <div key={i} className="border border-border rounded-card p-2 space-y-2">
+          <div key={i} className="border border-border dark:border-border-dark rounded-card p-2 space-y-2">
             <div className="flex items-center gap-2">
               <Input
                 placeholder="Título de la lista"

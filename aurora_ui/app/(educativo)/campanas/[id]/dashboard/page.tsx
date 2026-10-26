@@ -15,6 +15,7 @@ import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { Migas } from "@/components/ui/Migas";
 import type { DashboardCampana, InscripcionCampana, Prueba } from "@/types/api";
+import { estadoVisibleCampana, etiquetaEstadoCampana, claseBadgeEstadoCampana } from "@/lib/campanas";
 
 // Convierte el datetime que manda el backend al formato que acepta
 // <input type="datetime-local"> — mismo criterio inverso que `campanas/
@@ -296,23 +297,21 @@ export default function DashboardCampanaPage() {
   if (loading) return <div className="p-8 text-center text-teal-900">Cargando dashboard...</div>;
   if (error || !dashboard) return <div className="p-8"><TextoError>{error || "Campaña no encontrada."}</TextoError></div>;
 
+  // Mismo criterio que el backend (crud.campana_esta_expirada) — ver
+  // lib/campanas.ts. dashboard.estado sigue diciendo "activa" en la BD
+  // aunque ya pasó fecha_fin; esto es lo que de verdad se muestra.
+  const estadoVisible = estadoVisibleCampana(dashboard.estado, dashboard.fecha_fin);
+  const vencida = estadoVisible === "vencida";
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
       <Migas items={[{ label: "Campañas", href: "/campanas" }, { label: dashboard.nombre_grupo }]} />
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="font-display text-2xl text-teal-900">{dashboard.nombre_grupo}</h1>
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                dashboard.estado === "activa"
-                  ? "bg-teal-400/20 text-teal-900"
-                  : dashboard.estado === "cerrada"
-                    ? "bg-ink/10 text-ink/60"
-                    : "bg-red-100 text-red-700"
-              }`}
-            >
-              {dashboard.estado}
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${claseBadgeEstadoCampana(estadoVisible)}`}>
+              {etiquetaEstadoCampana(estadoVisible)}
             </span>
           </div>
           <p className="text-sm text-ink/60">{dashboard.nombre_corto_prueba || dashboard.nombre_prueba}</p>
@@ -331,6 +330,18 @@ export default function DashboardCampanaPage() {
           </Boton>
         </div>
       </div>
+
+      {/* 🆕 Aviso real: la campaña sigue "activa" en la BD, pero ya pasó su
+          fecha_fin — el backend rechaza en silencio cualquier intento de
+          matricular o de que un alumno rinda (ver lib/campanas.ts). Sin
+          este aviso no había ninguna señal de esto hasta que algo fallaba. */}
+      {vencida && puedeAdministrar && (
+        <div className="bg-red-50 border border-red-200 rounded-card px-4 py-3 text-sm text-red-700">
+          Esta campaña venció el {dashboard.fecha_fin ? new Date(dashboard.fecha_fin).toLocaleString("es-PE") : ""} y ya
+          no acepta actividad nueva (nadie puede matricularse ni rendir el examen). Si fue sin querer, editá la fecha de
+          cierre para reabrirla; si ya terminó de verdad, cerrala formalmente más abajo.
+        </div>
+      )}
 
       {mostrarEditar && (
         <form onSubmit={guardarEdicion} className="bg-white rounded-card border border-border p-6 space-y-3">
