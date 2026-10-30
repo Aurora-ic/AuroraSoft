@@ -24,11 +24,14 @@ import {
   GraduationCap,
   ArrowRight,
   Clock,
+  BarChart3,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
-import type { Cita, Evaluacion, RespuestaPaginada, ResumenInicio } from "@/types/api";
+import { ACENTOS, type Acento } from "@/lib/acentos";
+import type { Cita, Evaluacion, RespuestaPaginada, ResumenInicio, SeriesInicio } from "@/types/api";
+import { AvanceCampanas, GraficoEvaluacionesMes, GraficoSeguimientoMes } from "@/components/educativo/GraficosInicio";
 
 type CasoPendiente = {
   persona_id: number;
@@ -55,13 +58,14 @@ function cierraEnMenosDe(fechaIso: string | null, dias: number): boolean {
 }
 
 // --- Accesos rápidos: 4 atajos a la acción más común de cada área ---
-function AccesoRapido({ href, icono: Icono, label }: { href: string; icono: typeof Plus; label: string }) {
+// 🆕 `acento` = color de la sección a la que lleva (lib/acentos.ts).
+function AccesoRapido({ href, icono: Icono, label, acento }: { href: string; icono: typeof Plus; label: string; acento: Acento }) {
   return (
     <Link
       href={href}
       className="flex items-center gap-3 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-3.5 hover:border-teal-400 dark:hover:border-teal-accent-dark transition-colors group"
     >
-      <div className="w-9 h-9 rounded-lg bg-mist dark:bg-surface-raised-dark text-teal-700 dark:text-teal-accent-dark flex items-center justify-center flex-shrink-0">
+      <div className={`w-9 h-9 rounded-lg ${ACENTOS[acento].chip} flex items-center justify-center flex-shrink-0`}>
         <Icono size={17} strokeWidth={2} aria-hidden="true" />
       </div>
       <span className="flex-1 min-w-0 text-[13px] font-semibold leading-snug text-ink dark:text-ink-dark">{label}</span>
@@ -81,15 +85,17 @@ function TarjetaKpi({
   label,
   valor,
   sufijo,
+  acento,
 }: {
   icono: typeof Activity;
   label: string;
   valor: number | null;
   sufijo?: string;
+  acento: Acento;
 }) {
   return (
     <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-4 sm:p-5 flex flex-col gap-3">
-      <div className="w-8 h-8 rounded-lg bg-mist dark:bg-surface-raised-dark text-teal-700 dark:text-teal-accent-dark flex items-center justify-center">
+      <div className={`w-8 h-8 rounded-lg ${ACENTOS[acento].chip} flex items-center justify-center`}>
         <Icono size={15} strokeWidth={2} aria-hidden="true" />
       </div>
       <div>
@@ -114,19 +120,28 @@ function TarjetaResumen({
   icono: Icono,
   titulo,
   enlace,
+  acento,
+  subtitulo,
+  className = "",
   children,
 }: {
   icono: typeof AlertTriangle;
   titulo: string;
   enlace: string;
+  acento: Acento;
+  subtitulo?: string;
+  className?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-5 flex flex-col gap-3.5">
+    <div className={`bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-5 flex flex-col gap-3.5 min-w-0 ${className}`}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="m-0 flex items-center gap-2 text-[13px] font-bold text-ink dark:text-ink-dark">
-          <Icono size={15} strokeWidth={2} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+          <span className={`flex h-6 w-6 items-center justify-center rounded-md ${ACENTOS[acento].chip}`}>
+            <Icono size={13} strokeWidth={2.2} aria-hidden="true" />
+          </span>
           {titulo}
+          {subtitulo && <span className="font-medium text-ink/40 dark:text-ink-dark/40">· {subtitulo}</span>}
         </h2>
         <Link
           href={enlace}
@@ -138,6 +153,10 @@ function TarjetaResumen({
       {children}
     </div>
   );
+}
+
+function EsqueletoGrafico({ bajo = false }: { bajo?: boolean }) {
+  return <div className={`w-full animate-pulse rounded-lg bg-mist dark:bg-surface-raised-dark ${bajo ? "h-40" : "h-48"}`} />;
 }
 
 export default function InicioPage() {
@@ -154,6 +173,10 @@ export default function InicioPage() {
   const [errorCitas, setErrorCitas] = useState<string | null>(null);
 
   const [campanas, setCampanas] = useState<Evaluacion[] | null>(null);
+
+  // 🆕 Gráficos (sesión 2026-10-30) — GET /educativo/inicio/series.
+  const [series, setSeries] = useState<SeriesInicio | null>(null);
+  const [errorSeries, setErrorSeries] = useState<string | null>(null);
   const [errorCampanas, setErrorCampanas] = useState<string | null>(null);
 
   useEffect(() => {
@@ -167,6 +190,11 @@ export default function InicioPage() {
         .get<ResumenInicio>("/educativo/inicio/resumen")
         .then(setResumen)
         .catch((err) => setErrorResumen(err.message || "No se pudo cargar el resumen del mes."));
+
+      apiClient
+        .get<SeriesInicio>("/educativo/inicio/series?meses=6")
+        .then(setSeries)
+        .catch((err) => setErrorSeries(err.message || "No se pudieron cargar los gráficos."));
     }
 
     apiClient
@@ -174,7 +202,9 @@ export default function InicioPage() {
       .then(setCitas)
       .catch((err) => setErrorCitas(err.message || "No se pudo cargar la agenda."));
 
-    if (sesion?.institucionId) {
+    // El staff clínico ve el avance de campañas desde /inicio/series; la
+    // lista completa solo hace falta para la tarjeta de 'colegio'.
+    if (!vePerfilClinico && sesion?.institucionId) {
       apiClient
         .get<RespuestaPaginada<Evaluacion>>(`/educativo/campanas/?institucion_id=${sesion.institucionId}&limit=200`)
         .then((r) => setCampanas(r.items))
@@ -189,7 +219,7 @@ export default function InicioPage() {
   const nombreMes = new Date().toLocaleDateString("es-PE", { month: "long" });
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-7">
+    <div className="max-w-6xl mx-auto flex flex-col gap-5">
       {/* ===== Encabezado ===== */}
       <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between flex-wrap gap-5">
         <div>
@@ -222,10 +252,10 @@ export default function InicioPage() {
         {/* 4 columnas solo cuando de verdad entran (xl) — antes `sm:grid-cols-4`
             apretaba "Casos en riesgo"/"Documentos" fuera de su tarjeta. */}
         <div className="grid grid-cols-1 min-[440px]:grid-cols-2 xl:grid-cols-4 gap-3">
-          <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" />
-          <AccesoRapido href="/estudiantes" icono={Users} label="Padrón" />
-          <AccesoRapido href="/documentos" icono={FileText} label="Documentos" />
-          <AccesoRapido href="/casos-riesgo" icono={AlertTriangle} label="Casos en riesgo" />
+          <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" acento="azul" />
+          <AccesoRapido href="/estudiantes" icono={Users} label="Padrón" acento="teal" />
+          <AccesoRapido href="/documentos" icono={FileText} label="Documentos" acento="violeta" />
+          <AccesoRapido href="/casos-riesgo" icono={AlertTriangle} label="Casos en riesgo" acento="riesgo" />
         </div>
       </div>
 
@@ -237,84 +267,140 @@ export default function InicioPage() {
           </h2>
           <TextoError className="mb-2">{errorResumen}</TextoError>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-3.5">
-            <TarjetaKpi icono={GraduationCap} label="Alumnos en el padrón" valor={resumen?.total_alumnos ?? null} />
-            <TarjetaKpi icono={Activity} label="Pruebas finalizadas este mes" valor={resumen?.pruebas_finalizadas_mes ?? null} />
-            <TarjetaKpi icono={HeartHandshake} label="Alumnos con seguimiento este mes" valor={resumen?.estudiantes_con_seguimiento_mes ?? null} />
-            <TarjetaKpi icono={Flag} label="Campañas activas" valor={resumen?.campanas_activas ?? null} />
+            <TarjetaKpi acento="teal" icono={GraduationCap} label="Alumnos en el padrón" valor={resumen?.total_alumnos ?? null} />
+            <TarjetaKpi acento="azul" icono={Activity} label="Pruebas finalizadas este mes" valor={resumen?.pruebas_finalizadas_mes ?? null} />
+            <TarjetaKpi acento="teal" icono={HeartHandshake} label="Alumnos con seguimiento este mes" valor={resumen?.estudiantes_con_seguimiento_mes ?? null} />
+            <TarjetaKpi acento="azul" icono={Flag} label="Campañas activas" valor={resumen?.campanas_activas ?? null} />
           </div>
         </div>
       )}
 
-      {/* ===== Resumen por apartado ===== */}
-      <div className={`grid gap-3.5 ${vePerfilClinico ? "md:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2"}`}>
-        {vePerfilClinico && (
-          <TarjetaResumen icono={AlertTriangle} titulo="Casos en riesgo sin seguimiento" enlace="/casos-riesgo">
-            {casos === null ? (
+      {/* ===== 🆕 Gráficos (sesión 2026-10-30) — solo staff clínico: las
+          series cuentan alertas y sesiones de seguimiento. Filas de 3
+          columnas con tarjetas de la misma altura (grid estira), sin
+          huecos: 2/3 + 1/3 arriba, 1/3 + 1/3 + 1/3 abajo. ===== */}
+      {vePerfilClinico ? (
+        <>
+          <TextoError>{errorSeries}</TextoError>
+          <div className="grid gap-3.5 lg:grid-cols-3">
+            <TarjetaResumen
+              icono={BarChart3}
+              titulo="Evaluaciones por mes"
+              subtitulo="últimos 6 meses"
+              enlace="/pruebas"
+              acento="azul"
+              className="lg:col-span-2"
+            >
+              {series ? <GraficoEvaluacionesMes meses={series.meses} /> : <EsqueletoGrafico />}
+            </TarjetaResumen>
+            <TarjetaResumen icono={Flag} titulo="Avance de campañas" enlace="/campanas" acento="azul">
+              {series ? <AvanceCampanas campanas={series.campanas} /> : <EsqueletoGrafico bajo />}
+            </TarjetaResumen>
+          </div>
+
+          <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-3">
+            <TarjetaResumen
+              icono={HeartHandshake}
+              titulo="Seguimiento por mes"
+              enlace="/agenda"
+              acento="teal"
+              className="md:col-span-2 lg:col-span-1"
+            >
+              {series ? <GraficoSeguimientoMes meses={series.meses} /> : <EsqueletoGrafico />}
+            </TarjetaResumen>
+            <TarjetaResumen icono={AlertTriangle} titulo="Casos sin seguimiento" enlace="/casos-riesgo" acento="riesgo">
+              {casos === null ? (
+                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+              ) : casos.length === 0 ? (
+                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin casos pendientes.</p>
+              ) : (
+                <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                  {casos.slice(0, 4).map((c) => (
+                    <li key={c.persona_id} className="flex items-center justify-between gap-2 text-[12.5px]">
+                      <span className="truncate text-ink/80 dark:text-ink-dark/80">{c.nombre_completo}</span>
+                      <span className="flex-shrink-0 text-[10.5px] font-semibold text-amber-800 dark:text-amber bg-amber/15 rounded-full px-2 py-0.5">
+                        {c.nivel_alerta}
+                      </span>
+                    </li>
+                  ))}
+                  {casos.length > 4 && (
+                    <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{casos.length - 4} más</li>
+                  )}
+                </ul>
+              )}
+              <TextoError className="text-xs">{errorCasos}</TextoError>
+            </TarjetaResumen>
+            <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="pizarra">
+              {citas === null ? (
+                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+              ) : citasHoy.length === 0 ? (
+                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
+              ) : (
+                <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                  {citasHoy.slice(0, 4).map((c) => (
+                    <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
+                      <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
+                      <span className="font-mono text-[11.5px]">
+                        {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span className="truncate">{c.titulo || c.motivo}</span>
+                    </li>
+                  ))}
+                  {citasHoy.length > 4 && (
+                    <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
+                  )}
+                </ul>
+              )}
+              <TextoError className="text-xs">{errorCitas}</TextoError>
+            </TarjetaResumen>
+          </div>
+        </>
+      ) : (
+        // 'colegio': sin datos clínicos — dos columnas completas.
+        <div className="grid gap-3.5 sm:grid-cols-2">
+          <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="pizarra">
+            {citas === null ? (
               <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
-            ) : casos.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin casos pendientes.</p>
+            ) : citasHoy.length === 0 ? (
+              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
             ) : (
               <ul className="m-0 p-0 list-none flex flex-col gap-2">
-                {casos.slice(0, 4).map((c) => (
-                  <li key={c.persona_id} className="flex items-center justify-between gap-2 text-[12.5px]">
-                    <span className="truncate text-ink/80 dark:text-ink-dark/80">{c.nombre_completo}</span>
-                    <span className="flex-shrink-0 text-[10.5px] font-semibold text-red-700 bg-red-50 dark:bg-red-900/20 rounded-full px-2 py-0.5">
-                      {c.nivel_alerta}
+                {citasHoy.slice(0, 4).map((c) => (
+                  <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
+                    <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
+                    <span className="font-mono text-[11.5px]">
+                      {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                     </span>
+                    <span className="truncate">{c.titulo || c.motivo}</span>
                   </li>
                 ))}
-                {casos.length > 4 && (
-                  <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{casos.length - 4} más</li>
+                {citasHoy.length > 4 && (
+                  <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
                 )}
               </ul>
             )}
-            <TextoError className="text-xs">{errorCasos}</TextoError>
+            <TextoError className="text-xs">{errorCitas}</TextoError>
           </TarjetaResumen>
-        )}
-
-        <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda">
-          {citas === null ? (
-            <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
-          ) : citasHoy.length === 0 ? (
-            <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
-          ) : (
-            <ul className="m-0 p-0 list-none flex flex-col gap-2">
-              {citasHoy.slice(0, 4).map((c) => (
-                <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
-                  <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
-                  <span className="font-mono text-[11.5px]">
-                    {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                  <span className="truncate">{c.titulo || c.motivo}</span>
-                </li>
-              ))}
-              {citasHoy.length > 4 && (
-                <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
-              )}
-            </ul>
-          )}
-          <TextoError className="text-xs">{errorCitas}</TextoError>
-        </TarjetaResumen>
-
-        <TarjetaResumen icono={Flag} titulo="Campañas activas" enlace="/campanas">
-          {campanas === null ? (
-            <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
-          ) : campanasActivas.length === 0 ? (
-            <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin campañas activas.</p>
-          ) : (
-            <>
-              <p className="m-0 font-display text-2xl font-bold text-ink dark:text-ink-dark">{campanasActivas.length}</p>
-              {campanasPorCerrar.length > 0 && (
-                <p className="m-0 text-[12px] text-ink/60 dark:text-ink-dark/60">
-                  <span className="font-semibold text-ink dark:text-ink-dark">{campanasPorCerrar.length}</span> cierra
-                  {campanasPorCerrar.length === 1 ? "" : "n"} en los próximos 7 días.
-                </p>
-              )}
-            </>
-          )}
-          <TextoError className="text-xs">{errorCampanas}</TextoError>
-        </TarjetaResumen>
-      </div>
+          <TarjetaResumen icono={Flag} titulo="Campañas activas" enlace="/campanas" acento="azul">
+            {campanas === null ? (
+              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+            ) : campanasActivas.length === 0 ? (
+              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin campañas activas.</p>
+            ) : (
+              <>
+                <p className="m-0 font-display text-2xl font-bold text-ink dark:text-ink-dark">{campanasActivas.length}</p>
+                {campanasPorCerrar.length > 0 && (
+                  <p className="m-0 text-[12px] text-ink/60 dark:text-ink-dark/60">
+                    <span className="font-semibold text-ink dark:text-ink-dark">{campanasPorCerrar.length}</span> cierra
+                    {campanasPorCerrar.length === 1 ? "" : "n"} en los próximos 7 días.
+                  </p>
+                )}
+              </>
+            )}
+            <TextoError className="text-xs">{errorCampanas}</TextoError>
+          </TarjetaResumen>
+        </div>
+      )}
     </div>
   );
 }

@@ -1309,7 +1309,11 @@ def obtener_asentimiento_texto_examen(request: Request, token: str, db: Session 
             status_code=status.HTTP_410_GONE,
             detail="Este enlace de evaluación ha expirado debido a que la fecha límite ha concluido.",
         )
-    texto = crud.resolver_asentimiento_texto_activo(db, evaluacion.institucion_id)
+    # 🆕 El modelo del NIVEL del alumno, si su colegio definió uno (si no,
+    # el general del colegio, y si no, el global).
+    texto = crud.resolver_asentimiento_texto_activo(
+        db, evaluacion.institucion_id, crud.nivel_educativo_de_inscripcion(db, inscripcion),
+    )
     if not texto:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -1321,6 +1325,7 @@ def obtener_asentimiento_texto_examen(request: Request, token: str, db: Session 
 @router.get("/asentimiento-textos", response_model=List[schemas.AsentimientoInformadoTextoResponse])
 def listar_asentimiento_textos(
     institucion_id: Optional[int] = None,
+    tipo_texto: Optional[str] = Query(default=None, pattern="^(apoderado|asentimiento)$"),
     db: Session = Depends(get_db),
     usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
 ):
@@ -1333,7 +1338,7 @@ def listar_asentimiento_textos(
             raise HTTPException(status_code=403, detail="Solo superadmin puede ver el historial de la versión global.")
     elif usuario_actual.rol != "superadmin" and institucion_id != usuario_actual.institucion_id:
         raise HTTPException(status_code=403, detail="No puedes ver el historial de otro colegio.")
-    return crud.listar_versiones_asentimiento_texto(db, institucion_id)
+    return crud.listar_versiones_asentimiento_texto(db, institucion_id, tipo_texto)
 
 
 @router.post("/asentimiento-textos", response_model=schemas.AsentimientoInformadoTextoResponse)
@@ -1353,8 +1358,96 @@ def crear_asentimiento_texto(
             raise HTTPException(status_code=403, detail="Solo superadmin puede editar el texto global.")
     elif usuario_actual.rol != "superadmin" and datos.institucion_id != usuario_actual.institucion_id:
         raise HTTPException(status_code=403, detail="No puedes configurar el texto de otro colegio.")
+    # 🆕 Un modelo por nivel: el nivel tiene que ser de ESA institución (y
+    # nunca hay un texto global por nivel — mismo CHECK en la base).
+    if datos.nivel_educativo_id is not None:
+        if datos.institucion_id is None:
+            raise HTTPException(status_code=400, detail="Un modelo por nivel educativo necesita una institución.")
+        nivel = db.query(superadmin_models.NivelEducativo).filter(
+            superadmin_models.NivelEducativo.id == datos.nivel_educativo_id,
+        ).first()
+        if not nivel or nivel.institucion_id != datos.institucion_id:
+            raise HTTPException(status_code=404, detail="Nivel educativo no encontrado en esta institución.")
     return crud.crear_version_asentimiento_texto(
         db, datos.institucion_id, datos.contenido, usuario_actual.id,
+        tipo_texto=datos.tipo_texto, nivel_educativo_id=datos.nivel_educativo_id,
+    )
+
+
+def _persona_del_mismo_colegio(db: Session, persona_id: int, usuario_actual):
+    persona = db.query(superadmin_models.Persona).filter(superadmin_models.Persona.id == persona_id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado.")
+    if usuario_actual.rol != "superadmin" and persona.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes ver datos de un estudiante de otro colegio.")
+    return persona
+
+
+@router.get("/modelos-consentimiento/vigente", response_model=schemas.TextoConsentimientoVigente)
+def ver_modelo_consentimiento_vigente(
+    persona_id: int,
+    tipo_texto: str = Query(pattern="^(apoderado|asentimiento)$"),
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """🆕 El modelo de consentimiento/asentimiento que le corresponde HOY a
+    un alumno (su nivel → general del colegio → global), para mostrarlo al
+    registrar su consentimiento en la ficha. A diferencia del historial
+    (/asentimiento-textos, solo administrativo), esto lo necesita quien
+    registra — el staff clínico. 404 si el colegio no configuró ninguno."""
+    persona = _persona_del_mismo_colegio(db, persona_id, usuario_actual)
+    nivel_id = crud.nivel_educativo_actual_de_persona(db, persona.id)
+    texto, origen = crud.resolver_texto_consentimiento_activo(db, persona.institucion_id, tipo_texto, nivel_id)
+    if not texto:
+        raise HTTPException(status_code=404, detail="Tu colegio todavía no configuró este modelo.")
+    return {
+        "id": texto.id,
+        "tipo_texto": texto.tipo_texto,
+        "version": texto.version,
+        "contenido": texto.contenido,
+        "nivel_educativo_id": texto.nivel_educativo_id,
+        "origen": origen,
+    }
+
+
+@router.get("/modelos-consentimiento/pdf")
+def descargar_modelo_consentimiento_pdf(
+    persona_id: int,
+    tipo_texto: str = Query(pattern="^(apoderado|asentimiento)$"),
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """🆕 El modelo vigente del alumno como PDF para imprimir y firmar, con
+    sus datos ya completados (ver core/pdf_consentimiento.py). No registra
+    nada: el consentimiento se registra aparte, y el escaneado firmado se
+    sube como su evidencia."""
+    from core.pdf_consentimiento import fecha_larga, generar_pdf_modelo_consentimiento
+
+    persona = _persona_del_mismo_colegio(db, persona_id, usuario_actual)
+    nivel_id, ubicacion = crud.ubicacion_academica_actual(db, persona.id)
+    texto, _ = crud.resolver_texto_consentimiento_activo(db, persona.institucion_id, tipo_texto, nivel_id)
+    if not texto:
+        raise HTTPException(status_code=404, detail="Tu colegio todavía no configuró este modelo.")
+    institucion = db.query(instituciones_models.Institucion).filter(
+        instituciones_models.Institucion.id == persona.institucion_id,
+    ).first()
+    nombre_nivel = ubicacion.split(" · ")[0] if ubicacion else None
+    pdf = generar_pdf_modelo_consentimiento({
+        "tipo_texto": texto.tipo_texto,
+        "version": texto.version,
+        "contenido": texto.contenido,
+        "institucion_nombre": institucion.nombre if institucion else "",
+        "alumno_nombre": f"{persona.nombres} {persona.apellidos}",
+        "alumno_documento": persona.documento_identidad,
+        "nivel": nombre_nivel,
+        "grado_seccion": ubicacion,
+        "fecha_texto": fecha_larga(datetime.now(timezone.utc).date()),
+    })
+    prefijo = "consentimiento" if tipo_texto == "apoderado" else "asentimiento"
+    return StreamingResponse(
+        pdf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{prefijo}_{persona.id}.pdf"'},
     )
 
 
@@ -1858,6 +1951,32 @@ def ver_resumen_inicio(
         institucion_id = usuario_actual.institucion_id
 
     return crud.obtener_resumen_inicio(db=db, institucion_id=institucion_id)
+
+
+@router.get("/inicio/series")
+def ver_series_inicio(
+    institucion_id: Optional[int] = None,
+    meses: int = Query(default=6, ge=3, le=12),
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """🆕 Series mensuales (evaluaciones con/sin alerta, sesiones de
+    seguimiento, citas) y avance de campañas activas para los gráficos de
+    `/inicio` (sesión 2026-10-30) — ver crud.obtener_series_inicio. Mismo
+    candado y mismo criterio de `institucion_id` que `/inicio/resumen`:
+    solo números agregados, pero de actividad clínica (alertas, sesiones)."""
+    if usuario_actual.rol == "superadmin":
+        if institucion_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Como superadmin, debes especificar ?institucion_id=",
+            )
+    else:
+        institucion_id = usuario_actual.institucion_id
+
+    return crud.obtener_series_inicio(
+        db=db, institucion_id=institucion_id, usuario_id=usuario_actual.id, meses=meses,
+    )
 
 # ==========================================
 # RUTAS PARA DERECHOS ARCO (LEY 29733 - PASO 3.5)

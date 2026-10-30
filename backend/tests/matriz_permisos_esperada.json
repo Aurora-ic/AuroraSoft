@@ -1414,6 +1414,38 @@
       "superadmin": true,
       "sin_autenticar": false,
       "verifica_institucion": false
+    },
+    "GET /api/educativo/modelos-consentimiento/pdf": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/modelos-consentimiento/vigente": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/admin/personas/academico/conteos/{institucion_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": true
+    },
+    "GET /api/educativo/inicio/series": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
     }
   }
 }

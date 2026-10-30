@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Users, UserCheck, UserX, FileWarning, School, Search, Upload, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Persona, SeccionActual } from "@/types/api";
 import { TextoError } from "@/components/ui/TextoError";
-import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { EsqueletoFilasTabla } from "@/components/ui/Esqueleto";
+import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, claseBotonBanner } from "@/components/ui/Encabezado";
 
 type FiltroEstado = "activos" | "inactivos" | "todos";
 
@@ -33,29 +34,11 @@ function formatearSeccion(seccion: SeccionActual | null): { linea: string; detal
   };
 }
 
-function TarjetaResumen({
-  etiqueta,
-  valor,
-  activa,
-  onClick,
-}: {
-  etiqueta: string;
-  valor: number | string;
-  activa?: boolean;
-  onClick?: () => void;
-}) {
-  const Elemento = onClick ? "button" : "div";
-  return (
-    <Elemento
-      onClick={onClick}
-      className={`text-left bg-white rounded-card border p-4 transition-colors ${
-        activa ? "border-teal-600 bg-teal-600/5" : "border-border"
-      } ${onClick ? "hover:border-teal-400 cursor-pointer" : ""}`}
-    >
-      <div className="font-display text-2xl font-semibold text-teal-900">{valor}</div>
-      <div className="mt-0.5 text-xs text-ink/60">{etiqueta}</div>
-    </Elemento>
-  );
+// Iniciales para el avatar de la fila — nunca el nombre completo otra vez
+// (e2e/revision-informe.spec.ts hace getByText(nombre).click() en esta
+// tabla: el nombre tiene que aparecer UNA sola vez por fila).
+function iniciales(persona: Persona): string {
+  return `${persona.nombres.trim()[0] ?? ""}${persona.apellidos.trim()[0] ?? ""}`.toUpperCase();
 }
 
 export default function PadronPage() {
@@ -198,55 +181,57 @@ export default function PadronPage() {
     }
   }
 
+  const hayFiltrosExtra = soloIncompletos || filtroSeccionId !== "todas" || busqueda.trim() !== "";
+
   return (
-    <div className="max-w-7xl mx-auto lg:px-6 lg:py-8 space-y-8">
-      {/* Cabecera */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-        <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-teal-900 tracking-tight">Padrón</h1>
-          <p className="mt-1 text-sm text-ink/60">
-            Estudiantes registrados en tu institución — busca, revisa su estado y entra a la ficha de cada uno.
-          </p>
-        </div>
-        {/* 🔧 El backend ya rechaza /admin/personas/ (alta) y /importar/* con
-            403 para "colegio" (permisos.STAFF_CLINICO excluye ese rol), pero
-            estos dos links no tenían su propio candado — desde que
-            (educativo)/layout.tsx deja entrar a "colegio" (antes lo
-            expulsaba por error), ese rol veía ambos botones sin que
-            llevaran a nada que pudiera completar. */}
-        {puedeGestionarPadron && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/estudiantes/importar"
-              className="rounded-card border border-border bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-mist transition-colors"
-            >
-              Importar Excel
-            </Link>
-            <Link
-              href="/estudiantes/nuevo"
-              className="rounded-card bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 transition-colors shadow-sm"
-            >
-              + Registrar alumno
-            </Link>
-          </div>
-        )}
-      </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-4">
+      {/* 🔧 El backend ya rechaza /admin/personas/ (alta) y /importar/* con
+          403 para "colegio" (permisos.STAFF_CLINICO excluye ese rol), pero
+          estos dos links no tenían su propio candado — desde que
+          (educativo)/layout.tsx deja entrar a "colegio" (antes lo
+          expulsaba por error), ese rol veía ambos botones sin que
+          llevaran a nada que pudiera completar. */}
+      <EncabezadoPagina variante="destacado"
+        icono={Users}
+        acento="teal"
+        titulo="Padrón"
+        descripcion="Estudiantes registrados en tu institución — busca, revisa su estado y entra a la ficha de cada uno."
+        acciones={
+          puedeGestionarPadron && (
+            <>
+              <Link href="/estudiantes/importar" className={claseBotonBanner("secundario")}>
+                <Upload size={15} aria-hidden="true" />
+                Importar Excel
+              </Link>
+              <Link href="/estudiantes/nuevo" className={claseBotonBanner("primario")}>
+                <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+                Registrar alumno
+              </Link>
+            </>
+          )
+        }
+      />
 
       {/* Resumen — cada tarjeta aplica su filtro correspondiente en la tabla de abajo */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <TarjetaResumen
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <TarjetaKpi
+          icono={UserCheck}
           etiqueta="Activos"
           valor={cargando ? "…" : resumen.activos}
           activa={filtroEstado === "activos"}
           onClick={() => setFiltroEstado("activos")}
         />
-        <TarjetaResumen
+        <TarjetaKpi
+          icono={UserX}
+          tono="neutro"
           etiqueta="Inactivos"
           valor={cargando ? "…" : resumen.inactivos}
           activa={filtroEstado === "inactivos"}
           onClick={() => setFiltroEstado("inactivos")}
         />
-        <TarjetaResumen
+        <TarjetaKpi
+          icono={FileWarning}
+          tono="neutro"
           etiqueta="Datos incompletos"
           valor={cargando ? "…" : resumen.datosIncompletos}
           activa={soloIncompletos}
@@ -257,7 +242,9 @@ export default function PadronPage() {
             setSoloIncompletos((v) => !v);
           }}
         />
-        <TarjetaResumen
+        <TarjetaKpi
+          icono={School}
+          tono="neutro"
           etiqueta="Sin matrícula"
           valor={cargando ? "…" : resumen.sinMatricula}
           activa={filtroSeccionId === "sin-matricula"}
@@ -268,158 +255,192 @@ export default function PadronPage() {
         />
       </div>
 
-      {/* Barra de herramientas — búsqueda y filtro de estado respiran aparte de la tabla */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
-          type="text"
-          placeholder="Buscar por nombre, apellido o documento…"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          className="w-full max-w-sm bg-white placeholder:text-ink/40"
-        />
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Select
-            value={filtroSeccionId}
-            onChange={(e) => setFiltroSeccionId(e.target.value)}
-            className="bg-white min-w-0 flex-1 sm:flex-none"
-          >
-            <option value="todas">Todas las secciones</option>
-            <option value="sin-matricula">Sin matrícula</option>
-            {seccionesDisponibles.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.etiqueta}
-              </option>
-            ))}
-          </Select>
-
-          <div className="inline-flex items-center gap-0.5 rounded-card border border-border bg-white p-1 self-start">
-            {FILTROS_ESTADO.map((f) => (
-              <button
-                key={f.valor}
-                onClick={() => setFiltroEstado(f.valor)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  filtroEstado === f.valor ? "bg-teal-600 text-white" : "text-ink/60 hover:text-ink hover:bg-mist"
-                }`}
-              >
-                {f.etiqueta}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
       <TextoError>{error}</TextoError>
       <TextoError>{errorAccion}</TextoError>
 
-      {/* Tabla — overflow-x-auto: en pantallas angostas se desplaza de lado
-          dentro de su tarjeta en vez de empujar la página entera. */}
-      <div className="rounded-card border border-border bg-white shadow-sm overflow-x-auto">
-        <table className="w-full min-w-[36rem] text-sm border-collapse">
-          <thead>
-            <TheadFila>
-              <Th className="px-5 py-3">Nombre</Th>
-              <Th className="px-5 py-3">Documento</Th>
-              <Th className="px-5 py-3">Sección</Th>
-              <Th className="px-5 py-3">Estado</Th>
-              {esAdmin && <Th className="px-5 py-3"></Th>}
-            </TheadFila>
-          </thead>
-          <tbody>
-            {cargando && <EsqueletoFilasTabla filas={8} columnas={esAdmin ? 5 : 4} />}
-            {!cargando && personasFiltradas.length === 0 && (
-              <tr>
-                <td colSpan={esAdmin ? 5 : 4} className="px-5 py-10 text-center text-sm text-ink/40">
-                  No se encontraron alumnos.
-                </td>
-              </tr>
-            )}
-            {!cargando &&
-              personasPaginaActual.map((persona) => {
-                const seccion = formatearSeccion(persona.seccion_actual);
-                return (
-                  <tr
-                    key={persona.id}
-                    onClick={() => router.push(`/estudiantes/${persona.id}`)}
-                    className="cursor-pointer border-b border-border last:border-0 transition-colors hover:bg-mist focus-within:bg-teal-400/10 focus-within:ring-1 focus-within:ring-inset focus-within:ring-teal-400"
-                  >
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/estudiantes/${persona.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium text-teal-900 hover:text-teal-600 focus:outline-none"
-                      >
-                        {persona.nombres} {persona.apellidos}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-3 font-mono text-xs text-ink/70">
-                      {persona.documento_identidad ?? "—"}
-                    </td>
-                    <td className="px-5 py-3">
-                      {seccion ? (
-                        <div>
-                          <div className="text-ink">{seccion.linea}</div>
-                          {seccion.detalle && <div className="text-xs text-ink/40 mt-0.5">{seccion.detalle}</div>}
-                        </div>
-                      ) : (
-                        <span className="text-ink/40">Sin matrícula</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <span
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                          persona.activo ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/50"
-                        }`}
-                      >
-                        {persona.activo ? "Activo" : "Inactivo"}
-                      </span>
-                    </td>
-                    {esAdmin && (
-                      <td className="px-5 py-3 text-right whitespace-nowrap">
-                        <button
-                          onClick={(e) => alternarActivo(persona, e)}
-                          disabled={actualizandoId === persona.id}
-                          className="text-xs font-medium text-ink/60 hover:text-ink hover:underline disabled:opacity-50"
-                        >
-                          {actualizandoId === persona.id
-                            ? "Actualizando…"
-                            : persona.activo
-                            ? "Desactivar"
-                            : "Reactivar"}
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-          </tbody>
-        </table>
-      </div>
+      <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
+        {/* Barra de herramientas — dentro de la misma tarjeta que la tabla */}
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-border dark:border-border-dark">
+          <div className="relative w-full md:max-w-sm">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, apellido o documento…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+            />
+          </div>
 
-      {!cargando && personasFiltradas.length > 0 && (
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-ink/50">
-            {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, personasFiltradas.length)} de{" "}
-            {personasFiltradas.length} alumnos
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPagina((p) => Math.max(0, p - 1))}
-              disabled={pagina === 0}
-              className="rounded-card border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-mist disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          <div className="flex flex-wrap items-center gap-2">
+            {hayFiltrosExtra && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBusqueda("");
+                  setFiltroSeccionId("todas");
+                  setSoloIncompletos(false);
+                }}
+                className="text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+              >
+                Limpiar filtros
+              </button>
+            )}
+            <Select
+              value={filtroSeccionId}
+              onChange={(e) => setFiltroSeccionId(e.target.value)}
+              className="min-w-0 flex-1 md:flex-none"
+              aria-label="Filtrar por sección"
             >
-              Anterior
-            </button>
-            <button
-              onClick={() => setPagina((p) => p + 1)}
-              disabled={(pagina + 1) * TAMANO_PAGINA >= personasFiltradas.length}
-              className="rounded-card border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-mist disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              Siguiente
-            </button>
+              <option value="todas">Todas las secciones</option>
+              <option value="sin-matricula">Sin matrícula</option>
+              {seccionesDisponibles.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.etiqueta}
+                </option>
+              ))}
+            </Select>
+
+            <ControlSegmentado<FiltroEstado>
+              etiqueta="Estado"
+              valor={filtroEstado}
+              onCambiar={setFiltroEstado}
+              opciones={FILTROS_ESTADO}
+            />
           </div>
         </div>
-      )}
+
+        {/* Tabla — overflow-x-auto: en pantallas angostas se desplaza de lado
+            dentro de su tarjeta en vez de empujar la página entera. */}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[36rem] text-sm border-collapse">
+            <thead>
+              <TheadFila>
+                <Th className="px-4 py-2.5">Nombre</Th>
+                <Th className="px-4 py-2.5">Documento</Th>
+                <Th className="px-4 py-2.5">Sección</Th>
+                <Th className="px-4 py-2.5">Estado</Th>
+                {esAdmin && <Th className="px-4 py-2.5"></Th>}
+              </TheadFila>
+            </thead>
+            <tbody>
+              {cargando && <EsqueletoFilasTabla filas={8} columnas={esAdmin ? 5 : 4} />}
+              {!cargando && personasFiltradas.length === 0 && (
+                <tr>
+                  <td colSpan={esAdmin ? 5 : 4} className="px-4 py-10 text-center text-sm text-ink/40 dark:text-ink-dark/40">
+                    No se encontraron alumnos.
+                  </td>
+                </tr>
+              )}
+              {!cargando &&
+                personasPaginaActual.map((persona) => {
+                  const seccion = formatearSeccion(persona.seccion_actual);
+                  return (
+                    <tr
+                      key={persona.id}
+                      onClick={() => router.push(`/estudiantes/${persona.id}`)}
+                      className="cursor-pointer border-b border-border dark:border-border-dark last:border-0 transition-colors hover:bg-mist dark:hover:bg-surface-raised-dark focus-within:bg-teal-400/10 focus-within:ring-1 focus-within:ring-inset focus-within:ring-teal-400"
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            aria-hidden="true"
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                              persona.activo
+                                ? "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                                : "bg-border text-ink/45 dark:bg-border-dark dark:text-ink-dark/45"
+                            }`}
+                          >
+                            {iniciales(persona)}
+                          </span>
+                          <Link
+                            href={`/estudiantes/${persona.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-semibold text-teal-900 dark:text-ink-dark hover:text-teal-600 dark:hover:text-teal-accent-dark focus:outline-none"
+                          >
+                            {persona.nombres} {persona.apellidos}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-ink/70 dark:text-ink-dark/70">
+                        {persona.documento_identidad ?? "—"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        {seccion ? (
+                          <div>
+                            <div className="text-ink dark:text-ink-dark">{seccion.linea}</div>
+                            {seccion.detalle && (
+                              <div className="text-xs text-ink/40 dark:text-ink-dark/40 mt-0.5">{seccion.detalle}</div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-ink/40 dark:text-ink-dark/40">Sin matrícula</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            persona.activo
+                              ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                              : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
+                          }`}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className={`h-1.5 w-1.5 rounded-full ${persona.activo ? "bg-teal-600 dark:bg-teal-accent-dark" : "bg-ink/30 dark:bg-ink-dark/30"}`}
+                          />
+                          {persona.activo ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
+                      {esAdmin && (
+                        <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                          <button
+                            onClick={(e) => alternarActivo(persona, e)}
+                            disabled={actualizandoId === persona.id}
+                            className="text-xs font-medium text-ink/60 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:underline disabled:opacity-50"
+                          >
+                            {actualizandoId === persona.id
+                              ? "Actualizando…"
+                              : persona.activo
+                              ? "Desactivar"
+                              : "Reactivar"}
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+
+        {!cargando && personasFiltradas.length > 0 && (
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border dark:border-border-dark bg-mist/40 dark:bg-surface-raised-dark">
+            <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">
+              {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, personasFiltradas.length)} de{" "}
+              {personasFiltradas.length} alumnos
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setPagina((p) => Math.max(0, p - 1))}
+                disabled={pagina === 0}
+                className="inline-flex items-center gap-1 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2.5 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={13} aria-hidden="true" />
+                Anterior
+              </button>
+              <button
+                onClick={() => setPagina((p) => p + 1)}
+                disabled={(pagina + 1) * TAMANO_PAGINA >= personasFiltradas.length}
+                className="inline-flex items-center gap-1 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2.5 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+                <ChevronRight size={13} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

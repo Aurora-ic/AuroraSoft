@@ -113,7 +113,7 @@ export function BotonAccionFicha({
       type="button"
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
         activo
-          ? "border-teal-600 bg-teal-600 text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
+          ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
           : "border-border bg-surface text-ink/70 hover:border-teal-400 hover:text-teal-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-teal-accent-dark"
       } ${className}`}
       {...props}

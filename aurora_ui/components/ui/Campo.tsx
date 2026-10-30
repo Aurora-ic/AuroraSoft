@@ -13,8 +13,8 @@ export function Campo({
 }) {
   return (
     <div className={className}>
-      <span className="block text-xs font-medium text-ink/50 uppercase tracking-wide">{etiqueta}</span>
-      <span className="block text-ink mt-0.5">{valor || "—"}</span>
+      <span className="block text-xs font-medium text-ink/50 dark:text-ink-dark/50 uppercase tracking-wide">{etiqueta}</span>
+      <span className="block text-ink dark:text-ink-dark mt-0.5">{valor || "—"}</span>
     </div>
   );
 }

@@ -100,7 +100,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
             );
           })}
           <p className="mt-1 px-0.5 text-[11.5px] leading-relaxed text-ink/40 dark:text-ink-dark/40">
-            ¿No encontraste lo que buscabas? Escribinos a [correo o canal de soporte].
+            ¿No encontraste lo que buscabas? Escribinos a auroraintegratedconsulting@gmail.com.
           </p>
         </div>
       </div>

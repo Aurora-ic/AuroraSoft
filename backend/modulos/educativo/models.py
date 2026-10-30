@@ -649,22 +649,62 @@ class AsentimientoInformadoTexto(Base):
     tests/test_patron_concurrencia_unitario.py, no una precaución de más.
     """
     __tablename__ = "edu_asentimiento_textos"
+    # 🆕 Modelos de consentimiento Y asentimiento por colegio y por nivel
+    # (sesión 2026-10-30) — la tabla (y la clase, por compatibilidad con
+    # todo lo que ya la usa) conserva su nombre, pero ahora guarda DOS
+    # tipos de texto (`tipo_texto`: el consentimiento que firma el
+    # apoderado, o el asentimiento que acepta el alumno) y, opcionalmente,
+    # uno distinto por `nivel_educativo_id` (un asentimiento para Inicial no
+    # se redacta igual que para Secundaria). Un "ámbito" es ahora
+    # (institución | global, tipo_texto, nivel | general) — cada uno con su
+    # propia numeración de versiones y su propia versión activa. Resolución:
+    # nivel del alumno → general del colegio → global (ver
+    # crud.resolver_texto_consentimiento_activo).
+    #
+    # Tres índices únicos PARCIALES en vez de dos — mismo motivo que antes
+    # (Postgres nunca trata dos NULL como iguales en un UNIQUE), ahora con
+    # una dimensión NULLable más.
     __table_args__ = (
         Index(
-            "uq_edu_asentimiento_textos_institucion_version",
-            "institucion_id", "version",
+            "uq_edu_textos_consent_inst_nivel_version",
+            "institucion_id", "tipo_texto", "nivel_educativo_id", "version",
             unique=True,
-            postgresql_where=text("institucion_id IS NOT NULL"),
+            postgresql_where=text("institucion_id IS NOT NULL AND nivel_educativo_id IS NOT NULL"),
         ),
         Index(
-            "uq_edu_asentimiento_textos_global_version",
-            "version",
+            "uq_edu_textos_consent_inst_general_version",
+            "institucion_id", "tipo_texto", "version",
+            unique=True,
+            postgresql_where=text("institucion_id IS NOT NULL AND nivel_educativo_id IS NULL"),
+        ),
+        Index(
+            "uq_edu_textos_consent_global_version",
+            "tipo_texto", "version",
             unique=True,
             postgresql_where=text("institucion_id IS NULL"),
+        ),
+        CheckConstraint(
+            "tipo_texto IN ('apoderado', 'asentimiento')",
+            name="ck_edu_asentimiento_textos_tipo_valido",
+        ),
+        # Un nivel educativo siempre es de UNA institución — un texto global
+        # por nivel no tiene sentido.
+        CheckConstraint(
+            "nivel_educativo_id IS NULL OR institucion_id IS NOT NULL",
+            name="ck_edu_asentimiento_textos_nivel_requiere_institucion",
         ),
     )
     id = Column(Integer, primary_key=True, index=True)
     institucion_id = Column(Integer, ForeignKey("instituciones.id"), nullable=True, index=True)
+    # Mismos valores que ConsentimientoInformado.tipo_consentimiento
+    # (TIPO_CONSENTIMIENTO_APODERADO / _ASENTIMIENTO en superadmin/models.py).
+    tipo_texto = Column(String, nullable=False, server_default="asentimiento", default="asentimiento")
+    nivel_educativo_id = Column(
+        Integer,
+        ForeignKey("niveles_educativos.id", name="edu_asentimiento_textos_nivel_educativo_id_fkey"),
+        nullable=True,
+        index=True,
+    )
     version = Column(Integer, nullable=False)
     contenido = Column(Text, nullable=False)
     activo = Column(Boolean, nullable=False, default=True, server_default="true")

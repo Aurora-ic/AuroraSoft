@@ -1,6 +1,6 @@
 from pydantic import BaseModel, field_validator, Field
 from datetime import datetime, date
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, EmailStr
 
 # ==========================================
@@ -121,6 +121,9 @@ class ConsentimientoResponse(ConsentimientoCreate):
     evidencia_content_type: Optional[str] = None
     evidencia_tamano_bytes: Optional[int] = None
     evidencia_subido_en: Optional[datetime] = None
+    # 🆕 Versión del modelo de texto del colegio vigente al registrar (ver
+    # ConsentimientoInformado.texto_version_id).
+    texto_version_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -140,9 +143,21 @@ class ConsentimientoAsentimientoResponse(ConsentimientoAsentimientoCreate):
     evidencia_content_type: Optional[str] = None
     evidencia_tamano_bytes: Optional[int] = None
     evidencia_subido_en: Optional[datetime] = None
+    # 🆕 Versión del modelo de texto del colegio vigente al registrar (ver
+    # ConsentimientoInformado.texto_version_id).
+    texto_version_id: Optional[int] = None
 
     class Config:
         from_attributes = True
+
+
+# 🆕 GET /admin/personas/academico/conteos/{institucion_id} — claves = id
+# del nivel/grado/sección (JSON las serializa como texto).
+class ConteosEstructuraAcademica(BaseModel):
+    total: int
+    niveles: Dict[int, int]
+    grados: Dict[int, int]
+    secciones: Dict[int, int]
 
 
 class CitaParticipanteResponse(BaseModel):
@@ -170,6 +185,9 @@ class CitaCreate(BaseModel):
     tipo_actividad: Optional[str] = None  # texto libre: "Taller", "Charla", "Otro"...
     lugar: Optional[str] = None
     participantes_ids: Optional[List[int]] = None
+    # 🆕 None = 45 min (cita individual) o 60 min (actividad grupal), ver
+    # crud.crear_cita. Mismo rango que el CHECK de la tabla.
+    duracion_minutos: Optional[int] = Field(default=None, ge=5, le=720)
 
 
 class CitaResponse(BaseModel):
@@ -186,6 +204,10 @@ class CitaResponse(BaseModel):
     # 🆕 Objetos con nombre, no solo ids -- la agenda los muestra directo sin
     # tener que resolver cada persona_id por separado.
     participantes: List[CitaParticipanteResponse] = []
+    # 🆕 Nombre del alumno de una cita individual (null en una actividad
+    # grupal) — aditivo, ver CitaProgramada.persona_nombre.
+    persona_nombre: Optional[str] = None
+    duracion_minutos: int = 45
 
     class Config:
         from_attributes = True
@@ -201,7 +223,8 @@ class CitaUpdate(BaseModel):
     titulo: Optional[str] = None
     tipo_actividad: Optional[str] = None
     lugar: Optional[str] = None
-    
+    duracion_minutos: Optional[int] = Field(default=None, ge=5, le=720)
+
 class PersonaUpdate(BaseModel):
     grado_seccion: Optional[str] = None
     codigo_institucional: Optional[str] = None

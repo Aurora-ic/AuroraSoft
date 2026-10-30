@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import or_
 from . import models, schemas
 from datetime import timezone
@@ -185,7 +185,17 @@ def registrar_consentimiento(
             ),
         )
 
+    # 🆕 Qué MODELO de texto del colegio estaba vigente para este alumno
+    # (por su nivel actual) al registrar — el mismo que la ficha le mostró a
+    # quien registra (GET /educativo/modelos-consentimiento/vigente). NULL si
+    # el colegio no tiene ninguno configurado: no bloquea el registro.
+    texto_modelo, _ = educativo_crud.resolver_texto_consentimiento_activo(
+        db, persona.institucion_id, tipo_consentimiento,
+        educativo_crud.nivel_educativo_actual_de_persona(db, persona.id),
+    )
+
     nuevo = models.ConsentimientoInformado(
+        texto_version_id=texto_modelo.id if texto_modelo else None,
         persona_id=persona.id,                    # 👈 del recurso validado
         institucion_id=persona.institucion_id,    # 👈 del recurso validado
         tipo_consentimiento=tipo_consentimiento,
@@ -584,6 +594,9 @@ def crear_cita(db: Session, cita: schemas.CitaCreate, psicologo_id: int, institu
         titulo=cita.titulo,
         tipo_actividad=cita.tipo_actividad,
         lugar=cita.lugar,
+        # 🆕 Sin duración explícita: 45 min una cita individual, 60 una
+        # actividad grupal (mismo criterio que la migración c7d2e41f9a3b).
+        duracion_minutos=cita.duracion_minutos or (45 if cita.persona_id is not None else 60),
     )
     db.add(nueva)
     db.flush()  # necesitamos nueva.id para las filas de participantes
@@ -620,7 +633,13 @@ def listar_citas_del_psicologo(db: Session, psicologo_id: int, institucion_id: O
     else:
         condicion = filtro_propias
 
-    return db.query(models.CitaProgramada).filter(
+    # joinedload/selectinload: la agenda serializa persona_nombre y
+    # participantes[].nombre_completo de CADA cita — sin esto, una consulta
+    # extra por cita (y por participante).
+    return db.query(models.CitaProgramada).options(
+        joinedload(models.CitaProgramada.persona),
+        selectinload(models.CitaProgramada.participantes).joinedload(models.CitaParticipante.persona),
+    ).filter(
         condicion,
         models.CitaProgramada.estado == "Programada",
     ).order_by(models.CitaProgramada.fecha_hora).all()
@@ -1400,6 +1419,43 @@ def matricular_persona_en_seccion(
     else:
         db.flush()
     return nueva
+
+
+def contar_estudiantes_por_estructura(db: Session, institucion_id: int):
+    """🆕 (sesión 2026-10-30) Cuántos estudiantes ACTIVOS tienen hoy una
+    matrícula académica vigente (fecha_fin IS NULL) en cada sección, grado y
+    nivel de una institución — para mostrar el recuento al lado de cada fila
+    de Estructura académica. Una sola consulta agrupada por sección; grado y
+    nivel se suman aquí (una sección pertenece a un único grado y este a un
+    único nivel, así que nadie se cuenta dos veces). Solo números: nunca
+    nombres ni datos de alumnos."""
+    from sqlalchemy import func as sa_func
+    filas = db.query(
+        models.Seccion.id, models.Grado.id, models.Grado.nivel_educativo_id,
+        sa_func.count(models.MatriculaAcademica.id),
+    ).join(
+        models.Grado, models.Seccion.grado_id == models.Grado.id,
+    ).join(
+        models.MatriculaAcademica, models.MatriculaAcademica.seccion_id == models.Seccion.id,
+    ).join(
+        models.Persona, models.Persona.id == models.MatriculaAcademica.persona_id,
+    ).filter(
+        models.Seccion.institucion_id == institucion_id,
+        models.MatriculaAcademica.fecha_fin.is_(None),
+        models.Persona.activo == True,  # noqa: E712
+    ).group_by(models.Seccion.id, models.Grado.id, models.Grado.nivel_educativo_id).all()
+
+    secciones, grados, niveles = {}, {}, {}
+    for seccion_id, grado_id, nivel_id, total in filas:
+        secciones[seccion_id] = total
+        grados[grado_id] = grados.get(grado_id, 0) + total
+        niveles[nivel_id] = niveles.get(nivel_id, 0) + total
+    return {
+        "total": sum(niveles.values()),
+        "niveles": niveles,
+        "grados": grados,
+        "secciones": secciones,
+    }
 
 
 def obtener_matricula_activa(db: Session, persona_id: int):

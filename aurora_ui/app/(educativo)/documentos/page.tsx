@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FolderOpen } from "lucide-react";
+import { EncabezadoPagina, claseBotonBanner } from "@/components/ui/Encabezado";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton, claseBoton } from "@/components/ui/Boton";
@@ -224,8 +226,8 @@ export default function DocumentosPage() {
 
   if (cargando) {
     return (
-      <div className="max-w-6xl mx-auto space-y-8">
-        <h1 className="font-display text-2xl text-teal-900 dark:text-teal-accent-dark">Documentos institucionales</h1>
+      <div className="max-w-6xl mx-auto space-y-6">
+        <EncabezadoPagina variante="destacado" icono={FolderOpen} acento="violeta" titulo="Documentos institucionales" />
         <EsqueletoLista cantidad={5} />
       </div>
     );
@@ -233,15 +235,17 @@ export default function DocumentosPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div>
-          <h1 className="font-display text-2xl text-teal-900 dark:text-teal-accent-dark">Documentos institucionales</h1>
-          <p className="text-sm text-ink/60 dark:text-ink-dark/60 mt-1">Plantillas, catálogo y documentos generados en un solo lugar.</p>
-        </div>
-        <Link href="/documentos/nuevo" className={claseBoton("primario")}>
-          + Nuevo documento
-        </Link>
-      </div>
+      <EncabezadoPagina variante="destacado"
+        icono={FolderOpen}
+        acento="violeta"
+        titulo="Documentos institucionales"
+        descripcion="Plantillas, catálogo y documentos generados en un solo lugar."
+        acciones={
+          <Link href="/documentos/nuevo" className={claseBotonBanner("primario")}>
+            + Nuevo documento
+          </Link>
+        }
+      />
 
       <TextoError>{error}</TextoError>
 
@@ -325,7 +329,7 @@ export default function DocumentosPage() {
                       </span>
                       <span
                         className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 whitespace-nowrap ${
-                          p.activa ? "bg-teal-600 text-white" : "bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
+                          p.activa ? "bg-accion text-white" : "bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
                         }`}
                       >
                         {p.activa ? "Activa" : "Inactiva"}
@@ -339,7 +343,7 @@ export default function DocumentosPage() {
                     {/* 🆕 Activa + sin secciones = generaría un documento vacío —
                         ver docstring de alternarActiva() en el constructor. */}
                     {p.activa && sinContenido && (
-                      <p className="text-[11px] text-red-700 font-medium">⚠ Sin secciones — no generará contenido.</p>
+                      <p className="text-[11px] text-red-700 dark:text-red-300 font-medium">⚠ Sin secciones — no generará contenido.</p>
                     )}
                     <div className="flex gap-2 mt-1">
                       <Link href={`/documentos/plantillas/${p.id}`} className={claseBoton("secundario", "flex-1 text-center")}>
@@ -397,7 +401,7 @@ export default function DocumentosPage() {
                   <button
                     type="button"
                     onClick={() => toggleGrupo(g.tipo.id)}
-                    className="w-full flex items-center justify-between bg-mist dark:bg-surface-dark rounded-card px-3.5 py-2.5 hover:bg-mist/70 dark:bg-surface-dark/70 transition-colors"
+                    className="w-full flex items-center justify-between bg-mist dark:bg-surface-dark rounded-card px-3.5 py-2.5 hover:bg-mist/70 dark:hover:bg-surface-raised-dark dark:bg-surface-dark/70 transition-colors"
                   >
                     <span className="flex items-center gap-2.5">
                       <svg
@@ -442,7 +446,7 @@ export default function DocumentosPage() {
                 <span>Tipo</span>
                 <span>Estado</span>
               </div>
-              <div className="divide-y divide-border">
+              <div className="divide-y divide-border dark:divide-border-dark">
                 {documentos
                   .slice()
                   .sort((a, b) => b.id - a.id)
@@ -450,13 +454,13 @@ export default function DocumentosPage() {
                     <Link
                       key={d.id}
                       href={`/documentos/${d.id}`}
-                      className="grid grid-cols-[2fr_1.2fr_0.9fr] gap-2 items-center py-2.5 px-1 -mx-1 hover:bg-mist/40 dark:bg-surface-dark/40 rounded-card transition-colors"
+                      className="grid grid-cols-[2fr_1.2fr_0.9fr] gap-2 items-center py-2.5 px-1 -mx-1 hover:bg-mist/40 dark:hover:bg-surface-raised-dark dark:bg-surface-dark/40 rounded-card transition-colors"
                     >
                       <span className="text-sm font-medium text-ink dark:text-ink-dark">{d.titulo}</span>
                       <span className="text-xs text-ink/60 dark:text-ink-dark/60">{nombreTipo(d.tipo_documento_id)}</span>
                       <span
                         className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 w-fit ${
-                          d.version_actual === null ? "bg-mist dark:bg-surface-dark border border-border dark:border-border-dark text-ink/55 dark:text-ink-dark/55" : "bg-teal-600 text-white"
+                          d.version_actual === null ? "bg-mist dark:bg-surface-dark border border-border dark:border-border-dark text-ink/55 dark:text-ink-dark/55" : "bg-accion text-white"
                         }`}
                       >
                         {d.version_actual === null ? "Sin versión" : `Generado v${d.version_actual}`}
@@ -477,14 +481,14 @@ export default function DocumentosPage() {
                 <button
                   onClick={() => setPaginaDocumentos((p) => Math.max(0, p - 1))}
                   disabled={paginaDocumentos === 0}
-                  className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:bg-surface-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark dark:bg-surface-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Anterior
                 </button>
                 <button
                   onClick={() => setPaginaDocumentos((p) => p + 1)}
                   disabled={(paginaDocumentos + 1) * TAMANO_PAGINA >= totalDocumentos}
-                  className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:bg-surface-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark dark:bg-surface-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Siguiente
                 </button>

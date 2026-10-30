@@ -444,7 +444,7 @@ export default function NuevaCampanaPage() {
                           <span
                             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
                               elegida
-                                ? "bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                                ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
                                 : "bg-mist text-teal-700 dark:bg-surface-raised-dark dark:text-teal-accent-dark"
                             }`}
                           >
@@ -465,7 +465,7 @@ export default function NuevaCampanaPage() {
                             )}
                           </span>
                           {elegida && (
-                            <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark">
+                            <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark">
                               <Check size={13} strokeWidth={3} aria-hidden="true" />
                             </span>
                           )}
@@ -709,7 +709,7 @@ export default function NuevaCampanaPage() {
                   </Link>
                   <Link
                     href="/estudiantes/nuevo"
-                    className="rounded-card bg-teal-600 dark:bg-teal-accent-dark px-4 py-2 text-sm font-medium text-white dark:text-mist-dark hover:bg-teal-900"
+                    className="rounded-card bg-accion dark:bg-teal-accent-dark px-4 py-2 text-sm font-medium text-white dark:text-mist-dark hover:bg-accion-hover"
                   >
                     + Registrar alumno
                   </Link>
@@ -794,7 +794,7 @@ export default function NuevaCampanaPage() {
                               </span>
                             </span>
                             {sinConsentimiento && (
-                              <span className="shrink-0 text-[11px] rounded-full px-2 py-0.5 font-medium bg-amber/15 text-amber">
+                              <span className="shrink-0 text-[11px] rounded-full px-2 py-0.5 font-medium bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300">
                                 <span className="hidden sm:inline">Sin consentimiento del apoderado</span>
                                 <span className="sm:hidden">Sin consent.</span>
                               </span>
@@ -807,7 +807,7 @@ export default function NuevaCampanaPage() {
                 </div>
 
                 {Array.from(seleccionadas).some((id) => estadosConsentimiento.get(id) === false) && (
-                  <p className="flex items-start gap-2 rounded-xl bg-amber/10 px-4 py-3 text-xs text-amber">
+                  <p className="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-500/10 px-4 py-3 text-xs text-red-700 dark:text-red-300">
                     <CircleAlert size={15} className="mt-px shrink-0" aria-hidden="true" />
                     Hay alumnos seleccionados sin consentimiento del apoderado vigente — puedes intentar matricularlos igual, pero
                     el colegio quedará fuera de la lista de links generados hasta registrarlo en su ficha.
@@ -868,7 +868,7 @@ export default function NuevaCampanaPage() {
               <div className="px-5 py-4 text-center">
                 <p
                   className={`font-display text-2xl font-semibold ${
-                    resultadoMatricula.rechazados.length > 0 ? "text-amber" : "text-teal-900 dark:text-ink-dark"
+                    resultadoMatricula.rechazados.length > 0 ? "text-red-700 dark:text-red-300" : "text-teal-900 dark:text-ink-dark"
                   }`}
                 >
                   {resultadoMatricula.rechazados.length}
@@ -879,8 +879,8 @@ export default function NuevaCampanaPage() {
           </section>
 
           {resultadoMatricula.rechazados.length > 0 && (
-            <section className="rounded-2xl border border-amber/30 bg-amber/[0.07] p-5">
-              <p className="flex items-center gap-2 text-sm font-semibold text-amber">
+            <section className="rounded-2xl border border-red-200 dark:border-red-500/30 bg-red-50/60 dark:bg-red-500/10 p-5">
+              <p className="flex items-center gap-2 text-sm font-semibold text-red-700 dark:text-red-300">
                 <CircleAlert size={16} aria-hidden="true" />
                 No se generó link para {resultadoMatricula.rechazados.length} alumno
                 {resultadoMatricula.rechazados.length === 1 ? "" : "s"}
@@ -933,7 +933,7 @@ export default function NuevaCampanaPage() {
                         onClick={() => copiar(url, ins.id)}
                         className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                           copiado === ins.id
-                            ? "bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                            ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
                             : "bg-mist text-teal-700 hover:bg-teal-600/10 dark:bg-surface-raised-dark dark:text-teal-accent-dark"
                         }`}
                       >
@@ -973,7 +973,7 @@ function IndicadorPasos({ actual }: { actual: number }) {
               <span
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
                   hecho
-                    ? "bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                    ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
                     : activo
                       ? "bg-teal-900 text-white ring-4 ring-teal-600/15 dark:bg-teal-accent-dark dark:text-mist-dark dark:ring-teal-accent-dark/20"
                       : "bg-surface border border-border text-ink/40 dark:bg-surface-dark dark:border-border-dark dark:text-ink-dark/40"

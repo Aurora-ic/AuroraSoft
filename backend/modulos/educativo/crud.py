@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from . import models, schemas
 from sqlalchemy import func # Asegúrate de poner esto al INICIO de tu archivo crud.py si no lo tienes
 from typing import List, Optional
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 import uuid as uuid_lib
 from datetime import date
 from modulos.superadmin import models as superadmin_models
@@ -1344,27 +1344,117 @@ def cancelar_campana(db: Session, evaluacion: "models.Evaluacion", usuario_id: i
 # ==========================================
 # 🆕 TEXTO VERSIONADO DEL ASENTIMIENTO INFORMADO
 # ==========================================
-def resolver_asentimiento_texto_activo(db: Session, institucion_id: int):
-    """La versión activa que le corresponde a ESTA institución — la propia
-    si tiene una activa, o la global (institucion_id IS NULL) si no. Nunca
-    lanza: si ni siquiera existe una global (una base recién creada sin
-    `seeds.seed_asentimiento_informado_default` todavía corrido), devuelve
-    None y el router responde 404 — mismo criterio que el resto del flujo
-    de examen ante un dato de configuración faltante."""
-    propia = db.query(models.AsentimientoInformadoTexto).filter(
-        models.AsentimientoInformadoTexto.institucion_id == institucion_id,
-        models.AsentimientoInformadoTexto.activo == True,  # noqa: E712
+TIPOS_TEXTO_CONSENTIMIENTO = ("apoderado", "asentimiento")
+
+
+def _filtro_ambito_texto(institucion_id, tipo_texto: str, nivel_educativo_id):
+    """Las 3 condiciones que identifican un ÁMBITO de versiones (ver
+    AsentimientoInformadoTexto): institución o global, tipo, nivel o general."""
+    T = models.AsentimientoInformadoTexto
+    return (
+        T.institucion_id.is_(None) if institucion_id is None else T.institucion_id == institucion_id,
+        T.tipo_texto == tipo_texto,
+        T.nivel_educativo_id.is_(None) if nivel_educativo_id is None else T.nivel_educativo_id == nivel_educativo_id,
+    )
+
+
+def resolver_texto_consentimiento_activo(
+    db: Session, institucion_id, tipo_texto: str = "asentimiento", nivel_educativo_id=None,
+):
+    """🆕 (sesión 2026-10-30) El modelo ACTIVO que le corresponde a un
+    alumno, en este orden: el de su nivel educativo -> el general de su
+    colegio -> el global. Devuelve (texto, origen) con origen "nivel" |
+    "colegio" | "global", o (None, None). Nunca lanza — mismo criterio que
+    antes: un dato de configuración faltante no debe romper el flujo."""
+    T = models.AsentimientoInformadoTexto
+    candidatos = []
+    if institucion_id is not None and nivel_educativo_id is not None:
+        candidatos.append(("nivel", institucion_id, nivel_educativo_id))
+    if institucion_id is not None:
+        candidatos.append(("colegio", institucion_id, None))
+    candidatos.append(("global", None, None))
+    for origen, inst, nivel in candidatos:
+        texto = db.query(T).filter(
+            *_filtro_ambito_texto(inst, tipo_texto, nivel), T.activo == True,  # noqa: E712
+        ).first()
+        if texto:
+            return texto, origen
+    return None, None
+
+
+def resolver_asentimiento_texto_activo(db: Session, institucion_id: int, nivel_educativo_id=None):
+    """La versión activa del ASENTIMIENTO que le corresponde a esta
+    institución (y, si se pasa, a este nivel) — la propia si tiene una
+    activa, o la global si no. Nunca lanza: si ni siquiera existe una global
+    (una base recién creada sin `seeds.seed_asentimiento_informado_default`
+    todavía corrido), devuelve None y el router responde 404 — mismo
+    criterio que el resto del flujo de examen ante un dato de configuración
+    faltante. Envoltorio de resolver_texto_consentimiento_activo, conservado
+    con su firma de siempre para los llamadores existentes."""
+    texto, _ = resolver_texto_consentimiento_activo(db, institucion_id, "asentimiento", nivel_educativo_id)
+    return texto
+
+
+def nivel_educativo_de_seccion(db: Session, seccion_id):
+    """Sección -> Grado -> nivel_educativo_id (o None si no hay sección)."""
+    if seccion_id is None:
+        return None
+    from modulos.superadmin import models as sa_models
+    fila = db.query(sa_models.Grado.nivel_educativo_id).join(
+        sa_models.Seccion, sa_models.Seccion.grado_id == sa_models.Grado.id,
+    ).filter(sa_models.Seccion.id == seccion_id).first()
+    return fila[0] if fila else None
+
+
+def nivel_educativo_actual_de_persona(db: Session, persona_id):
+    """Nivel de la matrícula académica ACTIVA (fecha_fin IS NULL) de un
+    alumno, o None si no está matriculado."""
+    if persona_id is None:
+        return None
+    from modulos.superadmin import models as sa_models
+    matricula = db.query(sa_models.MatriculaAcademica).filter(
+        sa_models.MatriculaAcademica.persona_id == persona_id,
+        sa_models.MatriculaAcademica.fecha_fin.is_(None),
     ).first()
-    if propia:
-        return propia
-    return db.query(models.AsentimientoInformadoTexto).filter(
-        models.AsentimientoInformadoTexto.institucion_id.is_(None),
-        models.AsentimientoInformadoTexto.activo == True,  # noqa: E712
+    return nivel_educativo_de_seccion(db, matricula.seccion_id) if matricula else None
+
+
+def nivel_educativo_de_inscripcion(db: Session, inscripcion):
+    """El nivel con el que se evalúa una inscripción: el snapshot de su
+    sección (`Inscripcion.seccion_id`, fijado al matricular) y, si no lo
+    tiene, la matrícula activa actual del alumno."""
+    nivel = nivel_educativo_de_seccion(db, getattr(inscripcion, "seccion_id", None))
+    if nivel is None:
+        nivel = nivel_educativo_actual_de_persona(db, getattr(inscripcion, "persona_id", None))
+    return nivel
+
+
+def ubicacion_academica_actual(db: Session, persona_id):
+    """(nivel_educativo_id, "Secundaria · 3° · A") de la matrícula activa de
+    un alumno, o (None, None). Para el PDF del modelo de consentimiento."""
+    from modulos.superadmin import models as sa_models
+    fila = db.query(
+        sa_models.NivelEducativo.id, sa_models.NivelEducativo.nombre,
+        sa_models.Grado.nombre, sa_models.Seccion.nombre,
+    ).join(
+        sa_models.Grado, sa_models.Grado.nivel_educativo_id == sa_models.NivelEducativo.id,
+    ).join(
+        sa_models.Seccion, sa_models.Seccion.grado_id == sa_models.Grado.id,
+    ).join(
+        sa_models.MatriculaAcademica, sa_models.MatriculaAcademica.seccion_id == sa_models.Seccion.id,
+    ).filter(
+        sa_models.MatriculaAcademica.persona_id == persona_id,
+        sa_models.MatriculaAcademica.fecha_fin.is_(None),
     ).first()
+    if not fila:
+        return None, None
+    nivel_id, nivel, grado, seccion = fila
+    return nivel_id, " · ".join(x for x in (nivel, grado, seccion) if x)
 
 
 def crear_version_asentimiento_texto(
     db: Session, institucion_id, contenido: str, usuario_id: int,
+    tipo_texto: str = "asentimiento", nivel_educativo_id=None,
 ):
     """Crea una nueva versión (global si institucion_id es None, propia de
     una institución si no) y desactiva la anterior del MISMO ámbito en la
@@ -1372,6 +1462,10 @@ def crear_version_asentimiento_texto(
     AsentimientoInformadoTexto, el snapshot de Inscripcion depende de que el
     contenido de una versión ya usada no cambie jamás). `version` es
     MAX(version existente de este ámbito) + 1, calculado en aplicación.
+
+    🆕 El ámbito ahora también es (tipo_texto, nivel_educativo_id) — cada
+    combinación numera sus versiones por separado. Los valores por defecto
+    reproducen exactamente el comportamiento anterior.
 
     🔒 Dos POST simultáneos para el MISMO ámbito pueden calcular el mismo
     `version` (hallazgo real de tests/test_patron_concurrencia_unitario.py,
@@ -1381,17 +1475,16 @@ def crear_version_asentimiento_texto(
     activo=True a la vez. Quien pierde simplemente reintenta: el POST es
     una acción administrativa manual (editar el texto legal), no algo que
     de verdad necesite un lock de fila para esta frecuencia de uso."""
-    anteriores = db.query(models.AsentimientoInformadoTexto).filter(
-        models.AsentimientoInformadoTexto.institucion_id == institucion_id,
-    )
-    ultima_version = db.query(func.max(models.AsentimientoInformadoTexto.version)).filter(
-        models.AsentimientoInformadoTexto.institucion_id == institucion_id,
-    ).scalar()
+    filtro = _filtro_ambito_texto(institucion_id, tipo_texto, nivel_educativo_id)
+    anteriores = db.query(models.AsentimientoInformadoTexto).filter(*filtro)
+    ultima_version = db.query(func.max(models.AsentimientoInformadoTexto.version)).filter(*filtro).scalar()
     anteriores.filter(models.AsentimientoInformadoTexto.activo == True).update(  # noqa: E712
         {"activo": False}, synchronize_session=False,
     )
     nueva = models.AsentimientoInformadoTexto(
         institucion_id=institucion_id,
+        tipo_texto=tipo_texto,
+        nivel_educativo_id=nivel_educativo_id,
         version=(ultima_version or 0) + 1,
         contenido=contenido,
         activo=True,
@@ -1405,13 +1498,17 @@ def crear_version_asentimiento_texto(
     return nueva
 
 
-def listar_versiones_asentimiento_texto(db: Session, institucion_id):
-    """Historial completo (activas e inactivas) de un ámbito -- para que el
-    equipo administrativo pueda ver qué decía cada versión y desde cuándo,
-    no solo la activa."""
-    return db.query(models.AsentimientoInformadoTexto).filter(
-        models.AsentimientoInformadoTexto.institucion_id == institucion_id,
-    ).order_by(models.AsentimientoInformadoTexto.version.desc()).all()
+def listar_versiones_asentimiento_texto(db: Session, institucion_id, tipo_texto=None):
+    """Historial completo (activas e inactivas) de una institución (o de la
+    global) -- para que el equipo administrativo pueda ver qué decía cada
+    versión y desde cuándo, no solo la activa. 🆕 Incluye todos los niveles
+    y, salvo que se filtre por `tipo_texto`, ambos tipos — el cliente agrupa
+    por ámbito."""
+    T = models.AsentimientoInformadoTexto
+    q = db.query(T).filter(T.institucion_id.is_(None) if institucion_id is None else T.institucion_id == institucion_id)
+    if tipo_texto is not None:
+        q = q.filter(T.tipo_texto == tipo_texto)
+    return q.order_by(T.tipo_texto, T.nivel_educativo_id, T.version.desc()).all()
 
 
 def obtener_intake_previo_por_token(db: Session, token: str):
@@ -1510,7 +1607,9 @@ def validar_y_registrar_alumno(
         # romper el resto del flujo -- un faltante de configuración no debe
         # impedir que el alumno rinda su examen.
         if institucion_id is not None:
-            texto_activo = resolver_asentimiento_texto_activo(db, institucion_id)
+            texto_activo = resolver_asentimiento_texto_activo(
+                db, institucion_id, nivel_educativo_de_inscripcion(db, inscripcion),
+            )
             if texto_activo:
                 inscripcion.asentimiento_texto_version_id = texto_activo.id
 
@@ -3704,15 +3803,161 @@ def obtener_resumen_inicio(db: Session, institucion_id: int) -> dict:
     }
 
 
+def _meses_hacia_atras(cantidad: int):
+    """Primer día (naive-UTC) de los últimos `cantidad` meses, del más
+    antiguo al actual inclusive."""
+    hoy = datetime.utcnow()
+    anio, mes = hoy.year, hoy.month
+    salida = []
+    for _ in range(cantidad):
+        salida.append(datetime(anio, mes, 1))
+        mes -= 1
+        if mes == 0:
+            mes, anio = 12, anio - 1
+    return list(reversed(salida))
+
+
+def obtener_series_inicio(db: Session, institucion_id: int, usuario_id: int, meses: int = 6) -> dict:
+    """🆕 Series mensuales + avance de campañas para los gráficos de `/inicio`
+    (sesión 2026-10-30). Una consulta agrupada por mes por serie (nunca una
+    por mes), todo acotado a la institución:
+
+    - evaluaciones: inscripciones finalizadas por mes de fecha_resolucion, y
+      cuántas de ellas tienen al menos un diagnóstico con es_alerta (el
+      indicador autoritativo — nunca el texto del nivel).
+    - sesiones: sesiones de seguimiento registradas por mes.
+    - citas: mismo alcance que la agenda del usuario (sus citas individuales
+      + todas las actividades grupales del colegio; las individuales de otro
+      psicólogo son privadas y no se cuentan), sin las canceladas.
+    - campanas: hasta 6 campañas activas con inscritos/finalizados, las que
+      cierran antes primero.
+    """
+    from modulos.superadmin import models as sa_models
+
+    inicios = _meses_hacia_atras(meses)
+    desde = inicios[0]
+    clave = lambda d: d.strftime("%Y-%m")  # noqa: E731
+    mes_de = lambda col: func.date_trunc("month", col)  # noqa: E731
+
+    finalizadas = dict(
+        (clave(m), n) for m, n in db.query(
+            mes_de(models.Inscripcion.fecha_resolucion), func.count(models.Inscripcion.id),
+        ).join(
+            models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id,
+        ).filter(
+            models.Evaluacion.institucion_id == institucion_id,
+            models.Inscripcion.estado == "Finalizado",
+            models.Inscripcion.is_deleted == False,  # noqa: E712
+            models.Inscripcion.fecha_resolucion >= desde,
+        ).group_by(mes_de(models.Inscripcion.fecha_resolucion)).all()
+    )
+
+    hay_alerta = db.query(models.DiagnosticoAlumno.id).filter(
+        models.DiagnosticoAlumno.inscripcion_id == models.Inscripcion.id,
+        models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
+    ).exists()
+    con_alerta = dict(
+        (clave(m), n) for m, n in db.query(
+            mes_de(models.Inscripcion.fecha_resolucion), func.count(models.Inscripcion.id),
+        ).join(
+            models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id,
+        ).filter(
+            models.Evaluacion.institucion_id == institucion_id,
+            models.Inscripcion.estado == "Finalizado",
+            models.Inscripcion.is_deleted == False,  # noqa: E712
+            models.Inscripcion.fecha_resolucion >= desde,
+            hay_alerta,
+        ).group_by(mes_de(models.Inscripcion.fecha_resolucion)).all()
+    )
+
+    sesiones = dict(
+        (clave(m), n) for m, n in db.query(
+            mes_de(models.SesionSeguimiento.fecha), func.count(models.SesionSeguimiento.id),
+        ).filter(
+            models.SesionSeguimiento.institucion_id == institucion_id,
+            models.SesionSeguimiento.fecha >= desde,
+        ).group_by(mes_de(models.SesionSeguimiento.fecha)).all()
+    )
+
+    Cita = sa_models.CitaProgramada
+    citas = dict(
+        (clave(m), n) for m, n in db.query(
+            mes_de(Cita.fecha_hora), func.count(Cita.id),
+        ).filter(
+            Cita.institucion_id == institucion_id,
+            or_(Cita.psicologo_id == usuario_id, Cita.persona_id.is_(None)),
+            Cita.estado != "Cancelada",
+            Cita.fecha_hora >= desde,
+        ).group_by(mes_de(Cita.fecha_hora)).all()
+    )
+
+    serie = []
+    for inicio in inicios:
+        k = clave(inicio)
+        total = finalizadas.get(k, 0)
+        alerta = con_alerta.get(k, 0)
+        serie.append({
+            "mes": k,
+            "evaluaciones": total,
+            "con_alerta": alerta,
+            "sin_alerta": total - alerta,
+            "sesiones_seguimiento": sesiones.get(k, 0),
+            "citas": citas.get(k, 0),
+        })
+
+    activas = db.query(models.Evaluacion).filter(
+        models.Evaluacion.institucion_id == institucion_id,
+        models.Evaluacion.estado == models.ESTADO_CAMPANA_ACTIVA,
+    ).order_by(models.Evaluacion.fecha_fin.asc().nullslast(), models.Evaluacion.id.desc()).limit(6).all()
+    conteos = {}
+    if activas:
+        for evaluacion_id, estado, n in db.query(
+            models.Inscripcion.evaluacion_id, models.Inscripcion.estado, func.count(models.Inscripcion.id),
+        ).filter(
+            models.Inscripcion.evaluacion_id.in_([e.id for e in activas]),
+            models.Inscripcion.is_deleted == False,  # noqa: E712
+        ).group_by(models.Inscripcion.evaluacion_id, models.Inscripcion.estado).all():
+            c = conteos.setdefault(evaluacion_id, {"inscritos": 0, "finalizados": 0})
+            c["inscritos"] += n
+            if estado == "Finalizado":
+                c["finalizados"] += n
+    pruebas = {
+        p.id: (p.nombre_corto or p.nombre_tecnico)
+        for p in db.query(models.Prueba).filter(models.Prueba.id.in_({e.prueba_id for e in activas})).all()
+    } if activas else {}
+    campanas = [{
+        "id": e.id,
+        "nombre_grupo": e.nombre_grupo,
+        "prueba": pruebas.get(e.prueba_id),
+        "fecha_fin": e.fecha_fin.isoformat() if e.fecha_fin else None,
+        "inscritos": conteos.get(e.id, {}).get("inscritos", 0),
+        "finalizados": conteos.get(e.id, {}).get("finalizados", 0),
+    } for e in activas]
+
+    return {"meses": serie, "campanas": campanas}
+
+
 def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
+    # 🆕 Rediseño de /casos-riesgo (sesión 2026-10-30): la pantalla leía
+    # `prueba`/`nivel`/`fecha`, claves que este listado nunca devolvió — se
+    # veía el nombre del alumno con todo lo demás vacío. Se suman (solo
+    # ADITIVO, ningún consumidor existente cambia) prueba/dimensión/campaña
+    # e ids, resueltos en el mismo SELECT — Evaluacion ya estaba en el join,
+    # Prueba/Dimension son 1:1 por fila, sin N+1 nuevo.
     alertas = db.query(
-        models.DiagnosticoAlumno, models.Inscripcion
+        models.DiagnosticoAlumno, models.Inscripcion, models.Evaluacion, models.Prueba, models.Dimension
     ).join(
         models.Inscripcion,
         models.DiagnosticoAlumno.inscripcion_id == models.Inscripcion.id
     ).join(
         models.Evaluacion,
         models.Inscripcion.evaluacion_id == models.Evaluacion.id
+    ).outerjoin(
+        models.Prueba,
+        models.Evaluacion.prueba_id == models.Prueba.id
+    ).outerjoin(
+        models.Dimension,
+        models.DiagnosticoAlumno.dimension_id == models.Dimension.id
     ).filter(
     models.Evaluacion.institucion_id == institucion_id,
     models.Inscripcion.persona_id.isnot(None),
@@ -3728,7 +3973,7 @@ def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
     # aquí: el caso quedaba huérfano en el worklist de seguimiento del
     # psicólogo, invisible para quien tiene que darle continuidad clínica.
     pendientes = []
-    for diag, insc in alertas:
+    for diag, insc, evaluacion, prueba, dimension in alertas:
         if not diag.es_alerta:
             continue
         tiene_seguimiento = db.query(models.SesionSeguimiento).filter(
@@ -3741,6 +3986,11 @@ def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
                 "nombre_completo": insc.nombre_completo,
                 "nivel_alerta": diag.nivel,
                 "fecha_evaluacion": insc.fecha_resolucion,
+                "inscripcion_id": insc.id,
+                "evaluacion_id": evaluacion.id,
+                "campana": evaluacion.nombre_grupo,
+                "prueba": (prueba.nombre_corto or prueba.nombre_tecnico) if prueba else None,
+                "dimension": dimension.nombre if dimension else None,
             })
     return pendientes
 

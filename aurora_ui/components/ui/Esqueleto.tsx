@@ -6,7 +6,7 @@
 // mensaje de error/vacío existente — solo el estado intermedio mientras
 // `cargando` es true.
 function Barra({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded bg-border/70 ${className}`} />;
+  return <div className={`animate-pulse rounded bg-border/70 dark:bg-border-dark ${className}`} />;
 }
 
 export function EsqueletoFilasTabla({ filas = 5, columnas = 4 }: { filas?: number; columnas?: number }) {
@@ -29,7 +29,7 @@ export function EsqueletoTarjetas({ cantidad = 4 }: { cantidad?: number }) {
   return (
     <>
       {Array.from({ length: cantidad }).map((_, i) => (
-        <div key={i} className="bg-white rounded-card border border-border p-5 space-y-3">
+        <div key={i} className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-5 space-y-3">
           <div className="flex items-center justify-between">
             <Barra className="h-4 w-2/5" />
             <Barra className="h-4 w-16 rounded-full" />
@@ -45,7 +45,7 @@ export function EsqueletoLista({ cantidad = 5 }: { cantidad?: number }) {
   return (
     <div className="space-y-2">
       {Array.from({ length: cantidad }).map((_, i) => (
-        <div key={i} className="rounded-card border border-border bg-white p-4 flex items-center justify-between gap-3">
+        <div key={i} className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4 flex items-center justify-between gap-3">
           <div className="space-y-1.5 flex-1">
             <Barra className="h-4 w-1/3" />
             <Barra className="h-3 w-1/2" />

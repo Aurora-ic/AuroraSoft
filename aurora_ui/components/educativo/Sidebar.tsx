@@ -15,12 +15,15 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { ACENTOS, type Acento } from "@/lib/acentos";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
 import type { Cita, Institucion } from "@/types/api";
 
 type Enlace = { href: string; label: string };
-type Grupo = { titulo: string; icono: LucideIcon; enlaces: Enlace[] };
+// 🆕 `acento` (sesión 2026-10-30): color de identidad del grupo, solo en su
+// ícono — ver lib/acentos.ts.
+type Grupo = { titulo: string; icono: LucideIcon; acento: Acento; enlaces: Enlace[] };
 
 // 🆕 Reorganización por flujo de trabajo (sesión 2026-10-24) — antes era
 // una lista plana de 10 ítems con el mismo peso visual para todo. "Inicio"
@@ -41,6 +44,7 @@ type Grupo = { titulo: string; icono: LucideIcon; enlaces: Enlace[] };
 const GRUPOS: Grupo[] = [
   {
     titulo: "Estudiantes",
+    acento: "teal",
     icono: Users,
     enlaces: [
       { href: "/estudiantes", label: "Padrón" },
@@ -49,6 +53,7 @@ const GRUPOS: Grupo[] = [
   },
   {
     titulo: "Evaluación",
+    acento: "azul",
     icono: ClipboardCheck,
     enlaces: [
       { href: "/campanas", label: "Campañas" },
@@ -58,14 +63,16 @@ const GRUPOS: Grupo[] = [
   },
   {
     titulo: "Documentos",
+    acento: "violeta",
     icono: FileText,
     enlaces: [
       { href: "/documentos", label: "Documentos" },
-      { href: "/asentimiento", label: "Asentimiento informado" },
+      { href: "/asentimiento", label: "Consentimiento y asentimiento" },
     ],
   },
   {
     titulo: "Gestión",
+    acento: "pizarra",
     icono: SlidersHorizontal,
     enlaces: [
       { href: "/agenda", label: "Agenda" },
@@ -242,7 +249,9 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <Icono size={17} strokeWidth={2} aria-hidden="true" />
+                    <span className={`flex h-6 w-6 items-center justify-center rounded-md ${ACENTOS[grupo.acento].chip}`}>
+                      <Icono size={14} strokeWidth={2.1} aria-hidden="true" />
+                    </span>
                     {grupo.titulo}
                   </span>
                   <ChevronRight

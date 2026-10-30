@@ -80,19 +80,19 @@ export default function NuevaSesionSeguimientoPage() {
       <div>
         <Link
           href={`/estudiantes/${personaId}`}
-          className="text-sm text-teal-600 hover:underline inline-block mb-1 font-medium"
+          className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline inline-block mb-1 font-medium"
         >
           ← Volver a la ficha
         </Link>
-        <h1 className="font-display text-2xl text-teal-900 font-bold">
+        <h1 className="font-display text-2xl text-teal-900 dark:text-ink-dark font-bold">
           Registrar sesión de seguimiento{alumno ? ` — ${alumno.nombres} ${alumno.apellidos}` : ""}
         </h1>
-        <p className="text-sm text-ink/60 mt-1">Queda con la fecha de hoy y a tu nombre.</p>
+        <p className="text-sm text-ink/60 dark:text-ink-dark/60 mt-1">Queda con la fecha de hoy y a tu nombre.</p>
       </div>
 
       <TextoError>{error}</TextoError>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-card border border-border space-y-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="bg-surface dark:bg-surface-dark p-6 rounded-card border border-border dark:border-border-dark space-y-4 shadow-sm">
         <CampoEditable etiqueta="Observaciones de la sesión">
           <Textarea
             required

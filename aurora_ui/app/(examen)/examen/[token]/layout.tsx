@@ -5,7 +5,11 @@
 
 export default function ExamenLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-mist flex flex-col items-center px-4 py-10">
+    // 🆕 Siempre en modo CLARO (sesión 2026-10-30): el tema oscuro es una
+    // preferencia del staff guardada en el navegador; si un psicólogo con
+    // modo oscuro abre el link en su equipo, el texto heredado del <body>
+    // quedaba claro sobre tarjetas blancas. El alumno ve siempre lo mismo.
+    <div className="min-h-screen bg-mist text-ink [color-scheme:light] flex flex-col items-center px-4 py-10">
       <div className="w-full max-w-xl">{children}</div>
     </div>
   );

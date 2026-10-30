@@ -8,6 +8,7 @@ import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Migas } from "@/components/ui/Migas";
 import type { Persona, CitaCreate } from "@/types/api";
@@ -32,6 +33,8 @@ export default function NuevaCitaPage() {
   const [motivo, setMotivo] = useState("");
   const [fecha, setFecha] = useState("");
   const [hora, setHora] = useState("");
+  // 🆕 Duración (sesión 2026-10-30) — 45 min por defecto, igual que el backend.
+  const [duracion, setDuracion] = useState("45");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +67,7 @@ export default function NuevaCitaPage() {
         persona_id: Number(personaId),
         motivo,
         fecha_hora: fechaHora.toISOString(),
+        duracion_minutos: Number(duracion),
       };
       await apiClient.post("/admin/personas/citas/", datos);
       router.push(`/estudiantes/${personaId}`);
@@ -86,14 +90,14 @@ export default function NuevaCitaPage() {
       <div>
         <Link
           href={`/estudiantes/${personaId}`}
-          className="text-sm text-teal-600 hover:underline inline-block mb-1 font-medium"
+          className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline inline-block mb-1 font-medium"
         >
           ← Volver a la ficha
         </Link>
-        <h1 className="font-display text-2xl text-teal-900 font-bold">
+        <h1 className="font-display text-2xl text-teal-900 dark:text-ink-dark font-bold">
           Nueva cita{alumno ? ` — ${alumno.nombres} ${alumno.apellidos}` : ""}
         </h1>
-        <p className="text-sm text-ink/60 mt-1">
+        <p className="text-sm text-ink/60 dark:text-ink-dark/60 mt-1">
           Queda agendada a tu nombre y aparece de inmediato en tu{" "}
           <Link href="/agenda" className="underline hover:text-ink">
             agenda
@@ -104,7 +108,7 @@ export default function NuevaCitaPage() {
 
       <TextoError>{error}</TextoError>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-card border border-border space-y-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="bg-surface dark:bg-surface-dark p-6 rounded-card border border-border dark:border-border-dark space-y-4 shadow-sm">
         <CampoEditable etiqueta="Motivo">
           <Textarea
             required
@@ -115,12 +119,21 @@ export default function NuevaCitaPage() {
           />
         </CampoEditable>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <CampoEditable etiqueta="Fecha">
             <Input type="date" required value={fecha} onChange={(e) => setFecha(e.target.value)} />
           </CampoEditable>
           <CampoEditable etiqueta="Hora">
             <Input type="time" required value={hora} onChange={(e) => setHora(e.target.value)} />
+          </CampoEditable>
+          <CampoEditable etiqueta="Duración" className="col-span-2 sm:col-span-1">
+            <Select value={duracion} onChange={(e) => setDuracion(e.target.value)}>
+              {[30, 45, 60, 90, 120].map((d) => (
+                <option key={d} value={d}>
+                  {d < 60 ? `${d} min` : d % 60 ? `${Math.floor(d / 60)} h ${d % 60} min` : `${d / 60} h`}
+                </option>
+              ))}
+            </Select>
           </CampoEditable>
         </div>
 

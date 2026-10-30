@@ -22,10 +22,10 @@ const ETIQUETA_ACCION: Record<ImportacionAccionFila, string> = {
 };
 
 const ESTILO_BADGE_ACCION: Record<ImportacionAccionFila, string> = {
-  nuevo: "bg-teal-600/10 text-teal-900",
-  actualizado: "bg-teal-400/20 text-teal-900",
-  duplicado: "bg-ink/10 text-ink/70",
-  error: "bg-red-100 text-red-700",
+  nuevo: "bg-teal-600/10 text-teal-900 dark:text-ink-dark",
+  actualizado: "bg-teal-400/20 text-teal-900 dark:text-ink-dark",
+  duplicado: "bg-ink/10 text-ink/70 dark:text-ink-dark/70",
+  error: "bg-red-100 text-red-700 dark:text-red-300",
 };
 
 // "Bloqueante" = la fila nunca se escribe (mismo criterio que el backend:
@@ -56,13 +56,13 @@ function Chip({
   const estilo =
     tono === "alerta"
       ? valor > 0
-        ? "bg-red-50 text-red-700 border-red-200"
-        : "bg-mist text-ink/40 border-border"
+        ? "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 border-red-200 dark:border-red-500/30"
+        : "bg-mist dark:bg-surface-raised-dark text-ink/40 dark:text-ink-dark/40 border-border dark:border-border-dark"
       : tono === "teal"
-      ? "bg-teal-600/10 text-teal-900 border-teal-600/20"
+      ? "bg-teal-600/10 text-teal-900 dark:text-ink-dark border-teal-600/20"
       : tono === "teal-suave"
-      ? "bg-teal-400/15 text-teal-900 border-teal-400/30"
-      : "bg-mist text-ink/70 border-border";
+      ? "bg-teal-400/15 text-teal-900 dark:text-ink-dark border-teal-400/30"
+      : "bg-mist dark:bg-surface-raised-dark text-ink/70 dark:text-ink-dark/70 border-border dark:border-border-dark";
   return (
     <div className={`rounded-card border px-3.5 py-2 min-w-[92px] ${estilo}`}>
       <div className="font-display text-xl font-semibold leading-none">{valor}</div>
@@ -85,15 +85,15 @@ function PasoCard({
   return (
     <section>
       <div className="flex items-start gap-3 mb-4">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-semibold text-white">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accion text-sm font-semibold text-white">
           {numero}
         </span>
         <div>
-          <h2 className="font-display text-lg font-semibold text-teal-900">{titulo}</h2>
-          {descripcion && <p className="mt-0.5 text-sm text-ink/60">{descripcion}</p>}
+          <h2 className="font-display text-lg font-semibold text-teal-900 dark:text-ink-dark">{titulo}</h2>
+          {descripcion && <p className="mt-0.5 text-sm text-ink/60 dark:text-ink-dark/60">{descripcion}</p>}
         </div>
       </div>
-      <div className="ml-10 rounded-card border border-border bg-white p-6 shadow-sm">{children}</div>
+      <div className="ml-10 rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-6 shadow-sm">{children}</div>
     </section>
   );
 }
@@ -228,13 +228,13 @@ export default function ImportarEstudiantesPage() {
     <div className="max-w-5xl mx-auto px-6 py-8 space-y-10">
       {/* Cabecera */}
       <div>
-        <Link href="/estudiantes" className="text-sm font-medium text-teal-600 hover:text-teal-900">
+        <Link href="/estudiantes" className="text-sm font-medium text-teal-600 dark:text-teal-accent-dark hover:text-teal-900">
           ← Volver al padrón
         </Link>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-teal-900 tracking-tight">
+        <h1 className="mt-2 font-display text-3xl font-semibold text-teal-900 dark:text-ink-dark tracking-tight">
           Importar estudiantes desde Excel
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-ink/60">
+        <p className="mt-1 max-w-2xl text-sm text-ink/60 dark:text-ink-dark/60">
           Da de alta o actualiza estudiantes en bloque. Nada se guarda hasta que confirmes — puedes validar el
           archivo cuantas veces necesites mientras corriges los datos.
         </p>
@@ -248,11 +248,11 @@ export default function ImportarEstudiantesPage() {
         <button
           onClick={descargarPlantilla}
           disabled={descargandoPlantilla}
-          className="rounded-card bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 transition-colors shadow-sm disabled:opacity-60"
+          className="rounded-card bg-accion px-4 py-2 text-sm font-medium text-white hover:bg-accion-hover transition-colors shadow-sm disabled:opacity-60"
         >
           {descargandoPlantilla ? "Descargando…" : "Descargar plantilla .xlsx"}
         </button>
-        {errorPlantilla && <p className="mt-3 text-sm text-red-700">{errorPlantilla}</p>}
+        {errorPlantilla && <p className="mt-3 text-sm text-red-700 dark:text-red-300">{errorPlantilla}</p>}
       </PasoCard>
 
       <PasoCard
@@ -266,22 +266,22 @@ export default function ImportarEstudiantesPage() {
             type="file"
             accept=".xlsx"
             onChange={elegirArchivo}
-            className="cursor-pointer text-sm text-ink file:mr-3 file:cursor-pointer file:rounded-card file:border-0 file:bg-mist file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-border/60"
+            className="cursor-pointer text-sm text-ink dark:text-ink-dark file:mr-3 file:cursor-pointer file:rounded-card file:border-0 file:bg-mist file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink hover:file:bg-border/60"
           />
           <button
             onClick={validarArchivo}
             disabled={!archivo || validando}
-            className="rounded-card bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-card bg-accion px-4 py-2 text-sm font-medium text-white hover:bg-accion-hover transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
           >
             {validando ? "Validando…" : "Validar archivo"}
           </button>
           {(archivo || resultado) && (
-            <button onClick={reiniciar} className="text-sm text-ink/50 hover:text-ink hover:underline">
+            <button onClick={reiniciar} className="text-sm text-ink/50 dark:text-ink-dark/50 hover:text-ink hover:underline">
               Empezar de nuevo
             </button>
           )}
         </div>
-        {errorValidar && <p className="mt-3 text-sm text-red-700">{errorValidar}</p>}
+        {errorValidar && <p className="mt-3 text-sm text-red-700 dark:text-red-300">{errorValidar}</p>}
       </PasoCard>
 
       {resultado && (
@@ -294,7 +294,7 @@ export default function ImportarEstudiantesPage() {
             <Chip etiqueta="Datos incompletos" valor={resultado.filas_con_datos_incompletos} tono="neutro" />
           </div>
 
-          <div ref={filasPreviewRef} className="max-h-150 overflow-auto rounded-card border border-border">
+          <div ref={filasPreviewRef} className="max-h-150 overflow-auto rounded-card border border-border dark:border-border-dark">
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-10">
                 <TheadFila>
@@ -326,25 +326,25 @@ export default function ImportarEstudiantesPage() {
                       key={fila.fila}
                       data-index={item.index}
                       ref={virtualizadorFilas.measureElement}
-                      className={`border-b border-l-4 border-border last:border-b-0 ${
+                      className={`border-b border-l-4 border-border dark:border-border-dark last:border-b-0 ${
                         bloqueante
                           ? "border-l-red-400 bg-red-50/50"
                           : incompleta
-                          ? "border-l-ink/20 bg-mist/40"
+                          ? "border-l-ink/20 bg-mist/40 dark:bg-surface-raised-dark"
                           : "border-l-transparent"
                       }`}
                     >
-                      <td className="px-4 py-2.5 font-mono text-xs text-ink/50">{fila.fila}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs text-ink/50 dark:text-ink-dark/50">{fila.fila}</td>
                       <td className="px-4 py-2.5">
                         <BadgeAccion accion={fila.accion} />
                       </td>
-                      <td className="px-4 py-2.5 font-mono text-xs text-ink/70">
+                      <td className="px-4 py-2.5 font-mono text-xs text-ink/70 dark:text-ink-dark/70">
                         {fila.codigo_institucional || "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-ink">
+                      <td className="px-4 py-2.5 text-ink dark:text-ink-dark">
                         {[fila.nombres, fila.apellidos].filter(Boolean).join(" ") || "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-ink/70">
+                      <td className="px-4 py-2.5 text-ink/70 dark:text-ink-dark/70">
                         {fila.estructura_academica
                           ? [fila.estructura_academica.nivel, fila.estructura_academica.grado, fila.estructura_academica.seccion]
                               .filter(Boolean)
@@ -355,16 +355,16 @@ export default function ImportarEstudiantesPage() {
                         {fila.errores.length > 0 && (
                           <ul className="space-y-1">
                             {fila.errores.map((e, i) => (
-                              <li key={i} className="text-xs text-red-700">
+                              <li key={i} className="text-xs text-red-700 dark:text-red-300">
                                 <span className="font-medium">{e.campo}:</span> {e.correccion_esperada}
                               </li>
                             ))}
                           </ul>
                         )}
                         {incompleta && (
-                          <span className="text-xs text-ink/50">Faltan: {fila.datos_incompletos.join(", ")}</span>
+                          <span className="text-xs text-ink/50 dark:text-ink-dark/50">Faltan: {fila.datos_incompletos.join(", ")}</span>
                         )}
-                        {!bloqueante && !incompleta && <span className="text-xs text-ink/30">—</span>}
+                        {!bloqueante && !incompleta && <span className="text-xs text-ink/30 dark:text-ink-dark/30">—</span>}
                       </td>
                     </tr>
                   );
@@ -398,13 +398,13 @@ export default function ImportarEstudiantesPage() {
           <button
             onClick={confirmarImportacion}
             disabled={!puedeConfirmar || confirmando}
-            className="rounded-card bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-card bg-accion px-4 py-2 text-sm font-medium text-white hover:bg-accion-hover transition-colors shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
           >
             {confirmando
               ? "Aplicando…"
               : `Confirmar importación (${resultado.resumen.nuevos + resultado.resumen.actualizados} filas)`}
           </button>
-          {errorConfirmar && <p className="mt-3 text-sm text-red-700">{errorConfirmar}</p>}
+          {errorConfirmar && <p className="mt-3 text-sm text-red-700 dark:text-red-300">{errorConfirmar}</p>}
         </PasoCard>
       )}
 
@@ -417,11 +417,11 @@ export default function ImportarEstudiantesPage() {
           <div className="flex items-center gap-4">
             <Link
               href="/estudiantes"
-              className="rounded-card bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-900 transition-colors shadow-sm"
+              className="rounded-card bg-accion px-4 py-2 text-sm font-medium text-white hover:bg-accion-hover transition-colors shadow-sm"
             >
               Ver en el padrón
             </Link>
-            <button onClick={reiniciar} className="text-sm font-medium text-teal-600 hover:text-teal-900 hover:underline">
+            <button onClick={reiniciar} className="text-sm font-medium text-teal-600 dark:text-teal-accent-dark hover:text-teal-900 hover:underline">
               Importar otro archivo
             </button>
           </div>

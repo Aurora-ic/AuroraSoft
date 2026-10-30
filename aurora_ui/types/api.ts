@@ -506,6 +506,9 @@ export type ConsentimientoInformado = {
   evidencia_content_type: string | null;
   evidencia_tamano_bytes: number | null;
   evidencia_subido_en: string | null;
+  // Versión del modelo de texto del colegio vigente al registrar (null si
+  // no había ninguno configurado, o para registros anteriores).
+  texto_version_id?: number | null;
 };
 
 export type ConsentimientoCreate = {
@@ -544,6 +547,15 @@ export type CitaParticipante = {
 // `participantes` (puede venir vacío: no es obligatorio nombrar asistentes).
 // Visible para todo el staff de la institución, a diferencia de una cita
 // individual (que solo ve quien la agendó) — ver GET /citas/mi-agenda.
+// GET /admin/personas/academico/conteos/{institucion_id} — estudiantes
+// activos con matrícula vigente; claves = id de nivel/grado/sección.
+export type ConteosEstructuraAcademica = {
+  total: number;
+  niveles: Record<string, number>;
+  grados: Record<string, number>;
+  secciones: Record<string, number>;
+};
+
 export type Cita = {
   id: number;
   persona_id: number | null;
@@ -556,10 +568,13 @@ export type Cita = {
   tipo_actividad: string | null;
   lugar: string | null;
   participantes: CitaParticipante[];
+  // Nombre del alumno de una cita individual (null en una actividad grupal).
+  persona_nombre?: string | null;
+  duracion_minutos: number;
 };
 
 export type CitaUpdate = Partial<
-  Pick<Cita, "motivo" | "fecha_hora" | "estado" | "titulo" | "tipo_actividad" | "lugar">
+  Pick<Cita, "motivo" | "fecha_hora" | "estado" | "titulo" | "tipo_actividad" | "lugar" | "duracion_minutos">
 >;
 
 export type CitaCreate = {
@@ -571,6 +586,7 @@ export type CitaCreate = {
   tipo_actividad?: string | null;
   lugar?: string | null;
   participantes_ids?: number[];
+  duracion_minutos?: number | null; // omitido = 45 (individual) / 60 (grupal)
 };
 
 export type SesionSeguimiento = {
@@ -645,9 +661,15 @@ export type AsentimientoInformadoTextoPublico = {
   contenido: string; // párrafos separados por "\n", mismo criterio que el array viejo
 };
 
+// "apoderado" = modelo de CONSENTIMIENTO (lo firma el apoderado);
+// "asentimiento" = el que acepta el propio alumno.
+export type TipoTextoConsentimiento = "apoderado" | "asentimiento";
+
 export type AsentimientoInformadoTexto = {
   id: number;
   institucion_id: number | null; // null = versión global
+  tipo_texto: TipoTextoConsentimiento;
+  nivel_educativo_id: number | null; // null = modelo general del colegio
   version: number;
   contenido: string;
   activo: boolean;
@@ -657,6 +679,18 @@ export type AsentimientoInformadoTexto = {
 export type AsentimientoInformadoTextoCreate = {
   institucion_id?: number | null; // omitido/null = versión GLOBAL (solo superadmin)
   contenido: string;
+  tipo_texto?: TipoTextoConsentimiento; // por defecto "asentimiento"
+  nivel_educativo_id?: number | null;
+};
+
+// GET /educativo/modelos-consentimiento/vigente?persona_id=&tipo_texto=
+export type TextoConsentimientoVigente = {
+  id: number;
+  tipo_texto: TipoTextoConsentimiento;
+  version: number;
+  contenido: string;
+  nivel_educativo_id: number | null;
+  origen: "nivel" | "colegio" | "global";
 };
 
 export type CampoSociodemografico = {
@@ -753,6 +787,31 @@ export type Dimension = {
 // decidir, al crear una campaña, qué mide realmente la prueba elegida).
 export type PruebaDetalle = Prueba & {
   dimensiones: Dimension[];
+};
+
+// GET /educativo/inicio/series?meses= — gráficos del Inicio (ver
+// crud.obtener_series_inicio). "mes" = "YYYY-MM", del más antiguo al actual.
+export type MesSerieInicio = {
+  mes: string;
+  evaluaciones: number;
+  con_alerta: number;
+  sin_alerta: number;
+  sesiones_seguimiento: number;
+  citas: number;
+};
+
+export type CampanaAvanceInicio = {
+  id: number;
+  nombre_grupo: string;
+  prueba: string | null;
+  fecha_fin: string | null;
+  inscritos: number;
+  finalizados: number;
+};
+
+export type SeriesInicio = {
+  meses: MesSerieInicio[];
+  campanas: CampanaAvanceInicio[];
 };
 
 // GET /educativo/inicio/resumen — dashboard de aterrizaje (ver /inicio).

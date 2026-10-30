@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator, model_validator
 from datetime import datetime, timezone
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Literal
 from enum import Enum
 
 # 🔒 ENUMS ESTRICTOS PARA VALIDACIÓN DE DEMOGRÁFICOS
@@ -581,6 +581,10 @@ class IntakeExamenResponse(BaseModel):
 class AsentimientoInformadoTextoResponse(BaseModel):
     id: int
     institucion_id: Optional[int] = None
+    # 🆕 "apoderado" (consentimiento) | "asentimiento"; nivel_educativo_id
+    # None = modelo general del colegio (o global). Ver models.py.
+    tipo_texto: str = "asentimiento"
+    nivel_educativo_id: Optional[int] = None
     version: int
     contenido: str
     activo: bool
@@ -596,6 +600,23 @@ class AsentimientoInformadoTextoCreate(BaseModel):
     # superadmin, mismo criterio que crear_nivel_educativo.
     institucion_id: Optional[int] = None
     contenido: str = Field(min_length=10)
+    # 🆕 Por defecto "asentimiento" — un cliente anterior a este cambio
+    # sigue creando exactamente lo mismo que antes.
+    tipo_texto: Literal["apoderado", "asentimiento"] = "asentimiento"
+    nivel_educativo_id: Optional[int] = None
+
+
+# 🆕 GET /educativo/modelos-consentimiento/vigente — el texto que le
+# corresponde a UN alumno (por su nivel actual), para mostrarlo al registrar
+# su consentimiento/asentimiento en la ficha. `origen` dice de dónde salió:
+# "nivel" | "colegio" | "global".
+class TextoConsentimientoVigente(BaseModel):
+    id: int
+    tipo_texto: str
+    version: int
+    contenido: str
+    nivel_educativo_id: Optional[int] = None
+    origen: str
 
 
 # Lo mínimo que el flujo público del examen necesita para mostrar el texto

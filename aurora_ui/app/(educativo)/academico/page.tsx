@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Check, X, Trash2 } from "lucide-react";
+import { Pencil, Check, X, Trash2, Plus, ChevronRight, Info, Layers, GraduationCap, DoorOpen, Network, Users, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
+import { EncabezadoPagina, PastillaBanner } from "@/components/ui/Encabezado";
 import type {
   NivelEducativo,
   NivelEducativoCreate,
@@ -18,6 +19,7 @@ import type {
   NivelEducativoUpdate,
   GradoUpdate,
   SeccionUpdate,
+  ConteosEstructuraAcademica,
 } from "@/types/api";
 
 function FilaSeleccionable({
@@ -32,8 +34,10 @@ function FilaSeleccionable({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-card px-3 py-2 text-sm transition-colors ${
-        activo ? "bg-teal-900 text-white" : "text-ink hover:bg-mist"
+      className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-colors ${
+        activo
+          ? "bg-teal-900 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+          : "text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark"
       }`}
     >
       {children}
@@ -55,7 +59,7 @@ function BotonEditar({ onClick, etiqueta }: { onClick: () => void; etiqueta: str
       onClick={onClick}
       aria-label={etiqueta}
       title={etiqueta}
-      className="shrink-0 rounded-lg p-1.5 text-ink/35 hover:bg-mist hover:text-teal-700 transition-colors"
+      className="shrink-0 rounded-lg p-1.5 text-ink/35 dark:text-ink-dark/35 hover:bg-mist dark:hover:bg-surface-raised-dark hover:text-teal-700 dark:hover:text-teal-accent-dark transition-colors"
     >
       <Pencil size={14} aria-hidden="true" />
     </button>
@@ -69,7 +73,7 @@ function BotonEliminar({ onClick, etiqueta }: { onClick: () => void; etiqueta: s
       onClick={onClick}
       aria-label={etiqueta}
       title={etiqueta}
-      className="shrink-0 rounded-lg p-1.5 text-ink/35 hover:bg-red-50 hover:text-red-700 transition-colors"
+      className="shrink-0 rounded-lg p-1.5 text-ink/35 dark:text-ink-dark/35 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-700 dark:hover:text-red-300 transition-colors"
     >
       <Trash2 size={14} aria-hidden="true" />
     </button>
@@ -94,8 +98,8 @@ function ConfirmarEliminar({
   onCancelar: () => void;
 }) {
   return (
-    <div className="rounded-card border border-red-200 bg-red-50/70 p-3 space-y-2" role="alertdialog" aria-label={`Eliminar ${nombre}`}>
-      <p className="text-sm text-ink">
+    <div className="rounded-card border border-red-200 dark:border-red-500/30 bg-red-50/70 dark:bg-red-500/10 p-3 space-y-2" role="alertdialog" aria-label={`Eliminar ${nombre}`}>
+      <p className="text-sm text-ink dark:text-ink-dark">
         ¿Eliminar <strong>{nombre}</strong>? Esta acción no se puede deshacer.
       </p>
       <TextoError className="text-xs">{error}</TextoError>
@@ -103,7 +107,7 @@ function ConfirmarEliminar({
         <button
           type="button"
           onClick={onCancelar}
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/60 hover:bg-white"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/60 dark:text-ink-dark/60 hover:bg-white dark:hover:bg-surface-dark"
         >
           Cancelar
         </button>
@@ -148,7 +152,7 @@ function EditorEnLinea({
         e.preventDefault();
         onGuardar();
       }}
-      className="rounded-card border border-teal-400 bg-teal-600/[0.04] p-3 space-y-2.5"
+      className="rounded-card border border-teal-400 dark:border-teal-accent-dark bg-teal-600/[0.04] dark:bg-teal-accent-dark/5 p-3 space-y-2.5"
     >
       <div className="grid grid-cols-[1fr_6rem] gap-2 text-sm">
         <CampoEditable etiqueta="Nombre">
@@ -168,7 +172,7 @@ function EditorEnLinea({
         <button
           type="button"
           onClick={onCancelar}
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/60 hover:bg-mist"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/60 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-raised-dark"
         >
           <X size={13} aria-hidden="true" />
           Cancelar
@@ -176,13 +180,121 @@ function EditorEnLinea({
         <button
           type="submit"
           disabled={guardando}
-          className="inline-flex items-center gap-1 rounded-lg bg-teal-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-teal-900 disabled:opacity-50"
+          className="inline-flex items-center gap-1 rounded-lg bg-accion px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-accion-hover disabled:opacity-50"
         >
           <Check size={13} aria-hidden="true" />
           {guardando ? "Guardando…" : "Guardar"}
         </button>
       </div>
     </form>
+  );
+}
+
+// 🆕 Columna del explorador Nivel › Grado › Sección (sesión 2026-10-30) —
+// cabecera con icono, contador y el botón "+ Agregar" (solo admin) que
+// despliega el formulario de alta.
+function Columna({
+  icono: Icono,
+  titulo,
+  subtitulo,
+  cantidad,
+  totalEstudiantes,
+  puedeAgregar,
+  agregando,
+  onAgregar,
+  etiquetaAgregar,
+  children,
+}: {
+  icono: LucideIcon;
+  titulo: string;
+  subtitulo?: string;
+  cantidad: number | null;
+  // Estudiantes matriculados en todo lo que lista la columna.
+  totalEstudiantes?: number | null;
+  puedeAgregar: boolean;
+  agregando: boolean;
+  onAgregar: () => void;
+  etiquetaAgregar: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
+      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border dark:border-border-dark bg-mist/60 dark:bg-surface-raised-dark">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+            <Icono size={16} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="m-0 text-sm font-semibold text-teal-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
+              {titulo}
+              {cantidad !== null && (
+                <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[10.5px] font-bold text-ink/55 dark:text-ink-dark/60">
+                  {cantidad}
+                </span>
+              )}
+            </h2>
+            {(subtitulo || (totalEstudiantes !== null && totalEstudiantes !== undefined)) && (
+              <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50 truncate">
+                {[
+                  subtitulo,
+                  totalEstudiantes !== null && totalEstudiantes !== undefined
+                    ? `${totalEstudiantes} estudiante${totalEstudiantes === 1 ? "" : "s"}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+          </div>
+        </div>
+        {puedeAgregar && (
+          <button
+            type="button"
+            onClick={onAgregar}
+            aria-expanded={agregando}
+            className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+              agregando
+                ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
+                : "border-border bg-surface text-ink/70 hover:border-teal-400 hover:text-teal-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-teal-accent-dark"
+            }`}
+          >
+            {agregando ? <X size={13} aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
+            {agregando ? "Cerrar" : `Agregar ${etiquetaAgregar}`}
+          </button>
+        )}
+      </header>
+      <div className="p-3 space-y-3">{children}</div>
+    </section>
+  );
+}
+
+// 🆕 Recuento de estudiantes (activos, con matrícula vigente) al lado
+// derecho de cada fila — ver GET /admin/personas/academico/conteos. `null`
+// mientras carga: no se muestra un "0" que todavía no es real.
+function Recuento({ n, activo = false }: { n: number | null; activo?: boolean }) {
+  if (n === null) return null;
+  return (
+    <span
+      title={`${n} estudiante${n === 1 ? "" : "s"} matriculado${n === 1 ? "" : "s"}`}
+      className={`inline-flex min-w-[2rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+        activo
+          ? "bg-white/20 text-white dark:bg-mist-dark/25 dark:text-mist-dark"
+          : n === 0
+            ? "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
+            : "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+      }`}
+    >
+      <Users size={11} aria-hidden="true" />
+      {n}
+    </span>
+  );
+}
+
+function VacioColumna({ texto }: { texto: string }) {
+  return (
+    <p className="m-0 rounded-lg border border-dashed border-border dark:border-border-dark px-3 py-5 text-center text-[12.5px] text-ink/45 dark:text-ink-dark/45">
+      {texto}
+    </p>
   );
 }
 
@@ -221,6 +333,14 @@ export default function EstructuraAcademicaPage() {
   const [formSeccion, setFormSeccion] = useState({ nombre: "", turno: "", anio_escolar: "" });
   const [guardandoSeccion, setGuardandoSeccion] = useState(false);
   const [errorFormSeccion, setErrorFormSeccion] = useState<string | null>(null);
+
+  // 🆕 Los formularios de alta van plegados detrás de "+ Agregar" (sesión
+  // 2026-10-30, "optimizando espacios") — antes las 3 columnas mostraban
+  // siempre su formulario abierto, aunque casi nunca se crea nada.
+  const [formAbierto, setFormAbierto] = useState<TipoEditable | null>(null);
+
+  // --- 🆕 Recuento de estudiantes por nivel/grado/sección (claves = id) ---
+  const [conteos, setConteos] = useState<ConteosEstructuraAcademica | null>(null);
 
   // --- Edición en línea (un elemento a la vez) ---
   const [editando, setEditando] = useState<{ tipo: TipoEditable; id: number } | null>(null);
@@ -364,6 +484,11 @@ export default function EstructuraAcademicaPage() {
       .then(setNiveles)
       .catch((err: any) => setErrorNiveles(err.message || "No se pudieron cargar los niveles educativos."))
       .finally(() => setCargandoNiveles(false));
+    apiClient
+      .get<ConteosEstructuraAcademica>(`/admin/personas/academico/conteos/${sesion.institucionId}`)
+      .then(setConteos)
+      // Un recuento que no carga no debe romper la pantalla: solo no se muestra.
+      .catch(() => setConteos(null));
   }, [sesion]);
 
   async function seleccionarNivel(nivel: NivelEducativo) {
@@ -473,42 +598,133 @@ export default function EstructuraAcademicaPage() {
     }
   }
 
+  const contarNivel = (id: number) => (conteos ? conteos.niveles[String(id)] ?? 0 : null);
+  const contarGrado = (id: number) => (conteos ? conteos.grados[String(id)] ?? 0 : null);
+  const contarSeccion = (id: number) => (conteos ? conteos.secciones[String(id)] ?? 0 : null);
+
+  // Ruta de la selección actual — Nivel › Grado, visible arriba de las 3
+  // columnas para no tener que leer los títulos de cada una.
+  const ruta = [nivelSeleccionado?.nombre, gradoSeleccionado?.nombre].filter(Boolean) as string[];
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-semibold text-teal-900 tracking-tight">Estructura académica</h1>
-        <p className="mt-1 text-sm text-ink/60 max-w-2xl">
-          Niveles, grados y secciones de tu institución — la base para matricular estudiantes e importarlos por
-          Excel. Una sección existe para un año escolar concreto: para reabrir un grado en un año nuevo, crea
-          secciones nuevas en vez de reutilizar las del año pasado.
-          {!esAdmin && " Solo un administrador puede crear elementos nuevos; tú puedes consultarlos."}
-        </p>
+    <div className="max-w-6xl mx-auto flex flex-col gap-4">
+      <EncabezadoPagina variante="destacado"
+        icono={Network}
+        acento="teal"
+        titulo="Estructura académica"
+        acciones={
+          conteos && (
+            <PastillaBanner>
+              <Users size={14} aria-hidden="true" />
+              <strong className="font-display text-[15px]">{conteos.total}</strong>
+              estudiante{conteos.total === 1 ? "" : "s"} matriculado{conteos.total === 1 ? "" : "s"}
+            </PastillaBanner>
+          )
+        }
+        descripcion={
+          <>
+            Niveles, grados y secciones — la base para matricular e importar estudiantes.
+            {!esAdmin && " Solo un administrador puede crear o editar elementos."}
+          </>
+        }
+      />
+
+      <div className="flex items-start gap-2 rounded-xl border border-teal-600/15 dark:border-border-dark bg-teal-600/[0.04] dark:bg-surface-dark px-3.5 py-2.5 text-[12px] text-ink/65 dark:text-ink-dark/65">
+        <Info size={14} className="mt-0.5 shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+        <span>
+          Una sección existe para un año escolar concreto: para reabrir un grado en un año nuevo, crea secciones nuevas en vez de
+          reutilizar las del año pasado.
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+      <nav aria-label="Selección actual" className="flex items-center gap-1.5 flex-wrap text-[12.5px]">
+        <button
+          type="button"
+          onClick={() => {
+            setNivelSeleccionado(null);
+            setGradoSeleccionado(null);
+            setGrados([]);
+            setSecciones([]);
+          }}
+          className="font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+        >
+          Todos los niveles
+        </button>
+        {ruta.map((parte, i) => (
+          <span key={parte + i} className="flex items-center gap-1.5">
+            <ChevronRight size={13} className="text-ink/30 dark:text-ink-dark/30" aria-hidden="true" />
+            <span className={i === ruta.length - 1 ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/60 dark:text-ink-dark/60"}>
+              {parte}
+            </span>
+          </span>
+        ))}
+      </nav>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {/* Niveles */}
-        <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-          <h2 className="font-display text-lg font-semibold text-teal-900">Niveles educativos</h2>
+        <Columna
+          icono={Layers}
+          titulo="Niveles educativos"
+          cantidad={cargandoNiveles ? null : niveles.length}
+          totalEstudiantes={conteos ? conteos.total : null}
+          puedeAgregar={esAdmin}
+          agregando={formAbierto === "nivel"}
+          onAgregar={() => setFormAbierto((f) => (f === "nivel" ? null : "nivel"))}
+          etiquetaAgregar="nivel"
+        >
+          {esAdmin && formAbierto === "nivel" && (
+            <form onSubmit={crearNivel} className="rounded-lg border border-teal-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
+              <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+                <CampoEditable etiqueta="Nombre">
+                  <Input
+                    required
+                    autoFocus
+                    placeholder="Secundaria"
+                    value={formNivel.nombre}
+                    onChange={(e) => setFormNivel({ ...formNivel, nombre: e.target.value })}
+                    className="w-full"
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Orden">
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={formNivel.orden}
+                    onChange={(e) => setFormNivel({ ...formNivel, orden: e.target.value })}
+                    className="w-full"
+                  />
+                </CampoEditable>
+              </div>
+              <TextoError className="text-xs">{errorFormNivel}</TextoError>
+              <Boton type="submit" disabled={guardandoNivel} className="w-full">
+                {guardandoNivel ? "Guardando…" : "Crear nivel"}
+              </Boton>
+            </form>
+          )}
 
           <TextoError>{errorNiveles}</TextoError>
 
           {cargandoNiveles ? (
-            <p className="text-sm text-ink/40">Cargando…</p>
+            <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando…</p>
           ) : niveles.length === 0 ? (
-            <p className="text-sm text-ink/40 italic">Todavía no hay niveles creados.</p>
+            <VacioColumna texto="Todavía no hay niveles creados." />
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {niveles.map((nivel) =>
                 estaEditando("nivel", nivel.id) ? (
                   <div key={nivel.id}>{editorPara("nivel")}</div>
                 ) : confirmandoEliminar("nivel", nivel.id) ? (
                   <div key={nivel.id}>{confirmacionPara(nivel.nombre)}</div>
                 ) : (
-                  <div key={nivel.id} className="flex items-center gap-1">
+                  <div key={nivel.id} className="flex items-center gap-0.5">
                     <FilaSeleccionable activo={nivelSeleccionado?.id === nivel.id} onClick={() => seleccionarNivel(nivel)}>
                       <span className="flex items-center justify-between gap-2">
-                        {nivel.nombre}
-                        {esAdmin && <span className="text-[11px] opacity-50">orden {nivel.orden}</span>}
+                        <span className="truncate">{nivel.nombre}</span>
+                        <span className="flex items-center gap-1.5 shrink-0">
+                          {esAdmin && <span className="text-[11px] opacity-50">orden {nivel.orden}</span>}
+                          <Recuento n={contarNivel(nivel.id)} activo={nivelSeleccionado?.id === nivel.id} />
+                          <ChevronRight size={14} className="opacity-40" aria-hidden="true" />
+                        </span>
                       </span>
                     </FilaSeleccionable>
                     {esAdmin && (
@@ -525,62 +741,77 @@ export default function EstructuraAcademicaPage() {
               )}
             </div>
           )}
-
-          {esAdmin && (
-            <form onSubmit={crearNivel} className="border-t border-border pt-4 space-y-3">
-              <CampoEditable etiqueta="Nombre">
-                <Input
-                  required
-                  placeholder="Secundaria"
-                  value={formNivel.nombre}
-                  onChange={(e) => setFormNivel({ ...formNivel, nombre: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Orden (opcional)">
-                <Input
-                  type="number"
-                  placeholder="0"
-                  value={formNivel.orden}
-                  onChange={(e) => setFormNivel({ ...formNivel, orden: e.target.value })}
-                />
-              </CampoEditable>
-              <TextoError>{errorFormNivel}</TextoError>
-              <Boton type="submit" disabled={guardandoNivel} className="w-full">
-                {guardandoNivel ? "Guardando…" : "+ Nuevo nivel"}
-              </Boton>
-            </form>
-          )}
-        </section>
+        </Columna>
 
         {/* Grados */}
-        <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-          <h2 className="font-display text-lg font-semibold text-teal-900">
-            Grados{nivelSeleccionado ? ` — ${nivelSeleccionado.nombre}` : ""}
-          </h2>
-
+        <Columna
+          icono={GraduationCap}
+          titulo="Grados"
+          subtitulo={nivelSeleccionado?.nombre}
+          cantidad={!nivelSeleccionado || cargandoGrados ? null : grados.length}
+          totalEstudiantes={nivelSeleccionado ? contarNivel(nivelSeleccionado.id) : null}
+          puedeAgregar={esAdmin && !!nivelSeleccionado}
+          agregando={formAbierto === "grado"}
+          onAgregar={() => setFormAbierto((f) => (f === "grado" ? null : "grado"))}
+          etiquetaAgregar="grado"
+        >
           {!nivelSeleccionado ? (
-            <p className="text-sm text-ink/40 italic">Selecciona un nivel educativo.</p>
+            <VacioColumna texto="Selecciona un nivel educativo." />
           ) : (
             <>
+              {esAdmin && formAbierto === "grado" && (
+                <form onSubmit={crearGrado} className="rounded-lg border border-teal-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
+                  <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+                    <CampoEditable etiqueta="Nombre">
+                      <Input
+                        required
+                        autoFocus
+                        placeholder="3°"
+                        value={formGrado.nombre}
+                        onChange={(e) => setFormGrado({ ...formGrado, nombre: e.target.value })}
+                        className="w-full"
+                      />
+                    </CampoEditable>
+                    <CampoEditable etiqueta="Orden">
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={formGrado.orden}
+                        onChange={(e) => setFormGrado({ ...formGrado, orden: e.target.value })}
+                        className="w-full"
+                      />
+                    </CampoEditable>
+                  </div>
+                  <TextoError className="text-xs">{errorFormGrado}</TextoError>
+                  <Boton type="submit" disabled={guardandoGrado} className="w-full">
+                    {guardandoGrado ? "Guardando…" : "Crear grado"}
+                  </Boton>
+                </form>
+              )}
+
               <TextoError>{errorGrados}</TextoError>
 
               {cargandoGrados ? (
-                <p className="text-sm text-ink/40">Cargando…</p>
+                <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando…</p>
               ) : grados.length === 0 ? (
-                <p className="text-sm text-ink/40 italic">Todavía no hay grados en este nivel.</p>
+                <VacioColumna texto="Todavía no hay grados en este nivel." />
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {grados.map((grado) =>
                     estaEditando("grado", grado.id) ? (
                       <div key={grado.id}>{editorPara("grado")}</div>
                     ) : confirmandoEliminar("grado", grado.id) ? (
                       <div key={grado.id}>{confirmacionPara(`el grado ${grado.nombre}`)}</div>
                     ) : (
-                      <div key={grado.id} className="flex items-center gap-1">
+                      <div key={grado.id} className="flex items-center gap-0.5">
                         <FilaSeleccionable activo={gradoSeleccionado?.id === grado.id} onClick={() => seleccionarGrado(grado)}>
                           <span className="flex items-center justify-between gap-2">
-                            {grado.nombre}
-                            {esAdmin && <span className="text-[11px] opacity-50">orden {grado.orden}</span>}
+                            <span className="truncate">{grado.nombre}</span>
+                            <span className="flex items-center gap-1.5 shrink-0">
+                              {esAdmin && <span className="text-[11px] opacity-50">orden {grado.orden}</span>}
+                              <Recuento n={contarGrado(grado.id)} activo={gradoSeleccionado?.id === grado.id} />
+                              <ChevronRight size={14} className="opacity-40" aria-hidden="true" />
+                            </span>
                           </span>
                         </FilaSeleccionable>
                         {esAdmin && (
@@ -597,51 +828,71 @@ export default function EstructuraAcademicaPage() {
                   )}
                 </div>
               )}
+            </>
+          )}
+        </Columna>
 
-              {esAdmin && (
-                <form onSubmit={crearGrado} className="border-t border-border pt-4 space-y-3">
-                  <CampoEditable etiqueta="Nombre">
-                    <Input
-                      required
-                      placeholder="3°"
-                      value={formGrado.nombre}
-                      onChange={(e) => setFormGrado({ ...formGrado, nombre: e.target.value })}
-                    />
-                  </CampoEditable>
-                  <CampoEditable etiqueta="Orden (opcional)">
-                    <Input
-                      type="number"
-                      placeholder="0"
-                      value={formGrado.orden}
-                      onChange={(e) => setFormGrado({ ...formGrado, orden: e.target.value })}
-                    />
-                  </CampoEditable>
-                  <TextoError>{errorFormGrado}</TextoError>
-                  <Boton type="submit" disabled={guardandoGrado} className="w-full">
-                    {guardandoGrado ? "Guardando…" : "+ Nuevo grado"}
+        {/* Secciones */}
+        <Columna
+          icono={DoorOpen}
+          titulo="Secciones"
+          subtitulo={gradoSeleccionado?.nombre}
+          cantidad={!gradoSeleccionado || cargandoSecciones ? null : secciones.length}
+          totalEstudiantes={gradoSeleccionado ? contarGrado(gradoSeleccionado.id) : null}
+          puedeAgregar={esAdmin && !!gradoSeleccionado}
+          agregando={formAbierto === "seccion"}
+          onAgregar={() => setFormAbierto((f) => (f === "seccion" ? null : "seccion"))}
+          etiquetaAgregar="sección"
+        >
+          {!gradoSeleccionado ? (
+            <VacioColumna texto="Selecciona un grado." />
+          ) : (
+            <>
+              {esAdmin && formAbierto === "seccion" && (
+                <form onSubmit={crearSeccion} className="rounded-lg border border-teal-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
+                  <div className="grid grid-cols-3 gap-2">
+                    <CampoEditable etiqueta="Nombre">
+                      <Input
+                        required
+                        autoFocus
+                        placeholder="A"
+                        value={formSeccion.nombre}
+                        onChange={(e) => setFormSeccion({ ...formSeccion, nombre: e.target.value })}
+                        className="w-full"
+                      />
+                    </CampoEditable>
+                    <CampoEditable etiqueta="Año">
+                      <Input
+                        required
+                        type="number"
+                        placeholder="2026"
+                        value={formSeccion.anio_escolar}
+                        onChange={(e) => setFormSeccion({ ...formSeccion, anio_escolar: e.target.value })}
+                        className="w-full"
+                      />
+                    </CampoEditable>
+                    <CampoEditable etiqueta="Turno">
+                      <Input
+                        placeholder="Mañana"
+                        value={formSeccion.turno}
+                        onChange={(e) => setFormSeccion({ ...formSeccion, turno: e.target.value })}
+                        className="w-full"
+                      />
+                    </CampoEditable>
+                  </div>
+                  <TextoError className="text-xs">{errorFormSeccion}</TextoError>
+                  <Boton type="submit" disabled={guardandoSeccion} className="w-full">
+                    {guardandoSeccion ? "Guardando…" : "Crear sección"}
                   </Boton>
                 </form>
               )}
-            </>
-          )}
-        </section>
 
-        {/* Secciones */}
-        <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-          <h2 className="font-display text-lg font-semibold text-teal-900">
-            Secciones{gradoSeleccionado ? ` — ${gradoSeleccionado.nombre}` : ""}
-          </h2>
-
-          {!gradoSeleccionado ? (
-            <p className="text-sm text-ink/40 italic">Selecciona un grado.</p>
-          ) : (
-            <>
               <TextoError>{errorSecciones}</TextoError>
 
               {cargandoSecciones ? (
-                <p className="text-sm text-ink/40">Cargando…</p>
+                <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando…</p>
               ) : secciones.length === 0 ? (
-                <p className="text-sm text-ink/40 italic">Todavía no hay secciones en este grado.</p>
+                <VacioColumna texto="Todavía no hay secciones en este grado." />
               ) : (
                 <div className="space-y-1.5">
                   {secciones.map((seccion) =>
@@ -650,14 +901,21 @@ export default function EstructuraAcademicaPage() {
                     ) : confirmandoEliminar("seccion", seccion.id) ? (
                       <div key={seccion.id}>{confirmacionPara(`la sección ${seccion.nombre} (${seccion.anio_escolar})`)}</div>
                     ) : (
-                      <div key={seccion.id} className="flex items-center gap-2 rounded-card border border-border px-3 py-2">
+                      <div
+                        key={seccion.id}
+                        className="flex items-center gap-2 rounded-lg border border-border dark:border-border-dark px-3 py-2"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark font-display text-[13px] font-bold">
+                          {seccion.nombre.slice(0, 2)}
+                        </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm text-ink font-medium">{seccion.nombre}</div>
-                          <div className="text-xs text-ink/50 mt-0.5">
+                          <div className="text-sm text-ink dark:text-ink-dark font-semibold truncate">Sección {seccion.nombre}</div>
+                          <div className="text-[11.5px] text-ink/50 dark:text-ink-dark/50">
                             Año {seccion.anio_escolar}
                             {seccion.turno ? ` · Turno ${seccion.turno}` : ""}
                           </div>
                         </div>
+                        <Recuento n={contarSeccion(seccion.id)} />
                         {esAdmin && (
                           <>
                             <BotonEditar
@@ -675,44 +933,9 @@ export default function EstructuraAcademicaPage() {
                   )}
                 </div>
               )}
-
-              {esAdmin && (
-                <form onSubmit={crearSeccion} className="border-t border-border pt-4 space-y-3">
-                  <CampoEditable etiqueta="Nombre">
-                    <Input
-                      required
-                      placeholder="A"
-                      value={formSeccion.nombre}
-                      onChange={(e) => setFormSeccion({ ...formSeccion, nombre: e.target.value })}
-                    />
-                  </CampoEditable>
-                  <div className="grid grid-cols-2 gap-3">
-                    <CampoEditable etiqueta="Año escolar">
-                      <Input
-                        required
-                        type="number"
-                        placeholder="2026"
-                        value={formSeccion.anio_escolar}
-                        onChange={(e) => setFormSeccion({ ...formSeccion, anio_escolar: e.target.value })}
-                      />
-                    </CampoEditable>
-                    <CampoEditable etiqueta="Turno (opcional)">
-                      <Input
-                        placeholder="Mañana"
-                        value={formSeccion.turno}
-                        onChange={(e) => setFormSeccion({ ...formSeccion, turno: e.target.value })}
-                      />
-                    </CampoEditable>
-                  </div>
-                  <TextoError>{errorFormSeccion}</TextoError>
-                  <Boton type="submit" disabled={guardandoSeccion} className="w-full">
-                    {guardandoSeccion ? "Guardando…" : "+ Nueva sección"}
-                  </Boton>
-                </form>
-              )}
             </>
           )}
-        </section>
+        </Columna>
       </div>
     </div>
   );

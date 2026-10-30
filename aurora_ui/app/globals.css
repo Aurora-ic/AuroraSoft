@@ -27,13 +27,43 @@
      sigue siendo el único acento reservado para alerta clínica real, en
      los dos modos. */
   --color-surface: #FFFFFF;
-  --color-surface-dark: #0F201B;
-  --color-surface-raised-dark: #13251F;
-  --color-mist-dark: #081611;
+  --color-surface-dark: #102520;
+  --color-surface-raised-dark: #16302A;
+  --color-mist-dark: #07130F;
   --color-ink-dark: #E7EEEC;
-  --color-border-dark: #1E332B;
+  --color-border-dark: #244038;
+  /* 🆕 (sesión 2026-10-30) escalones de luminosidad L* fondo 4.9 → tarjeta
+     12.8 → elevado 17.7 → borde 24.7. Antes eran 6.0 → 10.7 → 13.0 → 19.3:
+     tarjeta y cabecera de tarjeta casi no se distinguían y todo se veía
+     plano. El texto sigue en 13.6:1 sobre la tarjeta. */
   /* más claro que teal-600: el de siempre pierde contraste sobre fondo oscuro */
   --color-teal-accent-dark: #2FB49D;
+
+  /* 🆕 Acentos por SECCIÓN (sesión 2026-10-30) — cada grupo del Sidebar
+     tiene un color de identidad, usado SOLO en su ícono/encabezado (nunca
+     en fondos completos ni en texto de lectura), siempre acompañado de
+     ícono + nombre: el color nunca es la única pista. Validados con el
+     validador de paleta contra el teal de marca y el ámbar de alerta:
+     - teal (marca): Estudiantes — cuidado, calma, salud.
+     - azul: Evaluación — análisis, rigor, confianza institucional.
+     - violeta ciruela: Documentos — formalidad, ética, confidencialidad.
+     - pizarra: Gestión — orden, neutralidad operativa (configuración, agenda).
+     Sin dorado a propósito: quedaría junto al ámbar, que es la señal de
+     riesgo clínico, y la diluiría (fatiga de alarma). */
+  /* 🆕 Color de ACCIÓN (botones primarios, selección activa) — verde pino,
+     más profundo y menos saturado que el teal de marca: funciona casi como
+     un neutro junto a los 4 acentos de sección y ya no se confunde con el
+     teal de "Estudiantes". Texto blanco a 8.1:1 (el teal-600 daba 5.3:1).
+     En oscuro los botones siguen usando teal-accent-dark. */
+  --color-accion: #0F5A4F;
+  --color-accion-hover: #0B3D34;
+
+  --color-acento-azul: #2A78D6;
+  --color-acento-azul-dark: #5598E7;
+  --color-acento-violeta: #A24FB0;
+  --color-acento-violeta-dark: #B86CC6;
+  --color-acento-pizarra: #4F6475;
+  --color-acento-pizarra-dark: #9AACBA;
 
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -54,6 +84,13 @@ body {
 [data-tema="oscuro"] body {
   background-color: var(--color-mist-dark);
   color: var(--color-ink-dark);
+}
+
+/* 🆕 Controles NATIVOS del navegador (desplegable de <select>, calendario
+   de <input type="date">, barras de scroll) — sin esto seguían en blanco
+   con el texto claro heredado en modo oscuro: ilegibles. */
+[data-tema="oscuro"] {
+  color-scheme: dark;
 }
 
 h1, h2, h3, h4 {

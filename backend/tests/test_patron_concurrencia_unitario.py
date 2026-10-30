@@ -103,6 +103,15 @@ _EXCLUSIONES_REVISADAS = {
         "versión N+1 a una entrada YA existente) es agregar_version_expediente, "
         "que sí está protegida (ver commit_o_conflicto ahí)."
     ),
+    "modulos/superadmin/crud.py:crear_cita": (
+        "Las filas de CitaParticipante se crean para `nueva.id`, una cita "
+        "recién flusheada en esta misma llamada, y a partir de "
+        "set(participantes_ids) — sin duplicados de entrada. Ninguna otra "
+        "transacción puede tener participantes para un id que no existía "
+        "hasta ahora, así que uq_citas_participantes_cita_persona nunca "
+        "puede chocar aquí (mismo razonamiento que crear_entrada_expediente). "
+        "Revisado en la sesión 2026-10-30; el hallazgo ya existía antes."
+    ),
     "modulos/superadmin/crud.py:iniciar_proceso_promocion": (
         "uq_proceso_promocion_confirmado es un índice único PARCIAL "
         "(postgresql_where=\"estado = 'confirmado'\"); esta función siempre "

@@ -94,7 +94,7 @@ export function ContenidoVisorArchivo({
   return (
     <div className="flex flex-col gap-2">
       {tipo === "pdf" && archivo && !cargando && !errorAMostrar && (
-        <div className="flex items-center justify-end gap-3 text-xs text-ink/60">
+        <div className="flex items-center justify-end gap-3 text-xs text-ink/60 dark:text-ink-dark/60">
           <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="px-1.5 hover:text-ink">
             −
           </button>
@@ -105,16 +105,16 @@ export function ContenidoVisorArchivo({
         </div>
       )}
 
-      <div className={`${alturaClase} overflow-auto rounded-card border border-border bg-mist/20 flex items-start justify-center p-3`}>
-        {cargando && <p className="text-sm text-ink/60 py-8">Cargando vista previa...</p>}
-        {!cargando && errorAMostrar && <p className="text-sm text-red-700 py-8 px-4 text-center">{errorAMostrar}</p>}
+      <div className={`${alturaClase} overflow-auto rounded-card border border-border dark:border-border-dark bg-mist/20 dark:bg-surface-raised-dark flex items-start justify-center p-3`}>
+        {cargando && <p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando vista previa...</p>}
+        {!cargando && errorAMostrar && <p className="text-sm text-red-700 dark:text-red-300 py-8 px-4 text-center">{errorAMostrar}</p>}
 
         {!cargando && !errorAMostrar && archivo && tipo === "pdf" && (
           <Document
             file={archivo.blob}
             onLoadSuccess={({ numPages }) => setTotalPaginas(numPages)}
             onLoadError={() => setErrorPdf("No se pudo mostrar el PDF en pantalla. Probá descargarlo.")}
-            loading={<p className="text-sm text-ink/60 py-8">Cargando documento...</p>}
+            loading={<p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando documento...</p>}
           >
             <Page pageNumber={paginaActual} scale={zoom} renderTextLayer={false} renderAnnotationLayer={false} />
           </Document>
@@ -126,13 +126,13 @@ export function ContenidoVisorArchivo({
         )}
 
         {!cargando && !errorAMostrar && archivo && tipo === "otro" && (
-          <p className="text-sm text-ink/60 py-8 text-center">
+          <p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8 text-center">
             Este tipo de archivo no se puede previsualizar. Descargalo para verlo.
           </p>
         )}
 
         {!cargando && !errorAMostrar && !archivo && (
-          <p className="text-sm text-ink/50 italic py-8">Sin archivo generado todavía.</p>
+          <p className="text-sm text-ink/50 dark:text-ink-dark/50 italic py-8">Sin archivo generado todavía.</p>
         )}
       </div>
 
@@ -141,17 +141,17 @@ export function ContenidoVisorArchivo({
           <button
             onClick={() => setPaginaActual((p) => Math.max(1, p - 1))}
             disabled={paginaActual <= 1}
-            className="text-sm text-ink/70 hover:text-ink disabled:opacity-30"
+            className="text-sm text-ink/70 dark:text-ink-dark/70 hover:text-ink disabled:opacity-30"
           >
             ← Anterior
           </button>
-          <span className="text-xs text-ink/60">
+          <span className="text-xs text-ink/60 dark:text-ink-dark/60">
             Página {paginaActual} de {totalPaginas}
           </span>
           <button
             onClick={() => setPaginaActual((p) => Math.min(totalPaginas, p + 1))}
             disabled={paginaActual >= totalPaginas}
-            className="text-sm text-ink/70 hover:text-ink disabled:opacity-30"
+            className="text-sm text-ink/70 dark:text-ink-dark/70 hover:text-ink disabled:opacity-30"
           >
             Siguiente →
           </button>
@@ -185,22 +185,22 @@ export function VisorArchivoModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4" onClick={onCerrar}>
       <div
-        className="bg-white rounded-card shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-surface dark:bg-surface-dark rounded-card shadow-lg max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 gap-3">
-          <span className="text-sm font-semibold text-teal-900 truncate">
+        <div className="flex items-center justify-between border-b border-border dark:border-border-dark px-4 py-3 gap-3">
+          <span className="text-sm font-semibold text-teal-900 dark:text-ink-dark truncate">
             {titulo || archivo?.nombreArchivo || "Vista previa"}
           </span>
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => archivo && descargar(archivo.blob, archivo.nombreArchivo)}
               disabled={!archivo}
-              className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-40"
+              className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium disabled:opacity-40"
             >
               Descargar
             </button>
-            <button onClick={onCerrar} className="text-ink/60 hover:text-ink text-xl leading-none px-1" aria-label="Cerrar">
+            <button onClick={onCerrar} className="text-ink/60 dark:text-ink-dark/60 hover:text-ink text-xl leading-none px-1" aria-label="Cerrar">
               ×
             </button>
           </div>

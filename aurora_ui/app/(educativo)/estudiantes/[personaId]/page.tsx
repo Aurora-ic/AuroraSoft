@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { ContenidoVisorArchivo, VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
 import { Migas } from "@/components/ui/Migas";
+import { ModeloConsentimiento } from "@/components/educativo/ModeloConsentimiento";
 import { BloqueFicha, CuadriculaDatos, DatoFicha, BotonAccionFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
 import {
   ShieldCheck,
@@ -1987,7 +1988,7 @@ export default function FichaAlumnoPage() {
                 <div className="flex items-center gap-2">
                   <span
                     className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${
-                      vigente ? "bg-teal-400/20 text-teal-900" : "bg-amber/15 text-amber"
+                      vigente ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark" : "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
                     }`}
                   >
                     {vigente ? "Vigente" : "Sin consentimiento vigente"}
@@ -2001,6 +2002,11 @@ export default function FichaAlumnoPage() {
               </div>
 
               <div className="p-3.5 space-y-3">
+              {/* 🆕 Modelo del colegio para este alumno (por su nivel) + PDF
+                  para firmar — ver components/educativo/ModeloConsentimiento. */}
+              {puedeEscribirDatosPrincipales && (
+                <ModeloConsentimiento personaId={personaId} tipo={tipo} expandido={!!formularioAbiertoAqui} />
+              )}
               {vigente && (
                 <div className="space-y-3 text-sm">
                   <CuadriculaDatos>
@@ -2371,10 +2377,10 @@ export default function FichaAlumnoPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {fila.es_alerta && (
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-100 text-red-700">Alerta</span>
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber/15 text-amber-800 dark:text-amber">Alerta</span>
                     )}
                     {fila.estado_interpretacion === "incompleta" && (
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-100 text-amber-700">
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/65">
                         Interpretación incompleta
                       </span>
                     )}

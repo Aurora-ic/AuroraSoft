@@ -307,7 +307,7 @@ export default function DetalleDocumentoPage() {
     }
   }
 
-  if (cargando) return <div className="text-sm text-ink/60">Cargando...</div>;
+  if (cargando) return <div className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</div>;
   if (!documento) return <div><TextoError>{error}</TextoError></div>;
 
   const puedeVincular = documento.estudiantes.length === 1;
@@ -316,11 +316,11 @@ export default function DetalleDocumentoPage() {
     <div className="max-w-3xl mx-auto space-y-6">
       <Migas items={[{ label: "Documentos", href: "/documentos" }, { label: documento.titulo }]} />
       <div>
-        <Link href="/documentos" className="text-xs text-ink/50 hover:underline">
+        <Link href="/documentos" className="text-xs text-ink/50 dark:text-ink-dark/50 hover:underline">
           ← Documentos
         </Link>
-        <h1 className="font-display text-2xl text-teal-900 mt-1">{documento.titulo}</h1>
-        <p className="text-xs text-ink/50 mt-1">
+        <h1 className="font-display text-2xl text-teal-900 dark:text-ink-dark mt-1">{documento.titulo}</h1>
+        <p className="text-xs text-ink/50 dark:text-ink-dark/50 mt-1">
           {documento.estudiantes.length === 0
             ? "Sin estudiantes vinculados"
             : documento.estudiantes.map((e) => e.nombre_completo_historico).join(", ")}
@@ -335,8 +335,8 @@ export default function DetalleDocumentoPage() {
           .slice()
           .sort((a, b) => a.orden - b.orden)
           .map((seccion) => (
-            <div key={seccion.plantilla_seccion_id} className="bg-white border border-border rounded-card p-4 space-y-2">
-              <p className="text-xs font-semibold text-ink/70 uppercase tracking-wide">
+            <div key={seccion.plantilla_seccion_id} className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-card p-4 space-y-2">
+              <p className="text-xs font-semibold text-ink/70 dark:text-ink-dark/70 uppercase tracking-wide">
                 {seccion.titulo || ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion] || seccion.tipo_seccion}
               </p>
 
@@ -360,12 +360,12 @@ export default function DetalleDocumentoPage() {
                         const separador = actual && !actual.endsWith("\n") ? "\n" : "";
                         setEdicionesTexto({ ...edicionesTexto, [seccion.plantilla_seccion_id]: `${actual}${separador}• ` });
                       }}
-                      className="text-xs text-teal-700 hover:underline"
+                      className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline"
                     >
                       • Agregar viñeta
                     </button>
                   </div>
-                  <p className="text-xs text-ink/40">
+                  <p className="text-xs text-ink/40 dark:text-ink-dark/40">
                     Tip: escribí <code className="font-mono">**así**</code> alrededor de una palabra para que salga en
                     <strong> negrita</strong> en el PDF.
                   </p>
@@ -377,7 +377,7 @@ export default function DetalleDocumentoPage() {
                   <div className="space-y-2">
                     {((definiciones[seccion.plantilla_seccion_id]?.config as any)?.campos ?? []).map((c: { etiqueta: string }) => (
                       <label key={c.etiqueta} className="flex flex-col gap-1 text-sm">
-                        <span className="text-ink/70 font-medium">{c.etiqueta}</span>
+                        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">{c.etiqueta}</span>
                         <Input
                           value={edicionesCampos[seccion.plantilla_seccion_id]?.[c.etiqueta] ?? ""}
                           onChange={(e) =>
@@ -453,9 +453,9 @@ export default function DetalleDocumentoPage() {
               {seccion.tipo_seccion === "imagen_anexo" && (
                 <div className="space-y-2 text-sm">
                   {(seccion.contenido as any)?.storage_key ? (
-                    <p className="text-teal-700">Imagen cargada: {(seccion.contenido as any)?.nombre_archivo ?? "archivo"} ✓</p>
+                    <p className="text-teal-700 dark:text-teal-accent-dark">Imagen cargada: {(seccion.contenido as any)?.nombre_archivo ?? "archivo"} ✓</p>
                   ) : (
-                    <p className="text-ink/50 italic">Sin imagen todavía.</p>
+                    <p className="text-ink/50 dark:text-ink-dark/50 italic">Sin imagen todavía.</p>
                   )}
                   <input
                     type="file"
@@ -468,7 +468,7 @@ export default function DetalleDocumentoPage() {
                     }}
                     className="text-xs"
                   />
-                  <p className="text-xs text-ink/40">También podés pegar (Ctrl+V) una imagen copiada, con el foco en este campo.</p>
+                  <p className="text-xs text-ink/40 dark:text-ink-dark/40">También podés pegar (Ctrl+V) una imagen copiada, con el foco en este campo.</p>
                 </div>
               )}
             </div>
@@ -476,8 +476,8 @@ export default function DetalleDocumentoPage() {
       </div>
 
       {/* Generar / reemitir */}
-      <section className="bg-white border border-border rounded-card p-4 space-y-3">
-        <h2 className="font-display text-lg text-teal-900 font-semibold">Generar documento</h2>
+      <section className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-card p-4 space-y-3">
+        <h2 className="font-display text-lg text-teal-900 dark:text-ink-dark font-semibold">Generar documento</h2>
         {documento.version_actual === null ? (
           <Boton onClick={generarOReemitir} disabled={generando}>
             {generando ? "Generando..." : "Generar versión 1"}
@@ -494,7 +494,7 @@ export default function DetalleDocumentoPage() {
               <Boton onClick={generarOReemitir} disabled={generando || !motivoReemision}>
                 {generando ? "Generando..." : "Confirmar reemisión"}
               </Boton>
-              <button onClick={() => setMostrarReemision(false)} className="text-sm text-ink/60 hover:underline">
+              <button onClick={() => setMostrarReemision(false)} className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline">
                 Cancelar
               </button>
             </div>
@@ -504,7 +504,7 @@ export default function DetalleDocumentoPage() {
         )}
 
         {versiones.length > 0 && (
-          <div className="border-t border-border pt-3 space-y-1">
+          <div className="border-t border-border dark:border-border-dark pt-3 space-y-1">
             {versiones
               .slice()
               .sort((a, b) => b.numero_version - a.numero_version)
@@ -512,16 +512,16 @@ export default function DetalleDocumentoPage() {
                 <div key={v.id} className="flex items-center justify-between text-sm">
                   <span>
                     v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
-                    {v.motivo_version && <span className="text-ink/50"> ({v.motivo_version})</span>}
+                    {v.motivo_version && <span className="text-ink/50 dark:text-ink-dark/50"> ({v.motivo_version})</span>}
                   </span>
                   <span className="flex items-center gap-3">
-                    <button onClick={() => ver(v)} className="text-teal-700 hover:underline text-xs">
+                    <button onClick={() => ver(v)} className="text-teal-700 dark:text-teal-accent-dark hover:underline text-xs">
                       Ver
                     </button>
                     <button
                       onClick={() => descargar(v)}
                       disabled={descargandoVersionId === v.id}
-                      className="text-teal-700 hover:underline text-xs"
+                      className="text-teal-700 dark:text-teal-accent-dark hover:underline text-xs"
                     >
                       {descargandoVersionId === v.id ? "Descargando..." : "Descargar PDF"}
                     </button>
@@ -561,7 +561,7 @@ function EditorDatosFiliacion({
   return (
     <>
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-ink/70 font-medium">Diagnóstico presuntivo (lo demás sale de la ficha del alumno)</span>
+        <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Diagnóstico presuntivo (lo demás sale de la ficha del alumno)</span>
         <Textarea
           rows={2}
           value={valores.diagnostico_presuntivo}
@@ -570,7 +570,7 @@ function EditorDatosFiliacion({
       </label>
       <div className="grid sm:grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/70 font-medium">Hijos</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Hijos</span>
           <Input
             value={valores.hijos}
             onChange={(e) => onCambiar({ ...valores, hijos: e.target.value })}
@@ -578,14 +578,14 @@ function EditorDatosFiliacion({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/70 font-medium">Examinadora</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Examinadora</span>
           <Input
             value={valores.examinadora}
             onChange={(e) => onCambiar({ ...valores, examinadora: e.target.value })}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/70 font-medium">Fecha de elaboración</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Fecha de elaboración</span>
           <Input
             value={valores.fecha_elaboracion}
             onChange={(e) => onCambiar({ ...valores, fecha_elaboracion: e.target.value })}
@@ -593,7 +593,7 @@ function EditorDatosFiliacion({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/70 font-medium">Periodo propuesto</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Periodo propuesto</span>
           <Input
             value={valores.periodo_propuesto}
             onChange={(e) => onCambiar({ ...valores, periodo_propuesto: e.target.value })}
@@ -621,7 +621,7 @@ function EditorTablaLibre({
   onGuardar: () => void;
   guardando: boolean;
 }) {
-  if (columnas.length === 0) return <p className="text-xs text-ink/50 italic">Esta tabla no tiene columnas configuradas en la plantilla.</p>;
+  if (columnas.length === 0) return <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Esta tabla no tiene columnas configuradas en la plantilla.</p>;
   return (
     <div className="space-y-2">
       {filas.map((fila, idxFila) => (
@@ -632,7 +632,7 @@ function EditorTablaLibre({
               placeholder={col}
               value={fila[col] ?? ""}
               onChange={(e) => onCambiar(filas.map((f, i) => (i === idxFila ? { ...f, [col]: e.target.value } : f)))}
-              className="rounded-card border border-border px-2 py-1 text-xs flex-1 min-w-[100px]"
+              className="rounded-card border border-border dark:border-border-dark px-2 py-1 text-xs flex-1 min-w-[100px]"
             />
           ))}
           <button onClick={() => onCambiar(filas.filter((_, i) => i !== idxFila))} className="text-xs text-red-600 hover:underline">
@@ -640,7 +640,7 @@ function EditorTablaLibre({
           </button>
         </div>
       ))}
-      <button onClick={() => onCambiar([...filas, {}])} className="text-xs text-teal-700 hover:underline">
+      <button onClick={() => onCambiar([...filas, {}])} className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline">
         + Agregar fila
       </button>
       <div>
@@ -685,55 +685,55 @@ function EditorResultadoVinculable({
     <div className="space-y-3 text-sm">
       {puedeVincular && (
         <div className="space-y-1">
-          <span className="text-ink/70 font-medium">Vincular a una aplicación real</span>
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Vincular a una aplicación real</span>
           {historial.length === 0 ? (
-            <p className="text-xs text-ink/50 italic">Este alumno todavía no tiene ninguna aplicación psicométrica.</p>
+            <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Este alumno todavía no tiene ninguna aplicación psicométrica.</p>
           ) : (
             <div className="space-y-1">
               {historial.map((h) => (
-                <div key={h.inscripcion_id} className="flex items-center justify-between gap-2 text-xs border border-border rounded-card px-2 py-1">
+                <div key={h.inscripcion_id} className="flex items-center justify-between gap-2 text-xs border border-border dark:border-border-dark rounded-card px-2 py-1">
                   <span>
                     {h.prueba_nombre_publico} — {h.nombre_grupo}
                     {h.fecha_aplicacion && ` (${new Date(h.fecha_aplicacion).toLocaleDateString("es-PE")})`}
                     {!h.informe_liberado && <span className="text-amber-700"> · retenido</span>}
                   </span>
-                  <button disabled={vinculando} onClick={() => onVincular(h.inscripcion_id)} className="text-teal-700 hover:underline">
+                  <button disabled={vinculando} onClick={() => onVincular(h.inscripcion_id)} className="text-teal-700 dark:text-teal-accent-dark hover:underline">
                     Vincular
                   </button>
                 </div>
               ))}
             </div>
           )}
-          <button disabled={vinculando} onClick={onDesvincular} className="text-xs text-ink/50 hover:underline">
+          <button disabled={vinculando} onClick={onDesvincular} className="text-xs text-ink/50 dark:text-ink-dark/50 hover:underline">
             Quitar vínculo
           </button>
         </div>
       )}
 
       {tipo === "grafico_barras" && (
-        <div className="space-y-2 border-t border-border pt-2">
-          <span className="text-ink/70 font-medium">O cargar valores manuales (si no hay una prueba vinculada)</span>
+        <div className="space-y-2 border-t border-border dark:border-border-dark pt-2">
+          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">O cargar valores manuales (si no hay una prueba vinculada)</span>
           {valoresManual.map((d, i) => (
             <div key={i} className="flex items-center gap-2">
               <input
                 placeholder="Etiqueta"
                 value={d.etiqueta}
                 onChange={(e) => onCambiarManual(valoresManual.map((x, j) => (j === i ? { ...x, etiqueta: e.target.value } : x)))}
-                className="rounded-card border border-border px-2 py-1 text-xs flex-1"
+                className="rounded-card border border-border dark:border-border-dark px-2 py-1 text-xs flex-1"
               />
               <input
                 type="number"
                 placeholder="Valor"
                 value={d.valor}
                 onChange={(e) => onCambiarManual(valoresManual.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))}
-                className="rounded-card border border-border px-2 py-1 text-xs w-24"
+                className="rounded-card border border-border dark:border-border-dark px-2 py-1 text-xs w-24"
               />
               <button onClick={() => onCambiarManual(valoresManual.filter((_, j) => j !== i))} className="text-xs text-red-600 hover:underline">
                 Quitar
               </button>
             </div>
           ))}
-          <button onClick={() => onCambiarManual([...valoresManual, { etiqueta: "", valor: "" }])} className="text-xs text-teal-700 hover:underline">
+          <button onClick={() => onCambiarManual([...valoresManual, { etiqueta: "", valor: "" }])} className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline">
             + Agregar punto
           </button>
           <div>
@@ -778,7 +778,7 @@ function EditorResultadosMultiplesVinculables({
   }, [seleccionados.join(",")]);
 
   if (!puedeVincular) {
-    return <p className="text-xs text-ink/50 italic">Esta sección es de identidad individual — el documento no tiene exactamente un estudiante.</p>;
+    return <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Esta sección es de identidad individual — el documento no tiene exactamente un estudiante.</p>;
   }
 
   function alternar(inscripcionId: number) {
@@ -787,13 +787,13 @@ function EditorResultadosMultiplesVinculables({
 
   return (
     <div className="space-y-2 text-sm">
-      <span className="text-ink/70 font-medium">Pruebas a consolidar en esta sección</span>
+      <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Pruebas a consolidar en esta sección</span>
       {historial.length === 0 ? (
-        <p className="text-xs text-ink/50 italic">Este alumno todavía no tiene ninguna aplicación psicométrica.</p>
+        <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Este alumno todavía no tiene ninguna aplicación psicométrica.</p>
       ) : (
         <div className="space-y-1">
           {historial.map((h) => (
-            <label key={h.inscripcion_id} className="flex items-center gap-2 text-xs border border-border rounded-card px-2 py-1 cursor-pointer">
+            <label key={h.inscripcion_id} className="flex items-center gap-2 text-xs border border-border dark:border-border-dark rounded-card px-2 py-1 cursor-pointer">
               <input
                 type="checkbox"
                 checked={marcados.includes(h.inscripcion_id)}

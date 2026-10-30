@@ -55,6 +55,10 @@ def cargar():
     try:
         existente = db.query(models.AsentimientoInformadoTexto).filter(
             models.AsentimientoInformadoTexto.institucion_id.is_(None),
+            # 🆕 La tabla ahora también guarda modelos de CONSENTIMIENTO del
+            # apoderado — sin este filtro, uno global de ese tipo se
+            # confundiría con el asentimiento global.
+            models.AsentimientoInformadoTexto.tipo_texto == "asentimiento",
             models.AsentimientoInformadoTexto.activo == True,  # noqa: E712
         ).first()
         if existente:
@@ -63,6 +67,7 @@ def cargar():
 
         version = models.AsentimientoInformadoTexto(
             institucion_id=None,
+            tipo_texto="asentimiento",
             version=1,
             contenido="\n".join(PARRAFOS),
             activo=True,

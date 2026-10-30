@@ -14,7 +14,7 @@ import type { HTMLAttributes, ThHTMLAttributes } from "react";
 // que el padding de cada uno no cambió.
 export function TheadFila({ className = "", children, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr className={`bg-mist/70 text-left ${className}`} {...props}>
+    <tr className={`bg-mist/70 dark:bg-surface-raised-dark text-left ${className}`} {...props}>
       {children}
     </tr>
   );
@@ -22,7 +22,7 @@ export function TheadFila({ className = "", children, ...props }: HTMLAttributes
 
 export function Th({ className = "", children, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={`text-xs font-semibold uppercase tracking-wide text-ink/50 ${className}`} {...props}>
+    <th className={`text-xs font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50 ${className}`} {...props}>
       {children}
     </th>
   );

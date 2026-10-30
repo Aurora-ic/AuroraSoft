@@ -36,7 +36,7 @@ const PATRON_DIMENSION_AREA = /^(Intereses|Aptitudes)\s+—\s+(.+?):\s*(.+)$/;
 
 function EstadisticasNumericas({ d }: { d: DimensionResumenEstadistico }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/60">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/60 dark:text-ink-dark/60">
       <span>n={d.n}</span>
       <span>Media: {fmt(d.media)}</span>
       <span>Mediana: {fmt(d.mediana)}</span>
@@ -50,10 +50,10 @@ function EstadisticasNumericas({ d }: { d: DimensionResumenEstadistico }) {
 
 function BadgeTipoCalculo({ tipoCalculo }: { tipoCalculo: DimensionResumenEstadistico["tipo_calculo"] }) {
   if (tipoCalculo === "suma_de_dimensiones") {
-    return <span className="rounded-full px-2 py-0.5 bg-teal-900/10 text-teal-900 text-[10px] font-semibold uppercase tracking-wide">Total</span>;
+    return <span className="rounded-full px-2 py-0.5 bg-teal-900/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-teal-accent-dark text-[10px] font-semibold uppercase tracking-wide">Total</span>;
   }
   if (tipoCalculo === "conteo_sintomas") {
-    return <span className="rounded-full px-2 py-0.5 bg-mist text-ink/60 text-[10px] font-semibold uppercase tracking-wide">Conteo</span>;
+    return <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60 text-[10px] font-semibold uppercase tracking-wide">Conteo</span>;
   }
   return null;
 }
@@ -65,12 +65,12 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
   return (
     <div className="space-y-1.5 py-2">
       <div className="flex items-center gap-2">
-        <p className="text-sm font-semibold text-ink/80">{d.nombre}</p>
+        <p className="text-sm font-semibold text-ink/80 dark:text-ink-dark/80">{d.nombre}</p>
         <BadgeTipoCalculo tipoCalculo={d.tipo_calculo} />
       </div>
 
       {d.n === 0 ? (
-        <p className="text-xs text-ink/40 italic">Sin datos todavía.</p>
+        <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin datos todavía.</p>
       ) : (
         <>
           <EstadisticasNumericas d={d} />
@@ -79,24 +79,24 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
             <div className="space-y-1">
               {d.distribucion.map((niv) => (
                 <div key={niv.nivel} className="flex items-center gap-2 text-xs">
-                  <span className={`w-28 shrink-0 truncate ${niv === mayoria ? "font-semibold text-ink" : "text-ink/60"}`}>
+                  <span className={`w-28 shrink-0 truncate ${niv === mayoria ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/60 dark:text-ink-dark/60"}`}>
                     {niv.nivel}
                     {niv === mayoria ? " ◀" : ""}
                   </span>
-                  <div className="flex-1 h-2 rounded-full bg-border overflow-hidden">
+                  <div className="flex-1 h-2 rounded-full bg-border dark:bg-border-dark overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${niv.es_alerta ? "bg-amber" : "bg-teal-600"}`}
+                      className={`h-full rounded-full ${niv.es_alerta ? "bg-amber" : "bg-teal-600 dark:bg-teal-accent-dark"}`}
                       style={{ width: `${Math.max(niv.pct, 2)}%` }}
                     />
                   </div>
-                  <span className="w-20 shrink-0 text-right text-ink/50 font-mono">
+                  <span className="w-20 shrink-0 text-right text-ink/50 dark:text-ink-dark/50 font-mono">
                     {niv.cantidad} ({niv.pct.toFixed(0)}%)
                   </span>
                 </div>
               ))}
               {mayoria && (
-                <p className="text-xs text-ink/50">
-                  Mayoría: <span className="font-medium text-ink/70">{mayoria.nivel}</span> ({mayoria.pct.toFixed(0)}%, {mayoria.cantidad} de{" "}
+                <p className="text-xs text-ink/50 dark:text-ink-dark/50">
+                  Mayoría: <span className="font-medium text-ink/70 dark:text-ink-dark/70">{mayoria.nivel}</span> ({mayoria.pct.toFixed(0)}%, {mayoria.cantidad} de{" "}
                   {totalConNivel})
                 </p>
               )}
@@ -105,7 +105,7 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
 
           {tieneAlertasPosibles && d.en_alerta !== null && (
             <p className="text-xs">
-              <span className={d.en_alerta > 0 ? "text-amber-700 font-medium" : "text-ink/40"}>
+              <span className={d.en_alerta > 0 ? "text-amber-700 font-medium" : "text-ink/40 dark:text-ink-dark/40"}>
                 {d.en_alerta} de {d.n} en alerta ({d.n > 0 ? ((d.en_alerta / d.n) * 100).toFixed(0) : 0}%)
               </span>
             </p>
@@ -121,7 +121,7 @@ function VistaRango({ resumen }: { resumen: ResumenEstadisticoDashboard }) {
 
   if (!agrupar_dimensiones_por_area) {
     return (
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border dark:divide-border-dark">
         {dimensiones.map((d) => (
           <BloqueDimensionRango key={d.nombre} d={d} tieneAlertasPosibles={tiene_alertas_posibles} />
         ))}
@@ -150,11 +150,11 @@ function VistaRango({ resumen }: { resumen: ResumenEstadisticoDashboard }) {
   return (
     <div className="space-y-4">
       {areas_compatibles.length > 0 && (
-        <div className="rounded-card bg-mist/60 p-3 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/60">Áreas vocacionales compatibles más frecuentes</p>
+        <div className="rounded-card bg-mist/60 dark:bg-surface-raised-dark p-3 space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/60 dark:text-ink-dark/60">Áreas vocacionales compatibles más frecuentes</p>
           <div className="flex flex-wrap gap-2">
             {areas_compatibles.map((a) => (
-              <span key={a.area} className="rounded-full px-2 py-0.5 bg-white border border-border text-xs text-ink/70">
+              <span key={a.area} className="rounded-full px-2 py-0.5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs text-ink/70 dark:text-ink-dark/70">
                 {a.area}: {a.cantidad} alumno{a.cantidad === 1 ? "" : "s"}
               </span>
             ))}
@@ -162,11 +162,11 @@ function VistaRango({ resumen }: { resumen: ResumenEstadisticoDashboard }) {
         </div>
       )}
 
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border dark:divide-border-dark">
         {Array.from(areas.values()).map((entrada) => (
           <div key={entrada.nombreArea} className="py-2">
-            <p className="text-sm font-semibold text-teal-900 mb-1">{entrada.nombreArea}</p>
-            <div className="divide-y divide-border/60">
+            <p className="text-sm font-semibold text-teal-900 dark:text-teal-accent-dark mb-1">{entrada.nombreArea}</p>
+            <div className="divide-y divide-border/60 dark:divide-border-dark">
               {entrada.interes && <BloqueDimensionRango d={entrada.interes} tieneAlertasPosibles={tiene_alertas_posibles} />}
               {entrada.aptitud && <BloqueDimensionRango d={entrada.aptitud} tieneAlertasPosibles={tiene_alertas_posibles} />}
             </div>
@@ -191,28 +191,28 @@ function VistaPerfil({ dimensiones }: { dimensiones: DimensionResumenEstadistico
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-ink/50 italic">
+      <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">
         Esta prueba interpreta por ranking comparativo entre dimensiones, no por rango absoluto — nunca hay niveles de alerta que mostrar.
       </p>
-      <div className="divide-y divide-border">
+      <div className="divide-y divide-border dark:divide-border-dark">
         {ordenadas.map((d) => (
           <div key={d.nombre} className="py-2 space-y-1">
-            <p className="text-sm font-semibold text-ink/80">{d.nombre}</p>
+            <p className="text-sm font-semibold text-ink/80 dark:text-ink-dark/80">{d.nombre}</p>
             {d.n === 0 ? (
-              <p className="text-xs text-ink/40 italic">Sin datos todavía.</p>
+              <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin datos todavía.</p>
             ) : (
               <>
                 <EstadisticasNumericas d={d} />
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="flex-1 h-2 rounded-full bg-border overflow-hidden">
+                  <div className="flex-1 h-2 rounded-full bg-border dark:bg-border-dark overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-teal-600"
+                      className="h-full rounded-full bg-teal-600 dark:bg-teal-accent-dark"
                       style={{
                         width: `${totalDominante > 0 ? Math.max(((d.dominante_cantidad ?? 0) / totalDominante) * 100, (d.dominante_cantidad ?? 0) > 0 ? 2 : 0) : 0}%`,
                       }}
                     />
                   </div>
-                  <span className="w-44 shrink-0 text-right text-ink/50">
+                  <span className="w-44 shrink-0 text-right text-ink/50 dark:text-ink-dark/50">
                     {d.dominante_cantidad ?? 0} alumno{(d.dominante_cantidad ?? 0) === 1 ? "" : "s"} la tienen como 1ª
                   </span>
                 </div>
@@ -231,7 +231,7 @@ export function ResumenEstadisticoPrueba({ resumen }: Props) {
   // todavía — no hay nada que resumir, mismo criterio que el resto del
   // dashboard ("Sin alumnos matriculados todavía").
   if (resumen.dimensiones.length === 0 || resumen.dimensiones.every((d) => d.n === 0)) {
-    return <p className="text-sm text-ink/60 italic py-2">Todavía no hay resultados suficientes para un resumen estadístico.</p>;
+    return <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic py-2">Todavía no hay resultados suficientes para un resumen estadístico.</p>;
   }
 
   return resumen.modo_interpretacion === "perfil" ? (

@@ -258,7 +258,7 @@ export default function ConstructorPlantillaPage() {
         <div className="flex items-start gap-3">
           <span
             className={`text-xs font-semibold rounded-full px-2.5 py-0.5 mt-0.5 whitespace-nowrap ${
-              plantilla.activa ? "bg-teal-600 text-white" : "bg-mist dark:bg-surface-dark border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
+              plantilla.activa ? "bg-accion text-white" : "bg-mist dark:bg-surface-dark border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
             }`}
           >
             {plantilla.activa ? "Activa" : "Inactiva"}
@@ -277,7 +277,7 @@ export default function ConstructorPlantillaPage() {
                   institución.
                 </p>
                 {plantilla.activa && secciones.length === 0 && (
-                  <p className="text-red-700 font-medium mt-1">
+                  <p className="text-red-700 dark:text-red-300 font-medium mt-1">
                     ⚠ Está activa pero no tiene ninguna sección — un documento generado con ella saldría vacío.
                   </p>
                 )}

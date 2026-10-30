@@ -37,37 +37,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-mist px-4">
+    <div className="min-h-screen flex items-center justify-center bg-mist dark:bg-surface-raised-dark px-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
           <Image src="/logo.png" alt="AuroraSoft" width={140} height={99} priority className="mb-4 h-14 w-auto" />
-          <h1 className="font-display text-xl font-semibold text-teal-900">AuroraSoft</h1>
-          <p className="text-xs text-ink/50 mt-1">Plataforma de Evaluación Psicométrica</p>
+          <h1 className="font-display text-xl font-semibold text-teal-900 dark:text-ink-dark">AuroraSoft</h1>
+          <p className="text-xs text-ink/50 dark:text-ink-dark/50 mt-1">Plataforma de Evaluación Psicométrica</p>
         </div>
 
-        <div className="bg-white rounded-card border border-border p-8 shadow-sm">
+        <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-8 shadow-sm">
           <form onSubmit={handleLogin} className="space-y-4">
             <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink/70">Correo electrónico</span>
+              <span className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Correo electrónico</span>
               <input
                 type="email"
                 required
                 value={usuario}
                 onChange={(e) => setUsuario(e.target.value)}
                 placeholder="usuario@colegio.com"
-                className="rounded-card border border-border px-3.5 py-2.5 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                className="rounded-card border border-border dark:border-border-dark px-3.5 py-2.5 text-sm text-ink dark:text-ink-dark placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
               />
             </label>
 
             <label className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-ink/70">Contraseña</span>
+              <span className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Contraseña</span>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="rounded-card border border-border px-3.5 py-2.5 text-sm text-ink placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                className="rounded-card border border-border dark:border-border-dark px-3.5 py-2.5 text-sm text-ink dark:text-ink-dark placeholder:text-ink/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
               />
             </label>
 

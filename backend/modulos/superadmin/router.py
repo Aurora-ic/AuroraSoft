@@ -683,6 +683,18 @@ def listar_niveles_educativos(
     return crud.listar_niveles_de_institucion(db=db, institucion_id=institucion_id)
 
 
+@router.get("/academico/conteos/{institucion_id}", response_model=schemas.ConteosEstructuraAcademica)
+def contar_estudiantes_estructura(
+    institucion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(verificar_acceso_institucion),
+):
+    """🆕 Estudiantes activos con matrícula vigente por nivel, grado y
+    sección (ver crud.contar_estudiantes_por_estructura). Mismo candado que
+    el listado de niveles: solo agregados, ningún dato de un alumno."""
+    return crud.contar_estudiantes_por_estructura(db=db, institucion_id=institucion_id)
+
+
 @router.post("/academico/grados", response_model=schemas.GradoResponse)
 def crear_grado(
     datos: schemas.GradoCreate,

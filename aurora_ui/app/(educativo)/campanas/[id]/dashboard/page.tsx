@@ -316,7 +316,7 @@ export default function DashboardCampanaPage() {
     }
   }
 
-  if (loading) return <div className="p-8 text-center text-teal-900">Cargando dashboard...</div>;
+  if (loading) return <div className="p-8 text-center text-teal-900 dark:text-ink-dark">Cargando dashboard...</div>;
   if (error || !dashboard) return <div className="p-8"><TextoError>{error || "Campaña no encontrada."}</TextoError></div>;
 
   // Mismo criterio que el backend (crud.campana_esta_expirada) — ver
@@ -331,19 +331,19 @@ export default function DashboardCampanaPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="font-display text-2xl text-teal-900">{dashboard.nombre_grupo}</h1>
+            <h1 className="font-display text-2xl text-teal-900 dark:text-ink-dark">{dashboard.nombre_grupo}</h1>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${claseBadgeEstadoCampana(estadoVisible)}`}>
               {etiquetaEstadoCampana(estadoVisible)}
             </span>
           </div>
-          <p className="text-sm text-ink/60">{dashboard.nombre_corto_prueba || dashboard.nombre_prueba}</p>
+          <p className="text-sm text-ink/60 dark:text-ink-dark/60">{dashboard.nombre_corto_prueba || dashboard.nombre_prueba}</p>
           {dashboard.nombre_corto_prueba && (
-            <p className="text-xs text-ink/40">{dashboard.nombre_prueba}</p>
+            <p className="text-xs text-ink/40 dark:text-ink-dark/40">{dashboard.nombre_prueba}</p>
           )}
         </div>
         <div className="flex items-center gap-3">
           {puedeAdministrar && dashboard.estado === "activa" && !mostrarEditar && (
-            <button onClick={abrirEditar} className="text-sm text-teal-600 hover:underline font-medium">
+            <button onClick={abrirEditar} className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium">
               Editar campaña
             </button>
           )}
@@ -358,7 +358,7 @@ export default function DashboardCampanaPage() {
           matricular o de que un alumno rinda (ver lib/campanas.ts). Sin
           este aviso no había ninguna señal de esto hasta que algo fallaba. */}
       {vencida && puedeAdministrar && (
-        <div className="bg-red-50 border border-red-200 rounded-card px-4 py-3 text-sm text-red-700">
+        <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-card px-4 py-3 text-sm text-red-700 dark:text-red-300">
           Esta campaña venció el {dashboard.fecha_fin ? new Date(dashboard.fecha_fin).toLocaleString("es-PE") : ""} y ya
           no acepta actividad nueva (nadie puede matricularse ni rendir el examen). Si fue sin querer, editá la fecha de
           cierre para reabrirla; si ya terminó de verdad, cerrala formalmente más abajo.
@@ -366,8 +366,8 @@ export default function DashboardCampanaPage() {
       )}
 
       {mostrarEditar && (
-        <form onSubmit={guardarEdicion} className="bg-white rounded-card border border-border p-6 space-y-3">
-          <h2 className="font-display text-lg text-teal-900">Editar campaña</h2>
+        <form onSubmit={guardarEdicion} className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-3">
+          <h2 className="font-display text-lg text-teal-900 dark:text-ink-dark">Editar campaña</h2>
           <TextoError>{errorEdicion}</TextoError>
           <div className="grid sm:grid-cols-2 gap-3">
             <CampoEditable etiqueta="Nombre del grupo">
@@ -387,7 +387,7 @@ export default function DashboardCampanaPage() {
                 className={fechaFinEditadaPasada ? "border-red-400 focus:ring-red-300" : ""}
               />
               {fechaFinEditadaPasada && (
-                <span className="text-xs font-medium text-red-700 mt-1">{MENSAJE_FECHA_CIERRE_PASADA}</span>
+                <span className="text-xs font-medium text-red-700 dark:text-red-300 mt-1">{MENSAJE_FECHA_CIERRE_PASADA}</span>
               )}
             </CampoEditable>
             <CampoEditable etiqueta="Prueba" className="sm:col-span-2">
@@ -403,7 +403,7 @@ export default function DashboardCampanaPage() {
                 ))}
               </Select>
               {dashboard.total_inscritos > 0 && (
-                <span className="text-xs text-ink/50 mt-1">
+                <span className="text-xs text-ink/50 dark:text-ink-dark/50 mt-1">
                   Ya tiene {dashboard.total_inscritos} inscripción(es) — la prueba no se puede cambiar.
                 </span>
               )}
@@ -416,7 +416,7 @@ export default function DashboardCampanaPage() {
             <button
               type="button"
               onClick={() => setMostrarEditar(false)}
-              className="text-sm text-ink/60 hover:text-ink hover:underline"
+              className="text-sm text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline"
             >
               Cancelar
             </button>
@@ -425,35 +425,35 @@ export default function DashboardCampanaPage() {
       )}
 
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-card border border-border p-4 text-center">
-          <p className="text-2xl font-display text-teal-900">{dashboard.total_inscritos}</p>
-          <p className="text-xs text-ink/60">Inscritos</p>
+        <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-4 text-center">
+          <p className="text-2xl font-display text-teal-900 dark:text-ink-dark">{dashboard.total_inscritos}</p>
+          <p className="text-xs text-ink/60 dark:text-ink-dark/60">Inscritos</p>
         </div>
-        <div className="bg-white rounded-card border border-border p-4 text-center">
-          <p className="text-2xl font-display text-teal-900">{dashboard.total_finalizados}</p>
-          <p className="text-xs text-ink/60">Finalizados</p>
+        <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-4 text-center">
+          <p className="text-2xl font-display text-teal-900 dark:text-ink-dark">{dashboard.total_finalizados}</p>
+          <p className="text-xs text-ink/60 dark:text-ink-dark/60">Finalizados</p>
         </div>
-        <div className="bg-white rounded-card border border-border p-4 text-center">
-          <p className="text-2xl font-display text-teal-900">{dashboard.total_pendientes}</p>
-          <p className="text-xs text-ink/60">Pendientes</p>
+        <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-4 text-center">
+          <p className="text-2xl font-display text-teal-900 dark:text-ink-dark">{dashboard.total_pendientes}</p>
+          <p className="text-xs text-ink/60 dark:text-ink-dark/60">Pendientes</p>
         </div>
       </div>
 
       {dashboard.resumen_estadistico.dimensiones.length > 0 && (
-        <div className="bg-white rounded-card border border-border p-6 space-y-3">
-          <h2 className="font-display text-lg text-teal-900">Resumen estadístico</h2>
+        <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-3">
+          <h2 className="font-display text-lg text-teal-900 dark:text-ink-dark">Resumen estadístico</h2>
           <ResumenEstadisticoPrueba resumen={dashboard.resumen_estadistico} />
         </div>
       )}
 
-      <div className="bg-white rounded-card border border-border p-6 space-y-3">
+      <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <h2 className="font-display text-lg text-teal-900">Alumnos</h2>
+          <h2 className="font-display text-lg text-teal-900 dark:text-ink-dark">Alumnos</h2>
           {puedeAdministrar && seleccionados.size > 0 && (
             <button
               onClick={descargarInformesSeleccionados}
               disabled={descargandoMasivo}
-              className="text-sm text-teal-600 hover:underline font-medium disabled:opacity-50"
+              className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium disabled:opacity-50"
             >
               {descargandoMasivo
                 ? `Descargando... (${seleccionados.size})`
@@ -463,18 +463,18 @@ export default function DashboardCampanaPage() {
         </div>
         <TextoError>{errorMasivo}</TextoError>
         {dashboard.alumnos.length === 0 ? (
-          <p className="text-sm text-ink/60 italic">Todavía no hay alumnos matriculados en esta campaña.</p>
+          <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Todavía no hay alumnos matriculados en esta campaña.</p>
         ) : (
           <>
             <TextoError>{errorReprocesar}</TextoError>
             {avisoRetraccion && (
-              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              <p className="text-sm text-amber-700 bg-amber-50 dark:bg-amber/10 border border-amber-200 rounded-md px-3 py-2">
                 ⚠ {avisoRetraccion}
               </p>
             )}
             <div ref={filasAlumnosRef} className="max-h-150 overflow-auto">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-white">
+              <thead className="sticky top-0 z-10 bg-surface dark:bg-surface-dark">
                 <TheadFila>
                   {puedeAdministrar && (
                     <Th className="px-2 py-1 w-8">
@@ -507,7 +507,7 @@ export default function DashboardCampanaPage() {
                     key={a.inscripcion_id}
                     data-index={item.index}
                     ref={virtualizadorAlumnos.measureElement}
-                    className="border-b border-border"
+                    className="border-b border-border dark:border-border-dark"
                   >
                     {puedeAdministrar && (
                       <td className="px-2 py-1">
@@ -541,7 +541,7 @@ export default function DashboardCampanaPage() {
                             ) : (
                               // Sin rango de baremo disponible (sin baremo aplicable, o
                               // modo_interpretacion='perfil') — se mantiene como texto.
-                              <span key={r.dimension} className="text-xs text-ink/70">
+                              <span key={r.dimension} className="text-xs text-ink/70 dark:text-ink-dark/70">
                                 {r.dimension}: {r.nivel ?? r.puntaje_directo}
                               </span>
                             )
@@ -560,7 +560,7 @@ export default function DashboardCampanaPage() {
                               setMotivoReprocesar("");
                               setErrorReprocesar(null);
                             }}
-                            className="text-xs text-teal-600 hover:underline font-medium"
+                            className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                           >
                             Reprocesar
                           </button>
@@ -581,20 +581,20 @@ export default function DashboardCampanaPage() {
                               placeholder="Motivo (ej. corregí un baremo)"
                               value={motivoReprocesar}
                               onChange={(e) => setMotivoReprocesar(e.target.value)}
-                              className="rounded-card border border-border px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-teal-400"
+                              className="rounded-card border border-border dark:border-border-dark px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-teal-400"
                             />
                             <div className="flex items-center gap-2">
                               <button
                                 type="submit"
                                 disabled={reprocesandoId === a.inscripcion_id}
-                                className="text-xs text-white bg-teal-600 hover:bg-teal-900 rounded-card px-2 py-1 disabled:opacity-50"
+                                className="text-xs text-white bg-accion hover:bg-accion-hover rounded-card px-2 py-1 disabled:opacity-50"
                               >
                                 {reprocesandoId === a.inscripcion_id ? "Reprocesando..." : "Confirmar"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setMostrarReprocesarId(null)}
-                                className="text-xs text-ink/50 hover:underline"
+                                className="text-xs text-ink/50 dark:text-ink-dark/50 hover:underline"
                               >
                                 Cancelar
                               </button>
@@ -627,10 +627,10 @@ export default function DashboardCampanaPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-card border border-border p-6 space-y-3">
+      <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-teal-900">Links mágicos</h2>
-          <button onClick={alternarLinks} className="text-sm text-teal-600 hover:underline font-medium">
+          <h2 className="font-display text-lg text-teal-900 dark:text-ink-dark">Links mágicos</h2>
+          <button onClick={alternarLinks} className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium">
             {mostrarLinks ? "Ocultar" : "Ver links"}
           </button>
         </div>
@@ -640,7 +640,7 @@ export default function DashboardCampanaPage() {
             {links !== null && links.some((ins) => ins.estado !== "Finalizado") && (
               <button
                 onClick={copiarLinksPendientes}
-                className="text-xs text-teal-600 hover:underline font-medium"
+                className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
               >
                 {copiadoLinksPendientes
                   ? "¡Copiado!"
@@ -648,21 +648,21 @@ export default function DashboardCampanaPage() {
               </button>
             )}
             {links === null ? (
-              <p className="text-sm text-ink/60">Cargando...</p>
+              <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</p>
             ) : links.length === 0 ? (
-              <p className="text-sm text-ink/60 italic">Sin inscripciones todavía.</p>
+              <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin inscripciones todavía.</p>
             ) : (
               <div className="space-y-1 max-h-80 overflow-y-auto">
                 {links.map((ins) => {
                   const url = typeof window !== "undefined" ? `${window.location.origin}/examen/${ins.token}` : "";
                   return (
-                    <div key={ins.id} className="flex items-center justify-between gap-2 text-sm border-b border-border py-1">
+                    <div key={ins.id} className="flex items-center justify-between gap-2 text-sm border-b border-border dark:border-border-dark py-1">
                       <span>
-                        {ins.nombre_completo} <span className="text-ink/40">({ins.estado})</span>
+                        {ins.nombre_completo} <span className="text-ink/40 dark:text-ink-dark/40">({ins.estado})</span>
                       </span>
                       <button
                         onClick={() => navigator.clipboard.writeText(url)}
-                        className="text-teal-600 hover:underline font-mono text-xs"
+                        className="text-teal-600 dark:text-teal-accent-dark hover:underline font-mono text-xs"
                       >
                         Copiar link
                       </button>
@@ -676,8 +676,8 @@ export default function DashboardCampanaPage() {
       </div>
 
       {puedeAdministrar && (
-        <div className="bg-white rounded-card border border-border p-6 space-y-3">
-          <h2 className="font-display text-lg text-teal-900">Ciclo de vida</h2>
+        <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-3">
+          <h2 className="font-display text-lg text-teal-900 dark:text-ink-dark">Ciclo de vida</h2>
           <TextoError>{errorAccion}</TextoError>
           <div className="flex items-center gap-3">
             <Boton variante="secundario" onClick={cerrar} disabled={accionando}>

@@ -38,15 +38,15 @@ export default function RegistrarAlumnoPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center gap-4 mb-6">
-        <Link href="/estudiantes" className="text-sm text-teal-900 hover:underline">
+        <Link href="/estudiantes" className="text-sm text-teal-900 dark:text-ink-dark hover:underline">
           ← Volver al padrón
         </Link>
-        <h1 className="font-display text-2xl text-teal-900">Registrar Nuevo Alumno</h1>
+        <h1 className="font-display text-2xl text-teal-900 dark:text-ink-dark">Registrar Nuevo Alumno</h1>
       </div>
 
       <TextoError className="mb-4">{error}</TextoError>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-card border border-border space-y-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="bg-surface dark:bg-surface-dark p-6 rounded-card border border-border dark:border-border-dark space-y-4 shadow-sm">
         <CampoEditable etiqueta="Nombres">
           <Input type="text" required value={nombres} onChange={(e) => setNombres(e.target.value)} className="w-full" />
         </CampoEditable>

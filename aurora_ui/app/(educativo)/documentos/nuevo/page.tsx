@@ -255,7 +255,7 @@ export default function NuevoDocumentoPage() {
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
               />
-              <div className="max-h-56 overflow-y-auto border border-border dark:border-border-dark rounded-card divide-y divide-border">
+              <div className="max-h-56 overflow-y-auto border border-border dark:border-border-dark rounded-card divide-y divide-border dark:divide-border-dark">
                 {personas
                   .filter((p) => {
                     const q = busqueda.trim().toLowerCase();
@@ -264,7 +264,7 @@ export default function NuevoDocumentoPage() {
                   })
                   .slice(0, 80)
                   .map((p) => (
-                    <label key={p.id} className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-mist/40 dark:bg-surface-dark/40 cursor-pointer">
+                    <label key={p.id} className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-mist/40 dark:hover:bg-surface-raised-dark dark:bg-surface-dark/40 cursor-pointer">
                       <input type="checkbox" checked={seleccionadas.has(p.id)} onChange={() => alternarPersona(p.id)} />
                       {p.nombres} {p.apellidos}
                     </label>

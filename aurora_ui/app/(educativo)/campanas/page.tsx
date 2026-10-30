@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Flag, Plus } from "lucide-react";
+import { EncabezadoPagina, claseBotonBanner } from "@/components/ui/Encabezado";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
@@ -74,18 +76,21 @@ export default function CampanasPage() {
   const puedeCrearCampana = sesion?.rol === "psicologo" || sesion?.rol === "admin" || sesion?.rol === "superadmin";
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl text-teal-900">Campañas</h1>
-        {puedeCrearCampana && (
-          <Link
-            href="/campanas/nueva"
-            className="rounded-card bg-teal-600 text-white text-sm px-4 py-2 hover:bg-teal-900 transition-colors"
-          >
-            Nueva campaña
-          </Link>
-        )}
-      </div>
+    <div className="max-w-6xl mx-auto flex flex-col gap-4">
+      <EncabezadoPagina variante="destacado"
+        icono={Flag}
+        acento="azul"
+        titulo="Campañas"
+        descripcion="Cada campaña aplica una prueba a un grupo de alumnos con su link personal."
+        acciones={
+          puedeCrearCampana && (
+            <Link href="/campanas/nueva" className={claseBotonBanner("primario")}>
+              <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+              Nueva campaña
+            </Link>
+          )
+        }
+      />
 
       <TextoError className="mb-4">{error}</TextoError>
 
@@ -95,10 +100,10 @@ export default function CampanasPage() {
           <Link
             key={campana.id}
             href={`/campanas/${campana.id}/dashboard`}
-            className="bg-white rounded-card border border-border p-5 hover:border-teal-400 transition-colors"
+            className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-5 hover:border-teal-400 transition-colors"
           >
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-display text-base text-ink">{campana.nombre_grupo}</h2>
+              <h2 className="font-display text-base text-ink dark:text-ink-dark">{campana.nombre_grupo}</h2>
               {(() => {
                 const estado = estadoVisibleCampana(campana.estado, campana.fecha_fin);
                 return (
@@ -108,7 +113,7 @@ export default function CampanasPage() {
                 );
               })()}
             </div>
-            <p className="text-xs text-ink/60 font-mono">
+            <p className="text-xs text-ink/60 dark:text-ink-dark/60 font-mono">
               Creada {campana.fecha_creacion.slice(0, 10)}
               {campana.fecha_fin ? ` — cierra ${campana.fecha_fin.slice(0, 10)}` : ""}
             </p>
@@ -117,26 +122,26 @@ export default function CampanasPage() {
       </div>
 
       {!cargando && !error && campanas.length === 0 && (
-        <p className="text-sm text-ink/40 mt-4">Todavía no hay campañas creadas.</p>
+        <p className="text-sm text-ink/40 dark:text-ink-dark/40 mt-4">Todavía no hay campañas creadas.</p>
       )}
 
       {!cargando && !error && total > 0 && (
         <div className="flex items-center justify-between mt-4">
-          <p className="text-xs text-ink/50">
+          <p className="text-xs text-ink/50 dark:text-ink-dark/50">
             {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, total)} de {total} campañas
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPagina((p) => Math.max(0, p - 1))}
               disabled={pagina === 0}
-              className="rounded-card border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-mist disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Anterior
             </button>
             <button
               onClick={() => setPagina((p) => p + 1)}
               disabled={(pagina + 1) * TAMANO_PAGINA >= total}
-              className="rounded-card border border-border bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-mist disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Siguiente
             </button>

@@ -187,6 +187,17 @@ class ConsentimientoInformado(Base):
     # ConsentimientoCreate/ConsentimientoAsentimientoCreate por compatibilidad
     # con quien ya la usaba como nota manual — subir un archivo de verdad
     # SOBRESCRIBE lo que hubiera aquí con la key real.
+    # 🆕 Qué versión del MODELO de texto del colegio (consentimiento o
+    # asentimiento, según tipo_consentimiento) estaba vigente — y se le
+    # mostró a quien registró — al momento de registrar este
+    # consentimiento. Mismo criterio que Inscripcion.asentimiento_texto_
+    # version_id: se escribe una vez, nunca se reescribe. NULL si el
+    # colegio no tenía ningún modelo configurado, o para filas anteriores.
+    texto_version_id = Column(
+        Integer,
+        ForeignKey("edu_asentimiento_textos.id", name="consentimientos_informados_texto_version_id_fkey"),
+        nullable=True,
+    )
     evidencia_ruta = Column(String, nullable=True)
     evidencia_nombre_archivo = Column(String, nullable=True)
     evidencia_content_type = Column(String, nullable=True)
@@ -335,6 +346,10 @@ class CitaProgramada(Base):
             "persona_id IS NOT NULL OR titulo IS NOT NULL",
             name="ck_citas_programadas_persona_o_titulo",
         ),
+        CheckConstraint(
+            "duracion_minutos BETWEEN 5 AND 720",
+            name="ck_citas_programadas_duracion_valida",
+        ),
     )
     id = Column(Integer, primary_key=True, index=True)
     persona_id = Column(Integer, ForeignKey("personas.id"), nullable=True, index=True)
@@ -343,6 +358,11 @@ class CitaProgramada(Base):
     motivo = Column(String, nullable=False)
     fecha_hora = Column(DateTime(timezone=True), nullable=False)
     estado = Column(String, default="Programada")  # "Programada", "Realizada", "Cancelada"
+    # 🆕 Duración (sesión 2026-10-30) — antes una cita solo tenía hora de
+    # inicio. Si el cliente no la manda, crud.crear_cita usa 45 min para
+    # una cita individual y 60 para una actividad grupal (mismo valor con
+    # el que la migración rellenó las filas que ya existían).
+    duracion_minutos = Column(Integer, nullable=False, server_default="45", default=45)
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
 
     # --- Solo actividades grupales (persona_id NULL) ---
@@ -353,6 +373,18 @@ class CitaProgramada(Base):
     participantes = relationship(
         "CitaParticipante", back_populates="cita", cascade="all, delete-orphan",
     )
+
+    # 🆕 Agenda tipo calendario (sesión 2026-10-30) — una cita INDIVIDUAL
+    # solo exponía `persona_id`, así que la agenda mostraba el motivo pero
+    # nunca CON QUIÉN era. Solo lectura (la FK ya existía, sin migración);
+    # resuelto en vivo, mismo criterio que CitaParticipante.nombre_completo.
+    persona = relationship("Persona", viewonly=True)
+
+    @property
+    def persona_nombre(self):
+        if self.persona is None:
+            return None
+        return f"{self.persona.nombres} {self.persona.apellidos}"
 
 
 class CitaParticipante(Base):
