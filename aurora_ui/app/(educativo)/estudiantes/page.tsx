@@ -199,11 +199,11 @@ export default function PadronPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto lg:px-6 lg:py-8 space-y-8">
       {/* Cabecera */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold text-teal-900 tracking-tight">Padrón</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-semibold text-teal-900 tracking-tight">Padrón</h1>
           <p className="mt-1 text-sm text-ink/60">
             Estudiantes registrados en tu institución — busca, revisa su estado y entra a la ficha de cada uno.
           </p>
@@ -215,7 +215,7 @@ export default function PadronPage() {
             expulsaba por error), ese rol veía ambos botones sin que
             llevaran a nada que pudiera completar. */}
         {puedeGestionarPadron && (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/estudiantes/importar"
               className="rounded-card border border-border bg-white px-4 py-2 text-sm font-medium text-ink hover:bg-mist transition-colors"
@@ -278,11 +278,11 @@ export default function PadronPage() {
           className="w-full max-w-sm bg-white placeholder:text-ink/40"
         />
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Select
             value={filtroSeccionId}
             onChange={(e) => setFiltroSeccionId(e.target.value)}
-            className="bg-white"
+            className="bg-white min-w-0 flex-1 sm:flex-none"
           >
             <option value="todas">Todas las secciones</option>
             <option value="sin-matricula">Sin matrícula</option>
@@ -312,9 +312,10 @@ export default function PadronPage() {
       <TextoError>{error}</TextoError>
       <TextoError>{errorAccion}</TextoError>
 
-      {/* Tabla */}
-      <div className="rounded-card border border-border bg-white shadow-sm overflow-hidden">
-        <table className="w-full text-sm border-collapse">
+      {/* Tabla — overflow-x-auto: en pantallas angostas se desplaza de lado
+          dentro de su tarjeta en vez de empujar la página entera. */}
+      <div className="rounded-card border border-border bg-white shadow-sm overflow-x-auto">
+        <table className="w-full min-w-[36rem] text-sm border-collapse">
           <thead>
             <TheadFila>
               <Th className="px-5 py-3">Nombre</Th>

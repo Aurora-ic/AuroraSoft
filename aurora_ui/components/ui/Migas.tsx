@@ -8,16 +8,16 @@ export type MigaItem = { label: string; href?: string };
 
 export function Migas({ items }: { items: MigaItem[] }) {
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-ink/50 mb-4 flex-wrap" aria-label="Ruta de navegación">
+    <nav className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50 mb-4 flex-wrap" aria-label="Ruta de navegación">
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
-          {i > 0 && <span className="text-ink/30">/</span>}
+          {i > 0 && <span className="text-ink/30 dark:text-ink-dark/30">/</span>}
           {item.href ? (
-            <Link href={item.href} className="hover:text-teal-700 hover:underline">
+            <Link href={item.href} className="hover:text-teal-700 dark:hover:text-teal-accent-dark hover:underline">
               {item.label}
             </Link>
           ) : (
-            <span className="text-ink/70 font-medium truncate max-w-xs">{item.label}</span>
+            <span className="text-ink/70 dark:text-ink-dark/70 font-medium truncate max-w-xs">{item.label}</span>
           )}
         </span>
       ))}

@@ -747,6 +747,103 @@ def listar_secciones(
     return crud.listar_secciones_de_grado(db=db, grado_id=grado_id, anio_escolar=anio_escolar)
 
 
+# 🆕 Edición (PATCH) — mismos permisos y mismo candado de tenant que los
+# POST de arriba: solo admin/superadmin, y un admin solo sobre su propio
+# colegio. Qué campos se pueden cambiar (y por qué no el padre ni el año
+# escolar) está explicado en schemas.NivelEducativoUpdate.
+@router.patch("/academico/niveles/{nivel_id}", response_model=schemas.NivelEducativoResponse)
+def actualizar_nivel_educativo(
+    nivel_id: int,
+    datos: schemas.NivelEducativoUpdate,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
+):
+    """Corrige el nombre u orden de un nivel educativo."""
+    nivel = db.query(models.NivelEducativo).filter(models.NivelEducativo.id == nivel_id).first()
+    if not nivel:
+        raise HTTPException(status_code=404, detail="Nivel educativo no encontrado.")
+    if usuario_actual.rol != "superadmin" and nivel.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes editar la estructura académica de otro colegio.")
+    return crud.actualizar_nivel_educativo(db=db, nivel=nivel, datos=datos)
+
+
+@router.patch("/academico/grados/{grado_id}", response_model=schemas.GradoResponse)
+def actualizar_grado(
+    grado_id: int,
+    datos: schemas.GradoUpdate,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
+):
+    """Corrige el nombre u orden de un grado."""
+    grado = db.query(models.Grado).filter(models.Grado.id == grado_id).first()
+    if not grado:
+        raise HTTPException(status_code=404, detail="Grado no encontrado.")
+    if usuario_actual.rol != "superadmin" and grado.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes editar la estructura académica de otro colegio.")
+    return crud.actualizar_grado(db=db, grado=grado, datos=datos)
+
+
+@router.patch("/academico/secciones/{seccion_id}", response_model=schemas.SeccionResponse)
+def actualizar_seccion(
+    seccion_id: int,
+    datos: schemas.SeccionUpdate,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
+):
+    """Corrige el nombre o turno de una sección (el año escolar no se edita)."""
+    seccion = db.query(models.Seccion).filter(models.Seccion.id == seccion_id).first()
+    if not seccion:
+        raise HTTPException(status_code=404, detail="Sección no encontrada.")
+    if usuario_actual.rol != "superadmin" and seccion.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes editar la estructura académica de otro colegio.")
+    return crud.actualizar_seccion(db=db, seccion=seccion, datos=datos)
+
+
+# 🆕 Eliminación (DELETE) — mismos permisos y candado de tenant que crear/
+# editar. Solo borra lo que nadie usa (ver crud.eliminar_nivel_educativo):
+# lo que ya tiene hijos, matrículas o evaluaciones aplicadas devuelve 409.
+@router.delete("/academico/niveles/{nivel_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_nivel_educativo(
+    nivel_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
+):
+    nivel = db.query(models.NivelEducativo).filter(models.NivelEducativo.id == nivel_id).first()
+    if not nivel:
+        raise HTTPException(status_code=404, detail="Nivel educativo no encontrado.")
+    if usuario_actual.rol != "superadmin" and nivel.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes eliminar la estructura académica de otro colegio.")
+    crud.eliminar_nivel_educativo(db=db, nivel=nivel)
+
+
+@router.delete("/academico/grados/{grado_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_grado(
+    grado_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
+):
+    grado = db.query(models.Grado).filter(models.Grado.id == grado_id).first()
+    if not grado:
+        raise HTTPException(status_code=404, detail="Grado no encontrado.")
+    if usuario_actual.rol != "superadmin" and grado.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes eliminar la estructura académica de otro colegio.")
+    crud.eliminar_grado(db=db, grado=grado)
+
+
+@router.delete("/academico/secciones/{seccion_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_seccion(
+    seccion_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.SOLO_ADMINISTRATIVO),
+):
+    seccion = db.query(models.Seccion).filter(models.Seccion.id == seccion_id).first()
+    if not seccion:
+        raise HTTPException(status_code=404, detail="Sección no encontrada.")
+    if usuario_actual.rol != "superadmin" and seccion.institucion_id != usuario_actual.institucion_id:
+        raise HTTPException(status_code=403, detail="No puedes eliminar la estructura académica de otro colegio.")
+    crud.eliminar_seccion(db=db, seccion=seccion)
+
+
 @router.post("/{persona_id}/matricula", response_model=schemas.MatriculaResponse)
 def matricular_persona(
     persona_id: int,

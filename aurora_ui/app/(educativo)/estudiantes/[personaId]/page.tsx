@@ -15,6 +15,22 @@ import { Textarea } from "@/components/ui/Textarea";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { ContenidoVisorArchivo, VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
 import { Migas } from "@/components/ui/Migas";
+import { BloqueFicha, CuadriculaDatos, DatoFicha, BotonAccionFicha } from "@/components/educativo/BloqueFicha";
+import {
+  IdCard,
+  UsersRound,
+  Stethoscope,
+  Phone,
+  History,
+  Pencil,
+  Plus,
+  CalendarPlus,
+  NotebookPen,
+  GraduationCap,
+  Hash,
+  Cake,
+  Mail,
+} from "lucide-react";
 import type {
   Persona,
   PersonaUpdate,
@@ -138,6 +154,17 @@ function formatearFecha(fecha?: string | null): string | null {
 // null = "no preguntado todavía" — nunca se muestra como "No" (eso sería
 // afirmar algo que no se sabe). Mismo criterio que el backend, que guarda
 // estos campos como Optional[bool] en vez de default False.
+// Edad en años cumplidos a partir de "AAAA-MM-DD" (fecha_nacimiento).
+function calcularEdad(fecha?: string | null): number | null {
+  if (!fecha) return null;
+  const nac = new Date(`${fecha}T00:00:00`);
+  if (Number.isNaN(nac.getTime())) return null;
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  if (hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
 function formatearBooleanoTriple(valor?: boolean | null): string | null {
   if (valor === null || valor === undefined) return null;
   return valor ? "Sí" : "No";
@@ -1423,22 +1450,68 @@ export default function FichaAlumnoPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <Migas items={[{ label: "Padrón", href: "/estudiantes" }, { label: `${alumno.nombres} ${alumno.apellidos}` }]} />
-      {/* Cabecera y Navegación */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-4">
-        <div>
-          <Link href="/estudiantes" className="text-sm text-teal-600 hover:underline inline-block mb-1 font-medium">
-            ← Volver al padrón
-          </Link>
-          <h1 className="font-display text-3xl text-teal-900 font-bold">
-            {alumno.nombres} {alumno.apellidos}
-          </h1>
-        </div>
+      {/* Cabecera — tarjeta de perfil (🆕 rediseño sesión 2026-10-29): antes
+          era solo el nombre suelto + dos botones; ahora resume de un vistazo
+          quién es (código, sección vigente, edad) con los mismos datos que
+          la página ya tenía cargados. */}
+      <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-teal-900 to-teal-600" />
+        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-4 min-w-0">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-teal-900 text-lg font-bold text-white dark:bg-teal-accent-dark/20 dark:text-teal-accent-dark">
+              {`${alumno.nombres[0] ?? ""}${alumno.apellidos[0] ?? ""}`.toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <h1 className="font-display text-2xl sm:text-[26px] font-bold leading-tight text-teal-900 dark:text-ink-dark break-words">
+                {alumno.nombres} {alumno.apellidos}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
+                <span className="inline-flex items-center gap-1 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-ink/70 dark:text-ink-dark/70">
+                  <GraduationCap size={12} aria-hidden="true" />
+                  {matriculaVigente
+                    ? [matriculaVigente.nivel_educativo, matriculaVigente.grado, matriculaVigente.seccion].filter(Boolean).join(" · ")
+                    : "Sin matrícula"}
+                </span>
+                {alumno.codigo_institucional && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 font-mono text-ink/70 dark:text-ink-dark/70">
+                    <Hash size={12} aria-hidden="true" />
+                    {alumno.codigo_institucional}
+                  </span>
+                )}
+                {calcularEdad(alumno.fecha_nacimiento) !== null && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-ink/70 dark:text-ink-dark/70">
+                    <Cake size={12} aria-hidden="true" />
+                    {calcularEdad(alumno.fecha_nacimiento)} años
+                  </span>
+                )}
+                <span
+                  className={`inline-flex items-center rounded-md px-2 py-0.5 font-medium ${
+                    alumno.activo ? "bg-teal-400/20 text-teal-900 dark:text-teal-accent-dark" : "bg-border text-ink/50"
+                  }`}
+                >
+                  {alumno.activo ? "Activo" : "Inactivo"}
+                </span>
+              </div>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <Boton onClick={() => router.push(`/estudiantes/${personaId}/cita/nueva`)}>+ Nueva Cita</Boton>
-          <Boton onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}>
-            + Registrar Sesión
-          </Boton>
+          <div className="flex flex-wrap items-center gap-2">
+            <Boton
+              variante="secundario"
+              onClick={() => router.push(`/estudiantes/${personaId}/cita/nueva`)}
+              className="inline-flex items-center gap-1.5"
+            >
+              <CalendarPlus size={15} aria-hidden="true" />
+              Nueva cita
+            </Boton>
+            <Boton
+              onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}
+              className="inline-flex items-center gap-1.5"
+            >
+              <NotebookPen size={15} aria-hidden="true" />
+              Registrar sesión
+            </Boton>
+          </div>
         </div>
       </div>
 
@@ -1449,31 +1522,41 @@ export default function FichaAlumnoPage() {
           (Persona / PersonaDatosFamiliares / PersonaAntecedentesClinicos /
           ContactoFamiliar) — esto es reordenamiento visual, no un cambio de
           modelo de datos. */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-6">
-        <h2 className="font-display text-xl text-teal-900 font-semibold border-b border-border pb-2">
-          Datos de filiación del estudiante
-        </h2>
-
-        {/* --- Identidad --- */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold text-teal-900 uppercase tracking-wide">Identidad</h3>
-            <div className="flex items-center gap-3">
-              <button onClick={alternarHistorial} className="text-sm text-teal-600 hover:underline font-medium">
-                {mostrarHistorial ? "Ocultar historial de cambios" : "Ver historial de cambios"}
-              </button>
-              {!editando && <Boton onClick={abrirEdicion}>Editar</Boton>}
-            </div>
+      <section className="space-y-4">
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <h2 className="font-display text-xl text-teal-900 dark:text-ink-dark font-semibold">Datos de filiación del estudiante</h2>
+            <p className="text-xs text-ink/50 dark:text-ink-dark/50 mt-0.5">Identidad, entorno familiar, antecedentes y contactos.</p>
           </div>
+        </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+        {/* --- Identidad --- */}
+        <BloqueFicha
+          icono={IdCard}
+          titulo="Identidad"
+          acciones={
+            <>
+              <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
+                Historial
+              </BotonAccionFicha>
+              {!editando && (
+                <BotonAccionFicha icono={Pencil} onClick={abrirEdicion}>
+                  Editar
+                </BotonAccionFicha>
+              )}
+            </>
+          }
+        >
           {!editando ? (
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <Campo etiqueta="Nombres" valor={alumno.nombres} />
-              <Campo etiqueta="Apellidos" valor={alumno.apellidos} />
-              <Campo etiqueta="Documento de identidad" valor={alumno.documento_identidad} />
-              <Campo etiqueta="Fecha de nacimiento" valor={formatearFecha(alumno.fecha_nacimiento)} />
-              <Campo etiqueta="Género" valor={alumno.genero} />
-            </div>
+            <CuadriculaDatos>
+              <DatoFicha etiqueta="Nombres" valor={alumno.nombres} />
+              <DatoFicha etiqueta="Apellidos" valor={alumno.apellidos} />
+              <DatoFicha etiqueta="Documento de identidad" valor={alumno.documento_identidad} />
+              <DatoFicha etiqueta="Código institucional" valor={alumno.codigo_institucional} />
+              <DatoFicha etiqueta="Fecha de nacimiento" valor={formatearFecha(alumno.fecha_nacimiento)} />
+              <DatoFicha etiqueta="Género" valor={alumno.genero} />
+            </CuadriculaDatos>
           ) : (
             <form onSubmit={guardarEdicion} className="grid sm:grid-cols-2 gap-4 text-sm">
               <CampoEditable etiqueta="Nombres">
@@ -1517,8 +1600,8 @@ export default function FichaAlumnoPage() {
           )}
 
           {mostrarHistorial && (
-            <div className="border-t border-border pt-4 mt-2">
-              <h4 className="text-sm font-semibold text-teal-900 mb-2">Historial de cambios</h4>
+            <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
+              <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
               {cargandoHistorial && <p className="text-sm text-ink/60">Cargando historial...</p>}
               <TextoError>{errorHistorial}</TextoError>
               {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
@@ -1542,26 +1625,30 @@ export default function FichaAlumnoPage() {
               )}
             </div>
           )}
-        </div>
+        </BloqueFicha>
 
         {/* --- Datos familiares (PersonaDatosFamiliares, 1:1) --- */}
-        <div className="border-t border-border pt-4 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold text-teal-900 uppercase tracking-wide">Datos familiares</h3>
-            {puedeEscribirDatosPrincipales && !editandoDatosFamiliares && (
-              <Boton onClick={abrirEdicionDatosFamiliares}>Editar</Boton>
-            )}
-          </div>
-
-          <TextoError>{errorDatosFamiliares}</TextoError>
+        <BloqueFicha
+          icono={UsersRound}
+          titulo="Datos familiares"
+          acciones={
+            puedeEscribirDatosPrincipales &&
+            !editandoDatosFamiliares && (
+              <BotonAccionFicha icono={Pencil} onClick={abrirEdicionDatosFamiliares}>
+                Editar
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <TextoError className="mb-3">{errorDatosFamiliares}</TextoError>
 
           {!editandoDatosFamiliares ? (
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <Campo etiqueta="Número de hermanos" valor={datosFamiliares?.numero_hermanos?.toString() ?? null} />
-              <Campo etiqueta="Vive con" valor={datosFamiliares?.vive_con ?? null} />
-              <Campo etiqueta="Lugar de nacimiento" valor={datosFamiliares?.lugar_nacimiento ?? null} />
-              <Campo etiqueta="Lugar de procedencia" valor={datosFamiliares?.lugar_procedencia ?? null} />
-            </div>
+            <CuadriculaDatos>
+              <DatoFicha etiqueta="Número de hermanos" valor={datosFamiliares?.numero_hermanos?.toString() ?? null} />
+              <DatoFicha etiqueta="Vive con" valor={datosFamiliares?.vive_con ?? null} />
+              <DatoFicha etiqueta="Lugar de nacimiento" valor={datosFamiliares?.lugar_nacimiento ?? null} />
+              <DatoFicha etiqueta="Lugar de procedencia" valor={datosFamiliares?.lugar_procedencia ?? null} />
+            </CuadriculaDatos>
           ) : (
             <form onSubmit={guardarDatosFamiliares} className="grid sm:grid-cols-2 gap-4 text-sm">
               <CampoEditable etiqueta="Número de hermanos">
@@ -1609,37 +1696,39 @@ export default function FichaAlumnoPage() {
               </div>
             </form>
           )}
+        </BloqueFicha>
         </div>
 
         {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
-        <div className="border-t border-border pt-4 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold text-teal-900 uppercase tracking-wide">Antecedentes clínicos externos</h3>
-            {puedeEscribirDatosPrincipales && !editandoAntecedentesClinicos && (
-              <Boton onClick={abrirEdicionAntecedentesClinicos}>Editar</Boton>
-            )}
-          </div>
-
-          <TextoError>{errorAntecedentesClinicos}</TextoError>
+        <BloqueFicha
+          icono={Stethoscope}
+          titulo="Antecedentes clínicos externos"
+          descripcion="Atención psicológica o psiquiátrica fuera del colegio."
+          acciones={
+            puedeEscribirDatosPrincipales &&
+            !editandoAntecedentesClinicos && (
+              <BotonAccionFicha icono={Pencil} onClick={abrirEdicionAntecedentesClinicos}>
+                Editar
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <TextoError className="mb-3">{errorAntecedentesClinicos}</TextoError>
 
           {!editandoAntecedentesClinicos ? (
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <Campo
+            <CuadriculaDatos>
+              <DatoFicha
                 etiqueta="Recibe terapia psicológica externa"
                 valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_terapia_psicologica_externa)}
               />
-              <Campo etiqueta="Detalle" valor={antecedentesClinicos?.detalle_terapia_psicologica_externa ?? null} />
-              <Campo
+              <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_terapia_psicologica_externa ?? null} />
+              <DatoFicha
                 etiqueta="Recibe atención psiquiátrica externa"
                 valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_atencion_psiquiatrica_externa)}
               />
-              <Campo etiqueta="Detalle" valor={antecedentesClinicos?.detalle_atencion_psiquiatrica_externa ?? null} />
-              <Campo
-                etiqueta="Diagnóstico reportado"
-                valor={antecedentesClinicos?.diagnostico_reportado ?? null}
-                className="sm:col-span-2"
-              />
-            </div>
+              <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_atencion_psiquiatrica_externa ?? null} />
+              <DatoFicha etiqueta="Diagnóstico reportado" valor={antecedentesClinicos?.diagnostico_reportado ?? null} ancho />
+            </CuadriculaDatos>
           ) : (
             <form onSubmit={guardarAntecedentesClinicos} className="grid sm:grid-cols-2 gap-4 text-sm">
               <CampoEditable etiqueta="Recibe terapia psicológica externa">
@@ -1708,19 +1797,25 @@ export default function FichaAlumnoPage() {
               </div>
             </form>
           )}
-        </div>
+        </BloqueFicha>
 
         {/* --- Contactos familiares (ContactoFamiliar, 1:muchos) --- */}
-        <div className="border-t border-border pt-4 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h3 className="text-sm font-semibold text-teal-900 uppercase tracking-wide">Contactos familiares</h3>
-            {!formularioContacto && <Boton onClick={abrirNuevoContacto}>+ Agregar contacto</Boton>}
-          </div>
-
-          <TextoError>{errorContactos}</TextoError>
+        <BloqueFicha
+          icono={Phone}
+          titulo="Contactos familiares"
+          descripcion="A quién llamar por este estudiante."
+          acciones={
+            !formularioContacto && (
+              <BotonAccionFicha icono={Plus} onClick={abrirNuevoContacto}>
+                Agregar contacto
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <TextoError className="mb-3">{errorContactos}</TextoError>
 
           {formularioContacto && (
-            <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4">
+            <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4 mb-4">
               <CampoEditable etiqueta="Nombre">
                 <Input
                   required
@@ -1767,31 +1862,52 @@ export default function FichaAlumnoPage() {
           )}
 
           {contactos.length === 0 ? (
-            <p className="text-sm text-ink/60 italic py-2">No hay contactos familiares registrados.</p>
+            <div className="rounded-lg border border-dashed border-border dark:border-border-dark py-6 text-center">
+              <Phone size={18} className="mx-auto text-ink/25 dark:text-ink-dark/25" aria-hidden="true" />
+              <p className="mt-1.5 text-sm text-ink/50 dark:text-ink-dark/50">No hay contactos familiares registrados.</p>
+            </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
+              <table className="w-full min-w-[36rem] text-sm">
                 <thead>
                   <TheadFila>
-                    <Th className="py-2 pr-4">Nombre</Th>
-                    <Th className="py-2 pr-4">Relación</Th>
-                    <Th className="py-2 pr-4">Teléfono</Th>
-                    <Th className="py-2 pr-4">Email</Th>
-                    <Th className="py-2 pr-4">Estado</Th>
-                    <Th className="py-2 pr-4"></Th>
+                    <Th className="px-3.5 py-2">Nombre</Th>
+                    <Th className="px-3.5 py-2">Relación</Th>
+                    <Th className="px-3.5 py-2">Teléfono</Th>
+                    <Th className="px-3.5 py-2">Email</Th>
+                    <Th className="px-3.5 py-2">Estado</Th>
+                    <Th className="px-3.5 py-2"></Th>
                   </TheadFila>
                 </thead>
                 <tbody>
                   {contactos.map((contacto) => (
                     <tr
                       key={contacto.id}
-                      className={`border-b border-border last:border-0 ${contacto.activo ? "" : "opacity-40"}`}
+                      className={`border-t border-border dark:border-border-dark ${contacto.activo ? "" : "opacity-40"}`}
                     >
-                      <td className="py-2.5 pr-4 font-medium text-ink">{contacto.nombre}</td>
-                      <td className="py-2.5 pr-4 text-ink/80">{contacto.relacion || "—"}</td>
-                      <td className="py-2.5 pr-4 text-ink/80">{contacto.telefono || "—"}</td>
-                      <td className="py-2.5 pr-4 text-ink/80">{contacto.email || "—"}</td>
-                      <td className="py-2.5 pr-4">
+                      <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{contacto.nombre}</td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">{contacto.relacion || "—"}</td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                        {contacto.telefono ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Phone size={12} className="text-ink/35" aria-hidden="true" />
+                            {contacto.telefono}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                        {contacto.email ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Mail size={12} className="text-ink/35" aria-hidden="true" />
+                            {contacto.email}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2.5">
                         <span
                           className={`text-xs rounded-full px-2 py-0.5 font-medium ${
                             contacto.activo ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/50"
@@ -1800,7 +1916,7 @@ export default function FichaAlumnoPage() {
                           {contacto.activo ? "Activo" : "Inactivo"}
                         </span>
                       </td>
-                      <td className="py-2.5 pr-4 text-right whitespace-nowrap">
+                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
                         <button
                           onClick={() => abrirEdicionContacto(contacto)}
                           className="text-teal-600 hover:underline font-medium mr-3"
@@ -1823,7 +1939,7 @@ export default function FichaAlumnoPage() {
               </table>
             </div>
           )}
-        </div>
+        </BloqueFicha>
       </section>
 
       {/* Consentimiento informado — "apoderado" siempre obligatorio para

@@ -394,17 +394,35 @@ def main(url_base):
     # ------------------------------------------------------------------
     cabecera("8 · B-3 · Los candados de expiración ya actúan de verdad")
 
-    # Campaña vencida: la matriculación debe rechazarse
+    # 🆕 Desde 2026-10-29 la API rechaza crear una campaña con fecha_fin ya
+    # pasada (crud.validar_fecha_fin_futura) — antes nacía vencida sin aviso.
+    r = requests.post(
+        f"{API}/educativo/campanas/",
+        json={
+            "prueba_id": prueba_id, "nombre_grupo": f"{PREFIJO} Nace vencida",
+            "institucion_id": inst_id,
+            "fecha_fin": (datetime.utcnow() - timedelta(days=1)).isoformat(),
+        }, headers=h_psi, timeout=30,
+    )
+    comprobar("Crear una campaña con fecha de cierre pasada se rechaza (400)",
+              r.status_code == 400, f"status {r.status_code}: {r.text[:120]}")
+
+    # Campaña vencida: la matriculación debe rechazarse. Como la API ya no
+    # deja crearla vencida, se crea vigente y se vence por SQL (mismo
+    # recurso que usa más abajo la campaña "Caduca").
     vencida = exigir(
         requests.post(
             f"{API}/educativo/campanas/",
             json={
                 "prueba_id": prueba_id, "nombre_grupo": f"{PREFIJO} Vencida",
                 "institucion_id": inst_id,
-                "fecha_fin": (datetime.utcnow() - timedelta(days=1)).isoformat(),
+                "fecha_fin": (datetime.utcnow() + timedelta(days=1)).isoformat(),
             }, headers=h_psi, timeout=30,
-        ), 200, "Crear campaña vencida",
+        ), 200, "Crear campaña (luego se vence por SQL)",
     )
+    with motor.begin() as cx:
+        cx.execute(text("update edu_evaluaciones set fecha_fin = :f where id = :i"),
+                   {"f": datetime.utcnow() - timedelta(days=1), "i": vencida["id"]})
     res = exigir(
         requests.post(
             f"{API}/educativo/campanas/{vencida['id']}/matricular-roster",

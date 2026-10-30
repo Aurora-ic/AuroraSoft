@@ -290,6 +290,31 @@ class SeccionResponse(BaseModel):
         from_attributes = True
 
 
+# 🆕 Edición de la estructura académica (PATCH, sesión 2026-10-29) — antes
+# solo se podía crear: un nombre u orden mal escrito no tenía arreglo. Todos
+# los campos son opcionales (se aplica solo lo enviado, `exclude_unset`).
+# Lo que NO se edita, a propósito: el padre (nivel de un grado / grado de una
+# sección) ni `Seccion.anio_escolar` — cada año escolar es una fila de
+# Sección distinta con sus propias matrículas (ver modulos/superadmin/
+# models.py); moverla de año o de grado reescribiría el historial de esos
+# alumnos. Renombrar sí es seguro: Inscripcion guarda su propia copia de
+# texto (`grado_seccion_historico`) al matricular.
+class NivelEducativoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    orden: Optional[int] = None
+
+
+class GradoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    orden: Optional[int] = None
+
+
+class SeccionUpdate(BaseModel):
+    nombre: Optional[str] = None
+    # Enviar `turno: null` lo borra; omitirlo lo deja como está.
+    turno: Optional[str] = None
+
+
 class MatriculaCreate(BaseModel):
     seccion_id: int
 

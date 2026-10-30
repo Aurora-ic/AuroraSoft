@@ -1146,6 +1146,25 @@ def aplicar_reglas_a_diagnosticos(db: Session, inscripcion_id: int, diagnosticos
 # ==========================================
 # CRUD PARA ENLACES DE ACCESO Y CAMPAÑAS
 # ==========================================
+def validar_fecha_fin_futura(fecha_fin: Optional[datetime]) -> None:
+    """🆕 Rechaza una fecha de cierre que ya pasó (sesión 2026-10-29).
+
+    Antes se aceptaba: una campaña creada con `fecha_fin` en el pasado nacía
+    ya vencida (campana_esta_expirada() la daba por cerrada desde el primer
+    segundo, sin ningún aviso) — pasó de verdad con una campaña de prueba.
+    Vive aquí y no en el field_validator de EvaluacionCreate/Update a
+    propósito: esos schemas también se construyen en memoria (tests,
+    normalización de zona horaria) con fechas pasadas legítimas; la regla es
+    de negocio de "crear/editar vía API", no de forma del dato.
+    `fecha_fin` ya llega normalizada a UTC naive (ver fecha_fin_a_utc_naive),
+    así que se compara contra utcnow() igual que campana_esta_expirada()."""
+    if fecha_fin is not None and fecha_fin <= datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La fecha de cierre debe ser posterior a la fecha y hora actual.",
+        )
+
+
 def crear_campana_evaluacion(db: Session, evaluacion: schemas.EvaluacionCreate, creador_id: int):
     """
     Crea la campaña/salón. Ya NO genera links por sí sola —
@@ -1156,6 +1175,7 @@ def crear_campana_evaluacion(db: Session, evaluacion: schemas.EvaluacionCreate, 
     (cargar preguntas, guardar, finalizar, campos socio y matriculación)
     empiezan a rechazar el acceso. Si no la envía, la campaña no caduca.
     """
+    validar_fecha_fin_futura(evaluacion.fecha_fin)
     nueva_evaluacion = models.Evaluacion(
         institucion_id=evaluacion.institucion_id,
         prueba_id=evaluacion.prueba_id,
@@ -1224,6 +1244,20 @@ def actualizar_campana(db: Session, evaluacion: "models.Evaluacion", datos: sche
         )
 
     datos_enviados = datos.model_dump(exclude_unset=True)
+
+    # Mismo candado que al crear: editar no puede dejar la campaña vencida
+    # "por la puerta de atrás". `fecha_fin: null` (quitar la caducidad) sigue
+    # permitido. Para terminarla a propósito está cerrar_campana().
+    # Solo si la fecha CAMBIA de verdad: una campaña ya vencida por fecha
+    # (estado "activa", fecha_fin pasada — ver lib/campanas.ts en el
+    # frontend) tiene que poder renombrarse reenviando su misma fecha. El
+    # margen de 60 s cubre el <input type="datetime-local">, que trunca a
+    # minutos lo que el backend guardó con segundos.
+    nueva_fecha_fin = datos_enviados.get("fecha_fin")
+    if nueva_fecha_fin is not None and (
+        evaluacion.fecha_fin is None or abs((nueva_fecha_fin - evaluacion.fecha_fin).total_seconds()) >= 60
+    ):
+        validar_fecha_fin_futura(nueva_fecha_fin)
 
     if "prueba_id" in datos_enviados and datos_enviados["prueba_id"] != evaluacion.prueba_id:
         # 🔒 Ver bloquear_evaluacion_para_editar: serializa contra una

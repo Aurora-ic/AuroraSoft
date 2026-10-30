@@ -1209,6 +1209,118 @@ def listar_secciones_de_grado(db: Session, grado_id: int, anio_escolar: Optional
     return query.order_by(models.Seccion.anio_escolar.desc(), models.Seccion.nombre).all()
 
 
+def _aplicar_edicion_estructura(db: Session, objeto, cambios: dict, detalle_conflicto: str):
+    """Aplica un PATCH de nivel/grado/sección. Comparte con crear_* el mismo
+    manejo de la restricción única de nombre (IntegrityError → 409)."""
+    if "nombre" in cambios:
+        nombre = (cambios["nombre"] or "").strip()
+        if not nombre:
+            raise HTTPException(status_code=400, detail="El nombre no puede quedar vacío.")
+        cambios["nombre"] = nombre
+    if "turno" in cambios:
+        cambios["turno"] = (cambios["turno"] or "").strip() or None
+    for campo, valor in cambios.items():
+        setattr(objeto, campo, valor)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detalle_conflicto)
+    db.refresh(objeto)
+    return objeto
+
+
+def actualizar_nivel_educativo(db: Session, nivel: models.NivelEducativo, datos: schemas.NivelEducativoUpdate):
+    cambios = datos.model_dump(exclude_unset=True)
+    return _aplicar_edicion_estructura(
+        db, nivel, cambios,
+        f"Ya existe un nivel educativo llamado '{(cambios.get('nombre') or '').strip()}' en esta institución.",
+    )
+
+
+def actualizar_grado(db: Session, grado: models.Grado, datos: schemas.GradoUpdate):
+    cambios = datos.model_dump(exclude_unset=True)
+    return _aplicar_edicion_estructura(
+        db, grado, cambios,
+        f"Ya existe un grado llamado '{(cambios.get('nombre') or '').strip()}' en ese nivel educativo.",
+    )
+
+
+def actualizar_seccion(db: Session, seccion: models.Seccion, datos: schemas.SeccionUpdate):
+    cambios = datos.model_dump(exclude_unset=True)
+    return _aplicar_edicion_estructura(
+        db, seccion, cambios,
+        (
+            f"Ya existe la sección '{(cambios.get('nombre') or '').strip()}' para ese grado en el "
+            f"año escolar {seccion.anio_escolar}."
+        ),
+    )
+
+
+# 🆕 Eliminación (DELETE, sesión 2026-10-29) — borrado FÍSICO, pero solo de
+# algo que nadie usa todavía (típicamente un error de tipeo recién creado).
+# Si un nivel tiene grados, un grado tiene secciones, o una sección tiene
+# matrículas (aunque sean históricas) o inscripciones a campañas, se rechaza
+# con 409 explicando qué lo bloquea: borrarla rompería el historial académico
+# y los snapshots de evaluaciones ya aplicadas. Otras referencias menos
+# comunes (documentos institucionales, procesos de promoción) las ataja la
+# propia FK → IntegrityError → mismo 409.
+def _borrar_elemento_estructura(db: Session, objeto, etiqueta: str):
+    db.delete(objeto)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"No se puede eliminar {etiqueta}: está referenciado por documentos o procesos de promoción.",
+        )
+
+
+def eliminar_nivel_educativo(db: Session, nivel: models.NivelEducativo):
+    grados = db.query(models.Grado).filter(models.Grado.nivel_educativo_id == nivel.id).count()
+    if grados:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"No se puede eliminar '{nivel.nombre}': tiene {grados} grado(s). Elimínalos primero.",
+        )
+    _borrar_elemento_estructura(db, nivel, f"el nivel '{nivel.nombre}'")
+
+
+def eliminar_grado(db: Session, grado: models.Grado):
+    secciones = db.query(models.Seccion).filter(models.Seccion.grado_id == grado.id).count()
+    if secciones:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"No se puede eliminar el grado '{grado.nombre}': tiene {secciones} sección(es). Elimínalas primero.",
+        )
+    _borrar_elemento_estructura(db, grado, f"el grado '{grado.nombre}'")
+
+
+def eliminar_seccion(db: Session, seccion: models.Seccion):
+    matriculas = db.query(models.MatriculaAcademica).filter(models.MatriculaAcademica.seccion_id == seccion.id).count()
+    if matriculas:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"No se puede eliminar la sección '{seccion.nombre}': tiene {matriculas} matrícula(s) "
+                "(actuales o históricas). Mueve a los alumnos a otra sección antes."
+            ),
+        )
+    inscripciones = db.query(educativo_models.Inscripcion).filter(
+        educativo_models.Inscripcion.seccion_id == seccion.id
+    ).count()
+    if inscripciones:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"No se puede eliminar la sección '{seccion.nombre}': {inscripciones} evaluación(es) "
+                "aplicada(s) quedaron registradas con ella."
+            ),
+        )
+    _borrar_elemento_estructura(db, seccion, f"la sección '{seccion.nombre}'")
+
+
 def matricular_persona_en_seccion(
     db: Session, persona: models.Persona, seccion_id: int, usuario_id: Optional[int] = None,
     commit: bool = True,

@@ -147,6 +147,13 @@ export type SeccionCreate = {
   anio_escolar: number;
 };
 
+// PATCH /admin/personas/academico/{niveles|grados|secciones}/{id} — solo
+// nombre/orden/turno; ni el padre ni el año escolar de una sección se editan
+// (ver schemas.NivelEducativoUpdate en el backend).
+export type NivelEducativoUpdate = { nombre?: string; orden?: number };
+export type GradoUpdate = { nombre?: string; orden?: number };
+export type SeccionUpdate = { nombre?: string; turno?: string | null };
+
 export type MatriculaCreate = {
   seccion_id: number;
 };

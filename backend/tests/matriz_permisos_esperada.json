@@ -871,6 +871,54 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
+    "PATCH /api/admin/personas/academico/niveles/{nivel_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/academico/grados/{grado_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/admin/personas/academico/secciones/{seccion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/admin/personas/academico/niveles/{nivel_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/admin/personas/academico/grados/{grado_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/admin/personas/academico/secciones/{seccion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
     "POST /api/admin/personas/academico/secciones": {
       "admin": true,
       "colegio": false,

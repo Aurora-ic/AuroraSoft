@@ -15,7 +15,14 @@ import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { Migas } from "@/components/ui/Migas";
 import type { DashboardCampana, InscripcionCampana, Prueba } from "@/types/api";
-import { estadoVisibleCampana, etiquetaEstadoCampana, claseBadgeEstadoCampana } from "@/lib/campanas";
+import {
+  estadoVisibleCampana,
+  etiquetaEstadoCampana,
+  claseBadgeEstadoCampana,
+  ahoraParaInputLocal,
+  fechaCierreEsPasada,
+  MENSAJE_FECHA_CIERRE_PASADA,
+} from "@/lib/campanas";
 
 // Convierte el datetime que manda el backend al formato que acepta
 // <input type="datetime-local"> — mismo criterio inverso que `campanas/
@@ -54,6 +61,10 @@ export default function DashboardCampanaPage() {
   const [pruebas, setPruebas] = useState<Prueba[]>([]);
   const [mostrarEditar, setMostrarEditar] = useState(false);
   const [formEditar, setFormEditar] = useState({ nombre_grupo: "", fecha_fin: "", prueba_id: "" });
+  // Valor de fecha_fin al abrir el formulario: solo se reenvía (y se valida
+  // como futura) si el usuario la cambió — así una campaña ya vencida por
+  // fecha se puede renombrar sin que el backend la rechace.
+  const [fechaFinOriginal, setFechaFinOriginal] = useState("");
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [errorEdicion, setErrorEdicion] = useState<string | null>(null);
 
@@ -117,23 +128,34 @@ export default function DashboardCampanaPage() {
 
   function abrirEditar() {
     if (!dashboard) return;
+    const fechaInicial = isoParaInputLocal(dashboard.fecha_fin);
     setFormEditar({
       nombre_grupo: dashboard.nombre_grupo,
-      fecha_fin: isoParaInputLocal(dashboard.fecha_fin),
+      fecha_fin: fechaInicial,
       prueba_id: String(dashboard.prueba_id),
     });
+    setFechaFinOriginal(fechaInicial);
     setErrorEdicion(null);
     setMostrarEditar(true);
   }
 
+  const fechaFinCambio = formEditar.fecha_fin !== fechaFinOriginal;
+  const fechaFinEditadaPasada = fechaFinCambio && fechaCierreEsPasada(formEditar.fecha_fin);
+
   async function guardarEdicion(e: React.FormEvent) {
     e.preventDefault();
+    if (fechaFinEditadaPasada) {
+      setErrorEdicion(MENSAJE_FECHA_CIERRE_PASADA);
+      return;
+    }
     setGuardandoEdicion(true);
     setErrorEdicion(null);
     try {
       await apiClient.patch(`/educativo/campanas/${campanaId}`, {
         nombre_grupo: formEditar.nombre_grupo,
-        fecha_fin: formEditar.fecha_fin ? new Date(formEditar.fecha_fin).toISOString() : null,
+        ...(fechaFinCambio && {
+          fecha_fin: formEditar.fecha_fin ? new Date(formEditar.fecha_fin).toISOString() : null,
+        }),
         prueba_id: Number(formEditar.prueba_id),
       });
       const actualizado = await apiClient.get<DashboardCampana>(`/educativo/campanas/${campanaId}/dashboard`);
@@ -358,9 +380,15 @@ export default function DashboardCampanaPage() {
             <CampoEditable etiqueta="Fecha de cierre (opcional)">
               <Input
                 type="datetime-local"
+                min={ahoraParaInputLocal()}
                 value={formEditar.fecha_fin}
                 onChange={(e) => setFormEditar({ ...formEditar, fecha_fin: e.target.value })}
+                aria-invalid={fechaFinEditadaPasada}
+                className={fechaFinEditadaPasada ? "border-red-400 focus:ring-red-300" : ""}
               />
+              {fechaFinEditadaPasada && (
+                <span className="text-xs font-medium text-red-700 mt-1">{MENSAJE_FECHA_CIERRE_PASADA}</span>
+              )}
             </CampoEditable>
             <CampoEditable etiqueta="Prueba" className="sm:col-span-2">
               <Select

@@ -20,6 +20,22 @@
 // sigue abierta.
 export type EstadoVisibleCampana = "activa" | "vencida" | "cerrada" | "cancelada";
 
+// 🆕 Fecha de cierre futura (sesión 2026-10-29) — el backend ya rechaza con
+// 400 una `fecha_fin` pasada al crear/editar (crud.validar_fecha_fin_futura);
+// esto es la misma regla en el formulario, para avisar antes de enviar.
+// Formato de <input type="datetime-local">: "AAAA-MM-DDTHH:MM" en hora LOCAL.
+export function ahoraParaInputLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fechaCierreEsPasada(valorInputLocal: string): boolean {
+  return !!valorInputLocal && new Date(valorInputLocal).getTime() <= Date.now();
+}
+
+export const MENSAJE_FECHA_CIERRE_PASADA = "La fecha de cierre debe ser posterior a la fecha y hora actual.";
+
 export function estadoVisibleCampana(estado: string, fechaFin: string | null): EstadoVisibleCampana {
   if (estado === "activa" && fechaFin && new Date(fechaFin).getTime() < Date.now()) return "vencida";
   return (estado as EstadoVisibleCampana) ?? "activa";

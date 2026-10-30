@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { HelpCircle, Sun, Moon } from "lucide-react";
+import { HelpCircle, Sun, Moon, Menu } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BusquedaGlobal } from "@/components/educativo/BusquedaGlobal";
 import { CentroAyuda } from "@/components/educativo/CentroAyuda";
@@ -12,18 +12,28 @@ import { CentroAyuda } from "@/components/educativo/CentroAyuda";
 // "acción sobre toda la app, sin importar dónde estés": buscar, pedir
 // ayuda, cambiar de tema. Persistente entre pantallas (vive en el layout,
 // no en cada página).
-export function Topbar() {
+export function Topbar({ onAbrirMenu }: { onAbrirMenu?: () => void }) {
   const { tema, alternarTema } = useTheme();
   const [ayudaAbierta, setAyudaAbierta] = useState(false);
 
   return (
     <>
-      <header className="h-15 shrink-0 bg-surface dark:bg-surface-raised-dark border-b border-border dark:border-border-dark flex items-center gap-3.5 px-6">
-        <div className="flex-1 max-w-[420px]">
+      <header className="h-15 shrink-0 bg-surface dark:bg-surface-raised-dark border-b border-border dark:border-border-dark flex items-center gap-2 sm:gap-3.5 px-3 sm:px-6">
+        {/* ☰ solo por debajo de `lg`, donde la barra lateral pasa a ser un cajón */}
+        <button
+          type="button"
+          onClick={onAbrirMenu}
+          aria-label="Abrir menú"
+          className="lg:hidden shrink-0 p-2 rounded-lg text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-dark"
+        >
+          <Menu size={20} strokeWidth={2} aria-hidden="true" />
+        </button>
+
+        <div className="flex-1 min-w-0 max-w-[420px]">
           <BusquedaGlobal />
         </div>
 
-        <div className="flex-1" />
+        <div className="hidden sm:block flex-1" />
 
         <button
           type="button"

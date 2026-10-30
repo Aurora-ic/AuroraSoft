@@ -105,7 +105,7 @@ export function BusquedaGlobal() {
         className="w-full flex items-center justify-between gap-2 rounded-card border border-border dark:border-border-dark bg-mist dark:bg-surface-dark px-3 py-2 text-sm text-ink/50 dark:text-ink-dark/50 hover:bg-mist/80 dark:hover:bg-surface-raised-dark transition-colors"
       >
         <span>Buscar alumno...</span>
-        <kbd className="text-[10px] font-mono bg-surface dark:bg-surface-raised-dark border border-border dark:border-border-dark rounded px-1.5 py-0.5">Ctrl K</kbd>
+        <kbd className="hidden sm:inline text-[10px] font-mono bg-surface dark:bg-surface-raised-dark border border-border dark:border-border-dark rounded px-1.5 py-0.5">Ctrl K</kbd>
       </button>
 
       {abierto && (

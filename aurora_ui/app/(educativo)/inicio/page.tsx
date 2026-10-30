@@ -64,7 +64,7 @@ function AccesoRapido({ href, icono: Icono, label }: { href: string; icono: type
       <div className="w-9 h-9 rounded-lg bg-mist dark:bg-surface-raised-dark text-teal-700 dark:text-teal-accent-dark flex items-center justify-center flex-shrink-0">
         <Icono size={17} strokeWidth={2} aria-hidden="true" />
       </div>
-      <span className="flex-1 text-[13px] font-semibold text-ink dark:text-ink-dark">{label}</span>
+      <span className="flex-1 min-w-0 text-[13px] font-semibold leading-snug text-ink dark:text-ink-dark">{label}</span>
       <ArrowRight
         size={15}
         strokeWidth={2}
@@ -88,7 +88,7 @@ function TarjetaKpi({
   sufijo?: string;
 }) {
   return (
-    <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-5 flex flex-col gap-3">
+    <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-4 sm:p-5 flex flex-col gap-3">
       <div className="w-8 h-8 rounded-lg bg-mist dark:bg-surface-raised-dark text-teal-700 dark:text-teal-accent-dark flex items-center justify-center">
         <Icono size={15} strokeWidth={2} aria-hidden="true" />
       </div>
@@ -191,7 +191,7 @@ export default function InicioPage() {
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-7">
       {/* ===== Encabezado ===== */}
-      <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-7 py-7 flex items-center justify-between flex-wrap gap-5">
+      <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between flex-wrap gap-5">
         <div>
           <p className="m-0 text-[13px] font-medium text-white/70 dark:text-teal-accent-dark">
             {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
@@ -219,7 +219,9 @@ export default function InicioPage() {
         <h2 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">
           Accesos rápidos
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* 4 columnas solo cuando de verdad entran (xl) — antes `sm:grid-cols-4`
+            apretaba "Casos en riesgo"/"Documentos" fuera de su tarjeta. */}
+        <div className="grid grid-cols-1 min-[440px]:grid-cols-2 xl:grid-cols-4 gap-3">
           <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" />
           <AccesoRapido href="/estudiantes" icono={Users} label="Padrón" />
           <AccesoRapido href="/documentos" icono={FileText} label="Documentos" />
@@ -234,7 +236,7 @@ export default function InicioPage() {
             Resumen de {nombreMes}
           </h2>
           <TextoError className="mb-2">{errorResumen}</TextoError>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-3.5">
             <TarjetaKpi icono={GraduationCap} label="Alumnos en el padrón" valor={resumen?.total_alumnos ?? null} />
             <TarjetaKpi icono={Activity} label="Pruebas finalizadas este mes" valor={resumen?.pruebas_finalizadas_mes ?? null} />
             <TarjetaKpi icono={HeartHandshake} label="Alumnos con seguimiento este mes" valor={resumen?.estudiantes_con_seguimiento_mes ?? null} />
@@ -244,7 +246,7 @@ export default function InicioPage() {
       )}
 
       {/* ===== Resumen por apartado ===== */}
-      <div className={`grid gap-3.5 ${vePerfilClinico ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+      <div className={`grid gap-3.5 ${vePerfilClinico ? "md:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2"}`}>
         {vePerfilClinico && (
           <TarjetaResumen icono={AlertTriangle} titulo="Casos en riesgo sin seguimiento" enlace="/casos-riesgo">
             {casos === null ? (

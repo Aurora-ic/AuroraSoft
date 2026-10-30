@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   ChevronRight,
   LogOut,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,7 +74,13 @@ const GRUPOS: Grupo[] = [
   },
 ];
 
-export function SidebarEducativo() {
+// 🆕 Responsive (sesión 2026-10-29, a pedido del usuario) — antes la barra
+// lateral era fija en todo ancho y se comía el espacio del contenido en
+// pantallas angostas. Ahora desde `lg` sigue igual (sticky, siempre
+// visible); por debajo es un cajón fuera de pantalla que abre el botón ☰
+// del Topbar (`abierto`/`onCerrar` los maneja ShellEducativo). Una sola
+// instancia en los dos modos, para no duplicar los GET de institución/citas.
+export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: boolean; onCerrar?: () => void }) {
   const pathname = usePathname();
   const { sesion, cerrarSesion } = useAuth();
   const [institucion, setInstitucion] = useState<Institucion | null>(null);
@@ -163,9 +170,21 @@ export function SidebarEducativo() {
   }
 
   return (
-    <aside className="w-64 shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark flex flex-col justify-between h-screen sticky top-0 overflow-y-auto">
+    <aside
+      className={`fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark flex flex-col justify-between h-screen overflow-y-auto transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:transition-none ${
+        abierto ? "translate-x-0 shadow-xl" : "-translate-x-full"
+      }`}
+    >
       <div>
-        <div className="px-5 pt-6 pb-5">
+        <div className="relative px-5 pt-6 pb-5">
+          <button
+            type="button"
+            onClick={onCerrar}
+            aria-label="Cerrar menú"
+            className="lg:hidden absolute top-5 right-3 p-1.5 rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-dark"
+          >
+            <X size={18} strokeWidth={2} aria-hidden="true" />
+          </button>
           <div className="flex items-center gap-2.5">
             <Image src="/logo.png" alt="" width={140} height={99} className="h-7 w-auto" />
             <span className="font-display text-[17px] font-bold text-ink dark:text-ink-dark">AuroraSoft</span>
