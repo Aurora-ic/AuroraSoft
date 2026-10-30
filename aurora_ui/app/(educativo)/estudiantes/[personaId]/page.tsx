@@ -15,8 +15,17 @@ import { Textarea } from "@/components/ui/Textarea";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { ContenidoVisorArchivo, VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
 import { Migas } from "@/components/ui/Migas";
-import { BloqueFicha, CuadriculaDatos, DatoFicha, BotonAccionFicha } from "@/components/educativo/BloqueFicha";
+import { BloqueFicha, CuadriculaDatos, DatoFicha, BotonAccionFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
 import {
+  ShieldCheck,
+  Paperclip,
+  School,
+  ClipboardList,
+  FolderLock,
+  FileText,
+  CalendarClock,
+  MessagesSquare,
+  KeyRound,
   IdCard,
   UsersRound,
   Stethoscope,
@@ -1952,15 +1961,14 @@ export default function FichaAlumnoPage() {
           documento firmado en papel) es un respaldo opcional, no un
           requisito — lo que habilita matrícula/examen es el registro con
           estado="vigente" en la base de datos, nunca la evidencia en sí. */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-6">
-        <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-          <h2 className="font-display text-xl text-teal-900 font-semibold">Consentimiento informado</h2>
-        </div>
-
-        <p className="text-xs text-ink/50 italic">
-          Sin un consentimiento del apoderado vigente, este estudiante no puede ser matriculado en una campaña ni
-          completar un examen. Si tu institución además exige el asentimiento del propio estudiante, regístralo en
-          el segundo bloque.
+      <BloqueFicha
+        icono={ShieldCheck}
+        titulo="Consentimiento informado"
+        descripcion="Sin consentimiento del apoderado vigente no se puede matricular en campañas ni rendir exámenes."
+        cuerpoClassName="space-y-3"
+      >
+        <p className="text-xs text-ink/55 dark:text-ink-dark/55">
+          Si tu institución además exige el asentimiento del propio estudiante, regístralo en el segundo bloque.
         </p>
 
         <TextoError>{errorConsentimientos}</TextoError>
@@ -1971,9 +1979,9 @@ export default function FichaAlumnoPage() {
           const formularioAbiertoAqui = formularioConsentimiento?.tipo === tipo ? formularioConsentimiento : null;
 
           return (
-            <div key={tipo} className="border-t border-border pt-5 first:border-0 first:pt-0 space-y-3">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h3 className="text-sm font-semibold text-teal-900 uppercase tracking-wide">
+            <div key={tipo} className="rounded-lg border border-border dark:border-border-dark overflow-hidden">
+              <div className="flex items-center justify-between gap-2 flex-wrap px-3.5 py-2.5 bg-mist/40 dark:bg-surface-raised-dark/60 border-b border-border dark:border-border-dark">
+                <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark">
                   {tipo === "apoderado" ? "Consentimiento del apoderado" : "Asentimiento del estudiante"}
                 </h3>
                 <div className="flex items-center gap-2">
@@ -1985,35 +1993,41 @@ export default function FichaAlumnoPage() {
                     {vigente ? "Vigente" : "Sin consentimiento vigente"}
                   </span>
                   {puedeEscribirDatosPrincipales && !vigente && !formularioAbiertoAqui && (
-                    <Boton onClick={() => abrirFormularioConsentimiento(tipo)}>Registrar</Boton>
+                    <BotonAccionFicha icono={Plus} onClick={() => abrirFormularioConsentimiento(tipo)}>
+                      Registrar
+                    </BotonAccionFicha>
                   )}
                 </div>
               </div>
 
+              <div className="p-3.5 space-y-3">
               {vigente && (
-                <div className="grid sm:grid-cols-2 gap-4 text-sm">
+                <div className="space-y-3 text-sm">
+                  <CuadriculaDatos>
                   {tipo === "apoderado" && (
                     <>
-                      <Campo
+                      <DatoFicha
                         etiqueta="Otorgado por"
                         valor={`${vigente.otorgado_por_nombre ?? ""} ${vigente.otorgante_apellidos ?? ""}`.trim() || null}
                       />
-                      <Campo
+                      <DatoFicha
                         etiqueta="Tipo de otorgante"
                         valor={vigente.tipo_otorgante === "colegio_delegado" ? "Colegio (autoridad delegada)" : "Apoderado"}
                       />
-                      <Campo etiqueta="Documento de identidad" valor={vigente.otorgante_documento} />
-                      <Campo etiqueta="Relación con el estudiante" valor={vigente.otorgante_relacion} />
+                      <DatoFicha etiqueta="Documento de identidad" valor={vigente.otorgante_documento} />
+                      <DatoFicha etiqueta="Relación con el estudiante" valor={vigente.otorgante_relacion} />
                     </>
                   )}
-                  <Campo etiqueta="Referencia del documento" valor={vigente.referencia_documento} />
-                  <Campo etiqueta="Otorgado el" valor={new Date(vigente.fecha_otorgamiento).toLocaleString()} />
+                  <DatoFicha etiqueta="Referencia del documento" valor={vigente.referencia_documento} />
+                  <DatoFicha etiqueta="Otorgado el" valor={new Date(vigente.fecha_otorgamiento).toLocaleString()} />
+                  </CuadriculaDatos>
 
-                  <div className="sm:col-span-2 flex flex-wrap items-center gap-3 border-t border-border/50 pt-3">
+                  <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border dark:border-border-dark bg-mist/30 dark:bg-surface-raised-dark/40 px-3 py-2">
+                    <Paperclip size={14} className="text-ink/40 dark:text-ink-dark/40" aria-hidden="true" />
                     {vigente.evidencia_nombre_archivo ? (
                       <>
-                        <span className="text-xs text-teal-700">
-                          Evidencia adjunta: {vigente.evidencia_nombre_archivo} ✓
+                        <span className="text-xs font-medium text-teal-700 dark:text-teal-accent-dark break-all">
+                          {vigente.evidencia_nombre_archivo} ✓
                         </span>
                         <button
                           onClick={() => descargarEvidenciaConsentimiento(vigente)}
@@ -2049,7 +2063,7 @@ export default function FichaAlumnoPage() {
                   </div>
 
                   {puedeEscribirDatosPrincipales && (
-                    <div className="sm:col-span-2">
+                    <div>
                       <button
                         onClick={() => revocarConsentimiento(tipo, vigente.id)}
                         disabled={revocandoConsentimientoId === vigente.id}
@@ -2144,7 +2158,7 @@ export default function FichaAlumnoPage() {
               )}
 
               {!vigente && !formularioAbiertoAqui && (
-                <p className="text-sm text-ink/60 italic py-1">
+                <p className="text-sm text-ink/50 dark:text-ink-dark/50">
                   {tipo === "apoderado"
                     ? "Sin consentimiento del apoderado vigente."
                     : "Sin asentimiento del propio estudiante vigente."}
@@ -2182,30 +2196,34 @@ export default function FichaAlumnoPage() {
                   ))}
                 </div>
               )}
+              </div>
             </div>
           );
         })}
-      </section>
+      </BloqueFicha>
 
       {/* Matrícula académica */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-          <h2 className="font-display text-xl text-teal-900 font-semibold">Matrícula académica</h2>
-          <div className="flex items-center gap-3">
-            <button
+      <BloqueFicha
+        icono={School}
+        titulo="Matrícula académica"
+        cuerpoClassName="space-y-4"
+        acciones={
+          <>
+            <BotonAccionFicha
+              icono={History}
+              activo={mostrarHistorialAcademico}
               onClick={() => setMostrarHistorialAcademico(!mostrarHistorialAcademico)}
-              className="text-sm text-teal-600 hover:underline font-medium"
             >
-              {mostrarHistorialAcademico ? "Ocultar historial académico" : "Ver historial académico"}
-            </button>
+              Historial
+            </BotonAccionFicha>
             {!editandoMatricula && (
-              <Boton onClick={abrirEdicionMatricula}>
+              <BotonAccionFicha icono={matriculaVigente ? Pencil : Plus} onClick={abrirEdicionMatricula}>
                 {matriculaVigente ? "Cambiar de sección" : "Matricular"}
-              </Boton>
+              </BotonAccionFicha>
             )}
-          </div>
-        </div>
-
+          </>
+        }
+      >
         <TextoError>{errorMatricula}</TextoError>
 
         {!editandoMatricula ? (
@@ -2213,17 +2231,15 @@ export default function FichaAlumnoPage() {
             (() => {
               const f = formatearSeccion(matriculaVigente);
               return (
-                <div>
-                  <div className="font-medium text-ink">{f.linea}</div>
-                  {f.detalle && <div className="mt-0.5 text-xs text-ink/50">{f.detalle}</div>}
-                  <div className="mt-1 text-xs text-ink/40">
-                    Desde el {formatearFecha(matriculaVigente.fecha_inicio.slice(0, 10))}
-                  </div>
-                </div>
+                <CuadriculaDatos columnas={3}>
+                  <DatoFicha etiqueta="Sección vigente" valor={f.linea} />
+                  <DatoFicha etiqueta="Detalle" valor={f.detalle} />
+                  <DatoFicha etiqueta="Desde" valor={formatearFecha(matriculaVigente.fecha_inicio.slice(0, 10))} />
+                </CuadriculaDatos>
               );
             })()
           ) : (
-            <p className="py-2 text-sm italic text-ink/60">Sin matrícula activa.</p>
+            <VacioFicha icono={School} texto="Sin matrícula activa." />
           )
         ) : (
           <form onSubmit={guardarMatricula} className="grid gap-4 text-sm sm:grid-cols-3">
@@ -2296,8 +2312,8 @@ export default function FichaAlumnoPage() {
         )}
 
         {mostrarHistorialAcademico && (
-          <div className="border-t border-border pt-4 mt-2">
-            <h3 className="text-sm font-semibold text-teal-900 mb-2">Historial académico</h3>
+          <div className="border-t border-border dark:border-border-dark pt-4">
+            <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial académico</h3>
             {historialAcademico.length === 0 ? (
               <p className="text-sm text-ink/60 italic">Sin matrículas registradas todavía.</p>
             ) : (
@@ -2319,7 +2335,7 @@ export default function FichaAlumnoPage() {
             )}
           </div>
         )}
-      </section>
+      </BloqueFicha>
 
       {/* Pruebas aplicadas / instrumentos aplicados — historial de informes
           (GET /educativo/personas/{id}/informes), uno por aplicación real.
@@ -2328,21 +2344,22 @@ export default function FichaAlumnoPage() {
           del catálogo, no solo PHQ-9. Desde aquí mismo se revisa/edita el
           contenido profesional del informe (PATCH revision-informe) y se
           reemite el PDF para que la edición quede reflejada. */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-          <h2 className="font-display text-xl text-teal-900 font-semibold">Pruebas aplicadas</h2>
-        </div>
-
+      <BloqueFicha
+        icono={ClipboardList}
+        titulo="Pruebas aplicadas"
+        descripcion="Informes generados por cada evaluación finalizada."
+        cuerpoClassName="space-y-4"
+      >
         <TextoError>{errorPruebas}</TextoError>
 
         {pruebasAplicadas === null ? (
           <p className="text-sm text-ink/60">Cargando...</p>
         ) : pruebasAplicadas.length === 0 ? (
-          <p className="text-sm text-ink/60 italic">Este estudiante todavía no tiene pruebas aplicadas.</p>
+          <VacioFicha icono={ClipboardList} texto="Este estudiante todavía no tiene pruebas aplicadas." />
         ) : (
           <div className="space-y-3">
             {pruebasAplicadas.map((fila) => (
-              <div key={fila.inscripcion_id} className="border border-border rounded-card">
+              <div key={fila.inscripcion_id} className="border border-border dark:border-border-dark rounded-lg hover:border-teal-400/60 transition-colors">
                 <div className="flex items-center justify-between gap-3 p-3 flex-wrap">
                   <div className="text-sm">
                     <p className="font-medium text-ink">{fila.prueba_nombre_publico}</p>
@@ -2583,23 +2600,29 @@ export default function FichaAlumnoPage() {
             ))}
           </div>
         )}
-      </section>
+      </BloqueFicha>
 
       {/* Línea de tiempo del expediente clínico */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-          <h2 className="font-display text-xl text-teal-900 font-semibold">Expediente clínico</h2>
-          {puedeEscribirExpediente && !formEntrada && !formEvidencia && (
-            <div className="flex items-center gap-2">
-              <Boton onClick={abrirFormularioEntrada}>+ Nueva entrada</Boton>
-              <button onClick={abrirFormularioEvidencia} className={claseBoton("secundario")}>
-                + Subir evidencia
-              </button>
-            </div>
-          )}
-        </div>
-
-        <p className="text-xs text-ink/50 italic">{notaAccesoExpediente(sesion?.rol)}</p>
+      <BloqueFicha
+        icono={FolderLock}
+        titulo="Expediente clínico"
+        descripcion={notaAccesoExpediente(sesion?.rol)}
+        cuerpoClassName="space-y-4"
+        acciones={
+          puedeEscribirExpediente &&
+          !formEntrada &&
+          !formEvidencia && (
+            <>
+              <BotonAccionFicha icono={Plus} onClick={abrirFormularioEntrada}>
+                Nueva entrada
+              </BotonAccionFicha>
+              <BotonAccionFicha icono={Paperclip} onClick={abrirFormularioEvidencia}>
+                Subir evidencia
+              </BotonAccionFicha>
+            </>
+          )
+        }
+      >
 
         <TextoError>{errorEntradas}</TextoError>
 
@@ -2769,7 +2792,7 @@ export default function FichaAlumnoPage() {
         )}
 
         {entradas.length === 0 ? (
-          <p className="text-sm text-ink/60 italic py-2">No hay entradas de expediente visibles para ti.</p>
+          <VacioFicha icono={FolderLock} texto="No hay entradas de expediente visibles para ti." />
         ) : (
           <div className="space-y-3">
             {entradas.map((entrada) => {
@@ -3008,37 +3031,44 @@ export default function FichaAlumnoPage() {
             })}
           </div>
         )}
-      </section>
+      </BloqueFicha>
 
       {/* Autorización de acceso del colegio — misma condición de rol que
           escribir en el expediente, ver comentario de puedeEscribirExpediente. */}
       {puedeEscribirExpediente && (
-        <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-            <h2 className="font-display text-xl text-teal-900 font-semibold">Autorización de acceso del colegio</h2>
-            {!autorizacionVigente && !formularioAutorizacion && (
-              <Boton onClick={abrirFormularioAutorizacion}>Otorgar</Boton>
-            )}
-          </div>
-
-          <p className="text-xs text-ink/50 italic">
-            Mientras esté vigente, el rol &quot;colegio&quot; obtiene lectura completa de todo el expediente clínico
-            de este estudiante — es la única excepción a la confidencialidad por autor.
+        <BloqueFicha
+          icono={KeyRound}
+          titulo="Autorización de acceso del colegio"
+          descripcion='Mientras esté vigente, el rol "colegio" lee todo el expediente clínico de este estudiante.'
+          cuerpoClassName="space-y-4"
+          acciones={
+            !autorizacionVigente &&
+            !formularioAutorizacion && (
+              <BotonAccionFicha icono={Plus} onClick={abrirFormularioAutorizacion}>
+                Otorgar
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <p className="text-xs text-ink/55 dark:text-ink-dark/55">
+            Es la única excepción a la confidencialidad por autor del expediente.
           </p>
 
           <TextoError>{errorAutorizacion}</TextoError>
 
           {autorizacionVigente ? (
-            <div className="grid sm:grid-cols-2 gap-4 text-sm">
-              <Campo etiqueta="Motivo" valor={autorizacionVigente.motivo} />
-              <Campo etiqueta="Otorgada el" valor={new Date(autorizacionVigente.fecha_otorgado).toLocaleString()} />
-              <Campo
-                etiqueta="Otorgada por"
-                valor={`Usuario #${autorizacionVigente.otorgado_por_usuario_id}${
-                  autorizacionVigente.rol_otorgante ? ` (${autorizacionVigente.rol_otorgante})` : ""
-                }`}
-              />
-              <div className="sm:col-span-2">
+            <div className="space-y-3 text-sm">
+              <CuadriculaDatos columnas={3}>
+                <DatoFicha etiqueta="Motivo" valor={autorizacionVigente.motivo} />
+                <DatoFicha etiqueta="Otorgada el" valor={new Date(autorizacionVigente.fecha_otorgado).toLocaleString()} />
+                <DatoFicha
+                  etiqueta="Otorgada por"
+                  valor={`Usuario #${autorizacionVigente.otorgado_por_usuario_id}${
+                    autorizacionVigente.rol_otorgante ? ` (${autorizacionVigente.rol_otorgante})` : ""
+                  }`}
+                />
+              </CuadriculaDatos>
+              <div>
                 <button
                   onClick={revocarAutorizacion}
                   disabled={revocandoAutorizacion}
@@ -3074,9 +3104,9 @@ export default function FichaAlumnoPage() {
               </div>
             </form>
           ) : (
-            <p className="text-sm text-ink/60 italic py-2">No hay una autorización vigente para este estudiante.</p>
+            <VacioFicha icono={KeyRound} texto="No hay una autorización vigente para este estudiante." />
           )}
-        </section>
+        </BloqueFicha>
       )}
 
       {/* Documentos institucionales — listado simple con link a la pantalla
@@ -3086,52 +3116,63 @@ export default function FichaAlumnoPage() {
           lo lee y precarga el alcance "uno o varios alumnos" con este alumno ya
           marcado (ver ese archivo), para no tener que volver a buscarlo. Se abre
           en pestaña nueva (target=_blank) para no perder la ficha de donde se vino. */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-          <h2 className="font-display text-xl text-teal-900 font-semibold">Documentos institucionales</h2>
+      <BloqueFicha
+        icono={FileText}
+        titulo="Documentos institucionales"
+        descripcion="Informes, planes y fichas generados con plantillas."
+        cuerpoClassName="space-y-4"
+        acciones={
           <Link
             href={`/documentos/nuevo?persona_id=${personaId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm font-medium text-teal-700 hover:underline"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink/70 hover:border-teal-400 hover:text-teal-700 transition-colors dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70"
           >
-            + Nuevo documento ↗
+            <Plus size={13} aria-hidden="true" />
+            Nuevo documento ↗
           </Link>
-        </div>
-
+        }
+      >
         <TextoError>{errorDocumentos}</TextoError>
 
         {documentos.length === 0 ? (
-          <p className="text-sm text-ink/60 italic py-2">No hay documentos institucionales para este estudiante.</p>
+          <VacioFicha icono={FileText} texto="No hay documentos institucionales para este estudiante." />
         ) : (
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border dark:divide-border-dark rounded-lg border border-border dark:border-border-dark overflow-hidden">
             {documentos.map((documento) => (
               <Link
                 key={documento.id}
                 href={`/documentos/${documento.id}`}
-                className="flex items-center justify-between gap-3 py-2 hover:bg-mist/40 -mx-2 px-2 rounded-card transition-colors"
+                className="flex items-center justify-between gap-3 px-3.5 py-2.5 hover:bg-mist/50 dark:hover:bg-surface-raised-dark transition-colors"
               >
-                <span className="text-sm font-medium text-ink">{documento.titulo}</span>
-                <span className="text-xs text-ink/50">
+                <span className="flex items-center gap-2 text-sm font-medium text-ink dark:text-ink-dark">
+                  <FileText size={14} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+                  {documento.titulo}
+                </span>
+                <span className="text-xs text-ink/50 dark:text-ink-dark/50">
                   {documento.version_actual === null ? "Sin versión generada" : `v${documento.version_actual}`}
                 </span>
               </Link>
             ))}
           </div>
         )}
-      </section>
-
+      </BloqueFicha>
 
       {/* Sección de Citas */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-        <h2 className="font-display text-xl text-teal-900 font-semibold border-b border-border pb-2">
-          Citas Programadas
-        </h2>
-
+      <BloqueFicha
+        icono={CalendarClock}
+        titulo="Citas programadas"
+        cuerpoClassName="space-y-4"
+        acciones={
+          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/cita/nueva`)}>
+            Nueva cita
+          </BotonAccionFicha>
+        }
+      >
         <TextoError>{errorCitas}</TextoError>
 
         {citas.length === 0 ? (
-          <p className="text-sm text-ink/60 italic py-2">No hay citas registradas para este alumno.</p>
+          <VacioFicha icono={CalendarClock} texto="No hay citas registradas para este alumno." />
         ) : (
           <div className="grid gap-3">
             {citas.map((cita) => {
@@ -3145,7 +3186,7 @@ export default function FichaAlumnoPage() {
               // el taller completo. Esa edición vive en /agenda.
               const esGrupal = cita.persona_id === null;
               return (
-              <div key={cita.id} className="p-4 rounded-card border border-border space-y-3">
+              <div key={cita.id} className="p-3.5 rounded-lg border border-border dark:border-border-dark space-y-3">
                 <div className="flex justify-between items-start">
                   <div>
                     {esGrupal && (
@@ -3223,22 +3264,27 @@ export default function FichaAlumnoPage() {
             })}
           </div>
         )}
-      </section>
+      </BloqueFicha>
 
       {/* Sección de Seguimiento / Sesiones Psicológicas */}
-      <section className="bg-white rounded-card border border-border p-6 shadow-sm space-y-4">
-        <h2 className="font-display text-xl text-teal-900 font-semibold border-b border-border pb-2">
-          Historial de Sesiones de Seguimiento
-        </h2>
-
+      <BloqueFicha
+        icono={MessagesSquare}
+        titulo="Historial de sesiones de seguimiento"
+        cuerpoClassName="space-y-4"
+        acciones={
+          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}>
+            Registrar sesión
+          </BotonAccionFicha>
+        }
+      >
         <TextoError>{errorSesiones}</TextoError>
 
         {seguimientos.length === 0 ? (
-          <p className="text-sm text-ink/60 italic py-2">No se han registrado sesiones de seguimiento clínico.</p>
+          <VacioFicha icono={MessagesSquare} texto="No se han registrado sesiones de seguimiento clínico." />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {seguimientos.map((sesion) => (
-              <div key={sesion.id} className="p-5 rounded-card border border-border bg-white shadow-xs space-y-3">
+              <div key={sesion.id} className="p-4 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark space-y-3">
                 <div className="flex justify-between items-center border-b border-border/60 pb-2">
                   <span className="text-xs font-semibold text-ink/70">
                     Fecha de Sesión: {new Date(sesion.fecha).toLocaleDateString()}
@@ -3359,7 +3405,7 @@ export default function FichaAlumnoPage() {
             ))}
           </div>
         )}
-      </section>
+      </BloqueFicha>
 
       <VisorArchivoModal
         abierto={visorModalAbierto}

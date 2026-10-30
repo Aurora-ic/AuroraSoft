@@ -16,6 +16,7 @@ export function BloqueFicha({
   acciones,
   children,
   className = "",
+  cuerpoClassName = "",
 }: {
   icono: LucideIcon;
   titulo: string;
@@ -23,6 +24,8 @@ export function BloqueFicha({
   acciones?: ReactNode;
   children: ReactNode;
   className?: string;
+  // Clases extra del cuerpo (p. ej. "space-y-4" para separar sub-bloques).
+  cuerpoClassName?: string;
 }) {
   return (
     <section
@@ -40,8 +43,20 @@ export function BloqueFicha({
         </div>
         {acciones && <div className="flex items-center gap-1.5">{acciones}</div>}
       </header>
-      <div className="p-4">{children}</div>
+      <div className={`p-4 ${cuerpoClassName}`}>{children}</div>
     </section>
+  );
+}
+
+// Estado vacío uniforme de un bloque ("No hay citas registradas..."): antes
+// era un párrafo en cursiva suelto; ahora un recuadro punteado con icono.
+export function VacioFicha({ icono: Icono, texto, children }: { icono: LucideIcon; texto: string; children?: ReactNode }) {
+  return (
+    <div className="rounded-lg border border-dashed border-border dark:border-border-dark py-6 px-4 text-center">
+      <Icono size={18} className="mx-auto text-ink/25 dark:text-ink-dark/25" aria-hidden="true" />
+      <p className="mt-1.5 text-sm text-ink/50 dark:text-ink-dark/50">{texto}</p>
+      {children}
+    </div>
   );
 }
 
