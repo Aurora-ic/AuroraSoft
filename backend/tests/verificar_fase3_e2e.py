@@ -184,10 +184,19 @@ def main(url_base):
 
     exigir(pedir(requests.post, f"{API}/auth/solicitar-recuperacion", "recuperación",
                  json={"email": correo_psi}), 200, "Solicitar recuperación")
+    # 🆕 La recuperación por correo es solo para superadmin: la solicitud de
+    # un psicólogo responde 200 (mismo mensaje genérico) pero no emite token.
     token_reset = sql_uno("select t.token from auth_tokens_recuperacion t join auth_usuarios u "
                           "on u.id=t.usuario_id where u.email=:e and t.usado=false "
                           "order by t.id desc", e=correo_psi)
-    comprobar("La solicitud (con envío en segundo plano) genera el enlace", token_reset is not None)
+    comprobar("Un psicólogo NO recibe enlace de recuperación (solo superadmin)", token_reset is None)
+    # Lo que sigue prueba la invalidación de JWT al resetear (C-4), que vale
+    # para cualquier rol: el token se emite directo en la BD.
+    token_directo = uuid.uuid4().hex + uuid.uuid4().hex
+    ejecutar("insert into auth_tokens_recuperacion (usuario_id, token, fecha_expiracion, usado) "
+             "select id, :t, now() + interval '1 hour', false from auth_usuarios where email=:e",
+             t=token_directo, e=correo_psi)
+    token_reset = (token_directo,)
     exigir(requests.post(f"{API}/auth/resetear-password",
                          json={"token": token_reset[0], "nueva_password": "NuevaClave456"}, timeout=30),
            200, "Resetear contraseña")

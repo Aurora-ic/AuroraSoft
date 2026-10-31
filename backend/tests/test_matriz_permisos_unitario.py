@@ -157,6 +157,8 @@ def _fuente_de(metodo, path):
 
 _PUBLICO_PERMITIDO_PATRONES = [
     re.compile(r"^/api/auth/login$"),
+    # Captcha del login (core/captcha.py): se pide antes de tener sesión.
+    re.compile(r"^/api/auth/captcha$"),
     re.compile(r"^/api/auth/solicitar-recuperacion$"),
     re.compile(r"^/api/auth/resetear-password$"),
     re.compile(r"^/api/educativo/comenzar-test/\{token\}$"),

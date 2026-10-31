@@ -1087,6 +1087,14 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
+    "GET /api/auth/captcha": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
     "POST /api/auth/login": {
       "admin": false,
       "colegio": false,

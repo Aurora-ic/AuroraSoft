@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Request, Response, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from core import permisos
@@ -12,6 +12,7 @@ from modulos.instituciones import models as instituciones_models
 from core.database import get_db
 from core.security import verify_password, create_access_token
 from core.limiter import limiter  # 👈 Evita importación circular
+from core import captcha
 from . import models, schemas, crud
 from core.email_service import enviar_correo_recuperacion
 from fastapi import Request
@@ -36,18 +37,42 @@ def registrar_usuario(
     return crud.crear_usuario(db=db, usuario=usuario)
 
 
+@router.get("/captcha", response_model=schemas.CaptchaResponse)
+@limiter.limit("30/minute")
+def obtener_captcha(request: Request):
+    """🆕 Desafío de imagen para el login (ver core/captcha.py). Público a
+    propósito: se pide ANTES de tener sesión. Con
+    LOGIN_CAPTCHA_OBLIGATORIO=false responde `habilitado=false` y la pantalla
+    de login oculta el campo."""
+    if not captcha.CAPTCHA_OBLIGATORIO:
+        return {"habilitado": False, "captcha_id": None, "imagen": None}
+    return {"habilitado": True, **captcha.generar_captcha()}
+
+
 @router.post("/login", response_model=schemas.Token)
 @limiter.limit("5/minute")
 def iniciar_sesion(
     request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(), 
+    captcha_id: Optional[str] = Form(None),
+    captcha_respuesta: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """
     Ruta de Login con Rate Limiting (máximo 5 intentos por minuto).
     Nota: FastAPI usa un estándar donde el email se envía en un campo
     llamado 'username'.
+
+    🆕 Captcha: se valida ANTES de mirar la contraseña — si fuera después,
+    un script podría seguir probando claves y solo "fallar el captcha" sin
+    que eso le costara nada. Cada captcha es de un solo uso.
     """
+    if captcha.CAPTCHA_OBLIGATORIO:
+        try:
+            captcha.verificar_captcha(captcha_id, captcha_respuesta)
+        except captcha.CaptchaInvalido as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
     usuario = crud.obtener_usuario_por_email(db, email=form_data.username)
 
     if not usuario or not verify_password(form_data.password, usuario.hashed_password):
@@ -103,9 +128,16 @@ def solicitar_recuperacion(
     """
     🔒 FIX: 'email' ahora viaja en el body (schemas.SolicitudRecuperacion),
     no como query param. Protegido con Rate Limiting (3 req/min).
+
+    🆕 Solo cuentas SUPERADMIN activas reciben el enlace (decisión del
+    equipo: el superadmin es la cuenta de AuroraSoft con correo real; a
+    admin/psicólogo/colegio les cambia la clave un administrador). Para el
+    resto la respuesta es idéntica y no se envía nada — no se delata qué
+    correos existen ni qué rol tienen. /resetear-password no repite el filtro
+    a propósito: esta es la única vía que emite tokens.
     """
     usuario = crud.obtener_usuario_por_email(db, datos.email)
-    if usuario:
+    if usuario and usuario.rol == "superadmin" and usuario.activo:
         token_obj = crud.crear_token_recuperacion(db, usuario.id)
         # ✉️ C-14 — El SMTP ya no bloquea al worker: antes una conversación
         # SMTP lenta (varios segundos) retenía el hilo durante toda la

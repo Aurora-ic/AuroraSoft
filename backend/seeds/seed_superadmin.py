@@ -1,14 +1,24 @@
 """
 Crea o actualiza el primer usuario superadmin del sistema (equipo AuroraSoft).
 Ejecutar:
-    python -m seeds.seed_superadmin
+    python -m seeds.seed_superadmin                      # crea el superadmin si no existe
+    python -m seeds.seed_superadmin --resetear-password  # además fuerza la contraseña del .env
+
+🆕 La BASE DE DATOS es la fuente de verdad de la contraseña: si el
+superadmin ya existe, este script NO la toca (salvo --resetear-password).
+Antes la sobrescribía siempre con SUPERADMIN_PASSWORD, así que una clave
+cambiada por "Olvidé mi contraseña" se perdía en silencio la próxima vez que
+alguien corría el seed contra la base compartida.
 """
 import os
 import secrets
+import sys
 from core.database import SessionLocal
 import modulos.instituciones.models  # Mantiene el registro del modelo Institucion
 from modulos.auth import models
 from core.security import get_password_hash
+
+RESETEAR_PASSWORD = "--resetear-password" in sys.argv
 
 db = SessionLocal()
 
@@ -30,7 +40,15 @@ try:
         models.Usuario.email == email_superadmin
     ).first()
 
-    if usuario:
+    password_aplicada = True
+    if usuario and not RESETEAR_PASSWORD:
+        password_aplicada = False
+        if not usuario.activo:
+            usuario.activo = True
+            db.commit()
+        print("ℹ️ El superadmin ya existe: se conserva su contraseña actual de la base de datos.")
+        print("   (Para forzar la del .env: python -m seeds.seed_superadmin --resetear-password)")
+    elif usuario:
         usuario.hashed_password = get_password_hash(password_final)
         usuario.activo = True
         # 🔑 C-4 — un reseteo de contraseña invalida los JWT emitidos antes
@@ -55,7 +73,9 @@ try:
     print("🔑 CREDENCIALES DE ACCESO SUPERADMIN:")
     print(f"   Email: {email_superadmin}")
     
-    if usando_env:
+    if not password_aplicada:
+        print("   Password: [LA QUE YA TENÍA EN LA BASE DE DATOS — sin cambios]")
+    elif usando_env:
         print("   Password: [CONFIGURADA DESDE VARIABLE DE ENTORNO SUPERADMIN_PASSWORD]")
     else:
         print(f"   Password Temporal Generada: {password_final}")

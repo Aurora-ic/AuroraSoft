@@ -10,7 +10,7 @@ test.describe("Login", () => {
     // onSubmit todavía enganchado) en vez del handler real.
     await page.waitForLoadState("networkidle");
     await page.getByLabel("Correo electrónico").fill(fixtures.psicologoEmail);
-    await page.getByLabel("Contraseña").fill(fixtures.psicologoPassword);
+    await page.getByLabel("Contraseña", { exact: true }).fill(fixtures.psicologoPassword);
     await page.getByRole("button", { name: "Ingresar al sistema" }).click();
     await expect(page).toHaveURL(/\/inicio/);
   });
@@ -20,7 +20,7 @@ test.describe("Login", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
     await page.getByLabel("Correo electrónico").fill(fixtures.psicologoEmail);
-    await page.getByLabel("Contraseña").fill("ClaveIncorrecta999");
+    await page.getByLabel("Contraseña", { exact: true }).fill("ClaveIncorrecta999");
     await page.getByRole("button", { name: "Ingresar al sistema" }).click();
     // El backend responde 401 con detail="Email o contraseña incorrectos"
     // (core/security.verify_password) -- AuthContext.login lo pasa tal

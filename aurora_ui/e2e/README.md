@@ -11,11 +11,13 @@ académico/tendencias.
 
 ## Antes de correr
 
-1. Backend real corriendo en el puerto 8010, con SMTP deshabilitado:
+1. Backend real corriendo en el puerto 8010, con SMTP y el captcha del login
+   deshabilitados (la suite inicia sesión por script y no puede leer la
+   imagen del captcha — ver `backend/core/captcha.py`):
 
    ```bash
    cd backend
-   EMAIL_USUARIO= EMAIL_PASSWORD= uvicorn main:app --port 8010
+   EMAIL_USUARIO= EMAIL_PASSWORD= LOGIN_CAPTCHA_OBLIGATORIO=false uvicorn main:app --port 8010
    ```
 
 2. Frontend real corriendo en el puerto 3000:

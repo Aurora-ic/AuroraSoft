@@ -188,10 +188,67 @@ export function descargarBlob(blob: Blob, nombreArchivo: string) {
 
 // --- Login: el backend usa OAuth2PasswordRequestForm (form-urlencoded,
 // campo "username" para el email) — no manda JSON como el resto. -------
-export async function login(email: string, password: string) {
+
+// 🆕 Captcha del login (backend/core/captcha.py). La respuesta trae solo la
+// imagen y un id opaco — el texto correcto nunca llega al navegador.
+export type CaptchaLogin = { habilitado: boolean; captcha_id: string | null; imagen: string | null };
+
+export async function obtenerCaptcha(): Promise<CaptchaLogin> {
+  const res = await fetchSeguro("/auth/captcha", {
+    headers: { "ngrok-skip-browser-warning": "true" },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new ApiError(
+      res.status,
+      res.status === 429 ? "Pediste demasiados códigos seguidos. Espera un momento." : "No se pudo cargar el código de verificación.",
+    );
+  }
+  return res.json();
+}
+
+// 🆕 "Olvidé mi contraseña" (backend: POST /auth/solicitar-recuperacion y
+// /auth/resetear-password). Públicas, sin token. El backend responde lo
+// mismo exista o no la cuenta, y solo envía el correo a un superadmin.
+async function postPublico(path: string, cuerpo: unknown, mensaje429: string): Promise<{ mensaje: string }> {
+  const res = await fetchSeguro(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+    body: JSON.stringify(cuerpo),
+  });
+  if (!res.ok) {
+    const datos = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, res.status === 429 ? mensaje429 : extraerMensajeError(datos));
+  }
+  return res.json();
+}
+
+export function solicitarRecuperacion(email: string) {
+  return postPublico(
+    "/auth/solicitar-recuperacion",
+    { email },
+    "Ya pediste varios enlaces seguidos. Espera un minuto antes de volver a intentarlo.",
+  );
+}
+
+export function resetearPassword(token: string, nuevaPassword: string) {
+  return postPublico(
+    "/auth/resetear-password",
+    { token, nueva_password: nuevaPassword },
+    "Demasiados intentos. Espera un momento antes de volver a intentarlo.",
+  );
+}
+
+export type RespuestaCaptcha = { captchaId: string; respuesta: string };
+
+export async function login(email: string, password: string, captcha?: RespuestaCaptcha) {
   const body = new URLSearchParams();
   body.set("username", email);
   body.set("password", password);
+  if (captcha) {
+    body.set("captcha_id", captcha.captchaId);
+    body.set("captcha_respuesta", captcha.respuesta);
+  }
 
   const res = await fetchSeguro("/auth/login", {
     method: "POST",

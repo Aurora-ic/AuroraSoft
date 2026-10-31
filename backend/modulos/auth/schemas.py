@@ -50,6 +50,14 @@ class Token(BaseModel):
     token_type: str
 
 
+class CaptchaResponse(BaseModel):
+    """Ver core/captcha.py. `imagen` es un data URL PNG; ambos campos son
+    None cuando el captcha está deshabilitado (LOGIN_CAPTCHA_OBLIGATORIO=false)."""
+    habilitado: bool
+    captcha_id: Optional[str] = None
+    imagen: Optional[str] = None
+
+
 # ==========================================
 # 🔒 FIX: esquemas para recuperación de contraseña.
 # Antes "email" y "nueva_password" se recibían como parámetros sueltos

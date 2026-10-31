@@ -39,7 +39,7 @@ celery -A core.cola_tareas worker --loglevel=info   # consumes the real queue �
 python -m tareas.reconciliar_tareas_colgadas        # cron job (e.g. every 15 min): finds a RegistroTareaAsincrona stuck 'en_progreso' (worker restarted mid-task) and re-queues it
 alembic revision --autogenerate -m "mensaje"
 alembic upgrade head               # apply migrations — the normal way to change schema; see "Migrations" below
-python -m seeds.seed_superadmin    # create/reset the AuroraSoft superadmin (uses SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD)
+python -m seeds.seed_superadmin    # create the AuroraSoft superadmin if missing (SUPERADMIN_EMAIL/SUPERADMIN_PASSWORD); an existing one KEEPS its DB password (the DB is the source of truth — a password changed via "Olvidé mi contraseña" must survive a re-run). Add --resetear-password to force the .env one
 python -m seeds.seed_phq9          # load the public PHQ-9 catalog (items, baremos, item-9 rule, informe content) — idempotent, additive-only on a re-run
 python -m seeds.normalizar_contenido_comun  # run AFTER any instrument seed(s): force-syncs motivo_consulta_default/tecnicas_adicionales/observacion_conductual_default to the same procedural text across all public pruebas (excludes APTITUD_TECNICA_INTERNA) — the one deliberate exception to "never overwrite already-loaded content," see docs/informes-psicometricos.md
 python -m seeds.seed_plantilla_informe_escolar  # load the first global PREDETERMINADA PlantillaDocumento (institucion_id=NULL) for the documentos engine — idempotent, requires seed_superadmin to have run first; see docs/motor-documentos.md

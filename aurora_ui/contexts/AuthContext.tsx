@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { decodificarToken, tokenExpirado } from "@/lib/jwt";
-import { login as loginApi } from "@/lib/api-client";
+import { login as loginApi, type RespuestaCaptcha } from "@/lib/api-client";
 import type { Rol } from "@/types/api";
 
 type SesionActual = { email: string; rol: Rol; institucionId: number | null } | null;
@@ -11,7 +11,7 @@ type SesionActual = { email: string; rol: Rol; institucionId: number | null } | 
 type AuthContextValue = {
   sesion: SesionActual;
   cargando: boolean;
-  login: (correo: string, pass: string) => Promise<void>;
+  login: (correo: string, pass: string, captcha?: RespuestaCaptcha) => Promise<void>;
   cerrarSesion: () => void;
 };
 
@@ -53,12 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function login(correo: string, pass: string) {
+  async function login(correo: string, pass: string, captcha?: RespuestaCaptcha) {
     // Vía el helper de lib/api-client.ts, que respeta NEXT_PUBLIC_API_URL y
     // ya guarda el token (guardarToken) — antes esta función duplicaba esa
     // misma petición con "http://127.0.0.1:8000" fijo, que rompía el login
     // en cualquier deploy con otro origen de API.
-    const respuesta = await loginApi(correo, pass);
+    const respuesta = await loginApi(correo, pass, captcha);
 
     const datos = decodificarToken(respuesta.access_token);
     if (!datos) throw new Error("Token de sesión inválido.");

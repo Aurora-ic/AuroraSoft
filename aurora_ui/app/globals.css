@@ -102,3 +102,20 @@ h1, h2, h3, h4 {
    lugar un tailwind.config.ts con:
    theme: { extend: { colors: { teal: {900:"#0B3D34",600:"#12796B",400:"#35A794"},
    mist:"#F3F7F5", ink:"#1C2321", amber:"#E2A33B", border:"#DCE5E1" } } } */
+
+/* 🆕 Login: sacudida breve de la tarjeta cuando falla un intento — refuerza
+   el mensaje de error sin depender solo del color. Se omite si el usuario
+   pidió reducir el movimiento en su sistema. */
+@keyframes sacudida {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+}
+.animar-sacudida {
+  animation: sacudida 0.4s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animar-sacudida { animation: none; }
+}
