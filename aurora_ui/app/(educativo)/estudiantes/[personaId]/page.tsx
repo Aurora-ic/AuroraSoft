@@ -16,6 +16,7 @@ import { TheadFila, Th } from "@/components/ui/Tabla";
 import { ContenidoVisorArchivo, VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
 import { Migas } from "@/components/ui/Migas";
 import { ModeloConsentimiento } from "@/components/educativo/ModeloConsentimiento";
+import { TarjetaPerfil, IndicadoresEstudiante, TituloGrupoFicha } from "@/components/educativo/PerfilEstudiante";
 import { BloqueFicha, CuadriculaDatos, DatoFicha, BotonAccionFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
 import {
   ShieldCheck,
@@ -36,9 +37,6 @@ import {
   Plus,
   CalendarPlus,
   NotebookPen,
-  GraduationCap,
-  Hash,
-  Cake,
   Mail,
 } from "lucide-react";
 import type {
@@ -164,17 +162,6 @@ function formatearFecha(fecha?: string | null): string | null {
 // null = "no preguntado todavía" — nunca se muestra como "No" (eso sería
 // afirmar algo que no se sabe). Mismo criterio que el backend, que guarda
 // estos campos como Optional[bool] en vez de default False.
-// Edad en años cumplidos a partir de "AAAA-MM-DD" (fecha_nacimiento).
-function calcularEdad(fecha?: string | null): number | null {
-  if (!fecha) return null;
-  const nac = new Date(`${fecha}T00:00:00`);
-  if (Number.isNaN(nac.getTime())) return null;
-  const hoy = new Date();
-  let edad = hoy.getFullYear() - nac.getFullYear();
-  if (hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) edad--;
-  return edad;
-}
-
 function formatearBooleanoTriple(valor?: boolean | null): string | null {
   if (valor === null || valor === undefined) return null;
   return valor ? "Sí" : "No";
@@ -1458,54 +1445,24 @@ export default function FichaAlumnoPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <Migas items={[{ label: "Padrón", href: "/estudiantes" }, { label: `${alumno.nombres} ${alumno.apellidos}` }]} />
-      {/* Cabecera — tarjeta de perfil (🆕 rediseño sesión 2026-10-29): antes
-          era solo el nombre suelto + dos botones; ahora resume de un vistazo
-          quién es (código, sección vigente, edad) con los mismos datos que
-          la página ya tenía cargados. */}
-      <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
-        <div className="h-1.5 bg-gradient-to-r from-teal-900 to-teal-600" />
-        <div className="flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4 min-w-0">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-teal-900 text-lg font-bold text-white dark:bg-teal-accent-dark/20 dark:text-teal-accent-dark">
-              {`${alumno.nombres[0] ?? ""}${alumno.apellidos[0] ?? ""}`.toUpperCase()}
-            </span>
-            <div className="min-w-0">
-              <h1 className="font-display text-2xl sm:text-[26px] font-bold leading-tight text-teal-900 dark:text-ink-dark break-words">
-                {alumno.nombres} {alumno.apellidos}
-              </h1>
-              <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
-                <span className="inline-flex items-center gap-1 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-ink/70 dark:text-ink-dark/70">
-                  <GraduationCap size={12} aria-hidden="true" />
-                  {matriculaVigente
-                    ? [matriculaVigente.nivel_educativo, matriculaVigente.grado, matriculaVigente.seccion].filter(Boolean).join(" · ")
-                    : "Sin matrícula"}
-                </span>
-                {alumno.codigo_institucional && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 font-mono text-ink/70 dark:text-ink-dark/70">
-                    <Hash size={12} aria-hidden="true" />
-                    {alumno.codigo_institucional}
-                  </span>
-                )}
-                {calcularEdad(alumno.fecha_nacimiento) !== null && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-ink/70 dark:text-ink-dark/70">
-                    <Cake size={12} aria-hidden="true" />
-                    {calcularEdad(alumno.fecha_nacimiento)} años
-                  </span>
-                )}
-                <span
-                  className={`inline-flex items-center rounded-md px-2 py-0.5 font-medium ${
-                    alumno.activo ? "bg-teal-400/20 text-teal-900 dark:text-teal-accent-dark" : "bg-border text-ink/50"
-                  }`}
-                >
-                  {alumno.activo ? "Activo" : "Inactivo"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+      {/* 🆕 Perfil del estudiante (sesión 2026-10-30) — tarjeta de perfil
+          (identidad + datos clave, sin el código institucional, que sigue en
+          el bloque "Identidad") e indicadores actuales, y debajo los
+          apartados agrupados por jerarquía: (arriba) perfil + Datos de
+          filiación → Indicadores → Evaluación y seguimiento → Registro
+          clínico → Matrícula, consentimientos y documentos. Los bloques se movieron enteros, sin cambiar su
+          contenido. Ver components/educativo/PerfilEstudiante.tsx. */}
+      {/* 🔧 Bloque principal horizontal a todo el ancho: perfil | datos
+          clave | acciones, y dentro del mismo bloque los datos de filiación
+          editables — sin datos repetidos entre ambos. */}
+      <TarjetaPerfil
+        alumno={alumno}
+        matricula={matriculaVigente}
+        consentimientoVigente={consentimientos ? consentimientos.apoderado.tiene_consentimiento_vigente : null}
+        acciones={
+          <>
             <Boton
               variante="secundario"
               onClick={() => router.push(`/estudiantes/${personaId}/cita/nueva`)}
@@ -1521,828 +1478,448 @@ export default function FichaAlumnoPage() {
               <NotebookPen size={15} aria-hidden="true" />
               Registrar sesión
             </Boton>
-          </div>
-        </div>
-      </div>
-
-      {/* Datos de filiación del estudiante — identidad + familiares +
-          antecedentes clínicos + contactos, unificados en un solo apartado
-          a pedido explícito (antes vivían en 4 secciones separadas). Cada
-          sub-bloque sigue golpeando su propio endpoint/tabla del backend
-          (Persona / PersonaDatosFamiliares / PersonaAntecedentesClinicos /
-          ContactoFamiliar) — esto es reordenamiento visual, no un cambio de
-          modelo de datos. */}
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <h2 className="font-display text-xl text-teal-900 dark:text-ink-dark font-semibold">Datos de filiación del estudiante</h2>
-            <p className="text-xs text-ink/50 dark:text-ink-dark/50 mt-0.5">Identidad, entorno familiar, antecedentes y contactos.</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-        {/* --- Identidad --- */}
-        <BloqueFicha
-          icono={IdCard}
-          titulo="Identidad"
-          acciones={
-            <>
-              <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
-                Historial
-              </BotonAccionFicha>
-              {!editando && (
-                <BotonAccionFicha icono={Pencil} onClick={abrirEdicion}>
-                  Editar
-                </BotonAccionFicha>
-              )}
-            </>
-          }
-        >
-          {!editando ? (
-            <CuadriculaDatos>
-              <DatoFicha etiqueta="Nombres" valor={alumno.nombres} />
-              <DatoFicha etiqueta="Apellidos" valor={alumno.apellidos} />
-              <DatoFicha etiqueta="Documento de identidad" valor={alumno.documento_identidad} />
-              <DatoFicha etiqueta="Código institucional" valor={alumno.codigo_institucional} />
-              <DatoFicha etiqueta="Fecha de nacimiento" valor={formatearFecha(alumno.fecha_nacimiento)} />
-              <DatoFicha etiqueta="Género" valor={alumno.genero} />
-            </CuadriculaDatos>
-          ) : (
-            <form onSubmit={guardarEdicion} className="grid sm:grid-cols-2 gap-4 text-sm">
-              <CampoEditable etiqueta="Nombres">
-                <Input required value={form.nombres} onChange={(e) => setForm({ ...form, nombres: e.target.value })} />
-              </CampoEditable>
-              <CampoEditable etiqueta="Apellidos">
-                <Input required value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} />
-              </CampoEditable>
-              <CampoEditable etiqueta="Documento de identidad">
-                <Input
-                  value={form.documento_identidad}
-                  onChange={(e) => setForm({ ...form, documento_identidad: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Fecha de nacimiento">
-                <Input
-                  type="date"
-                  value={form.fecha_nacimiento}
-                  onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Género">
-                <Input value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} />
-              </CampoEditable>
-
-              <TextoError className="sm:col-span-2">{errorEdicion}</TextoError>
-
-              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                <Boton type="submit" disabled={guardando}>
-                  {guardando ? "Guardando..." : "Guardar cambios"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={() => setEditando(false)}
-                  className="text-sm text-ink/60 hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
-
-          {mostrarHistorial && (
-            <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
-              <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
-              {cargandoHistorial && <p className="text-sm text-ink/60">Cargando historial...</p>}
-              <TextoError>{errorHistorial}</TextoError>
-              {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
-                <p className="text-sm text-ink/60 italic">Sin cambios registrados todavía.</p>
-              )}
-              {!cargandoHistorial && historial && historial.length > 0 && (
-                <div className="space-y-2">
-                  {historial.map((registro) => (
-                    <div key={registro.id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
-                      <span className="font-semibold text-teal-900">{registro.campo}</span>
-                      {": "}
-                      <span className="text-ink/70">{registro.valor_anterior ?? "(vacío)"}</span>
-                      {" → "}
-                      <span className="text-ink/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
-                      <div className="text-ink/50 mt-0.5">
-                        {new Date(registro.fecha).toLocaleString()} · rol: {registro.rol_modificador ?? "—"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </BloqueFicha>
-
-        {/* --- Datos familiares (PersonaDatosFamiliares, 1:1) --- */}
-        <BloqueFicha
-          icono={UsersRound}
-          titulo="Datos familiares"
-          acciones={
-            puedeEscribirDatosPrincipales &&
-            !editandoDatosFamiliares && (
-              <BotonAccionFicha icono={Pencil} onClick={abrirEdicionDatosFamiliares}>
-                Editar
-              </BotonAccionFicha>
-            )
-          }
-        >
-          <TextoError className="mb-3">{errorDatosFamiliares}</TextoError>
-
-          {!editandoDatosFamiliares ? (
-            <CuadriculaDatos>
-              <DatoFicha etiqueta="Número de hermanos" valor={datosFamiliares?.numero_hermanos?.toString() ?? null} />
-              <DatoFicha etiqueta="Vive con" valor={datosFamiliares?.vive_con ?? null} />
-              <DatoFicha etiqueta="Lugar de nacimiento" valor={datosFamiliares?.lugar_nacimiento ?? null} />
-              <DatoFicha etiqueta="Lugar de procedencia" valor={datosFamiliares?.lugar_procedencia ?? null} />
-            </CuadriculaDatos>
-          ) : (
-            <form onSubmit={guardarDatosFamiliares} className="grid sm:grid-cols-2 gap-4 text-sm">
-              <CampoEditable etiqueta="Número de hermanos">
-                <Input
-                  type="number"
-                  min={0}
-                  max={30}
-                  value={formDatosFamiliares.numero_hermanos}
-                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, numero_hermanos: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Vive con">
-                <Input
-                  placeholder="ambos padres, madre, tutor legal..."
-                  value={formDatosFamiliares.vive_con}
-                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, vive_con: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Lugar de nacimiento">
-                <Input
-                  value={formDatosFamiliares.lugar_nacimiento}
-                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_nacimiento: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Lugar de procedencia">
-                <Input
-                  value={formDatosFamiliares.lugar_procedencia}
-                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_procedencia: e.target.value })}
-                />
-              </CampoEditable>
-
-              <TextoError className="sm:col-span-2">{errorFormularioDatosFamiliares}</TextoError>
-
-              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                <Boton type="submit" disabled={guardandoDatosFamiliares}>
-                  {guardandoDatosFamiliares ? "Guardando..." : "Guardar cambios"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={() => setEditandoDatosFamiliares(false)}
-                  className="text-sm text-ink/60 hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
-        </BloqueFicha>
-        </div>
-
-        {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
-        <BloqueFicha
-          icono={Stethoscope}
-          titulo="Antecedentes clínicos externos"
-          descripcion="Atención psicológica o psiquiátrica fuera del colegio."
-          acciones={
-            puedeEscribirDatosPrincipales &&
-            !editandoAntecedentesClinicos && (
-              <BotonAccionFicha icono={Pencil} onClick={abrirEdicionAntecedentesClinicos}>
-                Editar
-              </BotonAccionFicha>
-            )
-          }
-        >
-          <TextoError className="mb-3">{errorAntecedentesClinicos}</TextoError>
-
-          {!editandoAntecedentesClinicos ? (
-            <CuadriculaDatos>
-              <DatoFicha
-                etiqueta="Recibe terapia psicológica externa"
-                valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_terapia_psicologica_externa)}
-              />
-              <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_terapia_psicologica_externa ?? null} />
-              <DatoFicha
-                etiqueta="Recibe atención psiquiátrica externa"
-                valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_atencion_psiquiatrica_externa)}
-              />
-              <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_atencion_psiquiatrica_externa ?? null} />
-              <DatoFicha etiqueta="Diagnóstico reportado" valor={antecedentesClinicos?.diagnostico_reportado ?? null} ancho />
-            </CuadriculaDatos>
-          ) : (
-            <form onSubmit={guardarAntecedentesClinicos} className="grid sm:grid-cols-2 gap-4 text-sm">
-              <CampoEditable etiqueta="Recibe terapia psicológica externa">
-                <Select
-                  value={formAntecedentesClinicos.recibe_terapia_psicologica_externa}
-                  onChange={(e) =>
-                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_terapia_psicologica_externa: e.target.value })
-                  }
-                >
-                  <option value="">Sin especificar</option>
-                  <option value="true">Sí</option>
-                  <option value="false">No</option>
-                </Select>
-              </CampoEditable>
-              <CampoEditable etiqueta="Detalle">
-                <Input
-                  value={formAntecedentesClinicos.detalle_terapia_psicologica_externa}
-                  onChange={(e) =>
-                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_terapia_psicologica_externa: e.target.value })
-                  }
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Recibe atención psiquiátrica externa">
-                <Select
-                  value={formAntecedentesClinicos.recibe_atencion_psiquiatrica_externa}
-                  onChange={(e) =>
-                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_atencion_psiquiatrica_externa: e.target.value })
-                  }
-                >
-                  <option value="">Sin especificar</option>
-                  <option value="true">Sí</option>
-                  <option value="false">No</option>
-                </Select>
-              </CampoEditable>
-              <CampoEditable etiqueta="Detalle">
-                <Input
-                  value={formAntecedentesClinicos.detalle_atencion_psiquiatrica_externa}
-                  onChange={(e) =>
-                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_atencion_psiquiatrica_externa: e.target.value })
-                  }
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Diagnóstico reportado" className="sm:col-span-2">
-                <Textarea
-                  rows={3}
-                  value={formAntecedentesClinicos.diagnostico_reportado}
-                  onChange={(e) =>
-                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, diagnostico_reportado: e.target.value })
-                  }
-                />
-              </CampoEditable>
-
-              <TextoError className="sm:col-span-2">{errorFormularioAntecedentesClinicos}</TextoError>
-
-              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                <Boton type="submit" disabled={guardandoAntecedentesClinicos}>
-                  {guardandoAntecedentesClinicos ? "Guardando..." : "Guardar cambios"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={() => setEditandoAntecedentesClinicos(false)}
-                  className="text-sm text-ink/60 hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
-        </BloqueFicha>
-
-        {/* --- Contactos familiares (ContactoFamiliar, 1:muchos) --- */}
-        <BloqueFicha
-          icono={Phone}
-          titulo="Contactos familiares"
-          descripcion="A quién llamar por este estudiante."
-          acciones={
-            !formularioContacto && (
-              <BotonAccionFicha icono={Plus} onClick={abrirNuevoContacto}>
-                Agregar contacto
-              </BotonAccionFicha>
-            )
-          }
-        >
-          <TextoError className="mb-3">{errorContactos}</TextoError>
-
-          {formularioContacto && (
-            <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4 mb-4">
-              <CampoEditable etiqueta="Nombre">
-                <Input
-                  required
-                  value={formularioContacto.nombre}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, nombre: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Relación">
-                <Input
-                  placeholder="madre, padre, tutor legal..."
-                  value={formularioContacto.relacion}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, relacion: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Teléfono">
-                <Input
-                  value={formularioContacto.telefono}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, telefono: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Email">
-                <Input
-                  type="email"
-                  value={formularioContacto.email}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, email: e.target.value })}
-                />
-              </CampoEditable>
-
-              <TextoError className="sm:col-span-2">{errorFormularioContacto}</TextoError>
-
-              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                <Boton type="submit" disabled={guardandoContacto}>
-                  {guardandoContacto ? "Guardando..." : formularioContacto.id === null ? "Agregar contacto" : "Guardar cambios"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={() => setFormularioContacto(null)}
-                  className="text-sm text-ink/60 hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
-          )}
-
-          {contactos.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border dark:border-border-dark py-6 text-center">
-              <Phone size={18} className="mx-auto text-ink/25 dark:text-ink-dark/25" aria-hidden="true" />
-              <p className="mt-1.5 text-sm text-ink/50 dark:text-ink-dark/50">No hay contactos familiares registrados.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
-              <table className="w-full min-w-[36rem] text-sm">
-                <thead>
-                  <TheadFila>
-                    <Th className="px-3.5 py-2">Nombre</Th>
-                    <Th className="px-3.5 py-2">Relación</Th>
-                    <Th className="px-3.5 py-2">Teléfono</Th>
-                    <Th className="px-3.5 py-2">Email</Th>
-                    <Th className="px-3.5 py-2">Estado</Th>
-                    <Th className="px-3.5 py-2"></Th>
-                  </TheadFila>
-                </thead>
-                <tbody>
-                  {contactos.map((contacto) => (
-                    <tr
-                      key={contacto.id}
-                      className={`border-t border-border dark:border-border-dark ${contacto.activo ? "" : "opacity-40"}`}
-                    >
-                      <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{contacto.nombre}</td>
-                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">{contacto.relacion || "—"}</td>
-                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
-                        {contacto.telefono ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <Phone size={12} className="text-ink/35" aria-hidden="true" />
-                            {contacto.telefono}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
-                        {contacto.email ? (
-                          <span className="inline-flex items-center gap-1.5">
-                            <Mail size={12} className="text-ink/35" aria-hidden="true" />
-                            {contacto.email}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
-                      </td>
-                      <td className="px-3.5 py-2.5">
-                        <span
-                          className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                            contacto.activo ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/50"
-                          }`}
-                        >
-                          {contacto.activo ? "Activo" : "Inactivo"}
-                        </span>
-                      </td>
-                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => abrirEdicionContacto(contacto)}
-                          className="text-teal-600 hover:underline font-medium mr-3"
-                        >
-                          Editar
-                        </button>
-                        {contacto.activo && (
-                          <button
-                            onClick={() => desactivarContacto(contacto.id)}
-                            disabled={desactivandoContactoId === contacto.id}
-                            className="text-ink/70 hover:text-ink hover:underline font-medium disabled:opacity-50"
-                          >
-                            {desactivandoContactoId === contacto.id ? "Desactivando..." : "Desactivar"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </BloqueFicha>
-      </section>
-
-      {/* Consentimiento informado — "apoderado" siempre obligatorio para
-          matricular en campaña o completar un examen; "asentimiento" del
-          propio estudiante solo se exige si la institución activó esa
-          política (Institucion.exigir_asentimiento_estudiante). Historial
-          append-only (ver ConsentimientosCombinados en types/api.ts):
-          revocar nunca borra, solo cierra la fila vigente; "renovar" es
-          simplemente registrar uno nuevo. La evidencia adjunta (foto/PDF del
-          documento firmado en papel) es un respaldo opcional, no un
-          requisito — lo que habilita matrícula/examen es el registro con
-          estado="vigente" en la base de datos, nunca la evidencia en sí. */}
-      <BloqueFicha
-        icono={ShieldCheck}
-        titulo="Consentimiento informado"
-        descripcion="Sin consentimiento del apoderado vigente no se puede matricular en campañas ni rendir exámenes."
-        cuerpoClassName="space-y-3"
-      >
-        <p className="text-xs text-ink/55 dark:text-ink-dark/55">
-          Si tu institución además exige el asentimiento del propio estudiante, regístralo en el segundo bloque.
-        </p>
-
-        <TextoError>{errorConsentimientos}</TextoError>
-
-        {(["apoderado", "asentimiento"] as const).map((tipo) => {
-          const bloque = consentimientos?.[tipo] ?? null;
-          const vigente = bloque?.historial.find((c) => c.estado === "vigente") ?? null;
-          const formularioAbiertoAqui = formularioConsentimiento?.tipo === tipo ? formularioConsentimiento : null;
-
-          return (
-            <div key={tipo} className="rounded-lg border border-border dark:border-border-dark overflow-hidden">
-              <div className="flex items-center justify-between gap-2 flex-wrap px-3.5 py-2.5 bg-mist/40 dark:bg-surface-raised-dark/60 border-b border-border dark:border-border-dark">
-                <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark">
-                  {tipo === "apoderado" ? "Consentimiento del apoderado" : "Asentimiento del estudiante"}
-                </h3>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${
-                      vigente ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark" : "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-                    }`}
-                  >
-                    {vigente ? "Vigente" : "Sin consentimiento vigente"}
-                  </span>
-                  {puedeEscribirDatosPrincipales && !vigente && !formularioAbiertoAqui && (
-                    <BotonAccionFicha icono={Plus} onClick={() => abrirFormularioConsentimiento(tipo)}>
-                      Registrar
-                    </BotonAccionFicha>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-3.5 space-y-3">
-              {/* 🆕 Modelo del colegio para este alumno (por su nivel) + PDF
-                  para firmar — ver components/educativo/ModeloConsentimiento. */}
-              {puedeEscribirDatosPrincipales && (
-                <ModeloConsentimiento personaId={personaId} tipo={tipo} expandido={!!formularioAbiertoAqui} />
-              )}
-              {vigente && (
-                <div className="space-y-3 text-sm">
-                  <CuadriculaDatos>
-                  {tipo === "apoderado" && (
-                    <>
-                      <DatoFicha
-                        etiqueta="Otorgado por"
-                        valor={`${vigente.otorgado_por_nombre ?? ""} ${vigente.otorgante_apellidos ?? ""}`.trim() || null}
-                      />
-                      <DatoFicha
-                        etiqueta="Tipo de otorgante"
-                        valor={vigente.tipo_otorgante === "colegio_delegado" ? "Colegio (autoridad delegada)" : "Apoderado"}
-                      />
-                      <DatoFicha etiqueta="Documento de identidad" valor={vigente.otorgante_documento} />
-                      <DatoFicha etiqueta="Relación con el estudiante" valor={vigente.otorgante_relacion} />
-                    </>
-                  )}
-                  <DatoFicha etiqueta="Referencia del documento" valor={vigente.referencia_documento} />
-                  <DatoFicha etiqueta="Otorgado el" valor={new Date(vigente.fecha_otorgamiento).toLocaleString()} />
-                  </CuadriculaDatos>
-
-                  <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border dark:border-border-dark bg-mist/30 dark:bg-surface-raised-dark/40 px-3 py-2">
-                    <Paperclip size={14} className="text-ink/40 dark:text-ink-dark/40" aria-hidden="true" />
-                    {vigente.evidencia_nombre_archivo ? (
-                      <>
-                        <span className="text-xs font-medium text-teal-700 dark:text-teal-accent-dark break-all">
-                          {vigente.evidencia_nombre_archivo} ✓
-                        </span>
-                        <button
-                          onClick={() => descargarEvidenciaConsentimiento(vigente)}
-                          disabled={descargandoEvidenciaId === vigente.id}
-                          className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-50"
-                        >
-                          {descargandoEvidenciaId === vigente.id ? "Descargando..." : "Descargar"}
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-xs text-ink/50 italic">Sin evidencia adjunta todavía.</span>
-                    )}
-                    {puedeEscribirDatosPrincipales && (
-                      <label className="text-xs text-teal-600 hover:underline font-medium cursor-pointer">
-                        {subiendoEvidenciaId === vigente.id
-                          ? "Subiendo..."
-                          : vigente.evidencia_nombre_archivo
-                            ? "Reemplazar evidencia"
-                            : "Adjuntar evidencia (foto o PDF del documento firmado)"}
-                        <input
-                          type="file"
-                          accept="application/pdf,image/jpeg,image/png"
-                          className="hidden"
-                          disabled={subiendoEvidenciaId === vigente.id}
-                          onChange={(e) => {
-                            const archivo = e.target.files?.[0];
-                            e.target.value = "";
-                            if (archivo) subirEvidenciaConsentimiento(tipo, vigente.id, archivo);
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
-
-                  {puedeEscribirDatosPrincipales && (
-                    <div>
-                      <button
-                        onClick={() => revocarConsentimiento(tipo, vigente.id)}
-                        disabled={revocandoConsentimientoId === vigente.id}
-                        className={claseBoton("secundario")}
-                      >
-                        {revocandoConsentimientoId === vigente.id ? "Revocando..." : "Revocar"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {!vigente && formularioAbiertoAqui && (
-                <form onSubmit={registrarConsentimiento} className="grid sm:grid-cols-2 gap-4 text-sm">
-                  {tipo === "apoderado" && (
-                    <>
-                      <CampoEditable etiqueta="Nombres de quien otorga (obligatorio)">
-                        <Input
-                          required
-                          value={formularioAbiertoAqui.otorgado_por_nombre}
-                          onChange={(e) =>
-                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgado_por_nombre: e.target.value })
-                          }
-                        />
-                      </CampoEditable>
-                      <CampoEditable etiqueta="Apellidos">
-                        <Input
-                          value={formularioAbiertoAqui.otorgante_apellidos}
-                          onChange={(e) =>
-                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgante_apellidos: e.target.value })
-                          }
-                        />
-                      </CampoEditable>
-                      <CampoEditable etiqueta="Documento de identidad">
-                        <Input
-                          value={formularioAbiertoAqui.otorgante_documento}
-                          onChange={(e) =>
-                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgante_documento: e.target.value })
-                          }
-                        />
-                      </CampoEditable>
-                      <CampoEditable etiqueta="Relación con el estudiante">
-                        <Input
-                          placeholder="madre, padre, tutor legal..."
-                          value={formularioAbiertoAqui.otorgante_relacion}
-                          onChange={(e) =>
-                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgante_relacion: e.target.value })
-                          }
-                        />
-                      </CampoEditable>
-                      <CampoEditable etiqueta="Tipo de otorgante">
-                        <Select
-                          value={formularioAbiertoAqui.tipo_otorgante}
-                          onChange={(e) =>
-                            setFormularioConsentimiento({
-                              ...formularioAbiertoAqui,
-                              tipo_otorgante: e.target.value as TipoOtorgante,
-                            })
-                          }
-                        >
-                          <option value="apoderado">Apoderado (padre/madre/tutor legal)</option>
-                          <option value="colegio_delegado">Colegio, con autoridad delegada</option>
-                        </Select>
-                      </CampoEditable>
-                    </>
-                  )}
-                  <CampoEditable etiqueta="Referencia del documento (opcional)">
-                    <Input
-                      placeholder='Ej. "Ficha de matrícula 2026, folio 45"'
-                      value={formularioAbiertoAqui.referencia_documento}
-                      onChange={(e) =>
-                        setFormularioConsentimiento({ ...formularioAbiertoAqui, referencia_documento: e.target.value })
-                      }
-                    />
-                  </CampoEditable>
-
-                  <TextoError className="sm:col-span-2">{errorFormularioConsentimiento}</TextoError>
-
-                  <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                    <Boton type="submit" disabled={guardandoConsentimiento}>
-                      {guardandoConsentimiento ? "Guardando..." : "Registrar consentimiento"}
-                    </Boton>
-                    <button
-                      type="button"
-                      onClick={() => setFormularioConsentimiento(null)}
-                      className="text-sm text-ink/60 hover:underline"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {!vigente && !formularioAbiertoAqui && (
-                <p className="text-sm text-ink/50 dark:text-ink-dark/50">
-                  {tipo === "apoderado"
-                    ? "Sin consentimiento del apoderado vigente."
-                    : "Sin asentimiento del propio estudiante vigente."}
-                </p>
-              )}
-
-              {bloque && bloque.historial.length > 1 && (
-                <button
-                  onClick={() =>
-                    setMostrarHistorialConsentimiento((prev) => ({ ...prev, [tipo]: !prev[tipo] }))
-                  }
-                  className="text-xs text-teal-600 hover:underline font-medium"
-                >
-                  {mostrarHistorialConsentimiento[tipo] ? "Ocultar historial" : `Ver historial (${bloque.historial.length})`}
-                </button>
-              )}
-              {bloque && mostrarHistorialConsentimiento[tipo] && (
-                <div className="space-y-2">
-                  {[...bloque.historial].reverse().map((c) => (
-                    <div key={c.id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
-                      <span className={`font-semibold ${c.estado === "vigente" ? "text-teal-900" : "text-ink/50"}`}>
-                        {c.estado === "vigente" ? "Vigente" : "Revocado"}
-                      </span>
-                      {tipo === "apoderado" && (
-                        <span className="text-ink/70">
-                          {" "}
-                          — {c.otorgado_por_nombre} {c.otorgante_apellidos}
-                        </span>
-                      )}
-                      <div className="text-ink/50 mt-0.5">
-                        Otorgado el {new Date(c.fecha_otorgamiento).toLocaleString()}
-                        {c.fecha_revocacion && ` · revocado el ${new Date(c.fecha_revocacion).toLocaleString()}`}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              </div>
-            </div>
-          );
-        })}
-      </BloqueFicha>
-
-      {/* Matrícula académica */}
-      <BloqueFicha
-        icono={School}
-        titulo="Matrícula académica"
-        cuerpoClassName="space-y-4"
-        acciones={
-          <>
-            <BotonAccionFicha
-              icono={History}
-              activo={mostrarHistorialAcademico}
-              onClick={() => setMostrarHistorialAcademico(!mostrarHistorialAcademico)}
-            >
-              Historial
-            </BotonAccionFicha>
-            {!editandoMatricula && (
-              <BotonAccionFicha icono={matriculaVigente ? Pencil : Plus} onClick={abrirEdicionMatricula}>
-                {matriculaVigente ? "Cambiar de sección" : "Matricular"}
-              </BotonAccionFicha>
-            )}
           </>
         }
       >
-        <TextoError>{errorMatricula}</TextoError>
+        {/* Datos de filiación del estudiante — identidad + familiares +
+            antecedentes clínicos + contactos, unificados en un solo apartado
+            a pedido explícito (antes vivían en 4 secciones separadas). Cada
+            sub-bloque sigue golpeando su propio endpoint/tabla del backend
+            (Persona / PersonaDatosFamiliares / PersonaAntecedentesClinicos /
+            ContactoFamiliar) — esto es reordenamiento visual, no un cambio de
+            modelo de datos. */}
+        <section className="space-y-4">
+          <TituloGrupoFicha
+            titulo="Datos de filiación"
+            descripcion="Identidad, entorno familiar, antecedentes y contactos."
+            acento="teal"
+          />
 
-        {!editandoMatricula ? (
-          matriculaVigente ? (
-            (() => {
-              const f = formatearSeccion(matriculaVigente);
-              return (
-                <CuadriculaDatos columnas={3}>
-                  <DatoFicha etiqueta="Sección vigente" valor={f.linea} />
-                  <DatoFicha etiqueta="Detalle" valor={f.detalle} />
-                  <DatoFicha etiqueta="Desde" valor={formatearFecha(matriculaVigente.fecha_inicio.slice(0, 10))} />
-                </CuadriculaDatos>
-              );
-            })()
-          ) : (
-            <VacioFicha icono={School} texto="Sin matrícula activa." />
-          )
-        ) : (
-          <form onSubmit={guardarMatricula} className="grid gap-4 text-sm sm:grid-cols-3">
-            <CampoEditable etiqueta="Nivel educativo">
-              <Select
-                required
-                value={nivelSeleccionado}
-                onChange={(e) => seleccionarNivel(e.target.value)}
-                disabled={cargandoNiveles}
-              >
-                <option value="">{cargandoNiveles ? "Cargando…" : "Selecciona…"}</option>
-                {niveles.map((n) => (
-                  <option key={n.id} value={n.id}>
-                    {n.nombre}
-                  </option>
-                ))}
-              </Select>
-            </CampoEditable>
-
-            <CampoEditable etiqueta="Grado">
-              <Select
-                required
-                value={gradoSeleccionado}
-                onChange={(e) => seleccionarGrado(e.target.value)}
-                disabled={!nivelSeleccionado || cargandoGrados}
-                className="disabled:bg-mist disabled:text-ink/40"
-              >
-                <option value="">{cargandoGrados ? "Cargando…" : "Selecciona…"}</option>
-                {grados.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.nombre}
-                  </option>
-                ))}
-              </Select>
-            </CampoEditable>
-
-            <CampoEditable etiqueta="Sección">
-              <Select
-                required
-                value={seccionSeleccionada}
-                onChange={(e) => setSeccionSeleccionada(e.target.value)}
-                disabled={!gradoSeleccionado || cargandoSecciones}
-                className="disabled:bg-mist disabled:text-ink/40"
-              >
-                <option value="">{cargandoSecciones ? "Cargando…" : "Selecciona…"}</option>
-                {secciones.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nombre} · {s.anio_escolar}
-                    {s.turno ? ` (${s.turno})` : ""}
-                  </option>
-                ))}
-              </Select>
-            </CampoEditable>
-
-            <TextoError className="sm:col-span-3">{errorFormularioMatricula}</TextoError>
-
-            <div className="flex items-center gap-3 pt-1 sm:col-span-3">
-              <Boton type="submit" disabled={!seccionSeleccionada || guardandoMatricula}>
-                {guardandoMatricula ? "Guardando..." : "Guardar matrícula"}
-              </Boton>
-              <button
-                type="button"
-                onClick={() => setEditandoMatricula(false)}
-                className="text-sm text-ink/60 hover:underline"
-              >
-                Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-
-        {mostrarHistorialAcademico && (
-          <div className="border-t border-border dark:border-border-dark pt-4">
-            <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial académico</h3>
-            {historialAcademico.length === 0 ? (
-              <p className="text-sm text-ink/60 italic">Sin matrículas registradas todavía.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+          {/* --- Identidad --- */}
+          <BloqueFicha
+            icono={IdCard}
+            titulo="Identidad"
+            acciones={
+              <>
+                <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
+                  Historial
+                </BotonAccionFicha>
+                {!editando && (
+                  <BotonAccionFicha icono={Pencil} onClick={abrirEdicion}>
+                    Editar
+                  </BotonAccionFicha>
+                )}
+              </>
+            }
+          >
+            {!editando ? (
+              <CuadriculaDatos>
+                <DatoFicha etiqueta="Nombres" valor={alumno.nombres} />
+                <DatoFicha etiqueta="Apellidos" valor={alumno.apellidos} />
+                <DatoFicha etiqueta="Documento de identidad" valor={alumno.documento_identidad} />
+                <DatoFicha etiqueta="Código institucional" valor={alumno.codigo_institucional} />
+                <DatoFicha etiqueta="Fecha de nacimiento" valor={formatearFecha(alumno.fecha_nacimiento)} />
+                <DatoFicha etiqueta="Género" valor={alumno.genero} />
+              </CuadriculaDatos>
             ) : (
-              <div className="space-y-2">
-                {[...historialAcademico].reverse().map((h) => {
-                  const f = formatearSeccion(h);
-                  return (
-                    <div key={h.matricula_id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
-                      <span className="font-semibold text-teal-900">{f.linea}</span>
-                      {f.detalle && <span className="text-ink/60"> — {f.detalle}</span>}
-                      <div className="text-ink/50 mt-0.5">
-                        {formatearFecha(h.fecha_inicio.slice(0, 10))} →{" "}
-                        {h.fecha_fin ? formatearFecha(h.fecha_fin.slice(0, 10)) : "vigente"}
+              <form onSubmit={guardarEdicion} className="grid sm:grid-cols-2 gap-4 text-sm">
+                <CampoEditable etiqueta="Nombres">
+                  <Input required value={form.nombres} onChange={(e) => setForm({ ...form, nombres: e.target.value })} />
+                </CampoEditable>
+                <CampoEditable etiqueta="Apellidos">
+                  <Input required value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} />
+                </CampoEditable>
+                <CampoEditable etiqueta="Documento de identidad">
+                  <Input
+                    value={form.documento_identidad}
+                    onChange={(e) => setForm({ ...form, documento_identidad: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Fecha de nacimiento">
+                  <Input
+                    type="date"
+                    value={form.fecha_nacimiento}
+                    onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Género">
+                  <Input value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} />
+                </CampoEditable>
+
+                <TextoError className="sm:col-span-2">{errorEdicion}</TextoError>
+
+                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                  <Boton type="submit" disabled={guardando}>
+                    {guardando ? "Guardando..." : "Guardar cambios"}
+                  </Boton>
+                  <button
+                    type="button"
+                    onClick={() => setEditando(false)}
+                    className="text-sm text-ink/60 hover:underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {mostrarHistorial && (
+              <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
+                <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
+                {cargandoHistorial && <p className="text-sm text-ink/60">Cargando historial...</p>}
+                <TextoError>{errorHistorial}</TextoError>
+                {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
+                  <p className="text-sm text-ink/60 italic">Sin cambios registrados todavía.</p>
+                )}
+                {!cargandoHistorial && historial && historial.length > 0 && (
+                  <div className="space-y-2">
+                    {historial.map((registro) => (
+                      <div key={registro.id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
+                        <span className="font-semibold text-teal-900">{registro.campo}</span>
+                        {": "}
+                        <span className="text-ink/70">{registro.valor_anterior ?? "(vacío)"}</span>
+                        {" → "}
+                        <span className="text-ink/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
+                        <div className="text-ink/50 mt-0.5">
+                          {new Date(registro.fecha).toLocaleString()} · rol: {registro.rol_modificador ?? "—"}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
-      </BloqueFicha>
+          </BloqueFicha>
 
+          {/* --- Datos familiares (PersonaDatosFamiliares, 1:1) --- */}
+          <BloqueFicha
+            icono={UsersRound}
+            titulo="Datos familiares"
+            acciones={
+              puedeEscribirDatosPrincipales &&
+              !editandoDatosFamiliares && (
+                <BotonAccionFicha icono={Pencil} onClick={abrirEdicionDatosFamiliares}>
+                  Editar
+                </BotonAccionFicha>
+              )
+            }
+          >
+            <TextoError className="mb-3">{errorDatosFamiliares}</TextoError>
+
+            {!editandoDatosFamiliares ? (
+              <CuadriculaDatos>
+                <DatoFicha etiqueta="Número de hermanos" valor={datosFamiliares?.numero_hermanos?.toString() ?? null} />
+                <DatoFicha etiqueta="Vive con" valor={datosFamiliares?.vive_con ?? null} />
+                <DatoFicha etiqueta="Lugar de nacimiento" valor={datosFamiliares?.lugar_nacimiento ?? null} />
+                <DatoFicha etiqueta="Lugar de procedencia" valor={datosFamiliares?.lugar_procedencia ?? null} />
+              </CuadriculaDatos>
+            ) : (
+              <form onSubmit={guardarDatosFamiliares} className="grid sm:grid-cols-2 gap-4 text-sm">
+                <CampoEditable etiqueta="Número de hermanos">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={30}
+                    value={formDatosFamiliares.numero_hermanos}
+                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, numero_hermanos: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Vive con">
+                  <Input
+                    placeholder="ambos padres, madre, tutor legal..."
+                    value={formDatosFamiliares.vive_con}
+                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, vive_con: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Lugar de nacimiento">
+                  <Input
+                    value={formDatosFamiliares.lugar_nacimiento}
+                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_nacimiento: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Lugar de procedencia">
+                  <Input
+                    value={formDatosFamiliares.lugar_procedencia}
+                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_procedencia: e.target.value })}
+                  />
+                </CampoEditable>
+
+                <TextoError className="sm:col-span-2">{errorFormularioDatosFamiliares}</TextoError>
+
+                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                  <Boton type="submit" disabled={guardandoDatosFamiliares}>
+                    {guardandoDatosFamiliares ? "Guardando..." : "Guardar cambios"}
+                  </Boton>
+                  <button
+                    type="button"
+                    onClick={() => setEditandoDatosFamiliares(false)}
+                    className="text-sm text-ink/60 hover:underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+          </BloqueFicha>
+          </div>
+
+          {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
+          <BloqueFicha
+            icono={Stethoscope}
+            titulo="Antecedentes clínicos externos"
+            descripcion="Atención psicológica o psiquiátrica fuera del colegio."
+            acciones={
+              puedeEscribirDatosPrincipales &&
+              !editandoAntecedentesClinicos && (
+                <BotonAccionFicha icono={Pencil} onClick={abrirEdicionAntecedentesClinicos}>
+                  Editar
+                </BotonAccionFicha>
+              )
+            }
+          >
+            <TextoError className="mb-3">{errorAntecedentesClinicos}</TextoError>
+
+            {!editandoAntecedentesClinicos ? (
+              <CuadriculaDatos>
+                <DatoFicha
+                  etiqueta="Recibe terapia psicológica externa"
+                  valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_terapia_psicologica_externa)}
+                />
+                <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_terapia_psicologica_externa ?? null} />
+                <DatoFicha
+                  etiqueta="Recibe atención psiquiátrica externa"
+                  valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_atencion_psiquiatrica_externa)}
+                />
+                <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_atencion_psiquiatrica_externa ?? null} />
+                <DatoFicha etiqueta="Diagnóstico reportado" valor={antecedentesClinicos?.diagnostico_reportado ?? null} ancho />
+              </CuadriculaDatos>
+            ) : (
+              <form onSubmit={guardarAntecedentesClinicos} className="grid sm:grid-cols-2 gap-4 text-sm">
+                <CampoEditable etiqueta="Recibe terapia psicológica externa">
+                  <Select
+                    value={formAntecedentesClinicos.recibe_terapia_psicologica_externa}
+                    onChange={(e) =>
+                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_terapia_psicologica_externa: e.target.value })
+                    }
+                  >
+                    <option value="">Sin especificar</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                  </Select>
+                </CampoEditable>
+                <CampoEditable etiqueta="Detalle">
+                  <Input
+                    value={formAntecedentesClinicos.detalle_terapia_psicologica_externa}
+                    onChange={(e) =>
+                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_terapia_psicologica_externa: e.target.value })
+                    }
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Recibe atención psiquiátrica externa">
+                  <Select
+                    value={formAntecedentesClinicos.recibe_atencion_psiquiatrica_externa}
+                    onChange={(e) =>
+                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_atencion_psiquiatrica_externa: e.target.value })
+                    }
+                  >
+                    <option value="">Sin especificar</option>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                  </Select>
+                </CampoEditable>
+                <CampoEditable etiqueta="Detalle">
+                  <Input
+                    value={formAntecedentesClinicos.detalle_atencion_psiquiatrica_externa}
+                    onChange={(e) =>
+                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_atencion_psiquiatrica_externa: e.target.value })
+                    }
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Diagnóstico reportado" className="sm:col-span-2">
+                  <Textarea
+                    rows={3}
+                    value={formAntecedentesClinicos.diagnostico_reportado}
+                    onChange={(e) =>
+                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, diagnostico_reportado: e.target.value })
+                    }
+                  />
+                </CampoEditable>
+
+                <TextoError className="sm:col-span-2">{errorFormularioAntecedentesClinicos}</TextoError>
+
+                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                  <Boton type="submit" disabled={guardandoAntecedentesClinicos}>
+                    {guardandoAntecedentesClinicos ? "Guardando..." : "Guardar cambios"}
+                  </Boton>
+                  <button
+                    type="button"
+                    onClick={() => setEditandoAntecedentesClinicos(false)}
+                    className="text-sm text-ink/60 hover:underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+          </BloqueFicha>
+
+          {/* --- Contactos familiares (ContactoFamiliar, 1:muchos) --- */}
+          <BloqueFicha
+            icono={Phone}
+            titulo="Contactos familiares"
+            descripcion="A quién llamar por este estudiante."
+            acciones={
+              !formularioContacto && (
+                <BotonAccionFicha icono={Plus} onClick={abrirNuevoContacto}>
+                  Agregar contacto
+                </BotonAccionFicha>
+              )
+            }
+          >
+            <TextoError className="mb-3">{errorContactos}</TextoError>
+
+            {formularioContacto && (
+              <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4 mb-4">
+                <CampoEditable etiqueta="Nombre">
+                  <Input
+                    required
+                    value={formularioContacto.nombre}
+                    onChange={(e) => setFormularioContacto({ ...formularioContacto, nombre: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Relación">
+                  <Input
+                    placeholder="madre, padre, tutor legal..."
+                    value={formularioContacto.relacion}
+                    onChange={(e) => setFormularioContacto({ ...formularioContacto, relacion: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Teléfono">
+                  <Input
+                    value={formularioContacto.telefono}
+                    onChange={(e) => setFormularioContacto({ ...formularioContacto, telefono: e.target.value })}
+                  />
+                </CampoEditable>
+                <CampoEditable etiqueta="Email">
+                  <Input
+                    type="email"
+                    value={formularioContacto.email}
+                    onChange={(e) => setFormularioContacto({ ...formularioContacto, email: e.target.value })}
+                  />
+                </CampoEditable>
+
+                <TextoError className="sm:col-span-2">{errorFormularioContacto}</TextoError>
+
+                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                  <Boton type="submit" disabled={guardandoContacto}>
+                    {guardandoContacto ? "Guardando..." : formularioContacto.id === null ? "Agregar contacto" : "Guardar cambios"}
+                  </Boton>
+                  <button
+                    type="button"
+                    onClick={() => setFormularioContacto(null)}
+                    className="text-sm text-ink/60 hover:underline"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {contactos.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border dark:border-border-dark py-6 text-center">
+                <Phone size={18} className="mx-auto text-ink/25 dark:text-ink-dark/25" aria-hidden="true" />
+                <p className="mt-1.5 text-sm text-ink/50 dark:text-ink-dark/50">No hay contactos familiares registrados.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
+                <table className="w-full min-w-[36rem] text-sm">
+                  <thead>
+                    <TheadFila>
+                      <Th className="px-3.5 py-2">Nombre</Th>
+                      <Th className="px-3.5 py-2">Relación</Th>
+                      <Th className="px-3.5 py-2">Teléfono</Th>
+                      <Th className="px-3.5 py-2">Email</Th>
+                      <Th className="px-3.5 py-2">Estado</Th>
+                      <Th className="px-3.5 py-2"></Th>
+                    </TheadFila>
+                  </thead>
+                  <tbody>
+                    {contactos.map((contacto) => (
+                      <tr
+                        key={contacto.id}
+                        className={`border-t border-border dark:border-border-dark ${contacto.activo ? "" : "opacity-40"}`}
+                      >
+                        <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{contacto.nombre}</td>
+                        <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">{contacto.relacion || "—"}</td>
+                        <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                          {contacto.telefono ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Phone size={12} className="text-ink/35" aria-hidden="true" />
+                              {contacto.telefono}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                          {contacto.email ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <Mail size={12} className="text-ink/35" aria-hidden="true" />
+                              {contacto.email}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-3.5 py-2.5">
+                          <span
+                            className={`text-xs rounded-full px-2 py-0.5 font-medium ${
+                              contacto.activo ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/50"
+                            }`}
+                          >
+                            {contacto.activo ? "Activo" : "Inactivo"}
+                          </span>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => abrirEdicionContacto(contacto)}
+                            className="text-teal-600 hover:underline font-medium mr-3"
+                          >
+                            Editar
+                          </button>
+                          {contacto.activo && (
+                            <button
+                              onClick={() => desactivarContacto(contacto.id)}
+                              disabled={desactivandoContactoId === contacto.id}
+                              className="text-ink/70 hover:text-ink hover:underline font-medium disabled:opacity-50"
+                            >
+                              {desactivandoContactoId === contacto.id ? "Desactivando..." : "Desactivar"}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </BloqueFicha>
+        </section>
+      </TarjetaPerfil>
+
+      {puedeEscribirDatosPrincipales && (
+        <section className="space-y-3">
+          <TituloGrupoFicha titulo="Indicadores actuales" descripcion="El estado del estudiante de un vistazo." acento="teal" />
+          <IndicadoresEstudiante pruebas={pruebasAplicadas} seguimientos={seguimientos} citas={citas} />
+        </section>
+      )}
+
+      <TituloGrupoFicha
+        titulo="Evaluación y seguimiento"
+        descripcion="Pruebas aplicadas, citas y sesiones con el estudiante."
+        acento="azul"
+      />
       {/* Pruebas aplicadas / instrumentos aplicados — historial de informes
           (GET /educativo/personas/{id}/informes), uno por aplicación real.
           Aparece apenas el estudiante finaliza un examen (el informe se
@@ -2608,6 +2185,256 @@ export default function FichaAlumnoPage() {
         )}
       </BloqueFicha>
 
+      {/* Sección de Citas */}
+      <BloqueFicha
+        icono={CalendarClock}
+        titulo="Citas programadas"
+        cuerpoClassName="space-y-4"
+        acciones={
+          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/cita/nueva`)}>
+            Nueva cita
+          </BotonAccionFicha>
+        }
+      >
+        <TextoError>{errorCitas}</TextoError>
+
+        {citas.length === 0 ? (
+          <VacioFicha icono={CalendarClock} texto="No hay citas registradas para este alumno." />
+        ) : (
+          <div className="grid gap-3">
+            {citas.map((cita) => {
+              // 🆕 persona_id null = actividad grupal (taller/charla/otro) en
+              // la que este alumno quedó anotado como participante, no una
+              // cita suya — aparece aquí para que su historial quede
+              // completo, pero a propósito SIN "Reprogramar"/"Cancelar":
+              // esas acciones afectan a TODOS los asistentes de la
+              // actividad, no solo a este alumno, y ejercerlas por error
+              // desde la ficha de uno solo de ellos reprogramaría/cancelaría
+              // el taller completo. Esa edición vive en /agenda.
+              const esGrupal = cita.persona_id === null;
+              return (
+              <div key={cita.id} className="p-3.5 rounded-lg border border-border dark:border-border-dark space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    {esGrupal && (
+                      <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-teal-600/10 text-teal-900 mb-1">
+                        Actividad grupal{cita.tipo_actividad ? `: ${cita.tipo_actividad}` : ""}
+                      </span>
+                    )}
+                    <p className="text-sm font-semibold text-teal-900">
+                      {esGrupal ? cita.titulo : `Motivo: ${cita.motivo}`}
+                    </p>
+                    <p className="text-xs text-ink/70 mt-1">
+                      Fecha: {new Date(cita.fecha_hora).toLocaleString("es-PE")}
+                      {esGrupal && cita.lugar && ` · ${cita.lugar}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${claseEstadoCita(cita.estado)}`}>
+                      {cita.estado}
+                    </span>
+                    {!esGrupal && cita.estado === "Programada" && reprogramandoCitaId !== cita.id && (
+                      <>
+                        <button
+                          onClick={() => abrirReprogramar(cita)}
+                          className="text-xs text-teal-700 hover:underline"
+                        >
+                          Reprogramar
+                        </button>
+                        <button
+                          onClick={() => cancelarCita(cita.id)}
+                          disabled={cancelandoCitaId === cita.id}
+                          className="text-xs text-ink/60 hover:text-ink hover:underline disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {!esGrupal && reprogramandoCitaId === cita.id && (
+                  <form
+                    onSubmit={(e) => guardarReprogramacion(e, cita.id)}
+                    className="flex flex-wrap items-end gap-3 border-t border-border/60 pt-3"
+                  >
+                    <CampoEditable etiqueta="Nueva fecha">
+                      <Input
+                        type="date"
+                        required
+                        value={formReprogramar.fecha}
+                        onChange={(e) => setFormReprogramar((f) => ({ ...f, fecha: e.target.value }))}
+                      />
+                    </CampoEditable>
+                    <CampoEditable etiqueta="Nueva hora">
+                      <Input
+                        type="time"
+                        required
+                        value={formReprogramar.hora}
+                        onChange={(e) => setFormReprogramar((f) => ({ ...f, hora: e.target.value }))}
+                      />
+                    </CampoEditable>
+                    <Boton type="submit" disabled={guardandoReprogramacion}>
+                      {guardandoReprogramacion ? "Guardando..." : "Guardar"}
+                    </Boton>
+                    <button
+                      type="button"
+                      onClick={() => setReprogramandoCitaId(null)}
+                      className="text-xs text-ink/60 hover:text-ink hover:underline"
+                    >
+                      Cancelar edición
+                    </button>
+                  </form>
+                )}
+              </div>
+              );
+            })}
+          </div>
+        )}
+      </BloqueFicha>
+
+      {/* Sección de Seguimiento / Sesiones Psicológicas */}
+      <BloqueFicha
+        icono={MessagesSquare}
+        titulo="Historial de sesiones de seguimiento"
+        cuerpoClassName="space-y-4"
+        acciones={
+          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}>
+            Registrar sesión
+          </BotonAccionFicha>
+        }
+      >
+        <TextoError>{errorSesiones}</TextoError>
+
+        {seguimientos.length === 0 ? (
+          <VacioFicha icono={MessagesSquare} texto="No se han registrado sesiones de seguimiento clínico." />
+        ) : (
+          <div className="space-y-3">
+            {seguimientos.map((sesion) => (
+              <div key={sesion.id} className="p-4 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark space-y-3">
+                <div className="flex justify-between items-center border-b border-border/60 pb-2">
+                  <span className="text-xs font-semibold text-ink/70">
+                    Fecha de Sesión: {new Date(sesion.fecha).toLocaleDateString()}
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-teal-400/20 text-teal-900">
+                      {sesion.estado}
+                    </span>
+                    {editandoSesionId !== sesion.id && (
+                      <button
+                        onClick={() => abrirEditarSesion(sesion)}
+                        className="text-xs text-teal-700 hover:underline"
+                      >
+                        Editar
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {editandoSesionId === sesion.id ? (
+                  <form onSubmit={(e) => guardarEdicionSesion(e, sesion.id)} className="space-y-3">
+                    <CampoEditable etiqueta="Observaciones de la sesión">
+                      <Textarea
+                        required
+                        rows={4}
+                        value={formSesion.observaciones}
+                        onChange={(e) => setFormSesion((f) => ({ ...f, observaciones: e.target.value }))}
+                      />
+                    </CampoEditable>
+                    <CampoEditable etiqueta="Acción tomada">
+                      <Textarea
+                        rows={2}
+                        value={formSesion.accion_tomada}
+                        onChange={(e) => setFormSesion((f) => ({ ...f, accion_tomada: e.target.value }))}
+                      />
+                    </CampoEditable>
+                    <CampoEditable etiqueta="Acuerdos y compromisos">
+                      <Textarea
+                        rows={2}
+                        value={formSesion.acuerdos_compromisos}
+                        onChange={(e) => setFormSesion((f) => ({ ...f, acuerdos_compromisos: e.target.value }))}
+                      />
+                    </CampoEditable>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <CampoEditable etiqueta="Próxima cita — fecha">
+                        <Input
+                          type="date"
+                          value={formSesion.proxima_cita_fecha}
+                          onChange={(e) => setFormSesion((f) => ({ ...f, proxima_cita_fecha: e.target.value }))}
+                        />
+                      </CampoEditable>
+                      <CampoEditable etiqueta="Próxima cita — hora">
+                        <Input
+                          type="time"
+                          value={formSesion.proxima_cita_hora}
+                          onChange={(e) => setFormSesion((f) => ({ ...f, proxima_cita_hora: e.target.value }))}
+                        />
+                      </CampoEditable>
+                      <CampoEditable etiqueta="Estado">
+                        <Select
+                          value={formSesion.estado}
+                          onChange={(e) => setFormSesion((f) => ({ ...f, estado: e.target.value }))}
+                        >
+                          <option value="Pendiente">Pendiente</option>
+                          <option value="En proceso">En proceso</option>
+                          <option value="Atendido">Atendido</option>
+                        </Select>
+                      </CampoEditable>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Boton type="submit" disabled={guardandoSesion}>
+                        {guardandoSesion ? "Guardando..." : "Guardar cambios"}
+                      </Boton>
+                      <button
+                        type="button"
+                        onClick={() => setEditandoSesionId(null)}
+                        className="text-xs text-ink/60 hover:text-ink hover:underline"
+                      >
+                        Cancelar edición
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="grid md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="block font-medium text-teal-900">Observaciones:</span>
+                        <p className="text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50 text-xs leading-relaxed">
+                          {sesion.observaciones || "Sin observaciones registradas."}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span className="block font-medium text-teal-900">Acción Tomada:</span>
+                        <p className="text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50 text-xs leading-relaxed">
+                          {sesion.accion_tomada || "Ninguna especificada."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {sesion.acuerdos_compromisos && (
+                      <div>
+                        <span className="block text-sm font-medium text-teal-900">Acuerdos y Compromisos:</span>
+                        <p className="text-xs text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50">
+                          {sesion.acuerdos_compromisos}
+                        </p>
+                      </div>
+                    )}
+
+                    {sesion.proxima_cita && (
+                      <p className="text-xs text-ink/70">
+                        Próxima cita: {new Date(sesion.proxima_cita).toLocaleString("es-PE")}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </BloqueFicha>
+
+      <TituloGrupoFicha titulo="Registro clínico" descripcion="Expediente y acceso del colegio." acento="teal" />
       {/* Línea de tiempo del expediente clínico */}
       <BloqueFicha
         icono={FolderLock}
@@ -3115,6 +2942,402 @@ export default function FichaAlumnoPage() {
         </BloqueFicha>
       )}
 
+      <TituloGrupoFicha
+        titulo="Matrícula, consentimientos y documentos"
+        descripcion="Situación académica, autorizaciones y documentos emitidos."
+        acento="violeta"
+      />
+      {/* Matrícula académica */}
+      <BloqueFicha
+        icono={School}
+        titulo="Matrícula académica"
+        cuerpoClassName="space-y-4"
+        acciones={
+          <>
+            <BotonAccionFicha
+              icono={History}
+              activo={mostrarHistorialAcademico}
+              onClick={() => setMostrarHistorialAcademico(!mostrarHistorialAcademico)}
+            >
+              Historial
+            </BotonAccionFicha>
+            {!editandoMatricula && (
+              <BotonAccionFicha icono={matriculaVigente ? Pencil : Plus} onClick={abrirEdicionMatricula}>
+                {matriculaVigente ? "Cambiar de sección" : "Matricular"}
+              </BotonAccionFicha>
+            )}
+          </>
+        }
+      >
+        <TextoError>{errorMatricula}</TextoError>
+
+        {!editandoMatricula ? (
+          matriculaVigente ? (
+            (() => {
+              const f = formatearSeccion(matriculaVigente);
+              return (
+                <CuadriculaDatos columnas={3}>
+                  <DatoFicha etiqueta="Sección vigente" valor={f.linea} />
+                  <DatoFicha etiqueta="Detalle" valor={f.detalle} />
+                  <DatoFicha etiqueta="Desde" valor={formatearFecha(matriculaVigente.fecha_inicio.slice(0, 10))} />
+                </CuadriculaDatos>
+              );
+            })()
+          ) : (
+            <VacioFicha icono={School} texto="Sin matrícula activa." />
+          )
+        ) : (
+          <form onSubmit={guardarMatricula} className="grid gap-4 text-sm sm:grid-cols-3">
+            <CampoEditable etiqueta="Nivel educativo">
+              <Select
+                required
+                value={nivelSeleccionado}
+                onChange={(e) => seleccionarNivel(e.target.value)}
+                disabled={cargandoNiveles}
+              >
+                <option value="">{cargandoNiveles ? "Cargando…" : "Selecciona…"}</option>
+                {niveles.map((n) => (
+                  <option key={n.id} value={n.id}>
+                    {n.nombre}
+                  </option>
+                ))}
+              </Select>
+            </CampoEditable>
+
+            <CampoEditable etiqueta="Grado">
+              <Select
+                required
+                value={gradoSeleccionado}
+                onChange={(e) => seleccionarGrado(e.target.value)}
+                disabled={!nivelSeleccionado || cargandoGrados}
+                className="disabled:bg-mist disabled:text-ink/40"
+              >
+                <option value="">{cargandoGrados ? "Cargando…" : "Selecciona…"}</option>
+                {grados.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.nombre}
+                  </option>
+                ))}
+              </Select>
+            </CampoEditable>
+
+            <CampoEditable etiqueta="Sección">
+              <Select
+                required
+                value={seccionSeleccionada}
+                onChange={(e) => setSeccionSeleccionada(e.target.value)}
+                disabled={!gradoSeleccionado || cargandoSecciones}
+                className="disabled:bg-mist disabled:text-ink/40"
+              >
+                <option value="">{cargandoSecciones ? "Cargando…" : "Selecciona…"}</option>
+                {secciones.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nombre} · {s.anio_escolar}
+                    {s.turno ? ` (${s.turno})` : ""}
+                  </option>
+                ))}
+              </Select>
+            </CampoEditable>
+
+            <TextoError className="sm:col-span-3">{errorFormularioMatricula}</TextoError>
+
+            <div className="flex items-center gap-3 pt-1 sm:col-span-3">
+              <Boton type="submit" disabled={!seccionSeleccionada || guardandoMatricula}>
+                {guardandoMatricula ? "Guardando..." : "Guardar matrícula"}
+              </Boton>
+              <button
+                type="button"
+                onClick={() => setEditandoMatricula(false)}
+                className="text-sm text-ink/60 hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
+
+        {mostrarHistorialAcademico && (
+          <div className="border-t border-border dark:border-border-dark pt-4">
+            <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial académico</h3>
+            {historialAcademico.length === 0 ? (
+              <p className="text-sm text-ink/60 italic">Sin matrículas registradas todavía.</p>
+            ) : (
+              <div className="space-y-2">
+                {[...historialAcademico].reverse().map((h) => {
+                  const f = formatearSeccion(h);
+                  return (
+                    <div key={h.matricula_id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
+                      <span className="font-semibold text-teal-900">{f.linea}</span>
+                      {f.detalle && <span className="text-ink/60"> — {f.detalle}</span>}
+                      <div className="text-ink/50 mt-0.5">
+                        {formatearFecha(h.fecha_inicio.slice(0, 10))} →{" "}
+                        {h.fecha_fin ? formatearFecha(h.fecha_fin.slice(0, 10)) : "vigente"}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </BloqueFicha>
+
+      {/* Consentimiento informado — "apoderado" siempre obligatorio para
+          matricular en campaña o completar un examen; "asentimiento" del
+          propio estudiante solo se exige si la institución activó esa
+          política (Institucion.exigir_asentimiento_estudiante). Historial
+          append-only (ver ConsentimientosCombinados en types/api.ts):
+          revocar nunca borra, solo cierra la fila vigente; "renovar" es
+          simplemente registrar uno nuevo. La evidencia adjunta (foto/PDF del
+          documento firmado en papel) es un respaldo opcional, no un
+          requisito — lo que habilita matrícula/examen es el registro con
+          estado="vigente" en la base de datos, nunca la evidencia en sí. */}
+      <BloqueFicha
+        icono={ShieldCheck}
+        titulo="Consentimiento informado"
+        descripcion="Sin consentimiento del apoderado vigente no se puede matricular en campañas ni rendir exámenes."
+        cuerpoClassName="space-y-3"
+      >
+        <p className="text-xs text-ink/55 dark:text-ink-dark/55">
+          Si tu institución además exige el asentimiento del propio estudiante, regístralo en el segundo bloque.
+        </p>
+
+        <TextoError>{errorConsentimientos}</TextoError>
+
+        {(["apoderado", "asentimiento"] as const).map((tipo) => {
+          const bloque = consentimientos?.[tipo] ?? null;
+          const vigente = bloque?.historial.find((c) => c.estado === "vigente") ?? null;
+          const formularioAbiertoAqui = formularioConsentimiento?.tipo === tipo ? formularioConsentimiento : null;
+
+          return (
+            <div key={tipo} className="rounded-lg border border-border dark:border-border-dark overflow-hidden">
+              <div className="flex items-center justify-between gap-2 flex-wrap px-3.5 py-2.5 bg-mist/40 dark:bg-surface-raised-dark/60 border-b border-border dark:border-border-dark">
+                <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark">
+                  {tipo === "apoderado" ? "Consentimiento del apoderado" : "Asentimiento del estudiante"}
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-xs rounded-full px-2.5 py-0.5 font-medium ${
+                      vigente ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark" : "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
+                    }`}
+                  >
+                    {vigente ? "Vigente" : "Sin consentimiento vigente"}
+                  </span>
+                  {puedeEscribirDatosPrincipales && !vigente && !formularioAbiertoAqui && (
+                    <BotonAccionFicha icono={Plus} onClick={() => abrirFormularioConsentimiento(tipo)}>
+                      Registrar
+                    </BotonAccionFicha>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-3.5 space-y-3">
+              {/* 🆕 Modelo del colegio para este alumno (por su nivel) + PDF
+                  para firmar — ver components/educativo/ModeloConsentimiento. */}
+              {puedeEscribirDatosPrincipales && (
+                <ModeloConsentimiento personaId={personaId} tipo={tipo} expandido={!!formularioAbiertoAqui} />
+              )}
+              {vigente && (
+                <div className="space-y-3 text-sm">
+                  <CuadriculaDatos>
+                  {tipo === "apoderado" && (
+                    <>
+                      <DatoFicha
+                        etiqueta="Otorgado por"
+                        valor={`${vigente.otorgado_por_nombre ?? ""} ${vigente.otorgante_apellidos ?? ""}`.trim() || null}
+                      />
+                      <DatoFicha
+                        etiqueta="Tipo de otorgante"
+                        valor={vigente.tipo_otorgante === "colegio_delegado" ? "Colegio (autoridad delegada)" : "Apoderado"}
+                      />
+                      <DatoFicha etiqueta="Documento de identidad" valor={vigente.otorgante_documento} />
+                      <DatoFicha etiqueta="Relación con el estudiante" valor={vigente.otorgante_relacion} />
+                    </>
+                  )}
+                  <DatoFicha etiqueta="Referencia del documento" valor={vigente.referencia_documento} />
+                  <DatoFicha etiqueta="Otorgado el" valor={new Date(vigente.fecha_otorgamiento).toLocaleString()} />
+                  </CuadriculaDatos>
+
+                  <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border dark:border-border-dark bg-mist/30 dark:bg-surface-raised-dark/40 px-3 py-2">
+                    <Paperclip size={14} className="text-ink/40 dark:text-ink-dark/40" aria-hidden="true" />
+                    {vigente.evidencia_nombre_archivo ? (
+                      <>
+                        <span className="text-xs font-medium text-teal-700 dark:text-teal-accent-dark break-all">
+                          {vigente.evidencia_nombre_archivo} ✓
+                        </span>
+                        <button
+                          onClick={() => descargarEvidenciaConsentimiento(vigente)}
+                          disabled={descargandoEvidenciaId === vigente.id}
+                          className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-50"
+                        >
+                          {descargandoEvidenciaId === vigente.id ? "Descargando..." : "Descargar"}
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-ink/50 italic">Sin evidencia adjunta todavía.</span>
+                    )}
+                    {puedeEscribirDatosPrincipales && (
+                      <label className="text-xs text-teal-600 hover:underline font-medium cursor-pointer">
+                        {subiendoEvidenciaId === vigente.id
+                          ? "Subiendo..."
+                          : vigente.evidencia_nombre_archivo
+                            ? "Reemplazar evidencia"
+                            : "Adjuntar evidencia (foto o PDF del documento firmado)"}
+                        <input
+                          type="file"
+                          accept="application/pdf,image/jpeg,image/png"
+                          className="hidden"
+                          disabled={subiendoEvidenciaId === vigente.id}
+                          onChange={(e) => {
+                            const archivo = e.target.files?.[0];
+                            e.target.value = "";
+                            if (archivo) subirEvidenciaConsentimiento(tipo, vigente.id, archivo);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {puedeEscribirDatosPrincipales && (
+                    <div>
+                      <button
+                        onClick={() => revocarConsentimiento(tipo, vigente.id)}
+                        disabled={revocandoConsentimientoId === vigente.id}
+                        className={claseBoton("secundario")}
+                      >
+                        {revocandoConsentimientoId === vigente.id ? "Revocando..." : "Revocar"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!vigente && formularioAbiertoAqui && (
+                <form onSubmit={registrarConsentimiento} className="grid sm:grid-cols-2 gap-4 text-sm">
+                  {tipo === "apoderado" && (
+                    <>
+                      <CampoEditable etiqueta="Nombres de quien otorga (obligatorio)">
+                        <Input
+                          required
+                          value={formularioAbiertoAqui.otorgado_por_nombre}
+                          onChange={(e) =>
+                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgado_por_nombre: e.target.value })
+                          }
+                        />
+                      </CampoEditable>
+                      <CampoEditable etiqueta="Apellidos">
+                        <Input
+                          value={formularioAbiertoAqui.otorgante_apellidos}
+                          onChange={(e) =>
+                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgante_apellidos: e.target.value })
+                          }
+                        />
+                      </CampoEditable>
+                      <CampoEditable etiqueta="Documento de identidad">
+                        <Input
+                          value={formularioAbiertoAqui.otorgante_documento}
+                          onChange={(e) =>
+                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgante_documento: e.target.value })
+                          }
+                        />
+                      </CampoEditable>
+                      <CampoEditable etiqueta="Relación con el estudiante">
+                        <Input
+                          placeholder="madre, padre, tutor legal..."
+                          value={formularioAbiertoAqui.otorgante_relacion}
+                          onChange={(e) =>
+                            setFormularioConsentimiento({ ...formularioAbiertoAqui, otorgante_relacion: e.target.value })
+                          }
+                        />
+                      </CampoEditable>
+                      <CampoEditable etiqueta="Tipo de otorgante">
+                        <Select
+                          value={formularioAbiertoAqui.tipo_otorgante}
+                          onChange={(e) =>
+                            setFormularioConsentimiento({
+                              ...formularioAbiertoAqui,
+                              tipo_otorgante: e.target.value as TipoOtorgante,
+                            })
+                          }
+                        >
+                          <option value="apoderado">Apoderado (padre/madre/tutor legal)</option>
+                          <option value="colegio_delegado">Colegio, con autoridad delegada</option>
+                        </Select>
+                      </CampoEditable>
+                    </>
+                  )}
+                  <CampoEditable etiqueta="Referencia del documento (opcional)">
+                    <Input
+                      placeholder='Ej. "Ficha de matrícula 2026, folio 45"'
+                      value={formularioAbiertoAqui.referencia_documento}
+                      onChange={(e) =>
+                        setFormularioConsentimiento({ ...formularioAbiertoAqui, referencia_documento: e.target.value })
+                      }
+                    />
+                  </CampoEditable>
+
+                  <TextoError className="sm:col-span-2">{errorFormularioConsentimiento}</TextoError>
+
+                  <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                    <Boton type="submit" disabled={guardandoConsentimiento}>
+                      {guardandoConsentimiento ? "Guardando..." : "Registrar consentimiento"}
+                    </Boton>
+                    <button
+                      type="button"
+                      onClick={() => setFormularioConsentimiento(null)}
+                      className="text-sm text-ink/60 hover:underline"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {!vigente && !formularioAbiertoAqui && (
+                <p className="text-sm text-ink/50 dark:text-ink-dark/50">
+                  {tipo === "apoderado"
+                    ? "Sin consentimiento del apoderado vigente."
+                    : "Sin asentimiento del propio estudiante vigente."}
+                </p>
+              )}
+
+              {bloque && bloque.historial.length > 1 && (
+                <button
+                  onClick={() =>
+                    setMostrarHistorialConsentimiento((prev) => ({ ...prev, [tipo]: !prev[tipo] }))
+                  }
+                  className="text-xs text-teal-600 hover:underline font-medium"
+                >
+                  {mostrarHistorialConsentimiento[tipo] ? "Ocultar historial" : `Ver historial (${bloque.historial.length})`}
+                </button>
+              )}
+              {bloque && mostrarHistorialConsentimiento[tipo] && (
+                <div className="space-y-2">
+                  {[...bloque.historial].reverse().map((c) => (
+                    <div key={c.id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
+                      <span className={`font-semibold ${c.estado === "vigente" ? "text-teal-900" : "text-ink/50"}`}>
+                        {c.estado === "vigente" ? "Vigente" : "Revocado"}
+                      </span>
+                      {tipo === "apoderado" && (
+                        <span className="text-ink/70">
+                          {" "}
+                          — {c.otorgado_por_nombre} {c.otorgante_apellidos}
+                        </span>
+                      )}
+                      <div className="text-ink/50 mt-0.5">
+                        Otorgado el {new Date(c.fecha_otorgamiento).toLocaleString()}
+                        {c.fecha_revocacion && ` · revocado el ${new Date(c.fecha_revocacion).toLocaleString()}`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              </div>
+            </div>
+          );
+        })}
+      </BloqueFicha>
+
       {/* Documentos institucionales — listado simple con link a la pantalla
           dedicada del sidebar (/documentos), donde se arman las plantillas y
           se edita el contenido de cada documento — ver docs/motor-documentos.md.
@@ -3159,255 +3382,6 @@ export default function FichaAlumnoPage() {
                   {documento.version_actual === null ? "Sin versión generada" : `v${documento.version_actual}`}
                 </span>
               </Link>
-            ))}
-          </div>
-        )}
-      </BloqueFicha>
-
-      {/* Sección de Citas */}
-      <BloqueFicha
-        icono={CalendarClock}
-        titulo="Citas programadas"
-        cuerpoClassName="space-y-4"
-        acciones={
-          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/cita/nueva`)}>
-            Nueva cita
-          </BotonAccionFicha>
-        }
-      >
-        <TextoError>{errorCitas}</TextoError>
-
-        {citas.length === 0 ? (
-          <VacioFicha icono={CalendarClock} texto="No hay citas registradas para este alumno." />
-        ) : (
-          <div className="grid gap-3">
-            {citas.map((cita) => {
-              // 🆕 persona_id null = actividad grupal (taller/charla/otro) en
-              // la que este alumno quedó anotado como participante, no una
-              // cita suya — aparece aquí para que su historial quede
-              // completo, pero a propósito SIN "Reprogramar"/"Cancelar":
-              // esas acciones afectan a TODOS los asistentes de la
-              // actividad, no solo a este alumno, y ejercerlas por error
-              // desde la ficha de uno solo de ellos reprogramaría/cancelaría
-              // el taller completo. Esa edición vive en /agenda.
-              const esGrupal = cita.persona_id === null;
-              return (
-              <div key={cita.id} className="p-3.5 rounded-lg border border-border dark:border-border-dark space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    {esGrupal && (
-                      <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-teal-600/10 text-teal-900 mb-1">
-                        Actividad grupal{cita.tipo_actividad ? `: ${cita.tipo_actividad}` : ""}
-                      </span>
-                    )}
-                    <p className="text-sm font-semibold text-teal-900">
-                      {esGrupal ? cita.titulo : `Motivo: ${cita.motivo}`}
-                    </p>
-                    <p className="text-xs text-ink/70 mt-1">
-                      Fecha: {new Date(cita.fecha_hora).toLocaleString("es-PE")}
-                      {esGrupal && cita.lugar && ` · ${cita.lugar}`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${claseEstadoCita(cita.estado)}`}>
-                      {cita.estado}
-                    </span>
-                    {!esGrupal && cita.estado === "Programada" && reprogramandoCitaId !== cita.id && (
-                      <>
-                        <button
-                          onClick={() => abrirReprogramar(cita)}
-                          className="text-xs text-teal-700 hover:underline"
-                        >
-                          Reprogramar
-                        </button>
-                        <button
-                          onClick={() => cancelarCita(cita.id)}
-                          disabled={cancelandoCitaId === cita.id}
-                          className="text-xs text-ink/60 hover:text-ink hover:underline disabled:opacity-50"
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {!esGrupal && reprogramandoCitaId === cita.id && (
-                  <form
-                    onSubmit={(e) => guardarReprogramacion(e, cita.id)}
-                    className="flex flex-wrap items-end gap-3 border-t border-border/60 pt-3"
-                  >
-                    <CampoEditable etiqueta="Nueva fecha">
-                      <Input
-                        type="date"
-                        required
-                        value={formReprogramar.fecha}
-                        onChange={(e) => setFormReprogramar((f) => ({ ...f, fecha: e.target.value }))}
-                      />
-                    </CampoEditable>
-                    <CampoEditable etiqueta="Nueva hora">
-                      <Input
-                        type="time"
-                        required
-                        value={formReprogramar.hora}
-                        onChange={(e) => setFormReprogramar((f) => ({ ...f, hora: e.target.value }))}
-                      />
-                    </CampoEditable>
-                    <Boton type="submit" disabled={guardandoReprogramacion}>
-                      {guardandoReprogramacion ? "Guardando..." : "Guardar"}
-                    </Boton>
-                    <button
-                      type="button"
-                      onClick={() => setReprogramandoCitaId(null)}
-                      className="text-xs text-ink/60 hover:text-ink hover:underline"
-                    >
-                      Cancelar edición
-                    </button>
-                  </form>
-                )}
-              </div>
-              );
-            })}
-          </div>
-        )}
-      </BloqueFicha>
-
-      {/* Sección de Seguimiento / Sesiones Psicológicas */}
-      <BloqueFicha
-        icono={MessagesSquare}
-        titulo="Historial de sesiones de seguimiento"
-        cuerpoClassName="space-y-4"
-        acciones={
-          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}>
-            Registrar sesión
-          </BotonAccionFicha>
-        }
-      >
-        <TextoError>{errorSesiones}</TextoError>
-
-        {seguimientos.length === 0 ? (
-          <VacioFicha icono={MessagesSquare} texto="No se han registrado sesiones de seguimiento clínico." />
-        ) : (
-          <div className="space-y-3">
-            {seguimientos.map((sesion) => (
-              <div key={sesion.id} className="p-4 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark space-y-3">
-                <div className="flex justify-between items-center border-b border-border/60 pb-2">
-                  <span className="text-xs font-semibold text-ink/70">
-                    Fecha de Sesión: {new Date(sesion.fecha).toLocaleDateString()}
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-teal-400/20 text-teal-900">
-                      {sesion.estado}
-                    </span>
-                    {editandoSesionId !== sesion.id && (
-                      <button
-                        onClick={() => abrirEditarSesion(sesion)}
-                        className="text-xs text-teal-700 hover:underline"
-                      >
-                        Editar
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {editandoSesionId === sesion.id ? (
-                  <form onSubmit={(e) => guardarEdicionSesion(e, sesion.id)} className="space-y-3">
-                    <CampoEditable etiqueta="Observaciones de la sesión">
-                      <Textarea
-                        required
-                        rows={4}
-                        value={formSesion.observaciones}
-                        onChange={(e) => setFormSesion((f) => ({ ...f, observaciones: e.target.value }))}
-                      />
-                    </CampoEditable>
-                    <CampoEditable etiqueta="Acción tomada">
-                      <Textarea
-                        rows={2}
-                        value={formSesion.accion_tomada}
-                        onChange={(e) => setFormSesion((f) => ({ ...f, accion_tomada: e.target.value }))}
-                      />
-                    </CampoEditable>
-                    <CampoEditable etiqueta="Acuerdos y compromisos">
-                      <Textarea
-                        rows={2}
-                        value={formSesion.acuerdos_compromisos}
-                        onChange={(e) => setFormSesion((f) => ({ ...f, acuerdos_compromisos: e.target.value }))}
-                      />
-                    </CampoEditable>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <CampoEditable etiqueta="Próxima cita — fecha">
-                        <Input
-                          type="date"
-                          value={formSesion.proxima_cita_fecha}
-                          onChange={(e) => setFormSesion((f) => ({ ...f, proxima_cita_fecha: e.target.value }))}
-                        />
-                      </CampoEditable>
-                      <CampoEditable etiqueta="Próxima cita — hora">
-                        <Input
-                          type="time"
-                          value={formSesion.proxima_cita_hora}
-                          onChange={(e) => setFormSesion((f) => ({ ...f, proxima_cita_hora: e.target.value }))}
-                        />
-                      </CampoEditable>
-                      <CampoEditable etiqueta="Estado">
-                        <Select
-                          value={formSesion.estado}
-                          onChange={(e) => setFormSesion((f) => ({ ...f, estado: e.target.value }))}
-                        >
-                          <option value="Pendiente">Pendiente</option>
-                          <option value="En proceso">En proceso</option>
-                          <option value="Atendido">Atendido</option>
-                        </Select>
-                      </CampoEditable>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Boton type="submit" disabled={guardandoSesion}>
-                        {guardandoSesion ? "Guardando..." : "Guardar cambios"}
-                      </Boton>
-                      <button
-                        type="button"
-                        onClick={() => setEditandoSesionId(null)}
-                        className="text-xs text-ink/60 hover:text-ink hover:underline"
-                      >
-                        Cancelar edición
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <>
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="block font-medium text-teal-900">Observaciones:</span>
-                        <p className="text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50 text-xs leading-relaxed">
-                          {sesion.observaciones || "Sin observaciones registradas."}
-                        </p>
-                      </div>
-
-                      <div>
-                        <span className="block font-medium text-teal-900">Acción Tomada:</span>
-                        <p className="text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50 text-xs leading-relaxed">
-                          {sesion.accion_tomada || "Ninguna especificada."}
-                        </p>
-                      </div>
-                    </div>
-
-                    {sesion.acuerdos_compromisos && (
-                      <div>
-                        <span className="block text-sm font-medium text-teal-900">Acuerdos y Compromisos:</span>
-                        <p className="text-xs text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50">
-                          {sesion.acuerdos_compromisos}
-                        </p>
-                      </div>
-                    )}
-
-                    {sesion.proxima_cita && (
-                      <p className="text-xs text-ink/70">
-                        Próxima cita: {new Date(sesion.proxima_cita).toLocaleString("es-PE")}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
             ))}
           </div>
         )}
