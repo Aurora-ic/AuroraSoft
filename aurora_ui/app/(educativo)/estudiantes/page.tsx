@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Users, UserCheck, UserX, FileWarning, School, Search, Upload, Plus, ChevronLeft, ChevronRight, Stethoscope } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Persona, SeccionActual } from "@/types/api";
+import { Persona, RespuestaPaginada, ResumenPadron, SeccionActual } from "@/types/api";
 import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
@@ -51,20 +51,21 @@ export default function PadronPage() {
   const { sesion } = useAuth();
   const router = useRouter();
   const [personas, setPersonas] = useState<Persona[]>([]);
+  const [totalFiltrado, setTotalFiltrado] = useState(0);
+  const [resumen, setResumen] = useState<ResumenPadron | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [busquedaAplicada, setBusquedaAplicada] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("activos");
-  // "todas" | "sin-matricula" | String(seccion_id) — derivado de seccion_actual,
-  // que ya viaja en la misma respuesta del padrón: sin llamadas adicionales.
+  // "todas" | "sin-matricula" | String(seccion_id)
   const [filtroSeccionId, setFiltroSeccionId] = useState<string>("todas");
-  // Sin filtro exacto propio en el backend (no es ni estado ni sección) —
-  // se resuelve en cliente igual que el resto, a partir del mismo criterio
-  // que ya usa "resumen.datosIncompletos".
   const [soloIncompletos, setSoloIncompletos] = useState(false);
   const [pagina, setPagina] = useState(0);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actualizandoId, setActualizandoId] = useState<number | null>(null);
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
+  // Sube tras activar/desactivar a alguien: recarga página y tarjetas.
+  const [recarga, setRecarga] = useState(0);
 
   const TAMANO_PAGINA = 50;
 
@@ -79,95 +80,92 @@ export default function PadronPage() {
   const puedeGestionarPadron =
     sesion?.rol === "psicologo" || sesion?.rol === "admin" || sesion?.rol === "superadmin";
 
-  // Un solo fetch al montar — el padrón completo (activos + inactivos). Las
-  // 4 tarjetas de resumen y los filtros de sección/incompletos necesitan el
-  // UNIVERSO completo (no tiene sentido un "Sin matrícula: 3" que solo
-  // contara una página), así que busqueda/estado/sección se siguen
-  // filtrando en cliente sobre esta misma lista, como siempre.
-  //
-  // 🆕 Paginación real (docs/gaps-pendientes.md) — la diferencia es CÓMO se
-  // trae ese universo completo: antes, una sola consulta sin tope
-  // (`.all()`) que crecía para siempre con los años; ahora, el mismo total
-  // se junta en páginas acotadas de 200 (getTodasLasPaginas), así que el
-  // backend nunca vuelve a ejecutar una consulta sin LIMIT. La tabla
-  // renderizada, además, pagina de a 50 sobre el resultado ya filtrado
-  // (ver `personasPaginaActual` más abajo) — sin eso, con cientos de
-  // alumnos la tabla completa se pintaba de una sola vez.
+  // 🆕 Escalabilidad (sesión 2026-11-01) — antes esta pantalla bajaba el
+  // padrón COMPLETO (getTodasLasPaginas, de a 200: con 5000 alumnos, 25
+  // peticiones y 5000 filas en memoria) para filtrar y contar en el
+  // navegador. Ahora:
+  // - la tabla pide UNA página de 50 ya filtrada en el servidor (estado,
+  //   sección, incompletos, búsqueda — mismos criterios que antes, ver
+  //   crud._consulta_padron_filtrada y tests/verificar_padron_servidor_equivalencia.py);
+  // - las 5 tarjetas y el desplegable de secciones salen de
+  //   /resumen-padron (agregados SQL sobre TODO el padrón, nunca sobre la
+  //   página visible — mismo significado que antes).
   useEffect(() => {
     if (!sesion?.institucionId) return;
+    let vigente = true;
+    apiClient
+      .get<ResumenPadron>(`/admin/personas/${sesion.institucionId}/resumen-padron`)
+      .then((r) => vigente && setResumen(r))
+      .catch((err) => vigente && setError(err.message));
+    return () => {
+      vigente = false;
+    };
+  }, [sesion?.institucionId, recarga]);
+
+  // La búsqueda se manda 300 ms después de dejar de escribir.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setBusquedaAplicada(busqueda.trim());
+      setPagina(0);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [busqueda]);
+
+  useEffect(() => {
+    if (!sesion?.institucionId) return;
+    let vigente = true;
+    const params = new URLSearchParams({
+      estado: filtroEstado === "con-dx" ? "con_dx" : filtroEstado,
+      skip: String(pagina * TAMANO_PAGINA),
+      limit: String(TAMANO_PAGINA),
+    });
+    if (busquedaAplicada) params.set("busqueda", busquedaAplicada);
+    if (filtroSeccionId === "sin-matricula") params.set("sin_matricula", "true");
+    else if (filtroSeccionId !== "todas") params.set("seccion_id", filtroSeccionId);
+    if (soloIncompletos) params.set("datos_incompletos", "true");
     setCargando(true);
     setError(null);
     apiClient
-      .getTodasLasPaginas<Persona>(`/admin/personas/${sesion.institucionId}?incluir_inactivas=true`)
-      .then(setPersonas)
-      .catch((err) => setError(err.message))
-      .finally(() => setCargando(false));
-  }, [sesion]);
+      .get<RespuestaPaginada<Persona>>(`/admin/personas/${sesion.institucionId}?${params.toString()}`)
+      .then((r) => {
+        if (!vigente) return;
+        setPersonas(r.items);
+        setTotalFiltrado(r.total);
+      })
+      .catch((err) => vigente && setError(err.message))
+      .finally(() => vigente && setCargando(false));
+    return () => {
+      vigente = false;
+    };
+  }, [sesion?.institucionId, busquedaAplicada, filtroEstado, filtroSeccionId, soloIncompletos, pagina, recarga]);
 
-  // Cualquier cambio en los filtros/búsqueda vuelve a la página 1 — si no,
-  // "página 3" de un filtro nuevo podría quedar vacía sin que sea obvio por qué.
-  useEffect(() => {
+  // Cambiar un filtro vuelve a la página 1 — si no, "página 3" de un filtro
+  // nuevo podría quedar vacía sin que sea obvio por qué. (En el handler, no
+  // en un efecto: así no se dispara una petición con la página vieja.)
+  function cambiarEstado(v: FiltroEstado | ((prev: FiltroEstado) => FiltroEstado)) {
+    setFiltroEstado(v);
     setPagina(0);
-  }, [busqueda, filtroEstado, filtroSeccionId, soloIncompletos]);
+  }
+  function cambiarSeccion(v: string | ((prev: string) => string)) {
+    setFiltroSeccionId(v);
+    setPagina(0);
+  }
+  function cambiarIncompletos(v: boolean | ((prev: boolean) => boolean)) {
+    setSoloIncompletos(v);
+    setPagina(0);
+  }
 
-  const seccionesDisponibles = useMemo(() => {
-    const mapa = new Map<number, string>();
-    personas.forEach((p) => {
-      if (p.seccion_actual) {
-        const s = p.seccion_actual;
-        mapa.set(s.seccion_id, [s.nivel_educativo, s.grado, s.seccion].filter(Boolean).join(" · "));
-      }
-    });
-    return Array.from(mapa.entries())
-      .map(([id, etiqueta]) => ({ id, etiqueta }))
-      .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta));
-  }, [personas]);
-
-  const personasFiltradas = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
-    return personas.filter((p) => {
-      if (filtroEstado === "activos" && !p.activo) return false;
-      if (filtroEstado === "inactivos" && p.activo) return false;
-      if (filtroEstado === "con-dx" && !(p.activo && p.con_diagnostico)) return false;
-      if (filtroSeccionId === "sin-matricula") {
-        if (p.seccion_actual) return false;
-      } else if (filtroSeccionId !== "todas") {
-        if (p.seccion_actual?.seccion_id !== Number(filtroSeccionId)) return false;
-      }
-      if (soloIncompletos && p.genero && p.fecha_nacimiento) return false;
-      if (texto) {
-        const coincide =
-          p.nombres.toLowerCase().includes(texto) ||
-          p.apellidos.toLowerCase().includes(texto) ||
-          (p.documento_identidad ?? "").toLowerCase().includes(texto);
-        if (!coincide) return false;
-      }
-      return true;
-    });
-  }, [personas, busqueda, filtroEstado, filtroSeccionId, soloIncompletos]);
-
-  // Página visible de la tabla — sobre el resultado YA filtrado, nunca
-  // sobre el padrón completo. "Anterior"/"Siguiente" navegan acá.
-  const personasPaginaActual = useMemo(
-    () => personasFiltradas.slice(pagina * TAMANO_PAGINA, (pagina + 1) * TAMANO_PAGINA),
-    [personasFiltradas, pagina],
+  const seccionesDisponibles = useMemo(
+    () =>
+      (resumen?.secciones ?? [])
+        .map((s) => ({ id: s.seccion_id, etiqueta: [s.nivel_educativo, s.grado, s.seccion].filter(Boolean).join(" · ") }))
+        .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta)),
+    [resumen],
   );
 
-  // Resumen sobre el padrón completo (nunca sobre personasFiltradas) — las
-  // tarjetas muestran el estado real de la institución, independiente de lo
-  // que la búsqueda/filtros actuales estén mostrando en la tabla.
-  const resumen = useMemo(() => {
-    const activos = personas.filter((p) => p.activo);
-    return {
-      activos: activos.length,
-      inactivos: personas.length - activos.length,
-      // Mismo criterio que la importación por Excel (CAMPOS_OPCIONALES_REPORTABLES):
-      // genero/fecha_nacimiento faltantes cuentan como "incompleto", documento_identidad no.
-      datosIncompletos: activos.filter((p) => !p.genero || !p.fecha_nacimiento).length,
-      sinMatricula: activos.filter((p) => !p.seccion_actual).length,
-      conDiagnostico: activos.filter((p) => p.con_diagnostico).length,
-    };
-  }, [personas]);
+  // La página visible ya viene filtrada del servidor.
+  const personasPaginaActual = personas;
+  const cargandoResumen = resumen === null;
 
   async function alternarActivo(persona: Persona, e: React.MouseEvent) {
     e.stopPropagation(); // no navegar a la ficha al hacer clic en el botón de la fila
@@ -182,6 +180,8 @@ export default function PadronPage() {
         activo: !persona.activo,
       });
       setPersonas((prev) => prev.map((p) => (p.id === persona.id ? { ...p, ...actualizado } : p)));
+      // Tarjetas y filtro (p. ej. "Activos") cambian: se vuelven a pedir.
+      setRecarga((n) => n + 1);
     } catch (err: any) {
       setErrorAccion(err.message || "No se pudo cambiar el estado del alumno.");
     } finally {
@@ -225,40 +225,40 @@ export default function PadronPage() {
         <TarjetaKpi
           icono={UserCheck}
           etiqueta="Activos"
-          valor={cargando ? "…" : resumen.activos}
+          valor={cargandoResumen ? "…" : resumen.activos}
           activa={filtroEstado === "activos"}
-          onClick={() => setFiltroEstado("activos")}
+          onClick={() => cambiarEstado("activos")}
         />
         <TarjetaKpi
           icono={UserX}
           tono="neutro"
           etiqueta="Inactivos"
-          valor={cargando ? "…" : resumen.inactivos}
+          valor={cargandoResumen ? "…" : resumen.inactivos}
           activa={filtroEstado === "inactivos"}
-          onClick={() => setFiltroEstado("inactivos")}
+          onClick={() => cambiarEstado("inactivos")}
         />
         <TarjetaKpi
           icono={FileWarning}
           tono="neutro"
           etiqueta="Datos incompletos"
-          valor={cargando ? "…" : resumen.datosIncompletos}
+          valor={cargandoResumen ? "…" : resumen.datos_incompletos}
           activa={soloIncompletos}
           onClick={() => {
             // El conteo es solo sobre activos — al filtrar, la tabla debe
             // quedar acotada igual, o mostraría filas que el número no contó.
-            setFiltroEstado("activos");
-            setSoloIncompletos((v) => !v);
+            cambiarEstado("activos");
+            cambiarIncompletos((v) => !v);
           }}
         />
         <TarjetaKpi
           icono={School}
           tono="neutro"
           etiqueta="Sin matrícula"
-          valor={cargando ? "…" : resumen.sinMatricula}
+          valor={cargandoResumen ? "…" : resumen.sin_matricula}
           activa={filtroSeccionId === "sin-matricula"}
           onClick={() => {
-            setFiltroEstado("activos"); // mismo motivo: el conteo también es solo sobre activos
-            setFiltroSeccionId((v) => (v === "sin-matricula" ? "todas" : "sin-matricula"));
+            cambiarEstado("activos"); // mismo motivo: el conteo también es solo sobre activos
+            cambiarSeccion((v) => (v === "sin-matricula" ? "todas" : "sin-matricula"));
           }}
         />
         {/* Ámbar: es riesgo clínico (tratamiento externo), no un dato administrativo. */}
@@ -266,9 +266,9 @@ export default function PadronPage() {
           icono={Stethoscope}
           tono="riesgo"
           etiqueta="Con diagnóstico"
-          valor={cargando ? "…" : resumen.conDiagnostico}
+          valor={cargandoResumen ? "…" : resumen.con_diagnostico}
           activa={filtroEstado === "con-dx"}
-          onClick={() => setFiltroEstado((v) => (v === "con-dx" ? "activos" : "con-dx"))}
+          onClick={() => cambiarEstado((v) => (v === "con-dx" ? "activos" : "con-dx"))}
         />
       </div>
 
@@ -295,8 +295,8 @@ export default function PadronPage() {
                 type="button"
                 onClick={() => {
                   setBusqueda("");
-                  setFiltroSeccionId("todas");
-                  setSoloIncompletos(false);
+                  cambiarSeccion("todas");
+                  cambiarIncompletos(false);
                 }}
                 className="text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
               >
@@ -305,7 +305,7 @@ export default function PadronPage() {
             )}
             <Select
               value={filtroSeccionId}
-              onChange={(e) => setFiltroSeccionId(e.target.value)}
+              onChange={(e) => cambiarSeccion(e.target.value)}
               className="min-w-0 flex-1 md:flex-none"
               aria-label="Filtrar por sección"
             >
@@ -321,7 +321,7 @@ export default function PadronPage() {
             <ControlSegmentado<FiltroEstado>
               etiqueta="Estado"
               valor={filtroEstado}
-              onCambiar={setFiltroEstado}
+              onCambiar={cambiarEstado}
               opciones={FILTROS_ESTADO}
             />
           </div>
@@ -342,7 +342,7 @@ export default function PadronPage() {
             </thead>
             <tbody>
               {cargando && <EsqueletoFilasTabla filas={8} columnas={esAdmin ? 5 : 4} />}
-              {!cargando && personasFiltradas.length === 0 && (
+              {!cargando && totalFiltrado === 0 && (
                 <tr>
                   <td colSpan={esAdmin ? 5 : 4} className="px-4 py-10 text-center text-sm text-ink/40 dark:text-ink-dark/40">
                     No se encontraron alumnos.
@@ -447,11 +447,11 @@ export default function PadronPage() {
           </table>
         </div>
 
-        {!cargando && personasFiltradas.length > 0 && (
+        {!cargando && totalFiltrado > 0 && (
           <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.06] dark:bg-teal-accent-dark/[0.06]">
             <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">
-              {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, personasFiltradas.length)} de{" "}
-              {personasFiltradas.length} alumnos
+              {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, totalFiltrado)} de{" "}
+              {totalFiltrado} alumnos
             </p>
             <div className="flex items-center gap-1.5">
               <button
@@ -464,7 +464,7 @@ export default function PadronPage() {
               </button>
               <button
                 onClick={() => setPagina((p) => p + 1)}
-                disabled={(pagina + 1) * TAMANO_PAGINA >= personasFiltradas.length}
+                disabled={(pagina + 1) * TAMANO_PAGINA >= totalFiltrado}
                 className="inline-flex items-center gap-1 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2.5 py-1.5 text-xs font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 Siguiente

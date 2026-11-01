@@ -67,3 +67,24 @@ export const TIPOS_CON_CONFIG_SIMPLE: TipoSeccionDocumento[] = [
   "firma_triple",
   "ficha_imprimible",
 ];
+
+// 🆕 (sesión 2026-11-01) Una línea por tipo: qué hace la sección y quién la
+// llena. La usan el constructor (al elegir qué agregar) y el editor del
+// documento (para explicar las secciones que se completan solas en vez de
+// mostrar solo su título sin nada debajo).
+export const DESCRIPCION_TIPO_SECCION: Record<TipoSeccionDocumento, string> = {
+  encabezado: "Membrete y título del documento. Se arma solo al generar.",
+  datos_filiacion: "Datos del alumno desde su ficha; en cada documento solo completas los campos profesionales.",
+  datos_familiares: "Composición familiar tomada de la ficha del alumno. Se llena sola.",
+  texto_libre: "Párrafos que escribes en cada documento (admite viñetas y negrita).",
+  tabla_dinamica: "Tabla con columnas fijas: filas libres o una fila por alumno.",
+  resultados_prueba: "Resultado de una prueba aplicada al alumno, elegida de su historial.",
+  firma: "Nombre y cargo de quien genera el documento. Se completa sola.",
+  grupo_campos: "Cuadro de campos con etiqueta (ej. Nombre, Edad) que llenas en cada documento.",
+  firma_doble: "Dos bloques de firma lado a lado. Se completan solos.",
+  ficha_imprimible: "Formulario en blanco para imprimir y llenar a mano. Sale tal como se configuró.",
+  grafico_barras: "Gráfico desde una prueba vinculada o con valores que cargas a mano.",
+  imagen_anexo: "Una imagen (JPG o PNG) que subes en cada documento.",
+  firma_triple: "Tres bloques de firma. Se completan solos.",
+  resultados_prueba_multiple: "Varias pruebas del alumno consolidadas en una sola sección.",
+};

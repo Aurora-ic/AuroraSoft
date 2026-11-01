@@ -200,13 +200,10 @@ def main(url_base):
             "requiere_consentimiento_individual": requiere_consentimiento,
         }, headers=h_super, timeout=30), 200, f"crear tipo {nombre}")
 
-    # 🔒 Cada escenario usa su PROPIO TipoDocumento, a propósito: el índice
-    # único parcial "como máximo una plantilla activa por institución+tipo"
-    # (ver PlantillaDocumento) desactivaría silenciosamente la plantilla
-    # anterior si varias compartieran el mismo tipo -- eso es justo el
-    # comportamiento correcto del motor (una salvaguarda real, no un bug),
-    # pero aquí se necesitan varias plantillas activas AL MISMO TIEMPO para
-    # comparar escenarios, así que cada una necesita su propio tipo.
+    # Cada escenario usa su PROPIO TipoDocumento. Nació para esquivar la
+    # vieja regla "una sola plantilla activa por institución+tipo" (quitada
+    # en la sesión 2026-11-01); se conserva porque deja cada escenario
+    # identificable por su tipo en las aserciones.
     tipo_feliz = _crear_tipo("Feliz")
     tipo_cero = _crear_tipo("CeroSecciones")
     tipo_dos = _crear_tipo("DosSecciones")

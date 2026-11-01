@@ -112,6 +112,8 @@ def _verificar_acceso_plantilla(
     superadmin puede escribirla; para una plantilla de institución normal,
     solo quien pertenece a esa institución (lectura o escritura)."""
     if usuario.rol == "superadmin":
+        if escritura:
+            crud.verificar_plantilla_no_eliminada(plantilla)
         return
     if plantilla.institucion_id is None:
         if escritura:
@@ -121,6 +123,10 @@ def _verificar_acceso_plantilla(
         return
     if plantilla.institucion_id != usuario.institucion_id:
         raise HTTPException(status_code=403, detail="No tienes acceso a la plantilla de otra institución.")
+    # 🆕 Una plantilla eliminada se puede LEER (la necesitan sus documentos
+    # ya emitidos) pero nunca escribir.
+    if escritura:
+        crud.verificar_plantilla_no_eliminada(plantilla)
 
 
 @router.post("/plantillas", response_model=schemas.PlantillaDocumentoResponse)
@@ -200,12 +206,32 @@ def clonar_plantilla(
     if not plantilla:
         raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
     _verificar_acceso_plantilla(usuario_actual, plantilla)
+    crud.verificar_plantilla_no_eliminada(plantilla)
     if usuario_actual.rol != "superadmin" and datos.institucion_destino_id != usuario_actual.institucion_id:
         raise HTTPException(status_code=403, detail="No puedes clonar una plantilla hacia otra institución.")
     return crud.clonar_plantilla_documento(
         db, plantilla, datos.institucion_destino_id, usuario_actual.id,
         nombre=datos.nombre, activar=datos.activar,
     )
+
+
+@router.delete("/plantillas/{plantilla_id}", status_code=204)
+def eliminar_plantilla(
+    plantilla_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.STAFF_CLINICO),
+):
+    """🆕 (sesión 2026-11-01) Elimina una plantilla de la institución (p. ej.
+    un duplicado clonado por accidente). Soft-delete; 409 si es una
+    predeterminada o si tiene borradores en curso — ver
+    crud.eliminar_plantilla_documento."""
+    plantilla = crud.obtener_plantilla_documento(db, plantilla_id)
+    if not plantilla or plantilla.eliminada_en is not None:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    if plantilla.institucion_id is None:
+        raise HTTPException(status_code=409, detail="Una plantilla predeterminada del catálogo no se elimina desde aquí.")
+    _verificar_acceso_plantilla(usuario_actual, plantilla, escritura=True)
+    crud.eliminar_plantilla_documento(db, plantilla_id, usuario_actual.id)
 
 
 # ==========================================
@@ -312,10 +338,15 @@ def _obtener_documento_o_404_con_acceso(db: Session, documento_id: int, usuario_
     return documento
 
 
-@router.get("/", response_model=RespuestaPaginada[schemas.DocumentoInstitucionalResponse])
+@router.get("/", response_model=RespuestaPaginada[schemas.DocumentoInstitucionalListadoResponse])
 def listar_documentos_institucionales(
     institucion_id: int,
-    persona_id: Optional[int] = None,
+    # 🆕 Uno o varios: ?persona_id=1&persona_id=2 (un solo valor funciona igual que antes).
+    persona_id: Optional[List[int]] = Query(None),
+    q: Optional[str] = Query(None, max_length=200),
+    estado: Optional[str] = Query(None, pattern="^(borrador|emitido)$"),
+    tipo_documento_id: Optional[int] = None,
+    plantilla_documento_id: Optional[int] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -327,8 +358,15 @@ def listar_documentos_institucionales(
         raise HTTPException(status_code=403, detail="No tienes acceso a los documentos de otra institución.")
     total, items = crud.listar_documentos_visibles_para_usuario(
         db, institucion_id, usuario_actual, persona_id=persona_id, skip=skip, limit=limit,
+        q=q, estado=estado, tipo_documento_id=tipo_documento_id, plantilla_documento_id=plantilla_documento_id,
     )
-    return {"total": total, "items": items}
+    resumen = crud.resumen_estudiantes_por_documento(db, [d.id for d in items])
+    return {"total": total, "items": [
+        schemas.DocumentoInstitucionalListadoResponse(
+            **schemas.DocumentoInstitucionalResponse.model_validate(d).model_dump(),
+            estudiantes_resumen=resumen.get(d.id, []),
+        ) for d in items
+    ]}
 
 
 @router.get("/{documento_id}", response_model=schemas.DocumentoInstitucionalDetalleResponse)
@@ -343,6 +381,20 @@ def obtener_documento_institucional(
         **schemas.DocumentoInstitucionalResponse.model_validate(documento).model_dump(),
         estudiantes=estudiantes,
     )
+
+
+@router.delete("/{documento_id}", status_code=204)
+def descartar_borrador_documento(
+    documento_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.STAFF_CLINICO),
+):
+    """🆕 (sesión 2026-11-01) Descarta un BORRADOR (nunca emitido) — 409 si
+    ya tiene versión. Soft-delete: ver crud.descartar_borrador_documento.
+    Mismo rol que crearlo (STAFF_CLINICO); el chequeo de tenant/visibilidad
+    es el de cualquier otro endpoint del recurso."""
+    _obtener_documento_o_404_con_acceso(db, documento_id, usuario_actual)
+    crud.descartar_borrador_documento(db, documento_id, usuario_actual.id)
 
 
 # ==========================================

@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import { ACENTOS, type Acento } from "@/lib/acentos";
 
 // 🆕 Piezas visuales de la ficha del alumno (sesión 2026-10-29, a pedido del
 // usuario: "unos marcos/bordes, que no se vea espacioso, algo profesional").
@@ -11,6 +12,9 @@ import type { LucideIcon } from "lucide-react";
 // 🆕 (sesión 2026-10-31) Fondo tenue teal (Estudiantes) en el bloque y su
 // cabecera, ícono en cuadro sólido — las celdas de datos quedan en blanco
 // encima y contrastan.
+// 🆕 (sesión 2026-11-01) `acento` opcional para reutilizar el mismo bloque
+// fuera de Estudiantes (p. ej. violeta en Documentos). Sin `acento` la
+// salida es la misma de siempre (teal).
 
 export function BloqueFicha({
   icono: Icono,
@@ -21,6 +25,7 @@ export function BloqueFicha({
   className = "",
   cuerpoClassName = "",
   id,
+  acento = "teal",
 }: {
   icono: LucideIcon;
   titulo: string;
@@ -33,15 +38,14 @@ export function BloqueFicha({
   // Ancla para enlazar al bloque desde otra parte de la ficha (p. ej. el
   // apartado "Situación de riesgo" del perfil → Antecedentes clínicos).
   id?: string;
+  acento?: Acento;
 }) {
+  const a = ACENTOS[acento];
   return (
-    <section
-      id={id}
-      className={`scroll-mt-6 rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden ${className}`}
-    >
-      <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08] border-b border-teal-600/15 dark:border-teal-accent-dark/20">
+    <section id={id} className={`scroll-mt-6 rounded-xl border shadow-sm overflow-hidden ${a.fondoSuave} ${className}`}>
+      <header className={`flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b ${a.cabecera}`}>
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark">
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.chipSolido}`}>
             <Icono size={16} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -49,7 +53,7 @@ export function BloqueFicha({
             {descripcion && <p className="text-[11.5px] text-ink/50 dark:text-ink-dark/50 leading-tight mt-0.5">{descripcion}</p>}
           </div>
         </div>
-        {acciones && <div className="flex items-center gap-1.5">{acciones}</div>}
+        {acciones && <div className="flex items-center gap-1.5 flex-wrap">{acciones}</div>}
       </header>
       <div className={`p-4 ${cuerpoClassName}`}>{children}</div>
     </section>

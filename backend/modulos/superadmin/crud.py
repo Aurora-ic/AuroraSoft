@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, joinedload, selectinload
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from . import models, schemas
 from datetime import timezone
 from modulos.educativo import models as educativo_models
@@ -20,7 +20,7 @@ import hashlib
 from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
-from typing import Optional
+from typing import List, Optional
 from core.concurrencia import commit_o_conflicto
 # ==========================================
 # CRUD PARA PERSONAS (EVALUADOS)
@@ -55,6 +55,113 @@ def crear_persona(db: Session, persona: schemas.PersonaCreate):
     return nueva_persona
 
 
+ESTADOS_PADRON = ("activos", "inactivos", "todos", "con_dx")
+
+
+def _consulta_padron_filtrada(
+    db: Session,
+    institucion_id: int,
+    busqueda: Optional[str] = None,
+    incluir_inactivas: bool = False,
+    estado: Optional[str] = None,
+    seccion_id: Optional[int] = None,
+    grado_id: Optional[int] = None,
+    sin_matricula: bool = False,
+    datos_incompletos: bool = False,
+    consentimiento_apoderado: Optional[str] = None,
+):
+    """🆕 Escalabilidad (sesión 2026-11-01) — los filtros del padrón, en SQL.
+
+    Antes el Padrón, Nueva campaña y la Agenda descargaban el padrón
+    COMPLETO (getTodasLasPaginas, de a 200) y filtraban en el navegador;
+    con miles de alumnos eso son decenas de peticiones y miles de filas en
+    memoria cada vez que se abre la pantalla. Los mismos criterios que
+    aplicaba el cliente, ahora acá — una sola fuente para el listado
+    paginado (`obtener_personas_por_institucion`), los ids de "seleccionar
+    todos" (`listar_ids_padron`) y nada más.
+
+    - `estado`: "activos" | "inactivos" | "todos" | "con_dx" (activos con
+      diagnóstico, mismo criterio que `_condicion_con_diagnostico`). Si no
+      se pasa, rige `incluir_inactivas` exactamente como antes (por defecto
+      solo activos — 🔒 C-8).
+    - `seccion_id` / `grado_id` / `sin_matricula`: contra la matrícula
+      VIGENTE (`fecha_fin IS NULL`) de esta institución, la misma que
+      resuelve `seccion_actual`.
+    - `datos_incompletos`: falta género o fecha de nacimiento (el mismo
+      criterio que la tarjeta "Datos incompletos" y la importación Excel).
+    - `consentimiento_apoderado`: "vigente" | "sin" — mismo criterio que
+      `obtener_consentimiento_vigente` (no revocado, de ESTA institución).
+    """
+    P = models.Persona
+    query = db.query(P).filter(P.institucion_id == institucion_id)
+
+    if estado is None:
+        if not incluir_inactivas:
+            # 🔒 C-8 — por defecto solo activos (ver obtener_personas_por_institucion).
+            query = query.filter(models.Persona.activo == True)  # noqa: E712
+    elif estado == "activos":
+        query = query.filter(P.activo == True)  # noqa: E712
+    elif estado == "inactivos":
+        # `activo` admite NULL: el cliente contaba `!p.activo` como inactivo.
+        query = query.filter(P.activo.isnot(True))
+    elif estado == "con_dx":
+        con_dx = db.query(models.PersonaAntecedentesClinicos.persona_id).filter(
+            models.PersonaAntecedentesClinicos.persona_id == P.id,
+            _condicion_con_diagnostico(),
+        ).exists()
+        query = query.filter(P.activo == True, con_dx)  # noqa: E712
+    # "todos": sin filtro de estado
+
+    if seccion_id is not None or grado_id is not None or sin_matricula:
+        M = models.MatriculaAcademica
+        vigente = db.query(M.id).filter(
+            M.persona_id == P.id,
+            M.institucion_id == institucion_id,
+            M.fecha_fin.is_(None),
+        )
+        if sin_matricula:
+            query = query.filter(~vigente.exists())
+        else:
+            if seccion_id is not None:
+                vigente = vigente.filter(M.seccion_id == seccion_id)
+            if grado_id is not None:
+                vigente = vigente.join(models.Seccion, models.Seccion.id == M.seccion_id).filter(
+                    models.Seccion.grado_id == grado_id
+                )
+            query = query.filter(vigente.exists())
+
+    if datos_incompletos:
+        query = query.filter(or_(P.genero.is_(None), P.genero == "", P.fecha_nacimiento.is_(None)))
+
+    if consentimiento_apoderado in ("vigente", "sin"):
+        C = models.ConsentimientoInformado
+        tiene = db.query(C.id).filter(
+            C.persona_id == P.id,
+            C.institucion_id == institucion_id,
+            C.tipo_consentimiento == models.TIPO_CONSENTIMIENTO_APODERADO,
+            C.revocado == False,  # noqa: E712
+        ).exists()
+        query = query.filter(tiene if consentimiento_apoderado == "vigente" else ~tiene)
+
+    if busqueda and busqueda.strip():
+        patron = f"%{busqueda.strip()}%"
+        # 🆕 (sesión 2026-11-01) También el nombre COMPLETO en ambos órdenes:
+        # antes "Isabella Castillo" no encontraba a nadie porque cada campo
+        # se comparaba por separado (las pantallas lo disimulaban filtrando
+        # en el cliente sobre el padrón entero). También el código
+        # institucional, que el buscador global (Ctrl+K) ya buscaba en el
+        # cliente. Solo agrega coincidencias.
+        query = query.filter(
+            (P.nombres.ilike(patron))
+            | (P.apellidos.ilike(patron))
+            | (P.documento_identidad.ilike(patron))
+            | (P.codigo_institucional.ilike(patron))
+            | ((P.nombres + " " + P.apellidos).ilike(patron))
+            | ((P.apellidos + " " + P.nombres).ilike(patron))
+        )
+    return query
+
+
 def obtener_personas_por_institucion(
     db: Session,
     institucion_id: int,
@@ -62,6 +169,7 @@ def obtener_personas_por_institucion(
     incluir_inactivas: bool = False,
     skip: int = 0,
     limit: int = 50,
+    **filtros,
 ):
     """Lista el padrón de un colegio, paginado. Si se pasa `busqueda`, filtra
     por nombres, apellidos o documento de identidad (case-insensitive,
@@ -76,21 +184,23 @@ def obtener_personas_por_institucion(
     🆕 Paginación real (ver docs/gaps-pendientes.md) — antes devolvía TODO el
     padrón sin tope; ahora `total` se cuenta antes de aplicar `offset/limit`
     para que el total refleje el padrón completo filtrado, no la página.
+
+    🆕 (sesión 2026-11-01) `**filtros` = los de `_consulta_padron_filtrada`
+    (estado, seccion_id, grado_id, sin_matricula, datos_incompletos,
+    consentimiento_apoderado). Sin ninguno, la respuesta es idéntica a la de
+    antes.
     """
-    query = db.query(models.Persona).filter(
-        models.Persona.institucion_id == institucion_id
+    query = _consulta_padron_filtrada(
+        db, institucion_id, busqueda=busqueda, incluir_inactivas=incluir_inactivas, **filtros
     )
-    if not incluir_inactivas:
-        query = query.filter(models.Persona.activo == True)  # noqa: E712
-    if busqueda:
-        patron = f"%{busqueda.strip()}%"
-        query = query.filter(
-            (models.Persona.nombres.ilike(patron))
-            | (models.Persona.apellidos.ilike(patron))
-            | (models.Persona.documento_identidad.ilike(patron))
-        )
     total = query.count()
-    personas = query.order_by(models.Persona.apellidos).offset(skip).limit(limit).all()
+    # 🆕 Desempate por id: ordenar SOLO por apellidos no es determinista
+    # entre páginas cuando dos alumnos comparten apellido (Postgres puede
+    # devolverlos en otro orden en la consulta siguiente), así que un
+    # recorrido página por página podía repetir a uno y saltarse a otro.
+    personas = (
+        query.order_by(models.Persona.apellidos, models.Persona.id).offset(skip).limit(limit).all()
+    )
 
     # 🆕 Sección vigente del padrón — UNA sola consulta batch para toda la
     # institución (join, no una query por alumno), mismo patrón "batch-loaded,
@@ -98,12 +208,140 @@ def obtener_personas_por_institucion(
     # atributo transitorio (no mapeado, no se persiste) para que
     # PersonaResponse.seccion_actual lo recoja vía from_attributes sin tocar
     # el modelo ORM ni requerir una migración — esto es solo lectura.
-    secciones_vigentes = _secciones_vigentes_de_institucion(db, institucion_id)
-    ids_con_diagnostico = _ids_con_diagnostico(db, institucion_id)
+    # 🆕 Escalabilidad (sesión 2026-11-01): acotado a los alumnos de ESTA
+    # página. Antes se resolvía la institución entera en cada página, así
+    # que traer un padrón de 5000 en páginas de 200 recorría 25 veces las
+    # 5000 matrículas.
+    ids_pagina = [p.id for p in personas]
+    secciones_vigentes = _secciones_vigentes_de_institucion(db, institucion_id, ids_pagina)
+    ids_con_diagnostico = _ids_con_diagnostico(db, institucion_id, ids_pagina)
     for persona in personas:
         persona.seccion_actual = secciones_vigentes.get(persona.id)
         persona.con_diagnostico = persona.id in ids_con_diagnostico
     return total, personas
+
+
+TOPE_IDS_PADRON = 20000
+
+
+def listar_ids_padron(db: Session, institucion_id: int, busqueda: Optional[str] = None, **filtros) -> List[int]:
+    """🆕 (sesión 2026-11-01) Solo los ids que cumplen los filtros, sin
+    paginar — para "seleccionar todos los visibles", "todo un salón" o
+    "todo el colegio" sin bajar las filas completas del padrón. Un entero
+    por alumno (5000 alumnos ≈ 30 KB), con un tope duro de seguridad."""
+    query = _consulta_padron_filtrada(db, institucion_id, busqueda=busqueda, **filtros)
+    filas = (
+        query.with_entities(models.Persona.id)
+        .order_by(models.Persona.apellidos, models.Persona.id)
+        .limit(TOPE_IDS_PADRON)
+        .all()
+    )
+    return [pid for (pid,) in filas]
+
+
+def resumen_padron(db: Session, institucion_id: int, incluir_ids: bool = False) -> dict:
+    """🆕 (sesión 2026-11-01) KPIs del padrón y sus secciones, con agregados
+    en SQL — lo que el Padrón calculaba en el navegador sobre la lista
+    entera. Mismos criterios que antes:
+
+    - activos / inactivos (inactivo = `activo` distinto de TRUE, NULL incluido)
+    - datos_incompletos, sin_matricula y con_diagnostico: SOLO sobre activos
+    - `secciones`: toda sección con alguna matrícula vigente de un alumno de
+      la institución (como el desplegable de antes, que salía de
+      `seccion_actual` de todo el padrón), con `cantidad` = alumnos ACTIVOS.
+
+    `incluir_ids=True` agrega los persona_id ACTIVOS de cada sección y los
+    activos sin matrícula — lo que necesita "Por salón"/"Todo el colegio"
+    de la Agenda para marcar grupos (y su estado parcial) sin bajar el
+    padrón completo.
+    """
+    P = models.Persona
+    M = models.MatriculaAcademica
+    base = db.query(P).filter(P.institucion_id == institucion_id)
+    total = base.count()
+    activos_q = base.filter(P.activo == True)  # noqa: E712
+    activos = activos_q.count()
+    datos_incompletos = activos_q.filter(
+        or_(P.genero.is_(None), P.genero == "", P.fecha_nacimiento.is_(None))
+    ).count()
+    vigente = db.query(M.id).filter(
+        M.persona_id == P.id, M.institucion_id == institucion_id, M.fecha_fin.is_(None)
+    ).exists()
+    sin_matricula = activos_q.filter(~vigente).count()
+    con_diagnostico = (
+        db.query(func.count(func.distinct(models.PersonaAntecedentesClinicos.persona_id)))
+        .join(P, P.id == models.PersonaAntecedentesClinicos.persona_id)
+        .filter(P.institucion_id == institucion_id, P.activo == True, _condicion_con_diagnostico())  # noqa: E712
+        .scalar()
+    ) or 0
+
+    filas = (
+        db.query(M.persona_id, P.activo, models.Seccion, models.Grado, models.NivelEducativo)
+        .join(P, P.id == M.persona_id)
+        .join(models.Seccion, models.Seccion.id == M.seccion_id)
+        .join(models.Grado, models.Grado.id == models.Seccion.grado_id)
+        .join(models.NivelEducativo, models.NivelEducativo.id == models.Grado.nivel_educativo_id)
+        .filter(P.institucion_id == institucion_id, M.institucion_id == institucion_id, M.fecha_fin.is_(None))
+        .all()
+    ) if incluir_ids else (
+        db.query(
+            models.Seccion, models.Grado, models.NivelEducativo,
+            func.count(func.distinct(P.id)).filter(P.activo == True),  # noqa: E712
+        )
+        .select_from(M)
+        .join(P, P.id == M.persona_id)
+        .join(models.Seccion, models.Seccion.id == M.seccion_id)
+        .join(models.Grado, models.Grado.id == models.Seccion.grado_id)
+        .join(models.NivelEducativo, models.NivelEducativo.id == models.Grado.nivel_educativo_id)
+        .filter(P.institucion_id == institucion_id, M.institucion_id == institucion_id, M.fecha_fin.is_(None))
+        .group_by(models.Seccion.id, models.Grado.id, models.NivelEducativo.id)
+        .all()
+    )
+
+    def describir(seccion, grado, nivel):
+        return {
+            "seccion_id": seccion.id,
+            "seccion": seccion.nombre,
+            "turno": seccion.turno,
+            "anio_escolar": seccion.anio_escolar,
+            "grado_id": grado.id,
+            "grado": grado.nombre,
+            "nivel_educativo_id": nivel.id,
+            "nivel_educativo": nivel.nombre,
+            "cantidad": 0,
+        }
+
+    secciones: dict = {}
+    if incluir_ids:
+        for persona_id, activo, seccion, grado, nivel in filas:
+            item = secciones.setdefault(seccion.id, {**describir(seccion, grado, nivel), "persona_ids": set()})
+            if activo is True:
+                item["persona_ids"].add(persona_id)
+        for item in secciones.values():
+            item["persona_ids"] = sorted(item["persona_ids"])
+            item["cantidad"] = len(item["persona_ids"])
+    else:
+        for seccion, grado, nivel, cantidad in filas:
+            secciones[seccion.id] = {**describir(seccion, grado, nivel), "cantidad": cantidad or 0}
+
+    resultado = {
+        "total": total,
+        "activos": activos,
+        "inactivos": total - activos,
+        "datos_incompletos": datos_incompletos,
+        "sin_matricula": sin_matricula,
+        "con_diagnostico": con_diagnostico,
+        "secciones": sorted(
+            secciones.values(),
+            key=lambda x: (x["nivel_educativo_id"], x["grado_id"], (x["seccion"] or "").lower(), x["seccion_id"]),
+        ),
+        "ids_sin_matricula": None,
+    }
+    if incluir_ids:
+        resultado["ids_sin_matricula"] = [
+            pid for (pid,) in activos_q.filter(~vigente).with_entities(P.id).order_by(P.apellidos, P.id).all()
+        ]
+    return resultado
 
 
 def _condicion_con_diagnostico():
@@ -120,26 +358,34 @@ def _condicion_con_diagnostico():
     )
 
 
-def _ids_con_diagnostico(db: Session, institucion_id: int) -> set:
+def _ids_con_diagnostico(db: Session, institucion_id: int, persona_ids: Optional[List[int]] = None) -> set:
     """persona_id de todos los estudiantes "con Dx" de la institución, en
-    UNA consulta (mismo patrón batch que _secciones_vigentes_de_institucion)."""
-    filas = (
+    UNA consulta (mismo patrón batch que _secciones_vigentes_de_institucion).
+    `persona_ids` acota a esos alumnos (None = toda la institución)."""
+    if persona_ids is not None and not persona_ids:
+        return set()
+    query = (
         db.query(models.PersonaAntecedentesClinicos.persona_id)
         .join(models.Persona, models.Persona.id == models.PersonaAntecedentesClinicos.persona_id)
         .filter(models.Persona.institucion_id == institucion_id, _condicion_con_diagnostico())
-        .all()
     )
+    if persona_ids is not None:
+        query = query.filter(models.PersonaAntecedentesClinicos.persona_id.in_(persona_ids))
+    filas = query.all()
     return {persona_id for (persona_id,) in filas}
 
 
-def _secciones_vigentes_de_institucion(db: Session, institucion_id: int) -> dict:
+def _secciones_vigentes_de_institucion(db: Session, institucion_id: int, persona_ids: Optional[List[int]] = None) -> dict:
     """Sección vigente de CADA persona de la institución con matrícula
     activa, resuelta en una sola consulta (join MatriculaAcademica ->
     Seccion -> Grado -> NivelEducativo, filtrada por institucion_id y
     fecha_fin IS NULL), indexada por persona_id. Mismo shape de campos que
     _describir_matricula(), reutilizado aquí en forma de batch para que
-    listar el padrón completo no dispare una consulta por alumno."""
-    filas = (
+    listar el padrón completo no dispare una consulta por alumno.
+    `persona_ids` acota a esos alumnos (None = toda la institución)."""
+    if persona_ids is not None and not persona_ids:
+        return {}
+    query = (
         db.query(models.MatriculaAcademica, models.Seccion, models.Grado, models.NivelEducativo)
         .join(models.Seccion, models.Seccion.id == models.MatriculaAcademica.seccion_id)
         .join(models.Grado, models.Grado.id == models.Seccion.grado_id)
@@ -148,8 +394,10 @@ def _secciones_vigentes_de_institucion(db: Session, institucion_id: int) -> dict
             models.MatriculaAcademica.institucion_id == institucion_id,
             models.MatriculaAcademica.fecha_fin.is_(None),
         )
-        .all()
     )
+    if persona_ids is not None:
+        query = query.filter(models.MatriculaAcademica.persona_id.in_(persona_ids))
+    filas = query.all()
     return {
         matricula.persona_id: {
             "matricula_id": matricula.id,

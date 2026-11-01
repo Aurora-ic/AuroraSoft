@@ -9,15 +9,15 @@
 // inline, mientras que react-pdf dibuja cada página en un <canvas> propio,
 // controlado por esta app — funciona igual en cualquier dispositivo.
 //
-// El worker de pdf.js (pdf.worker.min.mjs) se sirve como asset estático
-// desde /public — copiado a mano desde node_modules/pdfjs-dist/build/ al
-// instalar el paquete (ver comentario de más abajo). Si se actualiza
-// react-pdf/pdfjs-dist, hay que volver a copiarlo para que coincida la
-// versión exacta del worker con la del paquete.
+// react-pdf vive en PaginaPdf.tsx, cargado solo en el cliente (ver ahí el
+// porqué y la nota sobre el worker de pdf.js en /public).
 import { useEffect, useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import dynamic from "next/dynamic";
 
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+const PaginaPdf = dynamic(() => import("./PaginaPdf"), {
+  ssr: false,
+  loading: () => <p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando documento...</p>,
+});
 
 export type ArchivoParaVisor = {
   blob: Blob;
@@ -110,14 +110,13 @@ export function ContenidoVisorArchivo({
         {!cargando && errorAMostrar && <p className="text-sm text-red-700 dark:text-red-300 py-8 px-4 text-center">{errorAMostrar}</p>}
 
         {!cargando && !errorAMostrar && archivo && tipo === "pdf" && (
-          <Document
-            file={archivo.blob}
-            onLoadSuccess={({ numPages }) => setTotalPaginas(numPages)}
-            onLoadError={() => setErrorPdf("No se pudo mostrar el PDF en pantalla. Probá descargarlo.")}
-            loading={<p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando documento...</p>}
-          >
-            <Page pageNumber={paginaActual} scale={zoom} renderTextLayer={false} renderAnnotationLayer={false} />
-          </Document>
+          <PaginaPdf
+            archivo={archivo.blob}
+            pagina={paginaActual}
+            zoom={zoom}
+            onCargado={setTotalPaginas}
+            onError={() => setErrorPdf("No se pudo mostrar el PDF en pantalla. Prueba descargarlo.")}
+          />
         )}
 
         {!cargando && !errorAMostrar && urlImagen && tipo === "imagen" && (

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Users, Hourglass, Search, ArrowRight, HeartHandshake, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, Users, Hourglass, Search, ArrowRight, HeartHandshake, CheckCircle2, Stethoscope } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
@@ -16,7 +16,14 @@ import { VacioFicha } from "@/components/educativo/BloqueFicha";
 // cada tarjeta mostraba el nombre del alumno con todo lo demás vacío.
 // `prueba`/`dimension`/`campana`/ids se sumaron al backend en la sesión
 // 2026-10-30 (aditivo: Inicio sigue leyendo `nivel_alerta` igual que antes).
+// 🆕 (sesión 2026-11-01) `origen`: "prueba" = resultado en alerta sin
+// seguimiento posterior; "antecedentes" = el alumno tiene Sí en terapia
+// psicológica o atención psiquiátrica externa (criterio "Con Dx" de la
+// ficha). Este segundo tipo NO desaparece con una sesión: sigue en la lista
+// mientras los antecedentes digan Sí, y `fecha_referencia` es la última
+// sesión de seguimiento (o la última edición de los antecedentes).
 type CasoRiesgo = {
+  origen?: "prueba" | "antecedentes";
   persona_id: number;
   nombre_completo: string | null;
   nivel_alerta: string;
@@ -26,7 +33,17 @@ type CasoRiesgo = {
   campana?: string | null;
   prueba?: string | null;
   dimension?: string | null;
+  fecha_referencia?: string | null;
+  ultimo_seguimiento?: string | null;
+  motivos?: string[];
+  diagnostico_reportado?: string | null;
 };
+
+const FILTRO_ANTECEDENTES = "__antecedentes__";
+
+function esAntecedente(c: CasoRiesgo): boolean {
+  return c.origen === "antecedentes";
+}
 
 // Un alumno puede tener varias dimensiones en alerta (incluso de pruebas
 // distintas) — el worklist es POR ALUMNO, no una fila por diagnóstico.
@@ -34,6 +51,7 @@ type CasoAgrupado = {
   persona_id: number;
   nombre_completo: string;
   alertas: CasoRiesgo[];
+  antecedente: CasoRiesgo | null;
   pruebas: string[];
   fechaMasAntigua: Date | null;
 };
@@ -93,13 +111,16 @@ export default function CasosRiesgoPage() {
         persona_id: c.persona_id,
         nombre_completo: c.nombre_completo || "Alumno sin nombre",
         alertas: [],
+        antecedente: null,
         pruebas: [],
         fechaMasAntigua: null,
       };
-      g.alertas.push(c);
+      if (esAntecedente(c)) g.antecedente = c;
+      else g.alertas.push(c);
       if (c.prueba && !g.pruebas.includes(c.prueba)) g.pruebas.push(c.prueba);
-      if (c.fecha_evaluacion) {
-        const f = new Date(c.fecha_evaluacion);
+      const fechaIso = c.fecha_referencia ?? c.fecha_evaluacion;
+      if (fechaIso) {
+        const f = new Date(fechaIso);
         if (!Number.isNaN(f.getTime()) && (!g.fechaMasAntigua || f < g.fechaMasAntigua)) g.fechaMasAntigua = f;
       }
       mapa.set(c.persona_id, g);
@@ -115,7 +136,9 @@ export default function CasosRiesgoPage() {
   const visibles = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     const filtrados = agrupados.filter((g) => {
-      if (filtroPrueba !== "todas" && !g.pruebas.includes(filtroPrueba)) return false;
+      if (filtroPrueba === FILTRO_ANTECEDENTES) {
+        if (!g.antecedente) return false;
+      } else if (filtroPrueba !== "todas" && !g.pruebas.includes(filtroPrueba)) return false;
       if (texto && !g.nombre_completo.toLowerCase().includes(texto)) return false;
       return true;
     });
@@ -130,6 +153,9 @@ export default function CasosRiesgoPage() {
     });
   }, [agrupados, busqueda, filtroPrueba, orden]);
 
+  const resultadosEnAlerta = useMemo(() => casos.filter((c) => !esAntecedente(c)).length, [casos]);
+  const conAntecedentes = useMemo(() => agrupados.filter((g) => g.antecedente).length, [agrupados]);
+
   const masAntiguo = useMemo(() => {
     const dias = agrupados.map((g) => diasDesde(g.fechaMasAntigua)).filter((d): d is number => d !== null);
     return dias.length ? Math.max(...dias) : null;
@@ -141,12 +167,13 @@ export default function CasosRiesgoPage() {
         icono={AlertTriangle}
         acento="azul"
         titulo="Casos en riesgo"
-        descripcion="Alumnos con al menos un resultado en nivel de alerta y sin una sesión de seguimiento registrada desde entonces."
+        descripcion="Alumnos con antecedentes clínicos externos (terapia o atención psiquiátrica) y alumnos con un resultado en nivel de alerta sin sesión de seguimiento desde entonces."
       />
 
-      <div className="grid grid-cols-1 min-[480px]:grid-cols-3 gap-3">
-        <TarjetaKpi icono={Users} tono="riesgo" etiqueta="Alumnos pendientes" valor={cargando ? "…" : agrupados.length} />
-        <TarjetaKpi icono={AlertTriangle} tono="riesgo" etiqueta="Resultados en alerta" valor={cargando ? "…" : casos.length} />
+      <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3">
+        <TarjetaKpi icono={Users} tono="riesgo" etiqueta="Alumnos en riesgo" valor={cargando ? "…" : agrupados.length} />
+        <TarjetaKpi icono={Stethoscope} tono="riesgo" etiqueta="Con antecedentes clínicos" valor={cargando ? "…" : conAntecedentes} />
+        <TarjetaKpi icono={AlertTriangle} tono="riesgo" etiqueta="Resultados en alerta" valor={cargando ? "…" : resultadosEnAlerta} />
         <TarjetaKpi
           icono={Hourglass}
           tono="azul"
@@ -172,9 +199,10 @@ export default function CasosRiesgoPage() {
             />
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {pruebasDisponibles.length > 1 && (
-              <Select value={filtroPrueba} onChange={(e) => setFiltroPrueba(e.target.value)} aria-label="Filtrar por prueba">
-                <option value="todas">Todas las pruebas</option>
+            {pruebasDisponibles.length + (conAntecedentes > 0 ? 1 : 0) > 1 && (
+              <Select value={filtroPrueba} onChange={(e) => setFiltroPrueba(e.target.value)} aria-label="Filtrar por origen">
+                <option value="todas">Todos los casos</option>
+                {conAntecedentes > 0 && <option value={FILTRO_ANTECEDENTES}>Antecedentes clínicos externos</option>}
                 {pruebasDisponibles.map((p) => (
                   <option key={p} value={p}>
                     {p}
@@ -198,7 +226,7 @@ export default function CasosRiesgoPage() {
       {cargando && <EsqueletoLista cantidad={4} />}
 
       {!cargando && !error && casos.length === 0 && (
-        <VacioFicha icono={CheckCircle2} texto="No hay casos pendientes de seguimiento. Todos los resultados en alerta ya tienen una sesión registrada." />
+        <VacioFicha icono={CheckCircle2} texto="No hay casos en riesgo: ningún alumno tiene antecedentes clínicos externos marcados y todos los resultados en alerta ya tienen una sesión registrada." />
       )}
 
       {!cargando && agrupados.length > 0 && visibles.length === 0 && (
@@ -228,8 +256,15 @@ export default function CasosRiesgoPage() {
                     {g.nombre_completo}
                   </Link>
                   <p className="m-0 mt-0.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
-                    {g.alertas.length} resultado{g.alertas.length === 1 ? "" : "s"} en alerta
-                    {g.pruebas.length > 0 ? ` · ${g.pruebas.join(", ")}` : ""}
+                    {[
+                      g.antecedente ? "Antecedentes clínicos externos" : null,
+                      g.alertas.length > 0
+                        ? `${g.alertas.length} resultado${g.alertas.length === 1 ? "" : "s"} en alerta` +
+                          (g.pruebas.length > 0 ? ` · ${g.pruebas.join(", ")}` : "")
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 </div>
                 <span
@@ -245,6 +280,25 @@ export default function CasosRiesgoPage() {
                 </span>
               </div>
 
+              {g.antecedente && (
+                <div className="rounded-lg border border-amber/30 bg-amber/[0.07] px-3 py-2 text-[12px]">
+                  <p className="m-0 flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber">
+                    <Stethoscope size={13} className="shrink-0" aria-hidden="true" />
+                    Con diagnóstico (antecedentes clínicos externos)
+                  </p>
+                  <p className="m-0 mt-1 text-ink/70 dark:text-ink-dark/70">
+                    {(g.antecedente.motivos ?? []).join(" · ")}
+                    {g.antecedente.diagnostico_reportado ? ` — ${g.antecedente.diagnostico_reportado}` : ""}
+                  </p>
+                  <p className="m-0 mt-1 text-[11px] text-ink/50 dark:text-ink-dark/50">
+                    {g.antecedente.ultimo_seguimiento
+                      ? `Último seguimiento: ${new Date(g.antecedente.ultimo_seguimiento).toLocaleDateString("es-PE")}`
+                      : "Sin sesiones de seguimiento registradas"}
+                  </p>
+                </div>
+              )}
+
+              {g.alertas.length > 0 && (
               <ul className="m-0 p-0 list-none flex flex-wrap gap-1.5">
                 {g.alertas.map((a, i) => (
                   <li
@@ -260,6 +314,7 @@ export default function CasosRiesgoPage() {
                   </li>
                 ))}
               </ul>
+              )}
 
               <div className="flex items-center justify-end gap-3 pt-2 border-t border-border/70 dark:border-border-dark text-[12px] font-semibold">
                 <Link

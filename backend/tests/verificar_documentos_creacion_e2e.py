@@ -257,10 +257,10 @@ def main(url_base):
     }, headers=h_psi_a, timeout=30)
     comprobar("[7] plantilla.tipo_documento_id distinto del tipo pedido -> 422", r.status_code == 422, f"status {r.status_code}")
 
-    # Crear una plantilla_a2 (activa por defecto) desactiva automáticamente plantilla_a.
-    exigir(requests.post(f"{API}/documentos/plantillas", json={
-        "institucion_id": inst_a, "tipo_documento_id": tipo_id, "nombre": f"{PREFIJO} Plantilla A2",
-    }, headers=h_super, timeout=30), 200, "crear plantilla A2 (desactiva A)")
+    # 🆕 (sesión 2026-11-01) Ya no hay exclusividad por tipo: crear otra
+    # plantilla activa no apaga plantilla_a, así que se desactiva a mano.
+    exigir(requests.patch(f"{API}/documentos/plantillas/{plantilla_a_id}", json={"activa": False},
+                          headers=h_super, timeout=30), 200, "desactivar plantilla A")
     r = requests.post(f"{API}/documentos/", json={
         "tipo_documento_id": tipo_id, "plantilla_documento_id": plantilla_a_id,
         "alcance": "ninguno", "titulo": "Plantilla ya inactiva",
@@ -269,8 +269,9 @@ def main(url_base):
 
     print("\n8 · Listado por institución + aislamiento")
     listado = exigir(requests.get(f"{API}/documentos/", params={"institucion_id": inst_a}, headers=h_psi_a, timeout=30), 200, "listar documentos de A")
-    comprobar("[8] El listado trae los documentos creados (al menos 6)", len(listado) >= 6)
-    comprobar("[8] El listado NO trae la lista de estudiantes (solo metadata)", "estudiantes" not in listado[0])
+    # Paginado desde la Fase de paginación real: {total, items}.
+    comprobar("[8] El listado trae los documentos creados (al menos 6)", listado["total"] >= 6)
+    comprobar("[8] El listado NO trae la lista de estudiantes (solo metadata)", "estudiantes" not in listado["items"][0])
 
     r = requests.get(f"{API}/documentos/", params={"institucion_id": inst_b}, headers=h_psi_a, timeout=30)
     comprobar("[8] Listar documentos de OTRA institución -> 403", r.status_code == 403, f"status {r.status_code}")

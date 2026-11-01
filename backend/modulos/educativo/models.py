@@ -1008,6 +1008,11 @@ class ResultadoDimension(Base):
 class DiagnosticoAlumno(Base):
     """Almacena el resultado clínico interpretado para cada escala"""
     __tablename__ = "edu_diagnosticos_alumno"
+    # 🆕 (sesión 2026-11-01) Parcial: solo las filas en alerta, que es lo
+    # único que lee obtener_casos_pendientes_de_seguimiento.
+    __table_args__ = (
+        Index("ix_edu_diagnosticos_alumno_alerta", "inscripcion_id", postgresql_where=text("es_alerta = true")),
+    )
     id = Column(Integer, primary_key=True, index=True)
     # 🆕 index=True en ambas FK — mismo motivo exacto que ResultadoDimension
     # arriba (hallazgo de auditoría, sesión 2026-10-16).
@@ -1073,6 +1078,9 @@ class SesionSeguimiento(Base):
             "estado IN ('Pendiente', 'En proceso', 'Atendido')",
             name="ck_sesiones_seguimiento_estado_valido",
         ),
+        # 🆕 (sesión 2026-11-01) "¿tiene una sesión desde tal fecha?" — el NOT
+        # EXISTS de casos pendientes y la última sesión de los antecedentes.
+        Index("ix_edu_sesiones_seguimiento_persona_fecha", "persona_id", "fecha"),
     )
 
     id = Column(Integer, primary_key=True, index=True)

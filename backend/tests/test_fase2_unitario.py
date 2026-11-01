@@ -242,7 +242,11 @@ def test_c8_registros_dados_de_baja():
     comprobar("La ficha excluye inscripciones anonimizadas",
               "Inscripcion.is_anonymized == False" in fuente_ficha)
 
-    fuente_padron = inspect.getsource(sa_crud.obtener_personas_por_institucion)
+    # 🆕 (sesión 2026-11-01) Los filtros del padrón viven en
+    # _consulta_padron_filtrada, que obtener_personas_por_institucion usa.
+    fuente_padron = inspect.getsource(sa_crud.obtener_personas_por_institucion) + inspect.getsource(
+        sa_crud._consulta_padron_filtrada
+    )
     comprobar("El padrón excluye personas inactivas por defecto",
               "incluir_inactivas" in fuente_padron and "Persona.activo == True" in fuente_padron)
 

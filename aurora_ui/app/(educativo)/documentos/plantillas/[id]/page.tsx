@@ -1,47 +1,82 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  LayoutTemplate,
+  ListOrdered,
+  Type,
+  Image as ImageIcon,
+  ChevronUp,
+  ChevronDown,
+  Settings2,
+  Trash2,
+  Plus,
+  Power,
+  Zap,
+  CheckCircle2,
+  Info,
+} from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Boton } from "@/components/ui/Boton";
+import { ACENTOS } from "@/lib/acentos";
+import { Boton, claseBoton } from "@/components/ui/Boton";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { TextoError } from "@/components/ui/TextoError";
-import { ETIQUETAS_TIPO_SECCION, TIPOS_SECCION_ORDENADOS, TIPOS_CON_CONFIG_SIMPLE } from "@/lib/documentos-constantes";
-import { Migas } from "@/components/ui/Migas";
+import { CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
+import { EsqueletoLista } from "@/components/ui/Esqueleto";
+import { BloqueFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
+import { CabeceraInterna, Insignia, TarjetaLateral, CampoFormulario } from "@/components/documentos/PiezasDocumento";
+import {
+  ETIQUETAS_TIPO_SECCION,
+  TIPOS_SECCION_ORDENADOS,
+  TIPOS_CON_CONFIG_SIMPLE,
+  DESCRIPCION_TIPO_SECCION,
+} from "@/lib/documentos-constantes";
 import type {
   PlantillaDocumento,
   PlantillaDocumentoUpdate,
   PlantillaSeccion,
   PlantillaSeccionCreate,
   TipoSeccionDocumento,
+  TipoDocumento,
   Institucion,
 } from "@/types/api";
 
 const FUENTES = ["Arial", "Helvetica", "Times New Roman"];
+const VIOLETA = ACENTOS.violeta;
 
 // El constructor: tipografía del documento (cuerpo + subtítulo + título por
 // separado), membrete/pie/fondo del colegio (admin/superadmin), y la lista
-// ordenada de secciones — agregar, reordenar, configurar, borrar. Cada
-// sección usa uno de los 13 tipos ya cerrados del motor (ver
-// docs/motor-documentos.md); el contenido real de cada documento se llena
-// aparte, en /documentos/[id].
+// ordenada de secciones — agregar, reordenar, configurar, borrar. El
+// contenido real de cada documento se llena aparte, en /documentos/[id].
+//
+// 🆕 Rediseño (sesión 2026-11-01): las SECCIONES son lo principal y van a
+// la izquierda (numeradas, con una línea de qué hace cada tipo y quién la
+// llena); formato y membrete pasan a la columna lateral. Violeta de
+// Documentos. Se conservan los textos que usa e2e/documentos.spec.ts (el
+// <h1> con el nombre, "Título (opcional)", "+ Agregar sección", el
+// placeholder "(sin título propio)" en la MISMA fila que la etiqueta del tipo).
 export default function ConstructorPlantillaPage() {
   const params = useParams();
   const plantillaId = params.id as string;
+  const router = useRouter();
   const { sesion } = useAuth();
+  const [eliminando, setEliminando] = useState(false);
 
   const [plantilla, setPlantilla] = useState<PlantillaDocumento | null>(null);
   const [secciones, setSecciones] = useState<PlantillaSeccion[]>([]);
   const [institucion, setInstitucion] = useState<Institucion | null>(null);
+  const [tipos, setTipos] = useState<TipoDocumento[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<PlantillaDocumentoUpdate | null>(null);
   const [guardandoForm, setGuardandoForm] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
+  const [formGuardado, setFormGuardado] = useState(false);
 
   const [nuevoTipo, setNuevoTipo] = useState<TipoSeccionDocumento>("texto_libre");
   const [nuevoTitulo, setNuevoTitulo] = useState("");
@@ -61,8 +96,9 @@ export default function ConstructorPlantillaPage() {
       apiClient.get<PlantillaDocumento>(`/documentos/plantillas/${plantillaId}`),
       apiClient.get<PlantillaSeccion[]>(`/documentos/plantillas/${plantillaId}/secciones`),
       apiClient.get<Institucion>("/instituciones/me"),
+      apiClient.get<TipoDocumento[]>("/documentos/tipos"),
     ])
-      .then(([p, s, inst]) => {
+      .then(([p, s, inst, t]) => {
         setPlantilla(p);
         setForm({
           nombre: p.nombre,
@@ -78,6 +114,7 @@ export default function ConstructorPlantillaPage() {
         });
         setSecciones(s.slice().sort((a, b) => a.orden - b.orden));
         setInstitucion(inst);
+        setTipos(t);
       })
       .catch((err) => setError(err.message || "No se pudo cargar la plantilla."))
       .finally(() => setCargando(false));
@@ -88,19 +125,9 @@ export default function ConstructorPlantillaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plantillaId]);
 
-  // 🆕 Activar/desactivar — hallazgo real (sesión 2026-10-25): esta
-  // pantalla no mostraba el estado activa/inactiva en ningún lado, ni
-  // daba forma de cambiarlo. Resultado real en la BD de producción: una
-  // plantilla recién clonada queda inactiva por diseño (clonar_plantilla_
-  // documento, activar=False por defecto, para no reemplazar sin querer
-  // la que ya estaba en uso) y nada en pantalla lo explicaba ni ofrecía
-  // activarla — y, al revés, "+ Nueva desde cero" crea con activa=True
-  // por defecto y la exclusividad de una sola activa por tipo apagaba en
-  // silencio la que ya estaba bien armada, dejando activa una plantilla
-  // recién creada sin ninguna sección. Acción propia (no mezclada con
-  // "Guardar formato") porque activar tiene un efecto colateral real:
-  // desactiva cualquier otra plantilla activa de esta institución para el
-  // mismo tipo de documento (ver _desactivar_plantillas_activas, crud.py).
+  // Activar/desactivar — acción propia (no mezclada con "Guardar formato").
+  // 🆕 (sesión 2026-11-01) Ya no hay exclusividad por tipo: activar esta
+  // plantilla NO apaga ninguna otra (ver la nota en backend crud.py).
   const [alternandoActiva, setAlternandoActiva] = useState(false);
   const [errorActiva, setErrorActiva] = useState<string | null>(null);
 
@@ -119,19 +146,43 @@ export default function ConstructorPlantillaPage() {
     }
   }
 
+  // 🆕 (sesión 2026-11-01) Eliminar esta plantilla (p. ej. un duplicado
+  // clonado por accidente) — soft-delete; 409 si tiene borradores en curso.
+  async function eliminarPlantilla() {
+    if (!plantilla) return;
+    if (!window.confirm(`¿Eliminar la plantilla "${plantilla.nombre}"? Los documentos ya emitidos con ella no cambian.`)) return;
+    setEliminando(true);
+    setErrorActiva(null);
+    try {
+      await apiClient.delete(`/documentos/plantillas/${plantillaId}`);
+      router.push("/documentos");
+    } catch (err: any) {
+      setErrorActiva(err.message || "No se pudo eliminar la plantilla.");
+      setEliminando(false);
+    }
+  }
+
   async function guardarForm(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
     setGuardandoForm(true);
     setErrorForm(null);
+    setFormGuardado(false);
     try {
       const actualizada = await apiClient.patch<PlantillaDocumento>(`/documentos/plantillas/${plantillaId}`, form);
       setPlantilla(actualizada);
+      setFormGuardado(true);
     } catch (err: any) {
       setErrorForm(err.message || "No se pudo guardar.");
     } finally {
       setGuardandoForm(false);
     }
+  }
+
+  function cambiarForm(cambios: PlantillaDocumentoUpdate) {
+    if (!form) return;
+    setForm({ ...form, ...cambios });
+    setFormGuardado(false);
   }
 
   async function subirBranding(tipo: "encabezado" | "pie" | "fondo", archivo: File) {
@@ -225,8 +276,8 @@ export default function ConstructorPlantillaPage() {
     }
   }
 
-  // --- Config simple: encabezado / firma / grupo_campos (ver docstring de
-  // PlantillaSeccion.config en el backend) ---
+  // Config simple: encabezado / firma / grupo_campos (ver docstring de
+  // PlantillaSeccion.config en el backend).
   async function guardarConfigObjeto(seccion: PlantillaSeccion, config: Record<string, unknown>) {
     try {
       const actualizada = await apiClient.patch<PlantillaSeccion>(`/documentos/secciones/${seccion.id}`, { config });
@@ -237,282 +288,362 @@ export default function ConstructorPlantillaPage() {
     }
   }
 
-  if (cargando) return <div className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</div>;
-  if (!plantilla || !form) return <div><TextoError>{error}</TextoError></div>;
+  const migas = [{ label: "Documentos", href: "/documentos" }, { label: "Mis plantillas", href: "/documentos" }, { label: plantilla?.nombre ?? "Plantilla" }];
+
+  if (cargando) {
+    return (
+      <div className={CLASE_CONTENEDOR_SECCION}>
+        <CabeceraInterna migas={migas} icono={LayoutTemplate} titulo="Plantilla" />
+        <EsqueletoLista cantidad={4} />
+      </div>
+    );
+  }
+  if (!plantilla || !form) {
+    return (
+      <div className={CLASE_CONTENEDOR_SECCION}>
+        <TextoError>{error}</TextoError>
+      </div>
+    );
+  }
 
   const puedeEditarBranding = sesion?.rol === "admin" || sesion?.rol === "superadmin";
+  const esPredeterminada = plantilla.institucion_id === null;
+  const nombreTipo = tipos.find((t) => t.id === plantilla.tipo_documento_id)?.nombre;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <Migas items={[{ label: "Documentos", href: "/documentos" }, { label: plantilla.nombre }]} />
-      <div>
-        <Link href="/documentos" className="text-xs text-ink/50 dark:text-ink-dark/50 hover:underline">
-          ← Documentos
-        </Link>
-        <h1 className="font-display text-2xl text-teal-900 dark:text-teal-accent-dark mt-1">{plantilla.nombre}</h1>
-      </div>
-
-      {/* 🆕 Estado activa/inactiva — ver docstring de alternarActiva() más
-          arriba. Antes esta pantalla no lo mostraba en ningún lado. */}
-      <div className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-4 flex items-start justify-between gap-4 flex-wrap">
-        <div className="flex items-start gap-3">
-          <span
-            className={`text-xs font-semibold rounded-full px-2.5 py-0.5 mt-0.5 whitespace-nowrap ${
-              plantilla.activa ? "bg-accion text-white" : "bg-mist dark:bg-surface-dark border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
-            }`}
-          >
-            {plantilla.activa ? "Activa" : "Inactiva"}
-          </span>
-          <div className="text-xs text-ink/55 dark:text-ink-dark/55 max-w-md">
-            {plantilla.institucion_id === null ? (
-              <p>
-                Plantilla predeterminada del catálogo global — varias pueden estar activas a la vez para el mismo tipo
-                de documento, es un menú, no compite con las demás.
-              </p>
-            ) : (
-              <>
-                <p>
-                  Solo la plantilla <strong>activa</strong> de cada tipo de documento aparece al crear un documento
-                  nuevo. Activar esta desactiva automáticamente cualquier otra plantilla activa del mismo tipo en tu
-                  institución.
-                </p>
-                {plantilla.activa && secciones.length === 0 && (
-                  <p className="text-red-700 dark:text-red-300 font-medium mt-1">
-                    ⚠ Está activa pero no tiene ninguna sección — un documento generado con ella saldría vacío.
-                  </p>
-                )}
-              </>
+    <div className={CLASE_CONTENEDOR_SECCION}>
+      <CabeceraInterna
+        migas={migas}
+        icono={LayoutTemplate}
+        titulo={plantilla.nombre}
+        subtitulo={nombreTipo && <span>{nombreTipo}</span>}
+        insignias={
+          <>
+            <Insignia variante={plantilla.activa ? "solida" : "contorno"}>{plantilla.activa ? "Activa" : "Inactiva"}</Insignia>
+            <Insignia variante="suave" icono={ListOrdered}>
+              {secciones.length} {secciones.length === 1 ? "sección" : "secciones"}
+            </Insignia>
+            {plantilla.generar_automaticamente_al_finalizar_examen && (
+              <Insignia variante="suave" icono={Zap}>
+                Automática
+              </Insignia>
             )}
-          </div>
-        </div>
-        <Boton variante={plantilla.activa ? "secundario" : "primario"} onClick={alternarActiva} disabled={alternandoActiva}>
-          {alternandoActiva ? "Guardando..." : plantilla.activa ? "Desactivar" : "Activar"}
-        </Boton>
-      </div>
-      <TextoError>{errorActiva}</TextoError>
+          </>
+        }
+        acciones={
+          <>
+            <Boton
+              variante={plantilla.activa ? "secundario" : "primario"}
+              onClick={alternarActiva}
+              disabled={alternandoActiva}
+              className="inline-flex items-center gap-1.5"
+            >
+              <Power size={14} aria-hidden="true" />
+              {alternandoActiva ? "Guardando..." : plantilla.activa ? "Desactivar" : "Activar"}
+            </Boton>
+            {plantilla.activa && !esPredeterminada && (
+              <Link href={`/documentos/nuevo?plantilla_id=${plantilla.id}`} className={claseBoton("primario", "inline-flex items-center gap-1.5")}>
+                <Plus size={14} aria-hidden="true" />
+                Generar documento
+              </Link>
+            )}
+            {!esPredeterminada && (
+              <button
+                type="button"
+                onClick={eliminarPlantilla}
+                disabled={eliminando}
+                className="inline-flex items-center gap-1.5 rounded-card px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-500/10 disabled:opacity-40"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+                {eliminando ? "Eliminando..." : "Eliminar"}
+              </button>
+            )}
+          </>
+        }
+      />
 
-      <TextoError>{error}</TextoError>
-
-      {/* Tipografía y datos de la plantilla */}
-      <form onSubmit={guardarForm} className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-4">
-        <h2 className="font-display text-lg text-teal-900 dark:text-teal-accent-dark font-semibold border-b border-border dark:border-border-dark pb-2">
-          Formato del documento
-        </h2>
-
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Nombre de la plantilla</span>
-          <Input value={form.nombre ?? ""} onChange={(e) => setForm({ ...form, nombre: e.target.value })} />
-        </label>
-
-        <div className="grid sm:grid-cols-3 gap-4">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Tipo de letra</span>
-            <Select value={form.fuente} onChange={(e) => setForm({ ...form, fuente: e.target.value })}>
-              {FUENTES.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Tamaño del cuerpo (pt)</span>
-            <Input type="number" min={6} max={48} value={form.tamano_pt} onChange={(e) => setForm({ ...form, tamano_pt: Number(e.target.value) })} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Interlineado</span>
-            <Input type="number" step={0.05} min={1} max={3} value={form.interlineado} onChange={(e) => setForm({ ...form, interlineado: Number(e.target.value) })} />
-          </label>
-        </div>
-
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={!!form.justificado} onChange={(e) => setForm({ ...form, justificado: e.target.checked })} />
-          Texto justificado
-        </label>
-
-        <div className="border-t border-border dark:border-border-dark pt-4 space-y-3">
-          <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Título del documento (el grande, arriba de todo)</p>
-          <div className="flex items-center gap-4 flex-wrap text-sm">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={!!form.titulo_negrita} onChange={(e) => setForm({ ...form, titulo_negrita: e.target.checked })} />
-              Negrita
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" checked={!!form.titulo_cursiva} onChange={(e) => setForm({ ...form, titulo_cursiva: e.target.checked })} />
-              Cursiva
-            </label>
-            <label className="flex items-center gap-2">
-              <span className="text-ink/70 dark:text-ink-dark/70">Tamaño (pt)</span>
-              <Input
-                type="number"
-                min={6}
-                max={72}
-                className="w-20"
-                placeholder="Auto"
-                value={form.titulo_tamano_pt ?? ""}
-                onChange={(e) => setForm({ ...form, titulo_tamano_pt: e.target.value ? Number(e.target.value) : null })}
-              />
-            </label>
-          </div>
-          <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Vacío = automático (tamaño del cuerpo + 5pt).</p>
-        </div>
-
-        <div className="border-t border-border dark:border-border-dark pt-4 space-y-3">
-          <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Subtítulo de cada sección (ej. &quot;ANTECEDENTES FAMILIARES&quot;)</p>
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-ink/70 dark:text-ink-dark/70">Tamaño (pt)</span>
-            <Input
-              type="number"
-              min={6}
-              max={48}
-              className="w-20"
-              placeholder="Auto"
-              value={form.subtitulo_tamano_pt ?? ""}
-              onChange={(e) => setForm({ ...form, subtitulo_tamano_pt: e.target.value ? Number(e.target.value) : null })}
-            />
-          </label>
-          <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Vacío = automático (tamaño del cuerpo + 1pt). Siempre en negrita.</p>
-        </div>
-
-        <TextoError>{errorForm}</TextoError>
-        <Boton type="submit" disabled={guardandoForm}>
-          {guardandoForm ? "Guardando..." : "Guardar formato"}
-        </Boton>
-      </form>
-
-      {/* Membrete / pie / fondo de página del colegio */}
-      {puedeEditarBranding && (
-        <section className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-4">
-          <h2 className="font-display text-lg text-teal-900 dark:text-teal-accent-dark font-semibold border-b border-border dark:border-border-dark pb-2">
-            Encabezado, pie y fondo de página
-          </h2>
-          <p className="text-xs text-ink/50 dark:text-ink-dark/50">
-            Una imagen para el membrete (arriba de cada página), otra para el pie (abajo) y otra para el fondo de
-            página completa — vale para todos los documentos de tu institución, no solo esta plantilla.
+      {/* Qué significa "activa" + aviso de plantilla vacía. */}
+      <div className="flex flex-col gap-1.5 -mt-1">
+        <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/55 dark:text-ink-dark/55">
+          <Info size={13} className="mt-px shrink-0" aria-hidden="true" />
+          {esPredeterminada
+            ? "Plantilla predeterminada del catálogo global: las instituciones la clonan, nunca la usan directo."
+            : "Activa = aparece al crear un documento nuevo. Puedes tener varias activas del mismo tipo (por ejemplo, informe para padres y para docentes)."}
+        </p>
+        {plantilla.activa && secciones.length === 0 && (
+          <p className="m-0 text-[12px] font-medium text-red-700 dark:text-red-300">
+            Está activa pero no tiene ninguna sección: un documento generado con ella saldría vacío.
           </p>
-          <TextoError>{errorBranding}</TextoError>
-          <div className="grid sm:grid-cols-3 gap-4">
-            {(["encabezado", "pie", "fondo"] as const).map((tipo) => {
-              const urlActual =
-                tipo === "encabezado"
-                  ? institucion?.logo_url
-                  : tipo === "pie"
-                  ? institucion?.logo_pie_pagina_url
-                  : institucion?.fondo_documento_url;
-              return (
-                <div key={tipo} className="space-y-2">
-                  <span className="text-sm font-medium text-ink/70 dark:text-ink-dark/70 capitalize">{tipo}</span>
-                  {urlActual ? (
-                    <p className="text-xs text-teal-700 dark:text-teal-accent-dark">Imagen cargada ✓</p>
-                  ) : (
-                    <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin imagen todavía</p>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={subiendoBranding === tipo}
-                    onChange={(e) => e.target.files?.[0] && subirBranding(tipo, e.target.files[0])}
-                    className="text-xs"
-                  />
-                </div>
-              );
-            })}
-          </div>
+        )}
+        <TextoError>{errorActiva}</TextoError>
+        <TextoError>{error}</TextoError>
+      </div>
 
-          <div className="border-t border-border dark:border-border-dark pt-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={!!form.mostrar_fondo_institucion}
-                onChange={(e) => setForm({ ...form, mostrar_fondo_institucion: e.target.checked })}
-              />
-              Mostrar el fondo de página en ESTA plantilla
-            </label>
-            <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic mt-1">
-              Apagado por defecto: un fondo detrás del texto afecta la legibilidad, así que cada plantilla lo activa
-              a propósito. Se guarda junto con el resto del formato, con el botón &quot;Guardar formato&quot; de arriba.
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
+        {/* ===== Secciones ===== */}
+        <BloqueFicha
+          acento="violeta"
+          icono={ListOrdered}
+          titulo="Secciones del documento"
+          descripcion="Saldrán en el PDF en este orden. Usa las flechas para reordenar."
+          cuerpoClassName="space-y-2.5"
+        >
+          {secciones.length === 0 ? (
+            <VacioFicha icono={ListOrdered} texto="Esta plantilla todavía no tiene secciones. Agrega la primera abajo." />
+          ) : (
+            <ol className="m-0 p-0 list-none space-y-2">
+              {secciones.map((seccion, idx) => {
+                const configurable = TIPOS_CON_CONFIG_SIMPLE.includes(seccion.tipo_seccion);
+                const abierta = seccionAbierta === seccion.id;
+                return (
+                  <li
+                    key={seccion.id}
+                    className={`rounded-lg border bg-surface dark:bg-surface-dark ${
+                      abierta ? "border-acento-violeta/40 dark:border-acento-violeta-dark/40" : "border-border dark:border-border-dark"
+                    }`}
+                  >
+                    {/* La etiqueta del tipo y el campo del título comparten
+                        esta fila a propósito (ver e2e/documentos.spec.ts). */}
+                    <div className="flex items-center gap-2 px-3 pt-2.5 flex-wrap sm:flex-nowrap">
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${VIOLETA.chip}`}>
+                        {idx + 1}
+                      </span>
+                      <span className="shrink-0 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11px] font-semibold text-ink/60 dark:text-ink-dark/60">
+                        {ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}
+                      </span>
+                      <Input
+                        value={seccion.titulo ?? ""}
+                        placeholder="(sin título propio)"
+                        onChange={(e) => setSecciones(secciones.map((s) => (s.id === seccion.id ? { ...s, titulo: e.target.value } : s)))}
+                        onBlur={(e) => guardarTitulo(seccion, e.target.value)}
+                        className="flex-1 min-w-[160px] !py-1.5 text-sm"
+                      />
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        <BotonIcono etiqueta="Subir" onClick={() => moverSeccion(seccion, -1)} disabled={idx === 0} icono={ChevronUp} />
+                        <BotonIcono etiqueta="Bajar" onClick={() => moverSeccion(seccion, 1)} disabled={idx === secciones.length - 1} icono={ChevronDown} />
+                        {configurable && (
+                          <BotonIcono etiqueta={abierta ? "Cerrar configuración" : "Configurar"} onClick={() => abrirConfig(seccion)} icono={Settings2} activo={abierta} />
+                        )}
+                        <BotonIcono etiqueta="Borrar sección" onClick={() => borrarSeccion(seccion)} icono={Trash2} peligro />
+                      </div>
+                    </div>
+                    <p className="m-0 px-3 pb-2.5 pt-1 pl-11 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                      {DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}
+                    </p>
+
+                    {abierta && (
+                      <div className="border-t border-border dark:border-border-dark p-3.5 bg-acento-violeta/[0.03] dark:bg-acento-violeta-dark/[0.04]">
+                        <EditorConfigSeccion
+                          seccion={seccion}
+                          configTexto={configTexto[seccion.id] ?? "{}"}
+                          onCambiarTexto={(v) => setConfigTexto({ ...configTexto, [seccion.id]: v })}
+                          onGuardarJson={() => guardarConfigJson(seccion)}
+                          onGuardarObjeto={(config) => guardarConfigObjeto(seccion, config)}
+                          error={errorSeccionId === seccion.id}
+                        />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          {/* Agregar sección */}
+          <div className="rounded-lg border border-dashed border-acento-violeta/35 dark:border-acento-violeta-dark/35 bg-surface/60 dark:bg-surface-dark/60 p-3.5 space-y-2.5">
+            <p className="m-0 flex items-center gap-1.5 text-[12.5px] font-bold text-ink dark:text-ink-dark">
+              <Plus size={14} className={VIOLETA.texto} aria-hidden="true" />
+              Agregar una sección
             </p>
+            <div className="flex items-end gap-3 flex-wrap">
+              <CampoFormulario etiqueta="Tipo" className="min-w-[200px]">
+                <Select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value as TipoSeccionDocumento)}>
+                  {TIPOS_SECCION_ORDENADOS.map((t) => (
+                    <option key={t} value={t}>
+                      {ETIQUETAS_TIPO_SECCION[t]}
+                    </option>
+                  ))}
+                </Select>
+              </CampoFormulario>
+              <CampoFormulario etiqueta="Título (opcional)" className="flex-1 min-w-[180px]">
+                <Input value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} placeholder="Ej. Motivo de evaluación" />
+              </CampoFormulario>
+              <Boton onClick={agregarSeccion} disabled={agregando}>
+                {agregando ? "Agregando..." : "+ Agregar sección"}
+              </Boton>
+            </div>
+            <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
+            <TextoError>{errorAgregar}</TextoError>
           </div>
-        </section>
-      )}
+        </BloqueFicha>
 
-      {/* Secciones */}
-      <section className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-6 space-y-4">
-        <h2 className="font-display text-lg text-teal-900 dark:text-teal-accent-dark font-semibold border-b border-border dark:border-border-dark pb-2">Secciones</h2>
+        {/* ===== Columna lateral ===== */}
+        <div className="flex flex-col gap-4">
+          <TarjetaLateral icono={Type} titulo="Formato del documento">
+            <form onSubmit={guardarForm} className="space-y-3.5">
+              <CampoFormulario etiqueta="Nombre de la plantilla">
+                <Input value={form.nombre ?? ""} onChange={(e) => cambiarForm({ nombre: e.target.value })} />
+              </CampoFormulario>
 
-        <div className="flex items-end gap-3 flex-wrap border-b border-border dark:border-border-dark pb-4">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Tipo</span>
-            <Select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value as TipoSeccionDocumento)}>
-              {TIPOS_SECCION_ORDENADOS.map((t) => (
-                <option key={t} value={t}>
-                  {ETIQUETAS_TIPO_SECCION[t]}
-                </option>
-              ))}
-            </Select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm flex-1 min-w-[160px]">
-            <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Título (opcional)</span>
-            <Input value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} placeholder="Ej. Motivo de evaluación" />
-          </label>
-          <Boton onClick={agregarSeccion} disabled={agregando}>
-            {agregando ? "Agregando..." : "+ Agregar sección"}
-          </Boton>
-        </div>
-        <TextoError>{errorAgregar}</TextoError>
+              <div className="grid grid-cols-2 gap-3">
+                <CampoFormulario etiqueta="Tipo de letra" className="col-span-2">
+                  <Select value={form.fuente} onChange={(e) => cambiarForm({ fuente: e.target.value })}>
+                    {FUENTES.map((f) => (
+                      <option key={f} value={f}>
+                        {f}
+                      </option>
+                    ))}
+                  </Select>
+                </CampoFormulario>
+                <CampoFormulario etiqueta="Cuerpo (pt)">
+                  <Input type="number" min={6} max={48} value={form.tamano_pt} onChange={(e) => cambiarForm({ tamano_pt: Number(e.target.value) })} />
+                </CampoFormulario>
+                <CampoFormulario etiqueta="Interlineado">
+                  <Input type="number" step={0.05} min={1} max={3} value={form.interlineado} onChange={(e) => cambiarForm({ interlineado: Number(e.target.value) })} />
+                </CampoFormulario>
+              </div>
+              <Casilla checked={!!form.justificado} onChange={(v) => cambiarForm({ justificado: v })}>
+                Texto justificado
+              </Casilla>
 
-        {secciones.length === 0 ? (
-          <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic py-2">Esta plantilla todavía no tiene secciones.</p>
-        ) : (
-          <div className="space-y-2">
-            {secciones.map((seccion, idx) => (
-              <div key={seccion.id} className="border border-border dark:border-border-dark rounded-card">
-                <div className="flex items-center gap-2 p-3">
-                  <div className="flex flex-col">
-                    <button type="button" disabled={idx === 0} onClick={() => moverSeccion(seccion, -1)} className="text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:text-ink-dark disabled:opacity-20 text-xs leading-none">
-                      ▲
-                    </button>
-                    <button type="button" disabled={idx === secciones.length - 1} onClick={() => moverSeccion(seccion, 1)} className="text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:text-ink-dark disabled:opacity-20 text-xs leading-none">
-                      ▼
-                    </button>
-                  </div>
-                  <span className="text-xs font-mono text-ink/40 dark:text-ink-dark/40 w-6">{idx + 1}.</span>
-                  <span className="text-xs bg-mist dark:bg-surface-dark text-ink/60 dark:text-ink-dark/60 rounded px-2 py-0.5">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>
-                  <Input
-                    value={seccion.titulo ?? ""}
-                    placeholder="(sin título propio)"
-                    onChange={(e) => setSecciones(secciones.map((s) => (s.id === seccion.id ? { ...s, titulo: e.target.value } : s)))}
-                    onBlur={(e) => guardarTitulo(seccion, e.target.value)}
-                    className="flex-1 text-sm"
-                  />
-                  {TIPOS_CON_CONFIG_SIMPLE.includes(seccion.tipo_seccion) && (
-                    <button type="button" onClick={() => abrirConfig(seccion)} className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline whitespace-nowrap">
-                      Configurar
-                    </button>
-                  )}
-                  <button type="button" onClick={() => borrarSeccion(seccion)} className="text-xs text-red-600 hover:underline whitespace-nowrap">
-                    Borrar
-                  </button>
+              <div className="border-t border-acento-violeta/15 dark:border-acento-violeta-dark/20 pt-3 space-y-2">
+                <p className="m-0 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">Título del documento</p>
+                <div className="flex items-center gap-4 flex-wrap">
+                  <Casilla checked={!!form.titulo_negrita} onChange={(v) => cambiarForm({ titulo_negrita: v })}>
+                    Negrita
+                  </Casilla>
+                  <Casilla checked={!!form.titulo_cursiva} onChange={(v) => cambiarForm({ titulo_cursiva: v })}>
+                    Cursiva
+                  </Casilla>
                 </div>
-
-                {seccionAbierta === seccion.id && (
-                  <div className="border-t border-border dark:border-border-dark p-3 bg-mist/30 dark:bg-surface-dark/30">
-                    <EditorConfigSeccion
-                      seccion={seccion}
-                      configTexto={configTexto[seccion.id] ?? "{}"}
-                      onCambiarTexto={(v) => setConfigTexto({ ...configTexto, [seccion.id]: v })}
-                      onGuardarJson={() => guardarConfigJson(seccion)}
-                      onGuardarObjeto={(config) => guardarConfigObjeto(seccion, config)}
-                      error={errorSeccionId === seccion.id}
+                <div className="grid grid-cols-2 gap-3">
+                  <CampoFormulario etiqueta="Título (pt)" ayuda="Vacío = cuerpo + 5">
+                    <Input
+                      type="number"
+                      min={6}
+                      max={72}
+                      placeholder="Auto"
+                      value={form.titulo_tamano_pt ?? ""}
+                      onChange={(e) => cambiarForm({ titulo_tamano_pt: e.target.value ? Number(e.target.value) : null })}
                     />
-                  </div>
+                  </CampoFormulario>
+                  <CampoFormulario etiqueta="Subtítulos (pt)" ayuda="Vacío = cuerpo + 1">
+                    <Input
+                      type="number"
+                      min={6}
+                      max={48}
+                      placeholder="Auto"
+                      value={form.subtitulo_tamano_pt ?? ""}
+                      onChange={(e) => cambiarForm({ subtitulo_tamano_pt: e.target.value ? Number(e.target.value) : null })}
+                    />
+                  </CampoFormulario>
+                </div>
+              </div>
+
+              {puedeEditarBranding && (
+                <Casilla checked={!!form.mostrar_fondo_institucion} onChange={(v) => cambiarForm({ mostrar_fondo_institucion: v })}>
+                  Mostrar el fondo de página de la institución en esta plantilla
+                </Casilla>
+              )}
+
+              <TextoError>{errorForm}</TextoError>
+              <div className="flex items-center gap-3">
+                <Boton type="submit" disabled={guardandoForm}>
+                  {guardandoForm ? "Guardando..." : "Guardar formato"}
+                </Boton>
+                {formGuardado && (
+                  <span className={`inline-flex items-center gap-1 text-[12px] font-medium ${VIOLETA.texto}`}>
+                    <CheckCircle2 size={13} aria-hidden="true" />
+                    Guardado
+                  </span>
                 )}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+            </form>
+          </TarjetaLateral>
+
+          {/* Membrete / pie / fondo de página del colegio */}
+          {puedeEditarBranding && (
+            <TarjetaLateral icono={ImageIcon} titulo="Membrete, pie y fondo">
+              <p className="m-0 mb-3 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                Valen para todos los documentos de tu institución, no solo esta plantilla.
+              </p>
+              <TextoError>{errorBranding}</TextoError>
+              <ul className="m-0 p-0 list-none space-y-2">
+                {(["encabezado", "pie", "fondo"] as const).map((tipo) => {
+                  const urlActual =
+                    tipo === "encabezado" ? institucion?.logo_url : tipo === "pie" ? institucion?.logo_pie_pagina_url : institucion?.fondo_documento_url;
+                  const etiqueta = tipo === "encabezado" ? "Membrete (arriba)" : tipo === "pie" ? "Pie de página" : "Fondo de página";
+                  return (
+                    <li key={tipo} className="flex items-center justify-between gap-2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">{etiqueta}</p>
+                        <p className={`m-0 text-[11px] ${urlActual ? VIOLETA.texto : "text-ink/40 dark:text-ink-dark/40"}`}>
+                          {subiendoBranding === tipo ? "Subiendo..." : urlActual ? "Imagen cargada" : "Sin imagen"}
+                        </p>
+                      </div>
+                      <label className={claseBoton("secundario", "!px-2.5 !py-1 text-xs cursor-pointer shrink-0")}>
+                        {urlActual ? "Cambiar" : "Subir"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          disabled={subiendoBranding === tipo}
+                          onChange={(e) => e.target.files?.[0] && subirBranding(tipo, e.target.files[0])}
+                        />
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </TarjetaLateral>
+          )}
+        </div>
+      </div>
     </div>
+  );
+}
+
+function BotonIcono({
+  etiqueta,
+  onClick,
+  icono: Icono,
+  disabled = false,
+  activo = false,
+  peligro = false,
+}: {
+  etiqueta: string;
+  onClick: () => void;
+  icono: typeof Trash2;
+  disabled?: boolean;
+  activo?: boolean;
+  peligro?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      title={etiqueta}
+      aria-label={etiqueta}
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-md p-1.5 transition-colors disabled:opacity-25 disabled:cursor-not-allowed ${
+        peligro
+          ? "text-ink/40 hover:text-red-700 hover:bg-red-50 dark:text-ink-dark/40 dark:hover:text-red-300 dark:hover:bg-red-500/10"
+          : activo
+          ? `${VIOLETA.chip}`
+          : "text-ink/45 hover:text-acento-violeta hover:bg-acento-violeta/10 dark:text-ink-dark/45 dark:hover:text-acento-violeta-dark dark:hover:bg-acento-violeta-dark/15"
+      }`}
+    >
+      <Icono size={15} aria-hidden="true" />
+    </button>
+  );
+}
+
+function Casilla({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+  return (
+    <label className="flex items-center gap-2 text-[13px] text-ink/80 dark:text-ink-dark/80 cursor-pointer">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="accent-[var(--color-acento-violeta)]" />
+      {children}
+    </label>
   );
 }
 

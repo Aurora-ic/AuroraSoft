@@ -2,6 +2,7 @@ import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import List, Optional
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
@@ -102,18 +103,16 @@ def listar_anios_oficiales(db: Session) -> List[models.AnioOficial]:
 # ==========================================
 # PlantillaDocumento
 # ==========================================
-def _desactivar_plantillas_activas(db: Session, institucion_id: int, tipo_documento_id: int) -> None:
-    """🔒 Se llama SIEMPRE antes de insertar/activar una plantilla con
-    activa=True, en la MISMA transacción. El índice único parcial
-    `uq_documentos_plantilla_activa_por_institucion_y_tipo` exige que nunca
-    haya dos plantillas activas a la vez para el mismo institución+tipo —
-    sin este paso, activar una segunda plantilla lanzaría un IntegrityError
-    crudo (500) en vez de reemplazar limpiamente a la anterior."""
-    db.query(models.PlantillaDocumento).filter(
-        models.PlantillaDocumento.institucion_id == institucion_id,
-        models.PlantillaDocumento.tipo_documento_id == tipo_documento_id,
-        models.PlantillaDocumento.activa == True,  # noqa: E712
-    ).update({"activa": False})
+# 🆕 (sesión 2026-11-01) Ya NO hay "una sola plantilla activa por
+# institución+tipo" (se quitó `_desactivar_plantillas_activas` y el índice
+# único parcial, migración e8b1f2a4c6d3). Hallazgo real: las 4 plantillas
+# de informe del catálogo (escolar, padres, docentes, psicométrico)
+# comparten el MISMO TipoDocumento, así que una institución que clonaba
+# dos solo podía generar con una — activar la segunda apagaba la primera
+# en silencio. "Activa" significa ahora "disponible para generar
+# documentos", el mismo significado de menú que ya tenía el catálogo
+# global. El enganche automático no cambia: ya generaba con TODAS las
+# activas que tuvieran su interruptor encendido.
 
 
 def crear_plantilla_documento(
@@ -148,9 +147,6 @@ def crear_plantilla_documento(
     # coexistir activas (ej. "informe escolar" y "informe para padres",
     # ambas bajo el mismo tipo "Informe individual") — cada una un punto de
     # partida distinto para clonar, nunca una compitiendo con la otra.
-    if datos.activa and institucion_id is not None:
-        _desactivar_plantillas_activas(db, institucion_id, datos.tipo_documento_id)
-
     plantilla = models.PlantillaDocumento(
         institucion_id=institucion_id,
         tipo_documento_id=datos.tipo_documento_id,
@@ -171,19 +167,7 @@ def crear_plantilla_documento(
         creado_por_usuario_id=usuario_actual.id,
     )
     db.add(plantilla)
-    try:
-        db.commit()
-    except IntegrityError:
-        # Carrera entre dos "crear y activar" simultáneos para el mismo
-        # institución+tipo: _desactivar_plantillas_activas de arriba no
-        # bloquea la fila, así que dos requests pueden creer ambos que no
-        # había ninguna activa que desactivar. El índice único parcial es
-        # la garantía real; aquí solo se traduce a un 409 limpio.
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Ya se activó otra plantilla para esta institución y tipo al mismo tiempo. Vuelve a intentarlo.",
-        )
+    db.commit()
     db.refresh(plantilla)
     return plantilla
 
@@ -200,23 +184,22 @@ def clonar_plantilla_documento(
     ya tiene configurado, y sin esto cada uno se rearmaba sección por
     sección desde cero.
 
-    `activar=False` por defecto: la institución destino nunca pierde sin
-    querer la plantilla que ya tuviera activa para ese mismo tipo solo por
-    clonar otra encima."""
+    `activar=False` por defecto (contrato de la API); la pantalla de
+    /documentos pide `activar=True` al clonar del catálogo, porque una
+    predeterminada ya trae todas sus secciones y, sin exclusividad por
+    tipo, activarla no apaga ninguna otra."""
     destino = db.query(instituciones_models.Institucion).filter(
         instituciones_models.Institucion.id == institucion_destino_id,
     ).first()
     if not destino:
         raise HTTPException(status_code=404, detail="La institución de destino no existe.")
 
-    if activar:
-        _desactivar_plantillas_activas(db, institucion_destino_id, plantilla_origen.tipo_documento_id)
-
     nueva = models.PlantillaDocumento(
         institucion_id=institucion_destino_id,
         tipo_documento_id=plantilla_origen.tipo_documento_id,
         nombre=nombre or f"{plantilla_origen.nombre} (copia)",
         activa=activar,
+        plantilla_origen_id=plantilla_origen.id,
         fuente=plantilla_origen.fuente,
         tamano_pt=plantilla_origen.tamano_pt,
         interlineado=plantilla_origen.interlineado,
@@ -251,14 +234,7 @@ def clonar_plantilla_documento(
             config=seccion.config,
         ))
 
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Ya existe (o se activó al mismo tiempo) otra plantilla para esa institución y tipo.",
-        )
+    db.commit()
     db.refresh(nueva)
     return nueva
 
@@ -267,32 +243,94 @@ def actualizar_plantilla_documento(
     db: Session, plantilla: models.PlantillaDocumento, datos: schemas.PlantillaDocumentoUpdate,
 ) -> models.PlantillaDocumento:
     cambios = datos.model_dump(exclude_unset=True)
-    # Mismo criterio que crear_plantilla_documento: una predeterminada
-    # global nunca desactiva a otra del mismo tipo.
-    if cambios.get("activa") is True and not plantilla.activa and plantilla.institucion_id is not None:
-        _desactivar_plantillas_activas(db, plantilla.institucion_id, plantilla.tipo_documento_id)
     for campo, valor in cambios.items():
         setattr(plantilla, campo, valor)
-    try:
-        db.commit()
-    except IntegrityError:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Ya se activó otra plantilla para esta institución y tipo al mismo tiempo. Vuelve a intentarlo.",
-        )
+    db.commit()
     db.refresh(plantilla)
     return plantilla
 
 
 def listar_plantillas_de_institucion(db: Session, institucion_id: int) -> List[models.PlantillaDocumento]:
-    return db.query(models.PlantillaDocumento).filter(
+    plantillas = db.query(models.PlantillaDocumento).filter(
         models.PlantillaDocumento.institucion_id == institucion_id,
+        models.PlantillaDocumento.eliminada_en.is_(None),
     ).order_by(models.PlantillaDocumento.tipo_documento_id, models.PlantillaDocumento.creado_en.desc()).all()
+    adjuntar_cantidad_secciones(db, plantillas)
+    return plantillas
+
+
+def adjuntar_cantidad_secciones(db: Session, plantillas: List[models.PlantillaDocumento]) -> None:
+    """🆕 Escalabilidad (sesión 2026-11-01): `cantidad_secciones` de cada
+    plantilla en UNA consulta (GROUP BY) — antes la pantalla pedía las
+    secciones de cada plantilla por separado solo para contarlas. Atributo
+    transitorio (no mapeado), mismo patrón que Persona.seccion_actual."""
+    if not plantillas:
+        return
+    conteos = dict(
+        db.query(models.PlantillaSeccion.plantilla_documento_id, func.count(models.PlantillaSeccion.id))
+        .filter(models.PlantillaSeccion.plantilla_documento_id.in_([p.id for p in plantillas]))
+        .group_by(models.PlantillaSeccion.plantilla_documento_id)
+        .all()
+    )
+    for p in plantillas:
+        p.cantidad_secciones = conteos.get(p.id, 0)
 
 
 def obtener_plantilla_documento(db: Session, plantilla_id: int) -> Optional[models.PlantillaDocumento]:
+    # NO filtra las eliminadas a propósito: un documento ya emitido con una
+    # plantilla eliminada sigue necesitando leer sus secciones. Las
+    # escrituras pasan por verificar_plantilla_no_eliminada().
     return db.query(models.PlantillaDocumento).filter(models.PlantillaDocumento.id == plantilla_id).first()
+
+
+def verificar_plantilla_no_eliminada(plantilla: models.PlantillaDocumento) -> None:
+    """🆕 (sesión 2026-11-01) Candado de toda ESCRITURA sobre una plantilla
+    (editarla, sus secciones, clonarla, crear un documento con ella)."""
+    if plantilla.eliminada_en is not None:
+        raise HTTPException(status_code=404, detail="Esta plantilla fue eliminada.")
+
+
+def eliminar_plantilla_documento(db: Session, plantilla_id: int, usuario_id: int) -> None:
+    """🆕 (sesión 2026-11-01) Elimina una plantilla de institución (pensado
+    para el duplicado clonado por accidente). Soft-delete — ver
+    PlantillaDocumento.eliminada_en para el porqué.
+
+    - Una PREDETERMINADA global no se elimina por aquí (409): es el catálogo
+      de todos los colegios.
+    - Con BORRADORES en curso (sin versión y sin descartar) responde 409:
+      quedarían huérfanos de una plantilla que ya no se puede tocar. Se
+      emiten o se descartan primero. Los documentos ya emitidos no
+      bloquean: siguen funcionando con la plantilla eliminada.
+    - Toma un lock de fila sobre la plantilla; crear_documento_institucional
+      toma el mismo, así que un borrador nuevo no se cuela entre el conteo y
+      la eliminación."""
+    plantilla = db.query(models.PlantillaDocumento).filter(
+        models.PlantillaDocumento.id == plantilla_id,
+    ).with_for_update().populate_existing().first()
+    if not plantilla or plantilla.eliminada_en is not None:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    if plantilla.institucion_id is None:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Una plantilla predeterminada del catálogo no se elimina desde aquí.")
+    borradores = db.query(models.DocumentoInstitucional).filter(
+        models.DocumentoInstitucional.plantilla_documento_id == plantilla.id,
+        models.DocumentoInstitucional.version_actual.is_(None),
+        models.DocumentoInstitucional.descartado_en.is_(None),
+    ).count()
+    if borradores:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Esta plantilla tiene {borradores} borrador(es) en curso. Emítelos o descártalos "
+                "en Documentos generados antes de eliminarla."
+            ),
+        )
+    plantilla.activa = False
+    plantilla.eliminada_en = datetime.now(timezone.utc)
+    plantilla.eliminada_por_usuario_id = usuario_id
+    db.commit()
 
 
 def listar_plantillas_predeterminadas(db: Session) -> List[models.PlantillaDocumento]:
@@ -303,6 +341,7 @@ def listar_plantillas_predeterminadas(db: Session) -> List[models.PlantillaDocum
     return db.query(models.PlantillaDocumento).filter(
         models.PlantillaDocumento.institucion_id.is_(None),
         models.PlantillaDocumento.activa == True,  # noqa: E712
+        models.PlantillaDocumento.eliminada_en.is_(None),
     ).order_by(models.PlantillaDocumento.tipo_documento_id, models.PlantillaDocumento.creado_en.desc()).all()
 
 
@@ -425,9 +464,15 @@ def crear_documento_institucional(
     if not tipo:
         raise HTTPException(status_code=404, detail="Tipo de documento no encontrado.")
 
-    plantilla = db.query(models.PlantillaDocumento).filter(models.PlantillaDocumento.id == datos.plantilla_documento_id).first()
+    # Lock de fila compartido con eliminar_plantilla_documento: o se crea el
+    # borrador antes (y la eliminación lo ve y responde 409) o la plantilla
+    # ya está eliminada (y esto responde 404).
+    plantilla = db.query(models.PlantillaDocumento).filter(
+        models.PlantillaDocumento.id == datos.plantilla_documento_id,
+    ).with_for_update().populate_existing().first()
     if not plantilla:
         raise HTTPException(status_code=404, detail="Plantilla no encontrada.")
+    verificar_plantilla_no_eliminada(plantilla)
     if plantilla.tipo_documento_id != tipo.id:
         raise HTTPException(status_code=422, detail="La plantilla elegida no pertenece a ese tipo de documento.")
     if not plantilla.activa:
@@ -525,7 +570,12 @@ def crear_documento_institucional(
 
 
 def obtener_documento_institucional(db: Session, documento_id: int) -> Optional[models.DocumentoInstitucional]:
-    return db.query(models.DocumentoInstitucional).filter(models.DocumentoInstitucional.id == documento_id).first()
+    # Un borrador descartado ya no existe para la API (404 en todo endpoint
+    # que pase por aquí — ver DocumentoInstitucional.descartado_en).
+    return db.query(models.DocumentoInstitucional).filter(
+        models.DocumentoInstitucional.id == documento_id,
+        models.DocumentoInstitucional.descartado_en.is_(None),
+    ).first()
 
 
 def listar_estudiantes_de_documento(db: Session, documento_id: int) -> List[models.DocumentoInstitucionalEstudiante]:
@@ -539,6 +589,7 @@ def listar_documentos_de_institucion(
 ) -> tuple[int, List[models.DocumentoInstitucional]]:
     query = db.query(models.DocumentoInstitucional).filter(
         models.DocumentoInstitucional.institucion_id == institucion_id,
+        models.DocumentoInstitucional.descartado_en.is_(None),
     )
     total = query.count()
     items = query.order_by(models.DocumentoInstitucional.creado_en.desc()).offset(skip).limit(limit).all()
@@ -546,8 +597,10 @@ def listar_documentos_de_institucion(
 
 
 def listar_documentos_visibles_para_usuario(
-    db: Session, institucion_id: int, usuario_actual, persona_id: Optional[int] = None,
+    db: Session, institucion_id: int, usuario_actual, persona_id=None,
     skip: int = 0, limit: int = 50,
+    q: Optional[str] = None, estado: Optional[str] = None,
+    tipo_documento_id: Optional[int] = None, plantilla_documento_id: Optional[int] = None,
 ) -> tuple[int, List[models.DocumentoInstitucional]]:
     """Mismo listado que `listar_documentos_de_institucion`, pero acotado
     por `nivel_visibilidad` cuando quien pregunta es 'colegio' — mismo
@@ -566,17 +619,45 @@ def listar_documentos_visibles_para_usuario(
     🆕 Paginación real (docs/gaps-pendientes.md) — antes devolvía todo
     documento generado, sin tope, para siempre. El `COUNT`/`LIMIT` se aplica
     DESPUÉS del filtro de `nivel_visibilidad`/`persona_id`, no antes, para
-    que `total` refleje lo que el rol 'colegio' realmente puede ver."""
+    que `total` refleje lo que el rol 'colegio' realmente puede ver.
+
+    🆕 Escalabilidad (sesión 2026-11-01) — filtros en el servidor, todos
+    opcionales (sin ellos el resultado es idéntico al de antes): `q` (título
+    o nombre congelado de un estudiante), `estado` ('borrador'/'emitido'),
+    `tipo_documento_id`, `plantilla_documento_id`, y `persona_id` acepta
+    ahora uno o VARIOS ids. Antes la pantalla buscaba solo dentro de la
+    página de 50 que ya tenía cargada. Los filtros por estudiante van como
+    `id IN (subconsulta)`, no como join: un documento de varios alumnos
+    elegidos sale una sola vez y el COUNT no se infla."""
     query = db.query(models.DocumentoInstitucional).filter(
         models.DocumentoInstitucional.institucion_id == institucion_id,
+        models.DocumentoInstitucional.descartado_en.is_(None),
     )
     if usuario_actual.rol == "colegio":
         query = query.filter(models.DocumentoInstitucional.nivel_visibilidad == "compartible_colegio")
+    Estudiante = models.DocumentoInstitucionalEstudiante
     if persona_id is not None:
-        query = query.join(
-            models.DocumentoInstitucionalEstudiante,
-            models.DocumentoInstitucionalEstudiante.documento_institucional_id == models.DocumentoInstitucional.id,
-        ).filter(models.DocumentoInstitucionalEstudiante.persona_id == persona_id)
+        ids_personas = list(persona_id) if isinstance(persona_id, (list, tuple, set)) else [persona_id]
+        if ids_personas:
+            query = query.filter(models.DocumentoInstitucional.id.in_(
+                db.query(Estudiante.documento_institucional_id).filter(Estudiante.persona_id.in_(ids_personas))
+            ))
+    if estado == "borrador":
+        query = query.filter(models.DocumentoInstitucional.version_actual.is_(None))
+    elif estado == "emitido":
+        query = query.filter(models.DocumentoInstitucional.version_actual.isnot(None))
+    if tipo_documento_id is not None:
+        query = query.filter(models.DocumentoInstitucional.tipo_documento_id == tipo_documento_id)
+    if plantilla_documento_id is not None:
+        query = query.filter(models.DocumentoInstitucional.plantilla_documento_id == plantilla_documento_id)
+    if q and q.strip():
+        patron = f"%{q.strip()}%"
+        query = query.filter(or_(
+            models.DocumentoInstitucional.titulo.ilike(patron),
+            models.DocumentoInstitucional.id.in_(
+                db.query(Estudiante.documento_institucional_id).filter(Estudiante.nombre_completo_historico.ilike(patron))
+            ),
+        ))
     total = query.count()
     items = query.order_by(models.DocumentoInstitucional.creado_en.desc()).offset(skip).limit(limit).all()
     return total, items
@@ -587,6 +668,7 @@ def listar_documentos_visibles_para_usuario(
 # ==========================================
 def _fila_contenido_a_dict(
     seccion: models.PlantillaSeccion, fila: Optional[models.DocumentoInstitucionalSeccionContenido],
+    inscripciones_vinculadas: Optional[List[int]] = None,
 ) -> dict:
     return {
         "plantilla_seccion_id": seccion.id,
@@ -596,6 +678,7 @@ def _fila_contenido_a_dict(
         "contenido": fila.contenido if fila else None,
         "editado_por_usuario_id": fila.editado_por_usuario_id if fila else None,
         "actualizado_en": fila.actualizado_en if fila else None,
+        "inscripciones_vinculadas": inscripciones_vinculadas or [],
     }
 
 
@@ -612,7 +695,22 @@ def obtener_contenido_secciones(db: Session, documento: models.DocumentoInstituc
             models.DocumentoInstitucionalSeccionContenido.documento_institucional_id == documento.id,
         ).all()
     }
-    return [_fila_contenido_a_dict(seccion, contenidos.get(seccion.id)) for seccion in secciones]
+    # 🆕 (sesión 2026-11-01) Qué aplicación(es) está(n) vinculada(s) a cada
+    # sección 'resultados_prueba'/'grafico_barras' — el vínculo vive en
+    # DocumentoInstitucionalResultadoPrueba, no en `contenido`, así que el
+    # editor nunca podía mostrar cuál había quedado elegida. Una consulta.
+    vinculos: dict = {}
+    for plantilla_seccion_id, inscripcion_id in db.query(
+        models.DocumentoInstitucionalResultadoPrueba.plantilla_seccion_id,
+        models.DocumentoInstitucionalResultadoPrueba.inscripcion_id,
+    ).filter(
+        models.DocumentoInstitucionalResultadoPrueba.documento_institucional_id == documento.id,
+    ).all():
+        vinculos.setdefault(plantilla_seccion_id, []).append(inscripcion_id)
+    return [
+        _fila_contenido_a_dict(seccion, contenidos.get(seccion.id), vinculos.get(seccion.id))
+        for seccion in secciones
+    ]
 
 
 def obtener_plantilla_seccion_de_documento(
@@ -989,7 +1087,48 @@ def bloquear_documento_institucional_para_version(db: Session, documento_id: int
     anterior sin lock."""
     return db.query(models.DocumentoInstitucional).filter(
         models.DocumentoInstitucional.id == documento_id,
+        models.DocumentoInstitucional.descartado_en.is_(None),
     ).with_for_update().populate_existing().first()
+
+
+def descartar_borrador_documento(db: Session, documento_id: int, usuario_id: int) -> None:
+    """🆕 (sesión 2026-11-01) Descarta un borrador que nunca emitió versión
+    (soft-delete, ver DocumentoInstitucional.descartado_en). Toma el MISMO
+    lock de fila que generar_version_documento: si las dos acciones llegan a
+    la vez, o se genera la v1 primero (y esto responde 409) o se descarta
+    primero (y la generación responde 404) — nunca un documento emitido y
+    descartado a la vez (además lo impide el CHECK de la tabla)."""
+    documento = bloquear_documento_institucional_para_version(db, documento_id)
+    if not documento:
+        db.rollback()
+        raise HTTPException(status_code=404, detail="Documento no encontrado.")
+    if documento.version_actual is not None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Este documento ya emitió una versión oficial y no se puede descartar; si hay un error, reemítelo con un motivo.",
+        )
+    documento.descartado_en = datetime.now(timezone.utc)
+    documento.descartado_por_usuario_id = usuario_id
+    db.commit()
+
+
+def resumen_estudiantes_por_documento(db: Session, documento_ids: List[int]) -> dict:
+    """documento_id -> nombres congelados de su lista de estudiantes, en UNA
+    consulta para toda la página del listado (sin N+1). Sirve para que dos
+    documentos con el mismo título se distingan por a quién pertenecen."""
+    if not documento_ids:
+        return {}
+    filas = db.query(
+        models.DocumentoInstitucionalEstudiante.documento_institucional_id,
+        models.DocumentoInstitucionalEstudiante.nombre_completo_historico,
+    ).filter(
+        models.DocumentoInstitucionalEstudiante.documento_institucional_id.in_(documento_ids),
+    ).order_by(models.DocumentoInstitucionalEstudiante.nombre_completo_historico).all()
+    resumen: dict = {}
+    for documento_id, nombre in filas:
+        resumen.setdefault(documento_id, []).append(nombre or "Sin nombre")
+    return resumen
 
 
 def bloquear_correlativo_para_emision(db: Session, institucion_id: int, tipo_documento_id: int, anio: int) -> models.CorrelativoDocumento:
@@ -1811,6 +1950,7 @@ def generar_documentos_automaticos_por_examen(db: Session, inscripcion_id: int) 
         models.PlantillaDocumento.institucion_id == institucion_id,
         models.PlantillaDocumento.activa == True,  # noqa: E712
         models.PlantillaDocumento.generar_automaticamente_al_finalizar_examen == True,  # noqa: E712
+        models.PlantillaDocumento.eliminada_en.is_(None),
     ).all()
     if not plantillas:
         return

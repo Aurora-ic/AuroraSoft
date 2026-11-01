@@ -23,7 +23,23 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
+    "DELETE /api/documentos/plantillas/{plantilla_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
     "DELETE /api/documentos/secciones/{seccion_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "DELETE /api/documentos/{documento_id}": {
       "admin": true,
       "colegio": false,
       "psicologo": true,
@@ -184,6 +200,22 @@
       "verifica_institucion": false
     },
     "GET /api/admin/personas/{institucion_id}": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": true
+    },
+    "GET /api/admin/personas/{institucion_id}/ids": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": true
+    },
+    "GET /api/admin/personas/{institucion_id}/resumen-padron": {
       "admin": true,
       "colegio": true,
       "psicologo": true,

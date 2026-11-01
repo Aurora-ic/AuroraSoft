@@ -193,6 +193,10 @@ class PlantillaDocumentoUpdate(BaseModel):
 
 class PlantillaDocumentoResponse(PlantillaDocumentoBase):
     id: int
+    # 🆕 (sesión 2026-11-01) De qué plantilla se clonó (None = desde cero).
+    plantilla_origen_id: Optional[int] = None
+    # 🆕 Solo en el listado de "Mis plantillas" (None en el resto).
+    cantidad_secciones: Optional[int] = None
     # NULL = plantilla predeterminada global, ver PlantillaDocumentoCreate.
     institucion_id: Optional[int] = None
     tipo_documento_id: int
@@ -364,6 +368,15 @@ class DocumentoInstitucionalResponse(BaseModel):
         from_attributes = True
 
 
+class DocumentoInstitucionalListadoResponse(DocumentoInstitucionalResponse):
+    """🆕 (sesión 2026-11-01) Fila del LISTADO: + solo los nombres congelados
+    de sus estudiantes (no la lista completa del detalle), resueltos en una
+    consulta por página (crud.resumen_estudiantes_por_documento). Antes dos
+    documentos con el mismo título — p. ej. dos "Ficha de derivación
+    externa" de alumnos distintos — eran indistinguibles en el listado."""
+    estudiantes_resumen: List[str] = []
+
+
 class DocumentoInstitucionalDetalleResponse(DocumentoInstitucionalResponse):
     """Igual que DocumentoInstitucionalResponse + la lista congelada de
     estudiantes — solo en el detalle, nunca en un listado (evita cargar
@@ -393,6 +406,9 @@ class DocumentoInstitucionalSeccionContenidoResponse(BaseModel):
     orden: int
     contenido: Optional[Dict[str, Any]] = None
     editado_por_usuario_id: Optional[int] = None
+    # 🆕 inscripcion_id vinculada(s) por DocumentoInstitucionalResultadoPrueba
+    # (secciones 'resultados_prueba'/'grafico_barras'); [] en las demás.
+    inscripciones_vinculadas: List[int] = []
     # None = la sección todavía no se tocó (no hay fila de contenido
     # propia todavía) — distinto de "se guardó vacío", que sí tendría fecha.
     actualizado_en: Optional[datetime] = None

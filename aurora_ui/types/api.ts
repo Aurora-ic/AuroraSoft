@@ -9,6 +9,34 @@ export type RespuestaPaginada<T> = {
   items: T[];
 };
 
+// 🆕 (sesión 2026-11-01) Escalabilidad del padrón — GET /admin/personas/{inst}/ids
+// y /resumen-padron (filtros y conteos en el servidor, nunca el padrón entero).
+export type IdsPadron = { total: number; ids: number[] };
+
+export type SeccionResumenPadron = {
+  seccion_id: number;
+  seccion: string | null;
+  turno: string | null;
+  anio_escolar: number | null;
+  grado_id: number;
+  grado: string | null;
+  nivel_educativo_id: number;
+  nivel_educativo: string | null;
+  cantidad: number; // alumnos ACTIVOS con matrícula vigente en la sección
+  persona_ids?: number[] | null; // solo con ?incluir_ids=true
+};
+
+export type ResumenPadron = {
+  total: number;
+  activos: number;
+  inactivos: number;
+  datos_incompletos: number; // solo activos
+  sin_matricula: number; // solo activos
+  con_diagnostico: number; // solo activos
+  secciones: SeccionResumenPadron[];
+  ids_sin_matricula?: number[] | null; // solo con ?incluir_ids=true
+};
+
 // Subconjunto de schemas.InstitucionResponse — solo lo que la UI consume
 // hoy (el nombre para identificar de qué colegio se trata en el layout).
 export type Institucion = {
@@ -1084,6 +1112,11 @@ export type PlantillaDocumento = {
   generar_automaticamente_al_finalizar_examen: boolean;
   creado_por_usuario_id: number;
   creado_en: string;
+  // 🆕 De qué plantilla se clonó (null = armada desde cero o clon antiguo
+  // que no se pudo deducir).
+  plantilla_origen_id?: number | null;
+  // 🆕 Solo en GET /documentos/plantillas (Mis plantillas).
+  cantidad_secciones?: number | null;
 };
 
 // POST /documentos/plantillas — institucion_id null solo lo acepta el
@@ -1161,6 +1194,9 @@ export type DocumentoInstitucional = {
   version_actual: number | null; // null = borrador, nunca generó una versión
   creado_por_usuario_id: number;
   creado_en: string;
+  // 🆕 Solo en el LISTADO: nombres congelados de sus estudiantes, para
+  // distinguir dos documentos con el mismo título. No viene en el detalle.
+  estudiantes_resumen?: string[];
 };
 
 export type DocumentoInstitucionalEstudiante = {
@@ -1219,6 +1255,9 @@ export type DocumentoInstitucionalSeccionContenido = {
   contenido: Record<string, unknown> | null;
   editado_por_usuario_id: number | null;
   actualizado_en: string | null;
+  // 🆕 inscripcion_id vinculada(s) a una sección 'resultados_prueba'/
+  // 'grafico_barras' (el vínculo no viaja en `contenido`); [] en las demás.
+  inscripciones_vinculadas?: number[];
 };
 
 // PUT /documentos/{id}/secciones/{plantilla_seccion_id} — reemplazo

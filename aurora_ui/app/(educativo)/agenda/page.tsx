@@ -23,7 +23,8 @@ import {
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
-import { Cita, CitaUpdate, Persona } from "@/types/api";
+import { Cita, CitaUpdate } from "@/types/api";
+import { usePadronPaginado, useValorDiferido } from "@/lib/padron";
 import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { ModalNuevaActividad, type InicialActividad } from "@/components/educativo/ModalNuevaActividad";
 
@@ -178,10 +179,6 @@ export default function AgendaPage() {
   // 🆕 (sesión 2026-10-31) La cita individual ya no exige pasar por la
   // ficha del alumno: se busca aquí mismo (bloque lateral o el modal). ---
   const [modal, setModal] = useState<InicialActividad | null>(null);
-  const [personas, setPersonas] = useState<Persona[]>([]);
-  const [personasCargadas, setPersonasCargadas] = useState(false);
-  const [cargandoPersonas, setCargandoPersonas] = useState(false);
-  const [errorPersonas, setErrorPersonas] = useState<string | null>(null);
   const [busquedaCita, setBusquedaCita] = useState("");
 
   function cargar() {
@@ -324,26 +321,24 @@ export default function AgendaPage() {
     }
   }
 
-  // Carga perezosa del padrón (solo activos) — recién cuando de verdad se
-  // va a elegir a alguien, no en cada carga de la agenda.
-  function asegurarPersonas() {
-    if (personasCargadas || cargandoPersonas || !sesion?.institucionId) return;
-    setCargandoPersonas(true);
-    setErrorPersonas(null);
-    apiClient
-      .getTodasLasPaginas<Persona>(`/admin/personas/${sesion.institucionId}`)
-      .then((lista) => {
-        setPersonas(lista);
-        setPersonasCargadas(true);
-      })
-      .catch((err) => setErrorPersonas((err instanceof Error && err.message) || "No se pudo cargar el padrón."))
-      .finally(() => setCargandoPersonas(false));
-  }
+  // 🆕 Escalabilidad (sesión 2026-11-01): el buscador de "Agendar cita
+  // individual" consulta al SERVIDOR (?busqueda=, tope de 6) 250 ms después
+  // de dejar de escribir — antes descargaba el padrón completo al enfocar
+  // el campo. El modal hace lo mismo con sus propios buscadores.
+  const textoCita = useValorDiferido(busquedaCita.trim());
+  const buscadosCita = usePadronPaginado({
+    institucionId: sesion?.institucionId,
+    filtros: { busqueda: textoCita },
+    tamano: 6,
+    habilitado: !!textoCita,
+  });
+  const cargandoPersonas = buscadosCita.cargando;
+  const errorPersonas = buscadosCita.error;
+  const personasCargadas = !!textoCita && textoCita === busquedaCita.trim() && !buscadosCita.cargando;
 
   // `fecha` opcional: el "+" de cada día de la semana abre el formulario
   // con ese día ya puesto (como al hacer clic en un día de un calendario).
   function abrirModal(inicial: InicialActividad) {
-    asegurarPersonas();
     setModal(inicial);
   }
 
@@ -370,13 +365,7 @@ export default function AgendaPage() {
   const totalIndividuales = citas.filter((c) => c.persona_id !== null).length;
   const totalGrupales = citas.length - totalIndividuales;
 
-  const resultadosCita = busquedaCita.trim()
-    ? personas
-        .filter((p) =>
-          `${p.nombres} ${p.apellidos} ${p.documento_identidad ?? ""}`.toLowerCase().includes(busquedaCita.trim().toLowerCase()),
-        )
-        .slice(0, 6)
-    : [];
+  const resultadosCita = busquedaCita.trim() ? buscadosCita.items : [];
 
   const claseNav =
     "inline-flex items-center justify-center rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark transition-colors disabled:opacity-40";
@@ -516,9 +505,8 @@ export default function AgendaPage() {
               <input
                 type="search"
                 aria-label="Buscar estudiante para una cita"
-                placeholder={cargandoPersonas ? "Cargando padrón..." : "Nombre o documento…"}
+                placeholder="Nombre o documento…"
                 value={busquedaCita}
-                onFocus={asegurarPersonas}
                 onChange={(e) => setBusquedaCita(e.target.value)}
                 className="w-full rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
               />
@@ -858,9 +846,7 @@ export default function AgendaPage() {
       {modal && (
         <ModalNuevaActividad
           inicial={modal}
-          personas={personas}
-          cargandoPersonas={cargandoPersonas}
-          errorPersonas={errorPersonas}
+          institucionId={sesion?.institucionId ?? null}
           onCerrar={cerrarModal}
           onCreada={alCrear}
         />

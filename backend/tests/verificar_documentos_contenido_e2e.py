@@ -111,9 +111,9 @@ def main(url_base):
 
     # Una plantilla AJENA (mismo tipo, misma institución) para el test de
     # plantilla_seccion_id que no pertenece a la plantilla de este documento.
-    # activa=False a propósito: activarla desactivaría automáticamente la
-    # plantilla principal (índice único parcial, ver Paso 1) y rompería el
-    # resto del montaje.
+    # activa=False a propósito (histórico: cuando había una sola activa por
+    # tipo, activarla apagaba la principal; desde la sesión 2026-11-01 ya no,
+    # pero el escenario no necesita que esté activa).
     plantilla_ajena = exigir(requests.post(f"{API}/documentos/plantillas", json={
         "institucion_id": inst_a, "tipo_documento_id": tipo_id, "nombre": f"{PREFIJO} Plantilla ajena",
         "activa": False,

@@ -9,6 +9,7 @@ import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import type { CitaCreate, Persona } from "@/types/api";
+import { usePadronPaginado, useResumenPadron, useValorDiferido } from "@/lib/padron";
 
 // 🆕 (sesión 2026-10-31, a pedido del usuario) Un solo modal para lo que se
 // agenda desde la Agenda, con dos modos:
@@ -20,8 +21,10 @@ import type { CitaCreate, Persona } from "@/types/api";
 //   colegio" o "Uno por uno" — se combinan, y todo termina en el mismo
 //   `participantes_ids` de siempre (el backend no cambió: crud.crear_cita
 //   descarta en silencio a cualquiera que no sea de la institución).
-// Las secciones salen de `seccion_actual`, que ya viene en el padrón: no
-// hay llamadas extra por salón.
+// 🆕 Escalabilidad (sesión 2026-11-01): el modal ya no recibe el padrón
+// completo. Los salones y "Todo el colegio" salen de
+// /resumen-padron?incluir_ids=true (solo ids por sección, ≈30 KB con 5000
+// alumnos); los buscadores y "Uno por uno" consultan al servidor.
 
 export type ModoActividad = "individual" | "grupal";
 
@@ -54,11 +57,7 @@ function ubicacionDe(p: Persona): string | null {
   return s ? [s.nivel_educativo, s.grado, s.seccion].filter(Boolean).join(" · ") : null;
 }
 
-function coincide(p: Persona, texto: string): boolean {
-  const t = texto.trim().toLowerCase();
-  if (!t) return true;
-  return `${p.nombres} ${p.apellidos}`.toLowerCase().includes(t) || (p.documento_identidad ?? "").toLowerCase().includes(t);
-}
+const TAMANO_LISTA_UNO = 50;
 
 type GrupoGrado = {
   clave: string;
@@ -102,16 +101,12 @@ function CasillaGrupo({
 
 export function ModalNuevaActividad({
   inicial,
-  personas,
-  cargandoPersonas,
-  errorPersonas,
+  institucionId,
   onCerrar,
   onCreada,
 }: {
   inicial: InicialActividad;
-  personas: Persona[];
-  cargandoPersonas: boolean;
-  errorPersonas: string | null;
+  institucionId: number | null;
   onCerrar: () => void;
   onCreada: (fechaHora: Date) => void;
 }) {
@@ -150,13 +145,19 @@ export function ModalNuevaActividad({
     setError(null);
   }
 
-  // --- Grados y secciones a partir del padrón (seccion_actual) ---
+  // --- Salones: ids activos por sección, del servidor (solo en modo grupal) ---
+  const { resumen, cargando: cargandoResumen, error: errorResumen } = useResumenPadron({
+    institucionId,
+    incluirIds: true,
+    habilitado: modo === "grupal",
+  });
+
   const grados = useMemo<GrupoGrado[]>(() => {
     const mapa = new Map<string, GrupoGrado & { orden: [number, number] }>();
-    for (const p of personas) {
-      const s = p.seccion_actual;
-      if (!s) continue;
-      const clave = `${s.nivel_educativo_id ?? "x"}-${s.grado_id ?? "x"}`;
+    for (const s of resumen?.secciones ?? []) {
+      const ids = s.persona_ids ?? [];
+      if (ids.length === 0) continue; // como antes: solo salones con alumnos activos
+      const clave = `${s.nivel_educativo_id}-${s.grado_id}`;
       const g =
         mapa.get(clave) ??
         (() => {
@@ -165,28 +166,26 @@ export function ModalNuevaActividad({
             etiqueta: [s.nivel_educativo, s.grado].filter(Boolean).join(" · ") || "Sin grado",
             ids: [] as number[],
             secciones: [] as GrupoGrado["secciones"],
-            orden: [s.nivel_educativo_id ?? 0, s.grado_id ?? 0] as [number, number],
+            orden: [s.nivel_educativo_id, s.grado_id] as [number, number],
           };
           mapa.set(clave, nuevo);
           return nuevo;
         })();
-      g.ids.push(p.id);
-      const sec =
-        g.secciones.find((x) => x.id === s.seccion_id) ??
-        (() => {
-          const nueva = { id: s.seccion_id, nombre: s.seccion ?? "—", ids: [] as number[] };
-          g.secciones.push(nueva);
-          return nueva;
-        })();
-      sec.ids.push(p.id);
+      g.ids.push(...ids);
+      g.secciones.push({ id: s.seccion_id, nombre: s.seccion ?? "—", ids });
     }
     return Array.from(mapa.values())
       .sort((a, b) => a.orden[0] - b.orden[0] || a.orden[1] - b.orden[1])
       .map((g) => ({ ...g, secciones: g.secciones.sort((a, b) => a.nombre.localeCompare(b.nombre)) }));
-  }, [personas]);
+  }, [resumen]);
 
-  const sinMatricula = useMemo(() => personas.filter((p) => !p.seccion_actual).length, [personas]);
-  const todosLosIds = useMemo(() => personas.map((p) => p.id), [personas]);
+  const sinMatricula = resumen?.ids_sin_matricula?.length ?? 0;
+  const todosLosIds = useMemo(
+    () => Array.from(new Set([...grados.flatMap((g) => g.ids), ...(resumen?.ids_sin_matricula ?? [])])),
+    [grados, resumen],
+  );
+  const cargandoPersonas = cargandoResumen;
+  const errorPersonas = errorResumen;
 
   function cambiarGrupo(ids: number[], marcar: boolean) {
     setSeleccion((prev) => {
@@ -196,11 +195,22 @@ export function ModalNuevaActividad({
     });
   }
 
-  const resultadosAlumno = useMemo(
-    () => (busquedaAlumno.trim() ? personas.filter((p) => coincide(p, busquedaAlumno)).slice(0, 8) : []),
-    [personas, busquedaAlumno],
-  );
-  const listaUno = useMemo(() => personas.filter((p) => coincide(p, filtroUno)), [personas, filtroUno]);
+  const textoAlumno = useValorDiferido(busquedaAlumno.trim());
+  const buscados = usePadronPaginado({
+    institucionId,
+    filtros: { busqueda: textoAlumno },
+    tamano: 8,
+    habilitado: modo === "individual" && !persona && !!textoAlumno,
+  });
+  const resultadosAlumno = busquedaAlumno.trim() ? buscados.items : [];
+  const textoUno = useValorDiferido(filtroUno.trim());
+  const uno = usePadronPaginado({
+    institucionId,
+    filtros: { busqueda: textoUno },
+    tamano: TAMANO_LISTA_UNO,
+    habilitado: modo === "grupal" && pestana === "uno",
+  });
+  const listaUno = uno.items;
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -323,7 +333,7 @@ export function ModalNuevaActividad({
                     <Input
                       autoFocus
                       aria-label="Buscar estudiante"
-                      placeholder={cargandoPersonas ? "Cargando padrón..." : "Busca por nombre, apellido o documento"}
+                      placeholder="Busca por nombre, apellido o documento"
                       value={busquedaAlumno}
                       onChange={(e) => setBusquedaAlumno(e.target.value)}
                       className="w-full pl-9"
@@ -350,8 +360,11 @@ export function ModalNuevaActividad({
                       ))}
                     </ul>
                   )}
-                  {busquedaAlumno.trim() && resultadosAlumno.length === 0 && !cargandoPersonas && (
-                    <p className="m-0 mt-1.5 text-xs text-ink/45 dark:text-ink-dark/45">Ningún estudiante activo coincide.</p>
+                  <TextoError>{buscados.error}</TextoError>
+                  {busquedaAlumno.trim() && resultadosAlumno.length === 0 && (
+                    <p className="m-0 mt-1.5 text-xs text-ink/45 dark:text-ink-dark/45">
+                      {buscados.cargando ? "Buscando..." : "Ningún estudiante activo coincide."}
+                    </p>
                   )}
                 </div>
               )}
@@ -471,7 +484,7 @@ export function ModalNuevaActividad({
                 <TextoError>{errorPersonas}</TextoError>
                 {cargandoPersonas ? (
                   <p className="m-0 text-xs text-ink/40 dark:text-ink-dark/40">Cargando padrón...</p>
-                ) : personas.length === 0 ? (
+                ) : resumen !== null && resumen.activos === 0 ? (
                   <p className="m-0 text-xs italic text-ink/40 dark:text-ink-dark/40">No hay estudiantes activos en el padrón todavía.</p>
                 ) : pestana === "salon" ? (
                   grados.length === 0 ? (
@@ -564,7 +577,23 @@ export function ModalNuevaActividad({
                           <span className="shrink-0 text-[10.5px] text-ink/40 dark:text-ink-dark/40">{ubicacionDe(p) ?? "—"}</span>
                         </label>
                       ))}
+                      {listaUno.length === 0 && (
+                        <p className="m-0 px-3 py-3 text-xs text-ink/45 dark:text-ink-dark/45 sm:col-span-2">
+                          {uno.cargando ? "Buscando..." : "Ningún estudiante activo coincide."}
+                        </p>
+                      )}
                     </div>
+                    <TextoError>{uno.error}</TextoError>
+                    {uno.hayMas && (
+                      <button
+                        type="button"
+                        onClick={() => uno.cargarMas()}
+                        disabled={uno.cargando}
+                        className="mt-1.5 text-xs font-semibold text-[#1f63b8] dark:text-[#5598e7] hover:underline disabled:opacity-50"
+                      >
+                        {uno.cargando ? "Cargando..." : `Cargar más (${listaUno.length} de ${uno.total})`}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -3944,6 +3944,24 @@ def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
     # ADITIVO, ningún consumidor existente cambia) prueba/dimensión/campaña
     # e ids, resueltos en el mismo SELECT — Evaluacion ya estaba en el join,
     # Prueba/Dimension son 1:1 por fila, sin N+1 nuevo.
+    #
+    # 🆕 Escalabilidad (sesión 2026-11-01): antes traía TODOS los
+    # diagnósticos de la institución (con y sin alerta), filtraba es_alerta
+    # en Python y lanzaba UNA consulta de SesionSeguimiento por cada alerta
+    # (N+1). Ahora las dos condiciones van en el mismo SELECT: es_alerta en
+    # el WHERE (índice parcial ix_edu_diagnosticos_alumno_alerta) y "sin
+    # seguimiento posterior" como NOT EXISTS (índice compuesto
+    # ix_edu_sesiones_seguimiento_persona_fecha). Mismo criterio exacto que
+    # antes: misma persona, sesión con fecha >= fecha_resolucion (si
+    # fecha_resolucion es NULL la comparación nunca es verdadera y el caso
+    # queda pendiente, igual que la consulta por fila de antes). Equivalencia
+    # comprobada contra la versión anterior sobre la BD real. Sin paginar a
+    # propósito: es el worklist clínico y ocultar casos tras una página es
+    # peor; su tamaño ya es solo el de los casos pendientes reales.
+    tiene_seguimiento_posterior = db.query(models.SesionSeguimiento.id).filter(
+        models.SesionSeguimiento.persona_id == models.Inscripcion.persona_id,
+        models.SesionSeguimiento.fecha >= models.Inscripcion.fecha_resolucion,
+    ).exists()
     alertas = db.query(
         models.DiagnosticoAlumno, models.Inscripcion, models.Evaluacion, models.Prueba, models.Dimension
     ).join(
@@ -3962,6 +3980,8 @@ def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
     models.Evaluacion.institucion_id == institucion_id,
     models.Inscripcion.persona_id.isnot(None),
     models.Inscripcion.is_deleted == False,   # 🔒 FIX
+    models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
+    ~tiene_seguimiento_posterior,
     ).all()
 
     # 🚨 Fase 4 — HALLAZGO CRÍTICO: este listado seguía filtrando por el texto
@@ -3974,25 +3994,78 @@ def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
     # psicólogo, invisible para quien tiene que darle continuidad clínica.
     pendientes = []
     for diag, insc, evaluacion, prueba, dimension in alertas:
-        if not diag.es_alerta:
-            continue
-        tiene_seguimiento = db.query(models.SesionSeguimiento).filter(
-            models.SesionSeguimiento.persona_id == insc.persona_id,
-            models.SesionSeguimiento.fecha >= insc.fecha_resolucion,
-        ).first()
-        if not tiene_seguimiento:
+        if diag.es_alerta:
             pendientes.append({
+                "origen": "prueba",
                 "persona_id": insc.persona_id,
                 "nombre_completo": insc.nombre_completo,
                 "nivel_alerta": diag.nivel,
                 "fecha_evaluacion": insc.fecha_resolucion,
+                "fecha_referencia": insc.fecha_resolucion,
                 "inscripcion_id": insc.id,
                 "evaluacion_id": evaluacion.id,
                 "campana": evaluacion.nombre_grupo,
                 "prueba": (prueba.nombre_corto or prueba.nombre_tecnico) if prueba else None,
                 "dimension": dimension.nombre if dimension else None,
             })
+
+    pendientes.extend(_casos_por_antecedentes_clinicos(db, institucion_id))
     return pendientes
+
+
+def _casos_por_antecedentes_clinicos(db: Session, institucion_id: int) -> list:
+    """🆕 (sesión 2026-11-01) Casos en riesgo que NO salen de una prueba: el
+    estudiante tiene "Sí" en terapia psicológica externa o en atención
+    psiquiátrica externa (mismo criterio único "con Dx" del padrón y la
+    estructura académica — superadmin_crud._condicion_con_diagnostico, no
+    una copia). A diferencia de una alerta de prueba (un evento puntual que
+    se da por atendido con una sesión posterior), esto es una CONDICIÓN
+    vigente: el caso sigue en la lista mientras los antecedentes digan Sí,
+    aunque ya tenga sesiones — `fecha_referencia` es la última sesión de
+    seguimiento (o, si nunca tuvo, la última edición de los antecedentes),
+    para que la pantalla muestre cuánto lleva sin seguimiento.
+
+    Dos consultas en total (antecedentes + última sesión por persona), sin
+    N+1."""
+    Antecedentes = superadmin_models.PersonaAntecedentesClinicos
+    Persona = superadmin_models.Persona
+    filas = db.query(Antecedentes, Persona).join(
+        Persona, Persona.id == Antecedentes.persona_id,
+    ).filter(
+        Persona.institucion_id == institucion_id,
+        Persona.activo.isnot(False),
+        superadmin_crud._condicion_con_diagnostico(),
+    ).all()
+    if not filas:
+        return []
+
+    ultima_sesion = dict(
+        db.query(models.SesionSeguimiento.persona_id, func.max(models.SesionSeguimiento.fecha))
+        .filter(models.SesionSeguimiento.persona_id.in_([p.id for _, p in filas]))
+        .group_by(models.SesionSeguimiento.persona_id)
+        .all()
+    )
+
+    casos = []
+    for ant, persona in filas:
+        motivos = []
+        if ant.recibe_terapia_psicologica_externa:
+            motivos.append("Terapia psicológica externa")
+        if ant.recibe_atencion_psiquiatrica_externa:
+            motivos.append("Atención psiquiátrica externa")
+        ultimo = ultima_sesion.get(persona.id)
+        casos.append({
+            "origen": "antecedentes",
+            "persona_id": persona.id,
+            "nombre_completo": f"{persona.nombres} {persona.apellidos}",
+            "nivel_alerta": "Con Dx",
+            "fecha_evaluacion": None,
+            "fecha_referencia": ultimo or ant.actualizado_en,
+            "ultimo_seguimiento": ultimo,
+            "motivos": motivos,
+            "diagnostico_reportado": ant.diagnostico_reportado,
+        })
+    return casos
 
 def puede_aplicar_prueba(db: Session, persona_id: int, prueba_id: int, institucion_id: int):
     """

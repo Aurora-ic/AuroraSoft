@@ -2,8 +2,13 @@
 
 // 🆕 Buscador único (Ctrl+K / Cmd+K) para encontrar un alumno desde
 // cualquier pantalla, sin tener que ir primero al Padrón. Reusa el mismo
-// endpoint que ya usa esa pantalla (apiClient.getTodasLasPaginas sobre
-// /admin/personas/{institucion_id}) — ningún endpoint nuevo en el backend.
+// endpoint del Padrón (/admin/personas/{institucion_id}).
+//
+// 🆕 Escalabilidad (sesión 2026-11-01): busca en el SERVIDOR (?busqueda=,
+// tope de 20, 250 ms después de dejar de escribir) en vez de descargar el
+// padrón completo la primera vez que se abre. El backend compara nombres,
+// apellidos, nombre completo, documento y código institucional, igual que
+// antes hacía este filtro en el cliente.
 //
 // Primer uso real de @tanstack/react-query en este proyecto (ver
 // contexts/QueryProvider.tsx: ya estaba cableado desde la fase 5 del plan
@@ -17,7 +22,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
-import type { Persona } from "@/types/api";
+import type { Persona, RespuestaPaginada } from "@/types/api";
 
 function formatearSeccion(seccion: Persona["seccion_actual"]): string | null {
   if (!seccion) return null;
@@ -32,16 +37,24 @@ export function BusquedaGlobal() {
   const [texto, setTexto] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [textoAplicado, setTextoAplicado] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setTextoAplicado(texto.trim()), 250);
+    return () => clearTimeout(t);
+  }, [texto]);
+
   const {
-    data: personas,
+    data: respuesta,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["busqueda-global-personas", sesion?.institucionId],
+    queryKey: ["busqueda-global-personas", sesion?.institucionId, textoAplicado],
     queryFn: () =>
-      apiClient.getTodasLasPaginas<Persona>(`/admin/personas/${sesion!.institucionId}?incluir_inactivas=true`),
-    enabled: abierto && !!sesion?.institucionId,
-    staleTime: 5 * 60 * 1000,
+      apiClient.get<RespuestaPaginada<Persona>>(
+        `/admin/personas/${sesion!.institucionId}?incluir_inactivas=true&limit=20&busqueda=${encodeURIComponent(textoAplicado)}`,
+      ),
+    enabled: abierto && !!sesion?.institucionId && !!textoAplicado,
+    staleTime: 60 * 1000,
   });
 
   // Atajo global — funciona en cualquier pantalla dentro de (educativo), ver
@@ -77,19 +90,13 @@ export function BusquedaGlobal() {
     return () => clearTimeout(id);
   }, [abierto]);
 
-  const resultados = useMemo(() => {
-    const q = texto.trim().toLowerCase();
-    if (!q || !personas) return [];
-    return personas
-      .filter(
-        (p) =>
-          p.nombres.toLowerCase().includes(q) ||
-          p.apellidos.toLowerCase().includes(q) ||
-          (p.documento_identidad ?? "").toLowerCase().includes(q) ||
-          (p.codigo_institucional ?? "").toLowerCase().includes(q),
-      )
-      .slice(0, 20);
-  }, [texto, personas]);
+  // Mientras el texto escrito todavía no se aplicó, no se muestran los
+  // resultados de la búsqueda anterior como si fueran de esta.
+  const resultados = useMemo(
+    () => (texto.trim() && texto.trim() === textoAplicado ? respuesta?.items ?? [] : []),
+    [texto, textoAplicado, respuesta],
+  );
+  const buscando = !!texto.trim() && (texto.trim() !== textoAplicado || isLoading);
 
   function irAAlumno(personaId: number) {
     setAbierto(false);
@@ -125,9 +132,9 @@ export function BusquedaGlobal() {
               className="w-full px-4 py-3 text-sm text-ink dark:text-ink-dark bg-transparent border-b border-border dark:border-border-dark outline-none"
             />
             <div className="max-h-80 overflow-auto">
-              {isLoading && <p className="text-sm text-ink/50 dark:text-ink-dark/50 px-4 py-6 text-center">Cargando padrón...</p>}
-              {isError && <p className="text-sm text-red-700 px-4 py-6 text-center">No se pudo cargar el padrón.</p>}
-              {!isLoading && !isError && texto.trim() && resultados.length === 0 && (
+              {buscando && <p className="text-sm text-ink/50 dark:text-ink-dark/50 px-4 py-6 text-center">Buscando...</p>}
+              {isError && <p className="text-sm text-red-700 px-4 py-6 text-center">No se pudo buscar en el padrón.</p>}
+              {!buscando && !isError && texto.trim() && resultados.length === 0 && (
                 <p className="text-sm text-ink/50 dark:text-ink-dark/50 px-4 py-6 text-center">Sin resultados.</p>
               )}
               {!texto.trim() && (

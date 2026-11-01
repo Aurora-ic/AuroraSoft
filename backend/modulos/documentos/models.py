@@ -73,11 +73,11 @@ class AnioOficial(Base):
 class PlantillaDocumento(Base):
     """Plantilla de un `TipoDocumento`: formato tipográfico fijo
     (fuente/tamaño/interlineado/justificado) y la configuración de
-    numeración (correlativo). El índice único parcial garantiza como máximo
-    una plantilla ACTIVA por institución+tipo —mismo mecanismo que
-    `ConsentimientoInformado`/`MatriculaAcademica`—, así que reemplazar la
-    plantilla de un colegio es desactivar la vieja y activar una nueva,
-    nunca dos activas compitiendo.
+    numeración (correlativo). 🆕 (sesión 2026-11-01) `activa` = "disponible
+    para generar documentos": varias plantillas activas del mismo tipo
+    conviven en una institución (antes un índice único parcial permitía una
+    sola — ver la nota en crud.py donde vivía `_desactivar_plantillas_activas`
+    y la migración e8b1f2a4c6d3).
 
     `institucion_id` puede ser NULL: esa fila es una plantilla
     PREDETERMINADA global, mantenida por AuroraSoft (solo superadmin la crea
@@ -111,19 +111,6 @@ class PlantillaDocumento(Base):
     al crear/activar otra.
     """
     __tablename__ = "documentos_plantillas"
-    __table_args__ = (
-        # Postgres nunca considera que dos NULL "choquen" en un índice único,
-        # así que este índice YA deja coexistir varias filas institucion_id
-        # IS NULL (predeterminadas globales) con el mismo tipo_documento_id
-        # y activa=true sin ningún ajuste — solo bloquea dos instituciones
-        # reales compitiendo, que es lo único que necesita bloquear.
-        Index(
-            "uq_documentos_plantilla_activa_por_institucion_y_tipo",
-            "institucion_id", "tipo_documento_id",
-            unique=True,
-            postgresql_where=text("activa = true"),
-        ),
-    )
 
     id = Column(Integer, primary_key=True, index=True)
     institucion_id = Column(Integer, ForeignKey("instituciones.id"), nullable=True, index=True)
@@ -197,6 +184,22 @@ class PlantillaDocumento(Base):
 
     creado_por_usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=False)
     creado_en = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # 🆕 (sesión 2026-11-01) Plantilla ELIMINADA (p. ej. un duplicado clonado
+    # por accidente). Soft-delete, no DELETE: los documentos ya emitidos con
+    # ella siguen leyendo sus secciones al abrirse o reemitirse, y la FK
+    # documentos_institucionales.plantilla_documento_id impediría el borrado
+    # físico de todas formas. Una eliminada desaparece de los listados, no
+    # admite ninguna escritura (crud.verificar_plantilla_no_eliminada) y
+    # queda inactiva; leerla por id sigue funcionando para esos documentos.
+    eliminada_en = Column(DateTime(timezone=True), nullable=True)
+    eliminada_por_usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=True)
+
+    # 🆕 (sesión 2026-11-01) De qué plantilla se CLONÓ esta (NULL = armada
+    # desde cero, o un clon anterior a esta columna que no se pudo deducir).
+    # Reemplaza la heurística por nombre de "Ya en tus plantillas"/"Repetida",
+    # que fallaba en cuanto se renombraba el clon.
+    plantilla_origen_id = Column(Integer, ForeignKey("documentos_plantillas.id"), nullable=True, index=True)
 
 
 class PlantillaSeccion(Base):
@@ -422,6 +425,16 @@ class DocumentoInstitucional(Base):
             "nivel_visibilidad IN ('confidencial_clinico', 'compartible_colegio')",
             name="ck_documentos_institucionales_visibilidad_valida",
         ),
+        CheckConstraint(
+            "descartado_en IS NULL OR version_actual IS NULL",
+            name="ck_documentos_institucionales_descartado_solo_borrador",
+        ),
+        # 🆕 (sesión 2026-11-01) El listado: por institución, sin
+        # descartados, más recientes primero.
+        Index(
+            "ix_documentos_institucionales_listado", "institucion_id", "creado_en",
+            postgresql_where=text("descartado_en IS NULL"),
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -439,6 +452,17 @@ class DocumentoInstitucional(Base):
 
     creado_por_usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=False)
     creado_en = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    # 🆕 (sesión 2026-11-01) Borrador DESCARTADO — solo posible mientras
+    # `version_actual` es NULL (nunca se emitió nada). Soft-delete, no
+    # DELETE: un borrador ya puede tener contenido clínico tecleado y filas
+    # en `RegistroLecturaDocumento` (abrir `.../secciones` siempre audita),
+    # y esa auditoría de quién leyó qué no se destruye. Un descartado deja
+    # de existir para toda la API (crud.obtener_documento_institucional y
+    # los listados lo filtran). Un documento con versión emitida NUNCA se
+    # descarta — es registro oficial y ya tiene su puente al expediente.
+    descartado_en = Column(DateTime(timezone=True), nullable=True)
+    descartado_por_usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=True)
 
 
 class DocumentoInstitucionalEstructura(Base):

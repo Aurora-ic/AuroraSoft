@@ -13,9 +13,9 @@ PlantillaSeccion, abierto a STAFF_CLINICO de la institución dueña — ver
       crear/editar la suya (el "constructor"); 'colegio' sigue sin poder;
       un institucion_id ajeno en el body se IGNORA y se fuerza a la propia
       (nunca 403, mismo criterio que la importación Excel); otra
-      institución no puede leer/editar/listar (403); activar una segunda
-      plantilla del mismo institución+tipo desactiva la anterior (índice
-      único parcial respetado, sin IntegrityError crudo)
+      institución no puede leer/editar/listar (403); una segunda
+      plantilla activa del mismo institución+tipo CONVIVE con la primera
+      (🆕 sesión 2026-11-01: ya no hay exclusividad por tipo)
   4   PlantillaSeccion: mismas reglas de escritura/lectura que su
       plantilla (incluida la escritura ahora abierta a STAFF_CLINICO);
       tipo_seccion inválido -> 422; DELETE (nuevo) solo de la institución
@@ -208,8 +208,8 @@ def main(url_base):
     plantilla_v2_id = plantilla_v2["id"]
 
     v1_relectura = exigir(requests.get(f"{API}/documentos/plantillas/{plantilla_v1_id}", headers=h_super, timeout=30), 200, "releer v1")
-    comprobar("[3] Activar v2 desactivó automáticamente v1 (índice único parcial respetado)",
-               v1_relectura["activa"] is False and plantilla_v2["activa"] is True)
+    comprobar("[3] Activar v2 NO desactiva v1: varias activas del mismo tipo conviven",
+               v1_relectura["activa"] is True and plantilla_v2["activa"] is True)
 
     r = requests.patch(f"{API}/documentos/plantillas/{plantilla_v1_id}", json={"nombre": "hackeado"}, headers=h_psi_b, timeout=30)
     comprobar("[3] 'psicologo' de OTRA institución no puede editar esta plantilla (403)", r.status_code == 403, f"status {r.status_code}")

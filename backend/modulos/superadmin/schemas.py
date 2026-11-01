@@ -636,3 +636,34 @@ class AutorizacionAccesoColegioResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# 🆕 (sesión 2026-11-01) Escalabilidad del padrón — ver crud.resumen_padron
+# y crud.listar_ids_padron.
+class IdsPadronResponse(BaseModel):
+    total: int
+    ids: List[int]
+
+
+class SeccionResumenPadron(BaseModel):
+    seccion_id: int
+    seccion: Optional[str] = None
+    turno: Optional[str] = None
+    anio_escolar: Optional[int] = None
+    grado_id: int
+    grado: Optional[str] = None
+    nivel_educativo_id: int
+    nivel_educativo: Optional[str] = None
+    cantidad: int
+    persona_ids: Optional[List[int]] = None
+
+
+class ResumenPadronResponse(BaseModel):
+    total: int
+    activos: int
+    inactivos: int
+    datos_incompletos: int
+    sin_matricula: int
+    con_diagnostico: int
+    secciones: List[SeccionResumenPadron]
+    ids_sin_matricula: Optional[List[int]] = None

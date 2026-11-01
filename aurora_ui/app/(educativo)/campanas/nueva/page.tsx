@@ -32,15 +32,15 @@ import { Select } from "@/components/ui/Select";
 import { Migas } from "@/components/ui/Migas";
 import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { siglaPrueba } from "@/lib/pruebas";
+import { useIdsPadron, usePadronPaginado, useResumenPadron, useValorDiferido } from "@/lib/padron";
 import { ahoraParaInputLocal, fechaCierreEsPasada, MENSAJE_FECHA_CIERRE_PASADA } from "@/lib/campanas";
 import type {
   Prueba,
   PruebaDetalle,
   Evaluacion,
   EvaluacionCreate,
-  Persona,
   MatriculaRosterResponse,
-  ConsentimientosCombinados,
+  IdsPadron,
   NivelEducativo,
   Grado,
   Seccion,
@@ -55,6 +55,7 @@ const INFORMANTES: Record<string, { label: string; icono: LucideIcon }> = {
 };
 
 const PASOS = ["Configurar", "Matricular alumnos", "Compartir links"];
+const TAMANO_LISTA = 50;
 
 // 🆕 (sesión 2026-10-31) Bloques con fondo tenue azul (Evaluación), mismo
 // sistema que ACENTOS.azul.fondoSuave/cabecera/chipSolido (lib/acentos.ts).
@@ -107,8 +108,17 @@ export default function NuevaCampanaPage() {
   const [errorCrear, setErrorCrear] = useState<string | null>(null);
   const [campana, setCampana] = useState<Evaluacion | null>(null);
 
-  const [personas, setPersonas] = useState<Persona[]>([]);
-  const [errorPersonas, setErrorPersonas] = useState<string | null>(null);
+  // 🆕 Escalabilidad (sesión 2026-11-01) — el paso 2 ya no baja el padrón
+  // COMPLETO ni pide el consentimiento alumno por alumno (con 3000 alumnos
+  // eran 15 páginas + 3000 peticiones). Ahora:
+  // - `resumen` (/resumen-padron): cuántos activos hay y las secciones del
+  //   desplegable;
+  // - `personas`: la lista visible, filtrada en el servidor, de a 50 con
+  //   "Cargar más";
+  // - `idsFiltro` (/ids con los mismos filtros): para "Seleccionar todos"
+  //   sin bajar las filas;
+  // - `sinConsentimiento` (/ids?consentimiento_apoderado=sin): UNA consulta
+  //   para todos los badges y el aviso.
   const [seleccionadas, setSeleccionadas] = useState<Set<number>>(new Set());
   const [busquedaAlumno, setBusquedaAlumno] = useState("");
   const [filtroSeccion, setFiltroSeccion] = useState("todas");
@@ -118,14 +128,11 @@ export default function NuevaCampanaPage() {
   const [copiado, setCopiado] = useState<number | "todos" | null>(null);
 
   // Estado preventivo del consentimiento del apoderado (el único siempre
-  // obligatorio, con o sin la política institucional de asentimiento) para
-  // cada persona del padrón — así el psicólogo ve de antemano quién no tiene
-  // consentimiento vigente, en vez de enterarse recién en el resultado de
-  // "matricular-roster" (que ya existía, pero es post-hoc). Una llamada por
-  // alumno (no hay endpoint batch todavía); aceptable porque esta pantalla
-  // ya carga el padrón completo de una sola vez con el mismo costo.
-  const [estadosConsentimiento, setEstadosConsentimiento] = useState<Map<number, boolean>>(new Map());
-  const [cargandoConsentimientos, setCargandoConsentimientos] = useState(false);
+  // obligatorio, con o sin la política institucional de asentimiento) — así
+  // el psicólogo ve de antemano quién no tiene consentimiento vigente, en
+  // vez de enterarse recién en el resultado de "matricular-roster" (que ya
+  // existía, pero es post-hoc). 🆕 Una sola consulta (ids de activos SIN
+  // consentimiento vigente), no una por alumno.
 
   useEffect(() => {
     apiClient
@@ -231,24 +238,18 @@ export default function NuevaCampanaPage() {
       };
       const nueva = await apiClient.post<Evaluacion>("/educativo/campanas/", payload);
       setCampana(nueva);
-      // Cargar el padrón recién ahora -- no hace falta antes de tener campaña.
-      // 🆕 Paginación real: este selector necesita el padrón COMPLETO (el
-      // usuario elige a quién matricular), no una página de 50 — por eso
-      // usa getTodasLasPaginas en vez de get.
-      const datosPersonas = await apiClient.getTodasLasPaginas<Persona>(`/admin/personas/${sesion.institucionId}`);
-      setPersonas(datosPersonas);
+      // El padrón se consulta recién ahora -- no hace falta antes de tener
+      // campaña. Solo el resumen (conteo + secciones); la lista la pide el
+      // efecto de abajo, ya filtrada.
       // Si la campaña se armó para una sección (o un grado completo), sus
       // alumnos llegan preseleccionados al paso 2 — se pueden desmarcar.
       if (gradoElegido) {
-        const delGrupo = datosPersonas.filter((p) =>
-          seccionElegida
-            ? p.seccion_actual?.seccion_id === seccionElegida.id
-            : p.seccion_actual?.grado_id === gradoElegido.id,
+        const delGrupo = await apiClient.get<IdsPadron>(
+          `/admin/personas/${sesion.institucionId}/ids?${seccionElegida ? `seccion_id=${seccionElegida.id}` : `grado_id=${gradoElegido.id}`}`,
         );
-        setSeleccionadas(new Set(delGrupo.map((p) => p.id)));
+        setSeleccionadas(new Set(delGrupo.ids));
         if (seccionElegida) setFiltroSeccion(String(seccionElegida.id));
       }
-      cargarEstadosConsentimiento(datosPersonas);
     } catch (err: any) {
       setErrorCrear(err.message || "No se pudo crear la campaña.");
     } finally {
@@ -256,24 +257,29 @@ export default function NuevaCampanaPage() {
     }
   }
 
-  async function cargarEstadosConsentimiento(lista: Persona[]) {
-    setCargandoConsentimientos(true);
-    try {
-      const resultados = await Promise.all(
-        lista.map((p) =>
-          apiClient
-            .get<ConsentimientosCombinados>(`/admin/personas/${p.id}/consentimientos`)
-            .then((r): [number, boolean] => [p.id, r.apoderado.tiene_consentimiento_vigente])
-            .catch((): [number, boolean | null] => [p.id, null]),
-        ),
-      );
-      setEstadosConsentimiento(
-        new Map(resultados.filter((r): r is [number, boolean] => r[1] !== null)),
-      );
-    } finally {
-      setCargandoConsentimientos(false);
-    }
-  }
+  // Todo lo del paso 2 se consulta recién con la campaña creada.
+  const conCampana = campana !== null;
+  const { resumen } = useResumenPadron({ institucionId: sesion?.institucionId, habilitado: conCampana });
+  const consentimientos = useIdsPadron({
+    institucionId: sesion?.institucionId,
+    filtros: { consentimiento_apoderado: "sin" },
+    habilitado: conCampana,
+  });
+  const sinConsentimiento = new Set(consentimientos.ids);
+  const cargandoConsentimientos = consentimientos.cargando && !consentimientos.listo;
+  const textoAlumno = useValorDiferido(busquedaAlumno.trim());
+  const filtrosLista = {
+    busqueda: textoAlumno,
+    sin_matricula: filtroSeccion === "sin-seccion",
+    seccion_id: filtroSeccion !== "todas" && filtroSeccion !== "sin-seccion" ? Number(filtroSeccion) : undefined,
+  };
+  const lista = usePadronPaginado({ institucionId: sesion?.institucionId, filtros: filtrosLista, tamano: TAMANO_LISTA, habilitado: conCampana });
+  const idsVisibles = useIdsPadron({ institucionId: sesion?.institucionId, filtros: filtrosLista, habilitado: conCampana });
+  const personas = lista.items;
+  const totalFiltro = lista.total;
+  const cargandoLista = lista.cargando;
+  const errorPersonas = lista.error;
+  const idsFiltro = idsVisibles.ids;
 
   function alternarSeleccion(id: number) {
     setSeleccionadas((prev) => {
@@ -345,33 +351,21 @@ export default function NuevaCampanaPage() {
   const detalleElegida = pruebaIdElegida !== null ? detalles.get(pruebaIdElegida) : undefined;
 
   // --- Paso 2: padrón filtrado ---
-  const seccionesPadron = Array.from(
-    new Map(
-      personas
-        .filter((p) => p.seccion_actual)
-        .map((p) => [
-          String(p.seccion_actual!.seccion_id),
-          [p.seccion_actual!.grado, p.seccion_actual!.seccion].filter(Boolean).join(" "),
-        ]),
-    ),
-  );
-  const terminoAlumno = busquedaAlumno.trim().toLowerCase();
-  const personasVisibles = personas.filter((p) => {
-    if (filtroSeccion === "sin-seccion" && p.seccion_actual) return false;
-    if (filtroSeccion !== "todas" && filtroSeccion !== "sin-seccion" && String(p.seccion_actual?.seccion_id) !== filtroSeccion)
-      return false;
-    if (!terminoAlumno) return true;
-    return [`${p.nombres} ${p.apellidos}`, p.codigo_institucional, p.documento_identidad].some((v) =>
-      v?.toLowerCase().includes(terminoAlumno),
-    );
-  });
-  const todasVisiblesMarcadas = personasVisibles.length > 0 && personasVisibles.every((p) => seleccionadas.has(p.id));
+  // Secciones con alumnos activos (como antes: salían de seccion_actual del
+  // padrón activo), ordenadas por nivel → grado → sección.
+  const seccionesPadron: [string, string][] = (resumen?.secciones ?? [])
+    .filter((s) => s.cantidad > 0)
+    .map((s) => [String(s.seccion_id), [s.grado, s.seccion].filter(Boolean).join(" ")]);
+  const personasVisibles = personas;
+  const padronVacio = resumen !== null && resumen.activos === 0;
+  // "Visibles" = TODO lo que cumple el filtro (no solo lo ya cargado en la lista).
+  const todasVisiblesMarcadas = idsFiltro.length > 0 && idsFiltro.every((id) => seleccionadas.has(id));
 
   function alternarTodasVisibles() {
     setSeleccionadas((prev) => {
       const copia = new Set(prev);
-      if (todasVisiblesMarcadas) personasVisibles.forEach((p) => copia.delete(p.id));
-      else personasVisibles.forEach((p) => copia.add(p.id));
+      if (todasVisiblesMarcadas) idsFiltro.forEach((id) => copia.delete(id));
+      else idsFiltro.forEach((id) => copia.add(id));
       return copia;
     });
   }
@@ -717,7 +711,7 @@ export default function NuevaCampanaPage() {
           <div className="p-5 space-y-4">
             <TextoError>{errorPersonas}</TextoError>
 
-            {personas.length === 0 ? (
+            {padronVacio ? (
               <div className="py-10 text-center">
                 <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-ink/40 dark:text-ink-dark/40">
                   <Users size={22} aria-hidden="true" />
@@ -780,16 +774,18 @@ export default function NuevaCampanaPage() {
                       className="h-4 w-4 accent-teal-600"
                       checked={todasVisiblesMarcadas}
                       onChange={alternarTodasVisibles}
-                      disabled={personasVisibles.length === 0}
+                      disabled={idsFiltro.length === 0}
                     />
-                    Seleccionar todos {personasVisibles.length !== personas.length && "los visibles"} ({personasVisibles.length})
+                    Seleccionar todos {idsFiltro.length !== (resumen?.activos ?? 0) && "los visibles"} ({idsFiltro.length})
                   </label>
                   <div className="max-h-[24rem] overflow-y-auto divide-y divide-border dark:divide-border-dark">
                     {personasVisibles.length === 0 ? (
-                      <p className="px-4 py-8 text-center text-sm text-ink/50 dark:text-ink-dark/50">Ningún alumno coincide con el filtro.</p>
+                      <p className="px-4 py-8 text-center text-sm text-ink/50 dark:text-ink-dark/50">
+                        {cargandoLista || resumen === null ? "Cargando alumnos..." : "Ningún alumno coincide con el filtro."}
+                      </p>
                     ) : (
                       personasVisibles.map((p) => {
-                        const sinConsentimiento = estadosConsentimiento.get(p.id) === false;
+                        const sinConsent = sinConsentimiento.has(p.id);
                         const marcada = seleccionadas.has(p.id);
                         const seccion = p.seccion_actual
                           ? [p.seccion_actual.grado, p.seccion_actual.seccion].filter(Boolean).join(" ")
@@ -819,7 +815,7 @@ export default function NuevaCampanaPage() {
                                   "Sin sección"}
                               </span>
                             </span>
-                            {sinConsentimiento && (
+                            {sinConsent && (
                               <span className="shrink-0 text-[11px] rounded-full px-2 py-0.5 font-medium bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300">
                                 <span className="hidden sm:inline">Sin consentimiento del apoderado</span>
                                 <span className="sm:hidden">Sin consent.</span>
@@ -829,10 +825,20 @@ export default function NuevaCampanaPage() {
                         );
                       })
                     )}
+                    {lista.hayMas && (
+                      <button
+                        type="button"
+                        onClick={() => lista.cargarMas()}
+                        disabled={cargandoLista}
+                        className="w-full px-4 py-2.5 text-center text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:bg-mist/50 dark:hover:bg-surface-raised-dark/60 disabled:opacity-50"
+                      >
+                        {cargandoLista ? "Cargando..." : `Cargar más (${personas.length} de ${totalFiltro})`}
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                {Array.from(seleccionadas).some((id) => estadosConsentimiento.get(id) === false) && (
+                {Array.from(seleccionadas).some((id) => sinConsentimiento.has(id)) && (
                   <p className="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-500/10 px-4 py-3 text-xs text-red-700 dark:text-red-300">
                     <CircleAlert size={15} className="mt-px shrink-0" aria-hidden="true" />
                     Hay alumnos seleccionados sin consentimiento del apoderado vigente — puedes intentar matricularlos igual, pero
@@ -853,7 +859,7 @@ export default function NuevaCampanaPage() {
             >
               Omitir por ahora, ir al dashboard
             </Link>
-            {personas.length > 0 && (
+            {!padronVacio && resumen !== null && (
               <div className="flex items-center justify-between gap-4 sm:justify-end">
                 <span className="text-sm text-ink/60 dark:text-ink-dark/60">
                   <span className="font-display text-lg font-semibold text-teal-900 dark:text-ink-dark">{seleccionadas.size}</span>{" "}

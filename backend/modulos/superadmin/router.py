@@ -38,11 +38,71 @@ def registrar_persona(
     return crud.crear_persona(db=db, persona=persona)
 
 
+class FiltrosPadron:
+    """🆕 (sesión 2026-11-01) Filtros del padrón aplicados en el SERVIDOR
+    (ver crud._consulta_padron_filtrada) — compartidos por el listado
+    paginado y por `/ids`. Todos opcionales: sin ninguno, el listado
+    responde exactamente como antes."""
+
+    def __init__(
+        self,
+        busqueda: Optional[str] = None,
+        incluir_inactivas: bool = False,
+        estado: Optional[str] = Query(None, pattern="^(activos|inactivos|todos|con_dx)$"),
+        seccion_id: Optional[int] = None,
+        grado_id: Optional[int] = None,
+        sin_matricula: bool = False,
+        datos_incompletos: bool = False,
+        consentimiento_apoderado: Optional[str] = Query(None, pattern="^(vigente|sin)$"),
+    ):
+        self.busqueda = busqueda
+        self.incluir_inactivas = incluir_inactivas
+        self.estado = estado
+        self.seccion_id = seccion_id
+        self.grado_id = grado_id
+        self.sin_matricula = sin_matricula
+        self.datos_incompletos = datos_incompletos
+        self.consentimiento_apoderado = consentimiento_apoderado
+
+    def como_kwargs(self) -> dict:
+        return dict(vars(self))
+
+
+@router.get("/{institucion_id}/ids", response_model=schemas.IdsPadronResponse)
+def listar_ids_padron(
+    institucion_id: int,
+    filtros: FiltrosPadron = Depends(),
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(verificar_acceso_institucion),
+):
+    """🆕 (sesión 2026-11-01) Solo los ids de los alumnos que cumplen los
+    filtros (los mismos del listado), sin paginar — para "seleccionar todos",
+    "todo un salón" o "todo el colegio" sin descargar el padrón completo.
+    Mismo candado de tenant que el listado."""
+    ids = crud.listar_ids_padron(db=db, institucion_id=institucion_id, **filtros.como_kwargs())
+    return {"total": len(ids), "ids": ids}
+
+
+@router.get("/{institucion_id}/resumen-padron", response_model=schemas.ResumenPadronResponse)
+def obtener_resumen_padron(
+    institucion_id: int,
+    incluir_ids: bool = False,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(verificar_acceso_institucion),
+):
+    """🆕 (sesión 2026-11-01) KPIs del padrón (activos, inactivos, datos
+    incompletos, sin matrícula, con diagnóstico) y sus secciones con la
+    cantidad de alumnos activos — calculados con agregados SQL en vez de en
+    el navegador sobre el padrón entero. `incluir_ids=true` agrega los ids
+    activos por sección y los sin matrícula (para elegir asistentes por
+    salón). Mismo candado de tenant que el listado."""
+    return crud.resumen_padron(db=db, institucion_id=institucion_id, incluir_ids=incluir_ids)
+
+
 @router.get("/{institucion_id}", response_model=RespuestaPaginada[schemas.PersonaResponse])
 def listar_personas_de_institucion(
     institucion_id: int,
-    busqueda: Optional[str] = None,
-    incluir_inactivas: bool = False,
+    filtros: FiltrosPadron = Depends(),
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
@@ -70,8 +130,7 @@ def listar_personas_de_institucion(
     tamaño de la página.
     """
     total, items = crud.obtener_personas_por_institucion(
-        db=db, institucion_id=institucion_id, busqueda=busqueda,
-        incluir_inactivas=incluir_inactivas, skip=skip, limit=limit,
+        db=db, institucion_id=institucion_id, skip=skip, limit=limit, **filtros.como_kwargs(),
     )
     return {"total": total, "items": items}
 

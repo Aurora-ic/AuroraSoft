@@ -189,7 +189,9 @@ export default function InicioPage() {
     if (vePerfilClinico) {
       apiClient
         .get<CasoPendiente[]>("/educativo/casos-pendientes")
-        .then(setCasos)
+        // Un alumno puede venir varias veces (varias alertas y/o antecedentes
+        // clínicos externos): la tarjeta lista alumnos, uno por persona.
+        .then((lista) => setCasos(lista.filter((c, i) => lista.findIndex((o) => o.persona_id === c.persona_id) === i)))
         .catch((err) => setErrorCasos(err.message || "No se pudieron cargar los casos pendientes."));
 
       apiClient
@@ -314,7 +316,7 @@ export default function InicioPage() {
             >
               {series ? <GraficoSeguimientoMes meses={series.meses} /> : <EsqueletoGrafico />}
             </TarjetaResumen>
-            <TarjetaResumen icono={AlertTriangle} titulo="Casos sin seguimiento" enlace="/casos-riesgo" acento="riesgo">
+            <TarjetaResumen icono={AlertTriangle} titulo="Casos en riesgo" enlace="/casos-riesgo" acento="riesgo">
               {casos === null ? (
                 <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
               ) : casos.length === 0 ? (

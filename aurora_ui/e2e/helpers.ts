@@ -10,12 +10,21 @@ import type { APIRequestContext } from "@playwright/test";
 
 export const API = process.env.PLAYWRIGHT_API_URL || "http://127.0.0.1:8010/api";
 
+// 🆕 (sesión 2026-11-01) Si están definidas, se usa la cuenta superadmin
+// DEDICADA a e2e (E2E_SUPERADMIN_EMAIL/E2E_SUPERADMIN_PASSWORD, la misma
+// que usan los tests del backend — ver backend/tests/__init__.py y
+// backend/seeds/seed_superadmin_e2e.py) en vez del superadmin real, cuya
+// contraseña puede haber cambiado en la BD.
+export function emailSuperadmin(): string {
+  return process.env.E2E_SUPERADMIN_EMAIL || process.env.SUPERADMIN_EMAIL || "admin@aurorasoft.com";
+}
+
 export function requerirPasswordSuperadmin(): string {
-  const clave = process.env.SUPERADMIN_PASSWORD;
+  const clave = process.env.E2E_SUPERADMIN_EMAIL ? process.env.E2E_SUPERADMIN_PASSWORD : process.env.SUPERADMIN_PASSWORD;
   if (!clave) {
     throw new Error(
-      "Define SUPERADMIN_PASSWORD (la misma del backend) como variable de entorno antes de correr " +
-        "`npm run test:e2e` -- ver e2e/README.md.",
+      "Define E2E_SUPERADMIN_EMAIL/E2E_SUPERADMIN_PASSWORD (recomendado) o SUPERADMIN_PASSWORD como variables de entorno " +
+        "antes de correr `npm run test:e2e` -- ver e2e/README.md.",
     );
   }
   return clave;
@@ -59,7 +68,7 @@ export type FixturesE2E = {
  * alerta) -- exactamente el mismo patrón que crear_prueba_con_un_baremo en
  * tests/verificar_reproceso_informe_e2e.py del backend, portado a Node. */
 export async function crearFixturesBase(ctx: APIRequestContext, sello: string): Promise<FixturesE2E> {
-  const tokenSuper = await login(ctx, process.env.SUPERADMIN_EMAIL || "admin@aurorasoft.com", requerirPasswordSuperadmin());
+  const tokenSuper = await login(ctx, emailSuperadmin(), requerirPasswordSuperadmin());
   const hSuper = auth(tokenSuper);
 
   const institucion = await (
