@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { HelpCircle, Sun, Moon, Menu } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BusquedaGlobal } from "@/components/educativo/BusquedaGlobal";
@@ -56,6 +57,15 @@ export function Topbar({ onAbrirMenu }: { onAbrirMenu?: () => void }) {
             <Sun size={16} strokeWidth={2} aria-hidden="true" />
           )}
         </button>
+
+        {/* 🆕 (sesión 2026-10-31) Marca del software en la esquina superior
+            derecha, al costado del botón de tema — la barra lateral pasó a
+            mostrar el logo y nombre de la institución. */}
+        <div className="flex shrink-0 items-center gap-2 pl-2 sm:pl-3.5 border-l border-border dark:border-border-dark" title="AuroraSoft">
+          <Image src="/logo.png" alt="" width={140} height={99} className="h-6 w-auto" />
+          <span className="hidden sm:inline font-display text-[15px] font-bold text-teal-900 dark:text-ink-dark">AuroraSoft</span>
+          <span className="sr-only sm:hidden">AuroraSoft</span>
+        </div>
       </header>
 
       <CentroAyuda abierto={ayudaAbierta} onCerrar={() => setAyudaAbierta(false)} />

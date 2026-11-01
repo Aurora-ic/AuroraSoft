@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   Check,
   ClipboardList,
+  Flag,
   Search,
   Users,
   CalendarClock,
@@ -29,6 +30,8 @@ import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Migas } from "@/components/ui/Migas";
+import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
+import { siglaPrueba } from "@/lib/pruebas";
 import { ahoraParaInputLocal, fechaCierreEsPasada, MENSAJE_FECHA_CIERRE_PASADA } from "@/lib/campanas";
 import type {
   Prueba,
@@ -53,7 +56,9 @@ const INFORMANTES: Record<string, { label: string; icono: LucideIcon }> = {
 
 const PASOS = ["Configurar", "Matricular alumnos", "Compartir links"];
 
-const CLASE_TARJETA = "rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm";
+// 🆕 (sesión 2026-10-31) Bloques con fondo tenue azul (Evaluación), mismo
+// sistema que ACENTOS.azul.fondoSuave/cabecera/chipSolido (lib/acentos.ts).
+const CLASE_TARJETA = "rounded-2xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] shadow-sm";
 
 // Flujo en 3 pasos, uno a la vez — crear la campaña, matricular el padrón
 // (o parte de él), y ver los links mágicos generados. Sin wizard de rutas
@@ -67,6 +72,13 @@ const CLASE_TARJETA = "rounded-2xl border border-border dark:border-border-dark 
 // reales de la prueba elegida (GET /educativo/pruebas/{id}/completa), lista
 // de alumnos con búsqueda/filtro por sección/"seleccionar todos", y links
 // con "Copiar todos" y confirmación visual al copiar.
+//
+// 🆕 (sesión 2026-10-31, a pedido del usuario: "mejorar la interfaz de
+// campañas cuando se crea") — misma lógica y endpoints; se alinea con el
+// resto de secciones: contenedor CLASE_CONTENEDOR_SECCION, franja
+// "destacado" azul (acento de Evaluación) con el indicador de pasos dentro,
+// tarjetas de prueba con el mismo cuadrante de iniciales del catálogo
+// (lib/pruebas.ts) y bloques con cabecera, como Registrar alumno.
 export default function NuevaCampanaPage() {
   const { sesion } = useAuth();
   const router = useRouter();
@@ -365,25 +377,33 @@ export default function NuevaCampanaPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div>
-        <Migas items={[{ label: "Campañas", href: "/campanas" }, { label: "Nueva campaña" }]} />
-        <h1 className="font-display text-2xl sm:text-3xl font-semibold text-teal-900 dark:text-ink-dark">Nueva campaña</h1>
-        <p className="mt-1 text-sm text-ink/55 dark:text-ink-dark/55">
-          Elige una prueba, matricula a los alumnos y comparte con cada uno su link personal al examen.
-        </p>
-      </div>
+    <div className={CLASE_CONTENEDOR_SECCION}>
+      <Migas sinMargen items={[{ label: "Campañas", href: "/campanas" }, { label: "Nueva campaña" }]} />
 
-      <IndicadorPasos actual={pasoActual} />
+      <EncabezadoPagina
+        variante="destacado"
+        icono={Flag}
+        acento="azul"
+        titulo="Nueva campaña"
+        descripcion="Elige una prueba, matricula a los alumnos y comparte con cada uno su link personal al examen."
+        acciones={
+          <Link href="/campanas" className={claseBotonBanner("secundario")}>
+            Volver a campañas
+          </Link>
+        }
+      >
+        <IndicadorPasos actual={pasoActual} />
+      </EncabezadoPagina>
 
       {/* ===== Paso 1: configurar la campaña ===== */}
       {!campana && (
-        <form onSubmit={crearCampana} className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2 space-y-6">
-            <section className={`${CLASE_TARJETA} p-5 sm:p-6`}>
+        <form onSubmit={crearCampana} className="grid grid-cols-1 lg:grid-cols-[1fr_21rem] gap-5 items-start">
+          <div className="space-y-5">
+            <section className={`${CLASE_TARJETA} overflow-hidden`}>
               <EncabezadoSeccion numero={1} titulo="Elige la prueba" subtitulo="El instrumento que responderán los alumnos." />
+              <div className="px-5 pb-5">
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="relative flex-1">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
                   <Input
@@ -404,7 +424,7 @@ export default function NuevaCampanaPage() {
                       aria-pressed={filtroInformante === valor}
                       className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                         filtroInformante === valor
-                          ? "bg-teal-900 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                          ? "bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark"
                           : "bg-mist text-ink/65 hover:bg-border dark:bg-surface-raised-dark dark:text-ink-dark/65 dark:hover:bg-border-dark"
                       }`}
                     >
@@ -428,6 +448,7 @@ export default function NuevaCampanaPage() {
                   : pruebasVisibles.map((p) => {
                       const elegida = p.id === pruebaIdElegida;
                       const informante = INFORMANTES[p.informante_tipo];
+                      const { sigla, numero } = siglaPrueba(p);
                       return (
                         <button
                           key={p.id}
@@ -437,18 +458,20 @@ export default function NuevaCampanaPage() {
                           onClick={() => setForm({ ...form, prueba_id: String(p.id) })}
                           className={`relative flex items-start gap-3 rounded-xl border p-3.5 text-left transition-all ${
                             elegida
-                              ? "border-teal-600 bg-teal-600/[0.06] ring-2 ring-teal-600/25 dark:border-teal-accent-dark dark:bg-teal-accent-dark/10 dark:ring-teal-accent-dark/25"
-                              : "border-border hover:border-teal-400 hover:bg-mist/50 dark:border-border-dark dark:hover:border-teal-accent-dark/60 dark:hover:bg-surface-raised-dark"
+                              ? "border-acento-azul bg-acento-azul/[0.06] ring-2 ring-acento-azul/25 dark:border-acento-azul-dark dark:bg-acento-azul-dark/10 dark:ring-acento-azul-dark/25"
+                              : "border-border bg-surface hover:border-acento-azul/50 dark:bg-surface-dark dark:border-border-dark dark:hover:border-acento-azul-dark/60 dark:hover:bg-surface-raised-dark"
                           }`}
                         >
                           <span
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                            className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg leading-none transition-colors ${
                               elegida
-                                ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
-                                : "bg-mist text-teal-700 dark:bg-surface-raised-dark dark:text-teal-accent-dark"
+                                ? "bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark"
+                                : "bg-acento-azul/10 text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark"
                             }`}
+                            aria-hidden="true"
                           >
-                            <ClipboardList size={18} strokeWidth={2} aria-hidden="true" />
+                            <span className={`font-display font-bold ${sigla.length > 3 ? "text-[11px]" : "text-[13px]"}`}>{sigla}</span>
+                            {numero && <span className="mt-0.5 text-[10px] font-semibold opacity-80">{numero}</span>}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block pr-6 text-sm font-semibold text-ink dark:text-ink-dark">
@@ -465,7 +488,7 @@ export default function NuevaCampanaPage() {
                             )}
                           </span>
                           {elegida && (
-                            <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark">
+                            <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
                               <Check size={13} strokeWidth={3} aria-hidden="true" />
                             </span>
                           )}
@@ -478,17 +501,19 @@ export default function NuevaCampanaPage() {
                   </p>
                 )}
               </div>
+              </div>
             </section>
 
-            <section className={`${CLASE_TARJETA} p-5 sm:p-6`}>
+            <section className={`${CLASE_TARJETA} overflow-hidden`}>
               <EncabezadoSeccion
                 numero={2}
                 titulo="Grupo a evaluar"
                 subtitulo="Elige el grupo desde la estructura académica de tu colegio."
               />
+              <div className="px-5 pb-5">
 
               {sinEstructura && (
-                <div className="mt-5 flex items-start gap-3 rounded-xl border border-dashed border-border dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark/50 px-4 py-3 text-xs text-ink/65 dark:text-ink-dark/65">
+                <div className="mb-5 flex items-start gap-3 rounded-xl border border-dashed border-border dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark/50 px-4 py-3 text-xs text-ink/65 dark:text-ink-dark/65">
                   <Info size={15} className="mt-px shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
                   <p>
                     Tu colegio todavía no tiene niveles, grados ni secciones registrados. Créalos en{" "}
@@ -500,7 +525,7 @@ export default function NuevaCampanaPage() {
                 </div>
               )}
 
-              <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 {!sinEstructura && (
                   <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <CampoEditable etiqueta="Nivel">
@@ -581,14 +606,15 @@ export default function NuevaCampanaPage() {
                   )}
                 </CampoEditable>
               </div>
+              </div>
             </section>
           </div>
 
           {/* Resumen lateral */}
           <aside className="lg:sticky lg:top-0 space-y-4">
             <section className={`${CLASE_TARJETA} overflow-hidden`}>
-              <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark px-5 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60 dark:text-teal-accent-dark">Resumen</p>
+              <div className="bg-gradient-to-br from-teal-900 to-acento-azul dark:from-surface-raised-dark dark:to-surface-dark px-5 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60 dark:text-acento-azul-dark">Resumen</p>
                 <p className="mt-0.5 font-display text-lg font-semibold leading-snug text-white dark:text-ink-dark break-words">
                   {nombreEfectivo || "Campaña sin nombre"}
                 </p>
@@ -678,8 +704,8 @@ export default function NuevaCampanaPage() {
       {/* ===== Paso 2: matricular alumnos del padrón ===== */}
       {campana && !resultadoMatricula && (
         <section className={`${CLASE_TARJETA} overflow-hidden`}>
-          <div className="flex items-start gap-3 bg-teal-600/[0.06] dark:bg-teal-accent-dark/10 px-5 py-4 border-b border-border dark:border-border-dark">
-            <CircleCheck size={20} className="mt-0.5 shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.08] dark:bg-acento-azul-dark/[0.08]">
+            <CircleCheck size={20} className="mt-0.5 shrink-0 text-acento-azul dark:text-acento-azul-dark" aria-hidden="true" />
             <div>
               <p className="text-sm font-semibold text-ink dark:text-ink-dark">
                 Campaña «{campana.nombre_grupo}» creada
@@ -747,7 +773,7 @@ export default function NuevaCampanaPage() {
                   </p>
                 )}
 
-                <div className="rounded-xl border border-border dark:border-border-dark overflow-hidden">
+                <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden">
                   <label className="flex items-center gap-3 bg-mist/70 dark:bg-surface-raised-dark px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink/55 dark:text-ink-dark/55 cursor-pointer">
                     <input
                       type="checkbox"
@@ -820,7 +846,7 @@ export default function NuevaCampanaPage() {
           </div>
 
           {/* Barra de acción */}
-          <div className="flex flex-col-reverse gap-3 px-5 py-4 bg-mist/50 dark:bg-surface-raised-dark/50 border-t border-border dark:border-border-dark sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col-reverse gap-3 px-5 py-4 border-t border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.08] dark:bg-acento-azul-dark/[0.08] sm:flex-row sm:items-center sm:justify-between">
             <Link
               href={`/campanas/${campana.id}/dashboard`}
               className="text-center text-sm font-medium text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark hover:underline"
@@ -851,9 +877,9 @@ export default function NuevaCampanaPage() {
       {campana && resultadoMatricula && (
         <div className="space-y-6">
           <section className={`${CLASE_TARJETA} overflow-hidden`}>
-            <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark px-6 py-7 text-center">
+            <div className="bg-gradient-to-br from-teal-900 to-acento-azul dark:from-surface-raised-dark dark:to-surface-dark px-6 py-7 text-center">
               <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 dark:bg-teal-accent-dark/15">
-                <CircleCheck size={28} className="text-white dark:text-teal-accent-dark" aria-hidden="true" />
+                <CircleCheck size={28} className="text-white dark:text-acento-azul-dark" aria-hidden="true" />
               </span>
               <h2 className="mt-3 font-display text-xl sm:text-2xl font-semibold text-white dark:text-ink-dark">¡Campaña lista!</h2>
               <p className="mt-1 text-sm text-white/75 dark:text-ink-dark/60">
@@ -899,7 +925,7 @@ export default function NuevaCampanaPage() {
             <section className={`${CLASE_TARJETA} overflow-hidden`}>
               <div className="flex flex-col gap-3 px-5 py-4 border-b border-border dark:border-border-dark sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="flex items-center gap-2 font-display text-base font-semibold text-teal-900 dark:text-ink-dark">
-                  <Link2 size={17} aria-hidden="true" />
+                  <Link2 size={17} aria-hidden="true" className="text-acento-azul dark:text-acento-azul-dark" />
                   Links de examen
                 </h3>
                 <Boton
@@ -916,7 +942,7 @@ export default function NuevaCampanaPage() {
                   {copiado === "todos" ? "Copiados" : "Copiar todos los links"}
                 </Boton>
               </div>
-              <ul className="max-h-[26rem] overflow-y-auto divide-y divide-border dark:divide-border-dark">
+              <ul className="max-h-[26rem] overflow-y-auto bg-surface dark:bg-surface-dark divide-y divide-border dark:divide-border-dark">
                 {resultadoMatricula.generados.map((ins) => {
                   const url = urlExamen(ins.token);
                   return (
@@ -961,36 +987,38 @@ export default function NuevaCampanaPage() {
   );
 }
 
+// Dentro de la franja "destacado" (degradado en claro, neutra en oscuro):
+// círculos blancos/translúcidos en vez de teal sobre teal.
 function IndicadorPasos({ actual }: { actual: number }) {
   return (
-    <ol className="flex items-center gap-2 sm:gap-3">
+    <ol className="m-0 mt-3.5 flex max-w-xl list-none items-center gap-2 p-0 sm:gap-3">
       {PASOS.map((paso, i) => {
         const hecho = i < actual;
         const activo = i === actual;
         return (
           <li key={paso} className={`flex items-center gap-2 sm:gap-3 ${i < PASOS.length - 1 ? "flex-1" : ""}`}>
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2" aria-current={activo ? "step" : undefined}>
               <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-colors ${
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-colors ${
                   hecho
-                    ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                    ? "bg-white/90 text-teal-900 dark:bg-acento-azul-dark dark:text-mist-dark"
                     : activo
-                      ? "bg-teal-900 text-white ring-4 ring-teal-600/15 dark:bg-teal-accent-dark dark:text-mist-dark dark:ring-teal-accent-dark/20"
-                      : "bg-surface border border-border text-ink/40 dark:bg-surface-dark dark:border-border-dark dark:text-ink-dark/40"
+                      ? "bg-white text-acento-azul ring-4 ring-white/25 dark:bg-acento-azul-dark dark:text-mist-dark dark:ring-acento-azul-dark/25"
+                      : "bg-white/10 text-white/70 ring-1 ring-white/30 dark:bg-surface-dark dark:text-ink-dark/40 dark:ring-border-dark"
                 }`}
               >
-                {hecho ? <Check size={15} strokeWidth={3} aria-hidden="true" /> : i + 1}
+                {hecho ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : i + 1}
               </span>
               <span
-                className={`text-sm font-medium whitespace-nowrap ${
-                  activo ? "text-ink dark:text-ink-dark" : "text-ink/45 dark:text-ink-dark/45"
+                className={`text-[12.5px] font-semibold whitespace-nowrap ${
+                  activo ? "text-white dark:text-ink-dark" : "text-white/65 dark:text-ink-dark/45"
                 } ${activo ? "" : "hidden md:inline"}`}
               >
                 {paso}
               </span>
             </span>
             {i < PASOS.length - 1 && (
-              <span className={`h-0.5 flex-1 rounded-full ${hecho ? "bg-teal-600 dark:bg-teal-accent-dark" : "bg-border dark:bg-border-dark"}`} />
+              <span className={`h-0.5 flex-1 rounded-full ${hecho ? "bg-white/80 dark:bg-acento-azul-dark" : "bg-white/25 dark:bg-border-dark"}`} />
             )}
           </li>
         );
@@ -999,15 +1027,17 @@ function IndicadorPasos({ actual }: { actual: number }) {
   );
 }
 
+// Cabecera de bloque — mismo lenguaje que los formularios de Estudiantes
+// (franja suave + número en el chip del acento de la sección).
 function EncabezadoSeccion({ numero, titulo, subtitulo }: { numero: number; titulo: string; subtitulo: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-xs font-bold text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+    <div className="mb-5 flex items-center gap-3 border-b px-5 py-3.5 border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.08] dark:bg-acento-azul-dark/[0.08]">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
         {numero}
       </span>
       <div>
-        <h2 className="font-display text-base font-semibold text-teal-900 dark:text-ink-dark">{titulo}</h2>
-        <p className="text-xs text-ink/50 dark:text-ink-dark/50">{subtitulo}</p>
+        <h2 className="m-0 font-display text-[15px] font-semibold text-teal-900 dark:text-ink-dark">{titulo}</h2>
+        <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">{subtitulo}</p>
       </div>
     </div>
   );

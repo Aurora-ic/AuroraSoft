@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Flag, Plus } from "lucide-react";
-import { EncabezadoPagina, claseBotonBanner } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
@@ -76,7 +76,7 @@ export default function CampanasPage() {
   const puedeCrearCampana = sesion?.rol === "psicologo" || sesion?.rol === "admin" || sesion?.rol === "superadmin";
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-4">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina variante="destacado"
         icono={Flag}
         acento="azul"
@@ -100,10 +100,15 @@ export default function CampanasPage() {
           <Link
             key={campana.id}
             href={`/campanas/${campana.id}/dashboard`}
-            className="bg-surface dark:bg-surface-dark rounded-card border border-border dark:border-border-dark p-5 hover:border-teal-400 transition-colors"
+            className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-5 hover:border-acento-azul/50 hover:shadow-sm hover:-translate-y-px dark:hover:border-acento-azul-dark/50 transition-all"
           >
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-display text-base text-ink dark:text-ink-dark">{campana.nombre_grupo}</h2>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <h2 className="flex min-w-0 items-center gap-2.5 font-display text-base text-ink dark:text-ink-dark">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
+                  <Flag size={15} aria-hidden="true" />
+                </span>
+                <span className="truncate">{campana.nombre_grupo}</span>
+              </h2>
               {(() => {
                 const estado = estadoVisibleCampana(campana.estado, campana.fecha_fin);
                 return (
@@ -113,7 +118,7 @@ export default function CampanasPage() {
                 );
               })()}
             </div>
-            <p className="text-xs text-ink/60 dark:text-ink-dark/60 font-mono">
+            <p className="pl-[2.6rem] text-xs text-ink/60 dark:text-ink-dark/60 font-mono">
               Creada {campana.fecha_creacion.slice(0, 10)}
               {campana.fecha_fin ? ` — cierra ${campana.fecha_fin.slice(0, 10)}` : ""}
             </p>

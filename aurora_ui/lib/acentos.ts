@@ -27,6 +27,16 @@ type ClasesAcento = {
   solido: string;
   /** Borde lateral de acento. */
   borde: string;
+  /** 🆕 (sesión 2026-10-31) Fondo + borde de un bloque CHICO de la sección
+   *  (acceso rápido, KPI): tinte visible. */
+  fondo: string;
+  /** Fondo + borde de un bloque GRANDE (tarjeta con tabla, formulario,
+   *  gráfico): tinte tenue para no competir con el contenido. */
+  fondoSuave: string;
+  /** Franja de cabecera de un bloque grande (sobre `fondoSuave`). */
+  cabecera: string;
+  /** Cuadro del ícono en sólido (ícono blanco) — sobre los fondos tintados. */
+  chipSolido: string;
 };
 
 export const ACENTOS: Record<Acento, ClasesAcento> = {
@@ -37,6 +47,10 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     degradado: "from-teal-900 to-teal-600",
     solido: "bg-teal-600 dark:bg-teal-accent-dark",
     borde: "border-l-teal-600 dark:border-l-teal-accent-dark",
+    fondo: "bg-teal-600/[0.07] border-teal-600/20 dark:bg-teal-accent-dark/[0.07] dark:border-teal-accent-dark/25",
+    fondoSuave: "bg-teal-600/[0.035] border-teal-600/15 dark:bg-teal-accent-dark/[0.05] dark:border-teal-accent-dark/20",
+    cabecera: "bg-teal-600/[0.08] border-teal-600/15 dark:bg-teal-accent-dark/[0.08] dark:border-teal-accent-dark/20",
+    chipSolido: "bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark",
   },
   azul: {
     chip: "bg-acento-azul/10 text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark",
@@ -45,6 +59,10 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     degradado: "from-teal-900 to-acento-azul",
     solido: "bg-acento-azul dark:bg-acento-azul-dark",
     borde: "border-l-acento-azul dark:border-l-acento-azul-dark",
+    fondo: "bg-acento-azul/[0.07] border-acento-azul/20 dark:bg-acento-azul-dark/[0.07] dark:border-acento-azul-dark/25",
+    fondoSuave: "bg-acento-azul/[0.035] border-acento-azul/15 dark:bg-acento-azul-dark/[0.05] dark:border-acento-azul-dark/20",
+    cabecera: "bg-acento-azul/[0.08] border-acento-azul/15 dark:bg-acento-azul-dark/[0.08] dark:border-acento-azul-dark/20",
+    chipSolido: "bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark",
   },
   violeta: {
     chip: "bg-acento-violeta/10 text-acento-violeta dark:bg-acento-violeta-dark/15 dark:text-acento-violeta-dark",
@@ -53,6 +71,10 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     degradado: "from-teal-900 to-acento-violeta",
     solido: "bg-acento-violeta dark:bg-acento-violeta-dark",
     borde: "border-l-acento-violeta dark:border-l-acento-violeta-dark",
+    fondo: "bg-acento-violeta/[0.07] border-acento-violeta/20 dark:bg-acento-violeta-dark/[0.07] dark:border-acento-violeta-dark/25",
+    fondoSuave: "bg-acento-violeta/[0.035] border-acento-violeta/15 dark:bg-acento-violeta-dark/[0.05] dark:border-acento-violeta-dark/20",
+    cabecera: "bg-acento-violeta/[0.08] border-acento-violeta/15 dark:bg-acento-violeta-dark/[0.08] dark:border-acento-violeta-dark/20",
+    chipSolido: "bg-acento-violeta text-white dark:bg-acento-violeta-dark dark:text-mist-dark",
   },
   pizarra: {
     chip: "bg-acento-pizarra/10 text-acento-pizarra dark:bg-acento-pizarra-dark/15 dark:text-acento-pizarra-dark",
@@ -61,6 +83,10 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     degradado: "from-teal-900 to-acento-pizarra",
     solido: "bg-acento-pizarra dark:bg-acento-pizarra-dark",
     borde: "border-l-acento-pizarra dark:border-l-acento-pizarra-dark",
+    fondo: "bg-acento-pizarra/[0.08] border-acento-pizarra/20 dark:bg-acento-pizarra-dark/[0.08] dark:border-acento-pizarra-dark/25",
+    fondoSuave: "bg-acento-pizarra/[0.05] border-acento-pizarra/20 dark:bg-acento-pizarra-dark/[0.06] dark:border-acento-pizarra-dark/20",
+    cabecera: "bg-acento-pizarra/[0.09] border-acento-pizarra/15 dark:bg-acento-pizarra-dark/[0.09] dark:border-acento-pizarra-dark/20",
+    chipSolido: "bg-acento-pizarra text-white dark:bg-acento-pizarra-dark dark:text-mist-dark",
   },
   riesgo: {
     chip: "bg-amber/15 text-amber",
@@ -69,6 +95,10 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     degradado: "from-teal-900 to-amber",
     solido: "bg-amber",
     borde: "border-l-amber",
+    fondo: "bg-amber/[0.09] border-amber/30 dark:bg-amber/[0.07] dark:border-amber/25",
+    fondoSuave: "bg-amber/[0.06] border-amber/25 dark:bg-amber/[0.05] dark:border-amber/20",
+    cabecera: "bg-amber/[0.12] border-amber/25 dark:bg-amber/[0.09] dark:border-amber/20",
+    chipSolido: "bg-amber text-white dark:text-mist-dark",
   },
 };
 

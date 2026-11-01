@@ -21,8 +21,13 @@ export function ShellEducativo({ children }: { children: React.ReactNode }) {
     setMenuAbierto(false);
   }
 
+  // 🆕 (sesión 2026-10-31) overflow-hidden + <main relative>: los
+  // elementos `absolute` sin ancestro posicionado (p. ej. los sr-only de
+  // los gráficos del Inicio) escapaban del scroll de <main> y alargaban
+  // el documento — aparecía una SEGUNDA barra de scroll y la interfaz se
+  // descuadraba al bajar.
   return (
-    <div className="flex h-screen bg-mist dark:bg-mist-dark">
+    <div className="flex h-screen overflow-hidden bg-mist dark:bg-mist-dark">
       <SidebarEducativo abierto={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
       {menuAbierto && (
         <div className="lg:hidden fixed inset-0 z-30 bg-ink/40" aria-hidden="true" onClick={() => setMenuAbierto(false)} />
@@ -31,7 +36,7 @@ export function ShellEducativo({ children }: { children: React.ReactNode }) {
           fuera del scroll del contenido (solo <main> scrollea). */}
       <div className="flex-1 min-w-0 flex flex-col h-screen">
         <Topbar onAbrirMenu={() => setMenuAbierto(true)} />
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:p-6 lg:p-8">{children}</main>
+        <main className="relative flex-1 overflow-y-auto px-4 py-6 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );

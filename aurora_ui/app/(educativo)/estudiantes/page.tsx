@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Users, UserCheck, UserX, FileWarning, School, Search, Upload, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserCheck, UserX, FileWarning, School, Search, Upload, Plus, ChevronLeft, ChevronRight, Stethoscope } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Persona, SeccionActual } from "@/types/api";
@@ -11,14 +11,20 @@ import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { EsqueletoFilasTabla } from "@/components/ui/Esqueleto";
-import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, claseBotonBanner } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 
-type FiltroEstado = "activos" | "inactivos" | "todos";
+// 🆕 (sesión 2026-10-31) "con-dx" = activos con diagnóstico — derivado en
+// el backend (Persona.con_diagnostico) de los antecedentes clínicos externos
+// de cada ficha: terapia psicológica o atención psiquiátrica externa = Sí.
+// No hay un botón "en riesgo" aparte: se marca/desmarca solo al llenar esos
+// dos Sí/No en la ficha.
+type FiltroEstado = "activos" | "inactivos" | "todos" | "con-dx";
 
 const FILTROS_ESTADO: { valor: FiltroEstado; etiqueta: string }[] = [
   { valor: "activos", etiqueta: "Activos" },
   { valor: "inactivos", etiqueta: "Inactivos" },
   { valor: "todos", etiqueta: "Todos" },
+  { valor: "con-dx", etiqueta: "Con Dx" },
 ];
 
 // seccion_actual llega batch-loaded en la misma respuesta del padrón — nunca
@@ -122,6 +128,7 @@ export default function PadronPage() {
     return personas.filter((p) => {
       if (filtroEstado === "activos" && !p.activo) return false;
       if (filtroEstado === "inactivos" && p.activo) return false;
+      if (filtroEstado === "con-dx" && !(p.activo && p.con_diagnostico)) return false;
       if (filtroSeccionId === "sin-matricula") {
         if (p.seccion_actual) return false;
       } else if (filtroSeccionId !== "todas") {
@@ -158,6 +165,7 @@ export default function PadronPage() {
       // genero/fecha_nacimiento faltantes cuentan como "incompleto", documento_identidad no.
       datosIncompletos: activos.filter((p) => !p.genero || !p.fecha_nacimiento).length,
       sinMatricula: activos.filter((p) => !p.seccion_actual).length,
+      conDiagnostico: activos.filter((p) => p.con_diagnostico).length,
     };
   }, [personas]);
 
@@ -184,7 +192,7 @@ export default function PadronPage() {
   const hayFiltrosExtra = soloIncompletos || filtroSeccionId !== "todas" || busqueda.trim() !== "";
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-4">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       {/* 🔧 El backend ya rechaza /admin/personas/ (alta) y /importar/* con
           403 para "colegio" (permisos.STAFF_CLINICO excluye ese rol), pero
           estos dos links no tenían su propio candado — desde que
@@ -213,7 +221,7 @@ export default function PadronPage() {
       />
 
       {/* Resumen — cada tarjeta aplica su filtro correspondiente en la tabla de abajo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <TarjetaKpi
           icono={UserCheck}
           etiqueta="Activos"
@@ -253,14 +261,23 @@ export default function PadronPage() {
             setFiltroSeccionId((v) => (v === "sin-matricula" ? "todas" : "sin-matricula"));
           }}
         />
+        {/* Ámbar: es riesgo clínico (tratamiento externo), no un dato administrativo. */}
+        <TarjetaKpi
+          icono={Stethoscope}
+          tono="riesgo"
+          etiqueta="Con diagnóstico"
+          valor={cargando ? "…" : resumen.conDiagnostico}
+          activa={filtroEstado === "con-dx"}
+          onClick={() => setFiltroEstado((v) => (v === "con-dx" ? "activos" : "con-dx"))}
+        />
       </div>
 
       <TextoError>{error}</TextoError>
       <TextoError>{errorAccion}</TextoError>
 
-      <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
         {/* Barra de herramientas — dentro de la misma tarjeta que la tabla */}
-        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-border dark:border-border-dark">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08]">
           <div className="relative w-full md:max-w-sm">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
             <input
@@ -335,18 +352,25 @@ export default function PadronPage() {
               {!cargando &&
                 personasPaginaActual.map((persona) => {
                   const seccion = formatearSeccion(persona.seccion_actual);
+                  const conDx = !!persona.con_diagnostico;
                   return (
                     <tr
                       key={persona.id}
                       onClick={() => router.push(`/estudiantes/${persona.id}`)}
-                      className="cursor-pointer border-b border-border dark:border-border-dark last:border-0 transition-colors hover:bg-mist dark:hover:bg-surface-raised-dark focus-within:bg-teal-400/10 focus-within:ring-1 focus-within:ring-inset focus-within:ring-teal-400"
+                      className={`cursor-pointer border-b border-border dark:border-border-dark last:border-0 transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-teal-400 ${
+                        conDx
+                          ? "bg-amber/[0.09] shadow-[inset_3px_0_0_var(--color-amber)] hover:bg-amber/15"
+                          : "hover:bg-mist dark:hover:bg-surface-raised-dark focus-within:bg-teal-400/10"
+                      }`}
                     >
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2.5">
                           <span
                             aria-hidden="true"
                             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
-                              persona.activo
+                              conDx
+                                ? "bg-amber/25 text-amber-800 dark:bg-amber/20 dark:text-amber"
+                                : persona.activo
                                 ? "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
                                 : "bg-border text-ink/45 dark:bg-border-dark dark:text-ink-dark/45"
                             }`}
@@ -360,6 +384,15 @@ export default function PadronPage() {
                           >
                             {persona.nombres} {persona.apellidos}
                           </Link>
+                          {conDx && (
+                            <span
+                              title="Con diagnóstico: terapia o psiquiatría externa en sus antecedentes clínicos"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber/20 px-2 py-0.5 text-[10.5px] font-bold text-amber-800 dark:bg-amber/15 dark:text-amber"
+                            >
+                              <Stethoscope size={11} aria-hidden="true" />
+                              Dx
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-2.5 font-mono text-xs text-ink/70 dark:text-ink-dark/70">
@@ -415,7 +448,7 @@ export default function PadronPage() {
         </div>
 
         {!cargando && personasFiltradas.length > 0 && (
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border dark:border-border-dark bg-mist/40 dark:bg-surface-raised-dark">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.06] dark:bg-teal-accent-dark/[0.06]">
             <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">
               {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, personasFiltradas.length)} de{" "}
               {personasFiltradas.length} alumnos

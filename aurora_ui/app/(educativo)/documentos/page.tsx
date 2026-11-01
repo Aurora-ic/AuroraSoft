@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FolderOpen } from "lucide-react";
-import { EncabezadoPagina, claseBotonBanner } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton, claseBoton } from "@/components/ui/Boton";
@@ -226,7 +226,7 @@ export default function DocumentosPage() {
 
   if (cargando) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className={CLASE_CONTENEDOR_SECCION}>
         <EncabezadoPagina variante="destacado" icono={FolderOpen} acento="violeta" titulo="Documentos institucionales" />
         <EsqueletoLista cantidad={5} />
       </div>
@@ -234,7 +234,7 @@ export default function DocumentosPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina variante="destacado"
         icono={FolderOpen}
         acento="violeta"

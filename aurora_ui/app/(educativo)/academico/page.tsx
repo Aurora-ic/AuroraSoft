@@ -8,7 +8,7 @@ import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
-import { EncabezadoPagina, PastillaBanner } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, PastillaBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import type {
   NivelEducativo,
   NivelEducativoCreate,
@@ -218,10 +218,10 @@ function Columna({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
-      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border dark:border-border-dark bg-mist/60 dark:bg-surface-raised-dark">
+    <section className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
+      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08]">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark">
             <Icono size={16} aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -271,21 +271,60 @@ function Columna({
 // 🆕 Recuento de estudiantes (activos, con matrícula vigente) al lado
 // derecho de cada fila — ver GET /admin/personas/academico/conteos. `null`
 // mientras carga: no se muestra un "0" que todavía no es real.
-function Recuento({ n, activo = false }: { n: number | null; activo?: boolean }) {
+// 🆕 (sesión 2026-10-31) Desglose "sin Dx" (teal) + "con Dx" (ámbar) al
+// costado del total — la suma de ambos ES el total. "Con Dx" = antecedentes
+// clínicos externos con terapia o psiquiatría externa = Sí (ver
+// crud._condicion_con_diagnostico); el ámbar se usa porque es exactamente
+// riesgo clínico, y siempre va con número + texto en el title.
+function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: number | null; activo?: boolean }) {
   if (n === null) return null;
+  const mostrarDesglose = nDx !== null && n > 0;
+  const sinDx = mostrarDesglose ? n - nDx : 0;
   return (
-    <span
-      title={`${n} estudiante${n === 1 ? "" : "s"} matriculado${n === 1 ? "" : "s"}`}
-      className={`inline-flex min-w-[2rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
-        activo
-          ? "bg-white/20 text-white dark:bg-mist-dark/25 dark:text-mist-dark"
-          : n === 0
-            ? "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
-            : "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
-      }`}
-    >
-      <Users size={11} aria-hidden="true" />
-      {n}
+    <span className="inline-flex shrink-0 items-center gap-1">
+      {mostrarDesglose && (
+        <>
+          <span
+            title={`${sinDx} sin diagnóstico`}
+            className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums ${
+              activo ? "bg-white/15 text-white dark:bg-mist-dark/20 dark:text-mist-dark" : "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/10 dark:text-teal-accent-dark"
+            }`}
+          >
+            <span className="sr-only">Sin diagnóstico: </span>
+            {sinDx}
+          </span>
+          <span
+            title={`${nDx} con diagnóstico (terapia o psiquiatría externa)`}
+            className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums ${
+              nDx === 0
+                ? activo
+                  ? "bg-white/10 text-white/60"
+                  : "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
+                : activo
+                  ? "bg-amber text-teal-900"
+                  : "bg-amber/20 text-amber-800 dark:bg-amber/15 dark:text-amber"
+            }`}
+          >
+            <span className="sr-only">Con diagnóstico: </span>
+            {nDx}
+          </span>
+          <span aria-hidden="true" className={`text-[11px] font-bold ${activo ? "text-white/70" : "text-ink/35 dark:text-ink-dark/35"}`}>=</span>
+        </>
+      )}
+      <span
+        title={`${n} estudiante${n === 1 ? "" : "s"} matriculado${n === 1 ? "" : "s"}`}
+        className={`inline-flex min-w-[2rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+          activo
+            ? "bg-white/20 text-white dark:bg-mist-dark/25 dark:text-mist-dark"
+            : n === 0
+              ? "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
+              : "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+        }`}
+      >
+        <Users size={11} aria-hidden="true" />
+        {mostrarDesglose && <span className="sr-only">Total: </span>}
+        {n}
+      </span>
     </span>
   );
 }
@@ -601,13 +640,17 @@ export default function EstructuraAcademicaPage() {
   const contarNivel = (id: number) => (conteos ? conteos.niveles[String(id)] ?? 0 : null);
   const contarGrado = (id: number) => (conteos ? conteos.grados[String(id)] ?? 0 : null);
   const contarSeccion = (id: number) => (conteos ? conteos.secciones[String(id)] ?? 0 : null);
+  // 🆕 "Con Dx" por fila — `?? 0` también cubre un backend anterior sin estos campos.
+  const contarNivelDx = (id: number) => (conteos ? conteos.niveles_con_diagnostico?.[String(id)] ?? 0 : null);
+  const contarGradoDx = (id: number) => (conteos ? conteos.grados_con_diagnostico?.[String(id)] ?? 0 : null);
+  const contarSeccionDx = (id: number) => (conteos ? conteos.secciones_con_diagnostico?.[String(id)] ?? 0 : null);
 
   // Ruta de la selección actual — Nivel › Grado, visible arriba de las 3
   // columnas para no tener que leer los títulos de cada una.
   const ruta = [nivelSeleccionado?.nombre, gradoSeleccionado?.nombre].filter(Boolean) as string[];
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-4">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina variante="destacado"
         icono={Network}
         acento="teal"
@@ -618,6 +661,9 @@ export default function EstructuraAcademicaPage() {
               <Users size={14} aria-hidden="true" />
               <strong className="font-display text-[15px]">{conteos.total}</strong>
               estudiante{conteos.total === 1 ? "" : "s"} matriculado{conteos.total === 1 ? "" : "s"}
+              <span aria-hidden="true" className="opacity-60">·</span>
+              <strong className="font-display text-[15px]">{conteos.total_con_diagnostico ?? 0}</strong>
+              con Dx
             </PastillaBanner>
           )
         }
@@ -634,6 +680,22 @@ export default function EstructuraAcademicaPage() {
         <span>
           Una sección existe para un año escolar concreto: para reabrir un grado en un año nuevo, crea secciones nuevas en vez de
           reutilizar las del año pasado.
+        </span>
+      </div>
+
+      {/* 🆕 Leyenda del recuento de cada fila: sin Dx + con Dx = total. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-ink/60 dark:text-ink-dark/60">
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-teal-600/30 dark:bg-teal-accent-dark/40" />
+          Sin diagnóstico
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-amber" />
+          Con diagnóstico (terapia o psiquiatría externa en sus antecedentes)
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <Users size={12} aria-hidden="true" />
+          Total de estudiantes matriculados
         </span>
       </div>
 
@@ -722,7 +784,7 @@ export default function EstructuraAcademicaPage() {
                         <span className="truncate">{nivel.nombre}</span>
                         <span className="flex items-center gap-1.5 shrink-0">
                           {esAdmin && <span className="text-[11px] opacity-50">orden {nivel.orden}</span>}
-                          <Recuento n={contarNivel(nivel.id)} activo={nivelSeleccionado?.id === nivel.id} />
+                          <Recuento n={contarNivel(nivel.id)} nDx={contarNivelDx(nivel.id)} activo={nivelSeleccionado?.id === nivel.id} />
                           <ChevronRight size={14} className="opacity-40" aria-hidden="true" />
                         </span>
                       </span>
@@ -809,7 +871,7 @@ export default function EstructuraAcademicaPage() {
                             <span className="truncate">{grado.nombre}</span>
                             <span className="flex items-center gap-1.5 shrink-0">
                               {esAdmin && <span className="text-[11px] opacity-50">orden {grado.orden}</span>}
-                              <Recuento n={contarGrado(grado.id)} activo={gradoSeleccionado?.id === grado.id} />
+                              <Recuento n={contarGrado(grado.id)} nDx={contarGradoDx(grado.id)} activo={gradoSeleccionado?.id === grado.id} />
                               <ChevronRight size={14} className="opacity-40" aria-hidden="true" />
                             </span>
                           </span>
@@ -915,7 +977,7 @@ export default function EstructuraAcademicaPage() {
                             {seccion.turno ? ` · Turno ${seccion.turno}` : ""}
                           </div>
                         </div>
-                        <Recuento n={contarSeccion(seccion.id)} />
+                        <Recuento n={contarSeccion(seccion.id)} nDx={contarSeccionDx(seccion.id)} />
                         {esAdmin && (
                           <>
                             <BotonEditar

@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
 import { EsqueletoLista } from "@/components/ui/Esqueleto";
-import { EncabezadoPagina, TarjetaKpi, ControlSegmentado } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { VacioFicha } from "@/components/educativo/BloqueFicha";
 
 // Forma real de GET /educativo/casos-pendientes (ver
@@ -136,7 +136,7 @@ export default function CasosRiesgoPage() {
   }, [agrupados]);
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-5">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina variante="destacado"
         icono={AlertTriangle}
         acento="azul"
@@ -149,7 +149,7 @@ export default function CasosRiesgoPage() {
         <TarjetaKpi icono={AlertTriangle} tono="riesgo" etiqueta="Resultados en alerta" valor={cargando ? "…" : casos.length} />
         <TarjetaKpi
           icono={Hourglass}
-          tono="neutro"
+          tono="azul"
           etiqueta="Espera más larga"
           valor={cargando ? "…" : masAntiguo === null ? "—" : masAntiguo}
           detalle={masAntiguo !== null && !cargando ? "días sin seguimiento" : undefined}
@@ -214,7 +214,7 @@ export default function CasosRiesgoPage() {
           return (
             <article
               key={g.persona_id}
-              className="rounded-xl border border-amber/35 border-l-4 border-l-amber bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3"
+              className="rounded-xl border border-amber/35 border-l-4 border-l-amber bg-amber/[0.05] dark:bg-amber/[0.05] p-4 flex flex-col gap-3"
             >
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber/15 text-amber-700 dark:text-amber font-display text-[13px] font-bold">

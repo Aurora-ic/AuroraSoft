@@ -7,7 +7,7 @@ import { apiClient } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { Textarea } from "@/components/ui/Textarea";
-import { EncabezadoPagina, ControlSegmentado } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import type {
   AsentimientoInformadoTexto,
   AsentimientoInformadoTextoCreate,
@@ -183,7 +183,7 @@ export default function ConsentimientoYAsentimientoPage() {
   // ------------------------------------------------------------------
   if (!puedeEditar) {
     return (
-      <div className="max-w-3xl mx-auto flex flex-col gap-4">
+      <div className={CLASE_CONTENEDOR_SECCION}>
         <EncabezadoPagina variante="destacado" icono={ShieldCheck} acento="violeta" titulo="Consentimiento y asentimiento" />
         <div className="flex items-start gap-3 rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-5">
           <Lock size={18} className="mt-0.5 shrink-0 text-ink/40 dark:text-ink-dark/40" aria-hidden="true" />
@@ -198,7 +198,7 @@ export default function ConsentimientoYAsentimientoPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-4">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina variante="destacado"
         icono={ShieldCheck}
         acento="violeta"

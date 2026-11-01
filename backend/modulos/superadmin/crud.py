@@ -99,9 +99,37 @@ def obtener_personas_por_institucion(
     # PersonaResponse.seccion_actual lo recoja vía from_attributes sin tocar
     # el modelo ORM ni requerir una migración — esto es solo lectura.
     secciones_vigentes = _secciones_vigentes_de_institucion(db, institucion_id)
+    ids_con_diagnostico = _ids_con_diagnostico(db, institucion_id)
     for persona in personas:
         persona.seccion_actual = secciones_vigentes.get(persona.id)
+        persona.con_diagnostico = persona.id in ids_con_diagnostico
     return total, personas
+
+
+def _condicion_con_diagnostico():
+    """🆕 (sesión 2026-10-31) Criterio ÚNICO de "con Dx" en el padrón y en la
+    estructura académica: los antecedentes clínicos externos del estudiante
+    dicen Sí a terapia psicológica externa o a atención psiquiátrica externa.
+    Se deriva de lo que el staff llena en la ficha — no existe un botón ni
+    una columna "en riesgo" aparte que pueda quedar desincronizada. NULL
+    ("no preguntado") nunca cuenta como Sí, y `diagnostico_reportado` (texto
+    libre) por sí solo tampoco: la condición son los dos Sí/No."""
+    return or_(
+        models.PersonaAntecedentesClinicos.recibe_terapia_psicologica_externa == True,  # noqa: E712
+        models.PersonaAntecedentesClinicos.recibe_atencion_psiquiatrica_externa == True,  # noqa: E712
+    )
+
+
+def _ids_con_diagnostico(db: Session, institucion_id: int) -> set:
+    """persona_id de todos los estudiantes "con Dx" de la institución, en
+    UNA consulta (mismo patrón batch que _secciones_vigentes_de_institucion)."""
+    filas = (
+        db.query(models.PersonaAntecedentesClinicos.persona_id)
+        .join(models.Persona, models.Persona.id == models.PersonaAntecedentesClinicos.persona_id)
+        .filter(models.Persona.institucion_id == institucion_id, _condicion_con_diagnostico())
+        .all()
+    )
+    return {persona_id for (persona_id,) in filas}
 
 
 def _secciones_vigentes_de_institucion(db: Session, institucion_id: int) -> dict:
@@ -1430,15 +1458,23 @@ def contar_estudiantes_por_estructura(db: Session, institucion_id: int):
     único nivel, así que nadie se cuenta dos veces). Solo números: nunca
     nombres ni datos de alumnos."""
     from sqlalchemy import func as sa_func
+    # 🆕 (sesión 2026-10-31) La misma consulta cuenta además cuántos están
+    # "con Dx" (_condicion_con_diagnostico) — outer join a los antecedentes
+    # (1:1, así que no duplica filas) y un COUNT ... FILTER, sin una segunda
+    # consulta.
     filas = db.query(
         models.Seccion.id, models.Grado.id, models.Grado.nivel_educativo_id,
         sa_func.count(models.MatriculaAcademica.id),
+        sa_func.count(models.MatriculaAcademica.id).filter(_condicion_con_diagnostico()),
     ).join(
         models.Grado, models.Seccion.grado_id == models.Grado.id,
     ).join(
         models.MatriculaAcademica, models.MatriculaAcademica.seccion_id == models.Seccion.id,
     ).join(
         models.Persona, models.Persona.id == models.MatriculaAcademica.persona_id,
+    ).outerjoin(
+        models.PersonaAntecedentesClinicos,
+        models.PersonaAntecedentesClinicos.persona_id == models.Persona.id,
     ).filter(
         models.Seccion.institucion_id == institucion_id,
         models.MatriculaAcademica.fecha_fin.is_(None),
@@ -1446,15 +1482,23 @@ def contar_estudiantes_por_estructura(db: Session, institucion_id: int):
     ).group_by(models.Seccion.id, models.Grado.id, models.Grado.nivel_educativo_id).all()
 
     secciones, grados, niveles = {}, {}, {}
-    for seccion_id, grado_id, nivel_id, total in filas:
+    secciones_dx, grados_dx, niveles_dx = {}, {}, {}
+    for seccion_id, grado_id, nivel_id, total, total_dx in filas:
         secciones[seccion_id] = total
         grados[grado_id] = grados.get(grado_id, 0) + total
         niveles[nivel_id] = niveles.get(nivel_id, 0) + total
+        secciones_dx[seccion_id] = total_dx
+        grados_dx[grado_id] = grados_dx.get(grado_id, 0) + total_dx
+        niveles_dx[nivel_id] = niveles_dx.get(nivel_id, 0) + total_dx
     return {
         "total": sum(niveles.values()),
         "niveles": niveles,
         "grados": grados,
         "secciones": secciones,
+        "total_con_diagnostico": sum(niveles_dx.values()),
+        "niveles_con_diagnostico": niveles_dx,
+        "grados_con_diagnostico": grados_dx,
+        "secciones_con_diagnostico": secciones_dx,
     }
 
 

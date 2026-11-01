@@ -14,6 +14,14 @@ import { ACENTOS, type Acento } from "@/lib/acentos";
 //   claseBotonBanner abajo.
 // - "simple": una sola fila compacta (icono + título + descripción corta +
 //   acciones a la derecha), para las pantallas de trabajo.
+// 🆕 (sesión 2026-10-31, a pedido del usuario: "igualar márgenes entre todos
+// los apartados") — antes cada sección elegía su propio ancho (max-w-6xl en
+// casi todas, 7xl en el Padrón, 90rem en la Agenda) y su propio espaciado
+// (gap-4 / gap-5 / space-y-6), así que la franja de color del encabezado
+// cambiaba de ancho al pasar de una pestaña a otra. UNA sola medida para
+// todas las pantallas con encabezado "destacado": úsala en su contenedor raíz.
+export const CLASE_CONTENEDOR_SECCION = "max-w-7xl mx-auto w-full flex flex-col gap-5";
+
 export function EncabezadoPagina({
   icono: Icono,
   titulo,
@@ -38,7 +46,9 @@ export function EncabezadoPagina({
       // En oscuro el degradado pasa a neutro (un fondo saturado grande cansa
       // en modo oscuro); el color de la sección queda en el borde lateral.
       <div
-        className={`bg-gradient-to-br ${ACENTOS[acento].degradado} dark:from-surface-raised-dark dark:to-surface-dark dark:border dark:border-border-dark dark:border-l-4 ${ACENTOS[acento].borde} rounded-2xl px-5 py-5 sm:px-6 flex items-center justify-between flex-wrap gap-4 shadow-sm`}
+        // 🔧 min-h + descripción a 2 líneas: misma ALTURA de franja en todas
+        // las secciones (antes dependía del largo de cada descripción).
+        className={`bg-gradient-to-br ${ACENTOS[acento].degradado} dark:from-surface-raised-dark dark:to-surface-dark dark:border dark:border-border-dark dark:border-l-4 ${ACENTOS[acento].borde} rounded-2xl px-5 py-5 sm:px-6 min-h-[7.5rem] flex items-center justify-between flex-wrap gap-4 shadow-sm`}
       >
         <div className="flex items-start gap-3.5 min-w-0">
           <span className={`hidden sm:flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white ${ACENTOS[acento].chipOscuro}`}>
@@ -47,7 +57,12 @@ export function EncabezadoPagina({
           <div className="min-w-0">
             <h1 className="m-0 font-display text-[24px] font-bold text-white dark:text-ink-dark leading-tight">{titulo}</h1>
             {descripcion && (
-              <p className="m-0 mt-1 text-[13px] text-white/75 dark:text-ink-dark/60 max-w-xl">{descripcion}</p>
+              <p
+                title={typeof descripcion === "string" ? descripcion : undefined}
+                className="m-0 mt-1 text-[13px] leading-snug text-white/75 dark:text-ink-dark/60 max-w-2xl line-clamp-2"
+              >
+                {descripcion}
+              </p>
             )}
             {children}
           </div>
@@ -98,17 +113,19 @@ export function TarjetaKpi({
   onClick?: () => void;
 }) {
   const Elemento = onClick ? "button" : "div";
+  // 🆕 (sesión 2026-10-31) Fondo tintado del tono + ícono en cuadro sólido,
+  // mismo estilo que los bloques del Inicio. "neutro" sigue en blanco.
   const claseIcono =
-    tono === "neutro" ? "bg-border/70 text-ink/55 dark:bg-border-dark dark:text-ink-dark/60" : ACENTOS[tono].chip;
+    tono === "neutro" ? "bg-border/70 text-ink/55 dark:bg-border-dark dark:text-ink-dark/60" : ACENTOS[tono].chipSolido;
+  const claseFondo =
+    tono === "neutro" ? "bg-surface dark:bg-surface-dark border-border dark:border-border-dark" : ACENTOS[tono].fondo;
   return (
     <Elemento
       type={onClick ? "button" : undefined}
       onClick={onClick}
       aria-pressed={onClick ? activa : undefined}
-      className={`text-left bg-surface dark:bg-surface-dark border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors ${
-        activa
-          ? "border-teal-600 ring-1 ring-teal-600/30 dark:border-teal-accent-dark dark:ring-teal-accent-dark/30"
-          : "border-border dark:border-border-dark"
+      className={`text-left border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors ${claseFondo} ${
+        activa ? "!border-teal-600 ring-2 ring-teal-600/30 dark:!border-teal-accent-dark dark:ring-teal-accent-dark/30" : ""
       } ${onClick ? "hover:border-teal-400 dark:hover:border-teal-accent-dark cursor-pointer" : ""}`}
     >
       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${claseIcono}`}>

@@ -8,6 +8,9 @@ import type { LucideIcon } from "lucide-react";
 // ninguna estructura visual. Ahora cada sub-bloque es una tarjeta con
 // cabecera (icono + título + acciones) y los datos van en celdas con borde.
 // Solo presentación: ningún dato ni endpoint cambia.
+// 🆕 (sesión 2026-10-31) Fondo tenue teal (Estudiantes) en el bloque y su
+// cabecera, ícono en cuadro sólido — las celdas de datos quedan en blanco
+// encima y contrastan.
 
 export function BloqueFicha({
   icono: Icono,
@@ -17,6 +20,7 @@ export function BloqueFicha({
   children,
   className = "",
   cuerpoClassName = "",
+  id,
 }: {
   icono: LucideIcon;
   titulo: string;
@@ -26,14 +30,18 @@ export function BloqueFicha({
   className?: string;
   // Clases extra del cuerpo (p. ej. "space-y-4" para separar sub-bloques).
   cuerpoClassName?: string;
+  // Ancla para enlazar al bloque desde otra parte de la ficha (p. ej. el
+  // apartado "Situación de riesgo" del perfil → Antecedentes clínicos).
+  id?: string;
 }) {
   return (
     <section
-      className={`rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden ${className}`}
+      id={id}
+      className={`scroll-mt-6 rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden ${className}`}
     >
-      <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 bg-mist/60 dark:bg-surface-raised-dark border-b border-border dark:border-border-dark">
+      <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08] border-b border-teal-600/15 dark:border-teal-accent-dark/20">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark">
             <Icono size={16} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="min-w-0">

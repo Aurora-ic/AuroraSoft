@@ -59,6 +59,13 @@ class PersonaResponse(PersonaBase):
     # sería mostrar un dato potencialmente falso. `seccion_actual` es la
     # fuente de verdad nueva y correcta; `None` si no hay matrícula activa.
     seccion_actual: Optional[SeccionActualResponse] = None
+    # 🆕 (sesión 2026-10-31) "Con Dx": derivado, nunca un campo propio que se
+    # marque a mano — True si en PersonaAntecedentesClinicos consta
+    # recibe_terapia_psicologica_externa = Sí o recibe_atencion_psiquiatrica_externa
+    # = Sí (ver crud._ids_con_diagnostico). Solo lo resuelve el listado del
+    # padrón (batch); el resto de endpoints que devuelven PersonaResponse lo
+    # dejan en False — la ficha lee los antecedentes directamente.
+    con_diagnostico: bool = False
 
     class Config:
         from_attributes = True
@@ -158,6 +165,13 @@ class ConteosEstructuraAcademica(BaseModel):
     niveles: Dict[int, int]
     grados: Dict[int, int]
     secciones: Dict[int, int]
+    # 🆕 (sesión 2026-10-31) Cuántos de esos mismos estudiantes están "con Dx"
+    # (mismo criterio que PersonaResponse.con_diagnostico). "Sin Dx" no viaja:
+    # es total - con_diagnostico, siempre consistente por construcción.
+    total_con_diagnostico: int = 0
+    niveles_con_diagnostico: Dict[int, int] = {}
+    grados_con_diagnostico: Dict[int, int] = {}
+    secciones_con_diagnostico: Dict[int, int] = {}
 
 
 class CitaParticipanteResponse(BaseModel):

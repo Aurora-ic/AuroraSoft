@@ -1445,7 +1445,7 @@ export default function FichaAlumnoPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       <Migas items={[{ label: "Padrón", href: "/estudiantes" }, { label: `${alumno.nombres} ${alumno.apellidos}` }]} />
       {/* 🆕 Perfil del estudiante (sesión 2026-10-30) — tarjeta de perfil
           (identidad + datos clave, sin el código institucional, que sigue en
@@ -1461,6 +1461,8 @@ export default function FichaAlumnoPage() {
         alumno={alumno}
         matricula={matriculaVigente}
         consentimientoVigente={consentimientos ? consentimientos.apoderado.tiene_consentimiento_vigente : null}
+        antecedentes={errorAntecedentesClinicos ? null : antecedentesClinicos}
+        puedeEditarAntecedentes={puedeEscribirDatosPrincipales}
         acciones={
           <>
             <Boton
@@ -1666,6 +1668,7 @@ export default function FichaAlumnoPage() {
 
           {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
           <BloqueFicha
+            id="antecedentes-clinicos"
             icono={Stethoscope}
             titulo="Antecedentes clínicos externos"
             descripcion="Atención psicológica o psiquiátrica fuera del colegio."

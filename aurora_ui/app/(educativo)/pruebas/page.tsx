@@ -27,7 +27,7 @@ import { DimensionBar } from "@/components/ui/DimensionBar";
 import { ResumenEstadisticoPrueba } from "@/components/ui/ResumenEstadisticoPrueba";
 import { GraficoTendenciaDimension } from "@/components/ui/GraficoTendenciaDimension";
 import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
-import { EncabezadoPagina, TarjetaKpi, ControlSegmentado } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { PanelDimensiones } from "@/components/educativo/PanelDimensiones";
 import { VacioFicha } from "@/components/educativo/BloqueFicha";
 import type {
@@ -40,6 +40,7 @@ import type {
   TendenciaSeccion,
   AlumnoDashboard,
 } from "@/types/api";
+import { siglaPrueba } from "@/lib/pruebas";
 
 // Catálogo de solo lectura — cargar una prueba nueva (ítems, dimensiones,
 // baremos) es un ejercicio de datos vía seed/API directa (ver CLAUDE.md
@@ -67,14 +68,27 @@ function alumnoEnAlerta(a: AlumnoDashboard): boolean {
   return a.resultados.some((r) => r.es_alerta === true);
 }
 
+// 🔧 Las claves reales de Prueba.modo_calculo son "likert_suma"/
+// "likert_promedio"/"correcto_incorrecto" — antes el mapa buscaba
+// "suma"/"promedio" y el catálogo mostraba "likert_suma" crudo.
 function etiquetaModo(modo: string): string {
   const mapa: Record<string, string> = {
+    likert_suma: "Likert · suma",
+    likert_promedio: "Likert · promedio",
     suma: "Suma",
     promedio: "Promedio",
-    correcto_incorrecto: "Correcto/incorrecto",
+    correcto_incorrecto: "Correcto / incorrecto",
   };
-  return mapa[modo] ?? modo;
+  return mapa[modo] ?? modo.replace(/_/g, " ");
 }
+
+function etiquetaInformante(tipo: string): string {
+  const mapa: Record<string, string> = { padre_madre: "Padre o madre", docente: "Docente", estudiante: "Estudiante" };
+  return mapa[tipo] ?? tipo.replace(/_/g, " ");
+}
+
+// Cuadrante de iniciales: siglaPrueba vive en lib/pruebas.ts (lo comparte
+// con /campanas/nueva).
 
 export default function PruebasPage() {
   const { sesion } = useAuth();
@@ -307,7 +321,7 @@ export default function PruebasPage() {
   const textoEtiqueta = "text-ink/60 dark:text-ink-dark/60 font-semibold";
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-5">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina
         variante="destacado"
         acento="azul"
@@ -352,53 +366,80 @@ export default function PruebasPage() {
               <p className="m-0 -mt-1 text-[12px] text-ink/50 dark:text-ink-dark/50">
                 Cargar un instrumento nuevo (ítems, dimensiones, baremos) es trabajo de datos, no se hace desde aquí.
               </p>
-              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 items-start">
+              {/* 🆕 Rediseño de tarjetas (sesión 2026-10-31): cabecera con fondo
+                  azul de Evaluación (lib/acentos.ts "azul") que contrasta con el
+                  teal de marca, cuadrante sólido con la sigla del instrumento,
+                  nombre destacado y el resto ordenado debajo — mismo contenido
+                  y mismas acciones que antes. */}
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
                 {pruebas.map((p) => {
                   const expandida = expandidaId === p.id;
+                  const { sigla, numero } = siglaPrueba(p);
+                  const titulo = p.nombre_corto || p.nombre_tecnico;
                   return (
                     <div
                       key={p.id}
-                      className={`rounded-xl border bg-surface dark:bg-surface-dark overflow-hidden transition-colors ${
-                        expandida ? "border-teal-400 dark:border-teal-accent-dark" : "border-border dark:border-border-dark hover:border-teal-400/60"
-                      }`}
+                      className={`rounded-2xl border bg-acento-azul/[0.03] dark:bg-acento-azul-dark/[0.04] overflow-hidden shadow-sm transition-all ${
+                        expandida
+                          ? "border-acento-azul ring-2 ring-acento-azul/20 dark:border-acento-azul-dark dark:ring-acento-azul-dark/20"
+                          : "border-acento-azul/20 dark:border-border-dark hover:border-acento-azul/60 hover:shadow-md dark:hover:border-acento-azul-dark/60"
+                      } ${p.activa ? "" : "opacity-70"}`}
                     >
-                      <div className="p-4 flex flex-col gap-3">
-                        <div className="flex items-start gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark font-display text-[12px] font-bold">
-                            {(p.nombre_corto || p.nombre_tecnico).slice(0, 2).toUpperCase()}
+                      {/* Cabecera con fondo de color */}
+                      <div className="relative bg-gradient-to-br from-acento-azul/[0.13] via-acento-azul/[0.06] to-teal-600/[0.05] dark:from-acento-azul-dark/[0.16] dark:via-acento-azul-dark/[0.07] dark:to-transparent px-4 pt-5 pb-4">
+                        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-acento-azul to-teal-600 dark:from-acento-azul-dark dark:to-teal-accent-dark" />
+                        <div className="flex items-center gap-3.5">
+                          <span
+                            aria-hidden="true"
+                            className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl font-display font-bold leading-none shadow-sm ring-4 ${
+                              p.activa
+                                ? "bg-acento-azul text-white ring-acento-azul/15 dark:bg-acento-azul-dark dark:text-surface-dark dark:ring-acento-azul-dark/15"
+                                : "bg-ink/30 text-white ring-ink/10 dark:bg-ink-dark/30"
+                            }`}
+                          >
+                            <span className={sigla.length >= 5 ? "text-[12px] tracking-tight" : sigla.length === 4 ? "text-[14px] tracking-tight" : "text-[17px] tracking-wide"}>{sigla}</span>
+                            {numero && <span className="mt-1 rounded bg-white/25 px-1.5 py-px text-[10px] font-bold tabular-nums">{numero}</span>}
                           </span>
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             {/* Título corto arriba (nombre_corto curado, o nombre_tecnico de
                                 respaldo — ej. "PHQ-9") para no saturar la tarjeta; el nombre
                                 completo queda debajo como descripción secundaria. */}
-                            <p className="m-0 text-[14px] font-bold text-teal-900 dark:text-ink-dark truncate">{p.nombre_corto || p.nombre_tecnico}</p>
-                            <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55 line-clamp-2">{p.nombre_publico}</p>
+                            <p className="m-0 font-display text-[17px] font-bold leading-tight text-teal-900 dark:text-ink-dark line-clamp-2 break-words">
+                              {titulo}
+                            </p>
+                            <p className="m-0 mt-1 text-[11px] font-semibold uppercase tracking-wide text-acento-azul dark:text-acento-azul-dark">
+                              {p.modo_interpretacion === "perfil" ? "Interpretación por perfil" : "Interpretación por rangos"}
+                            </p>
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 text-[10.5px] font-semibold">
-                          <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60">
-                            {etiquetaModo(p.modo_calculo)}
+                      </div>
+
+                      {/* Contenido */}
+                      <div className="px-4 pt-3 pb-3 flex flex-col gap-3">
+                        <p className="m-0 min-h-[2.6rem] text-[12.5px] leading-snug text-ink/65 dark:text-ink-dark/65 line-clamp-2" title={p.nombre_publico}>
+                          {p.nombre_publico}
+                        </p>
+                        <dl className="m-0 grid grid-cols-2 gap-2 text-[11.5px]">
+                          <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
+                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Cálculo</dt>
+                            <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaModo(p.modo_calculo)}</dd>
+                          </div>
+                          <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
+                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Responde</dt>
+                            <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaInformante(p.informante_tipo)}</dd>
+                          </div>
+                        </dl>
+                        {!p.activa && (
+                          <span className="self-start rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60">
+                            Inactiva
                           </span>
-                          {p.modo_interpretacion === "perfil" && (
-                            <span className="rounded-full px-2 py-0.5 bg-teal-600/10 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
-                              Perfil
-                            </span>
-                          )}
-                          {p.informante_tipo !== "estudiante" && (
-                            <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60">
-                              Informante: {p.informante_tipo}
-                            </span>
-                          )}
-                          {!p.activa && (
-                            <span className="rounded-full px-2 py-0.5 bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60">Inactiva</span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/70 dark:border-border-dark">
+                        )}
+                        <div className="flex items-center justify-between gap-2 border-t border-border/70 dark:border-border-dark pt-2.5">
                           <button
                             type="button"
                             onClick={() => toggle(p)}
                             aria-expanded={expandida}
-                            className="inline-flex items-center gap-1 pt-2 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+                            className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60 hover:text-acento-azul dark:hover:text-acento-azul-dark"
                           >
                             <ChevronDown size={14} aria-hidden="true" className={`transition-transform ${expandida ? "rotate-180" : ""}`} />
                             {expandida ? "Ocultar detalle" : "Ver detalle"}
@@ -406,7 +447,7 @@ export default function PruebasPage() {
                           <button
                             type="button"
                             onClick={() => verResultadosDe(p)}
-                            className="inline-flex items-center gap-1 pt-2 text-[12px] font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+                            className="inline-flex items-center gap-1 rounded-lg bg-acento-azul/10 px-2.5 py-1 text-[12px] font-semibold text-acento-azul hover:bg-acento-azul hover:text-white dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark dark:hover:bg-acento-azul-dark dark:hover:text-surface-dark transition-colors"
                           >
                             Ver resultados
                             <ArrowRight size={13} aria-hidden="true" />
@@ -415,7 +456,7 @@ export default function PruebasPage() {
                       </div>
 
                       {expandida && (
-                        <div className="border-t border-border dark:border-border-dark bg-mist/40 dark:bg-surface-raised-dark px-4 py-3 space-y-2">
+                        <div className="border-t border-acento-azul/15 dark:border-border-dark bg-acento-azul/[0.04] dark:bg-surface-raised-dark px-4 py-3 space-y-2">
                           {cargandoDetalle && <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">Cargando...</p>}
                           <TextoError className="text-xs">{errorDetalle}</TextoError>
                           {p.instrucciones && (
@@ -433,7 +474,7 @@ export default function PruebasPage() {
                                   {detalle.dimensiones.map((d) => (
                                     <span
                                       key={d.id}
-                                      className="rounded-md border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2 py-0.5 text-[11.5px] text-ink/75 dark:text-ink-dark/75"
+                                      className="rounded-md border border-acento-azul/20 dark:border-border-dark bg-surface dark:bg-surface-dark px-2 py-0.5 text-[11.5px] text-ink/75 dark:text-ink-dark/75"
                                     >
                                       {d.nombre}
                                       {d.tipo_calculo !== "items" ? ` (${d.tipo_calculo})` : ""}
@@ -463,7 +504,7 @@ export default function PruebasPage() {
         <>
           <form
             onSubmit={verDashboardAcademico}
-            className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4 flex flex-col gap-3"
+            className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 flex flex-col gap-3"
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <ControlSegmentado<"seccion" | "grado" | "institucion">
@@ -621,7 +662,7 @@ export default function PruebasPage() {
 
               {/* --- Resumen estadístico interactivo --- */}
               {dashboard.resumen_estadistico.dimensiones.length > 0 && (
-                <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
+                <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
                       <BarChart3 size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
@@ -641,7 +682,7 @@ export default function PruebasPage() {
                   {/* Tendencia en el tiempo — solo tiene sentido para UN salón puntual
                       (ver docstring de crud.obtener_tendencia_seccion: un grado mezclaría
                       cohortes de campañas distintas en una sola línea). */}
-                  <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4 space-y-2 min-w-0">
+                  <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 space-y-2 min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-2">
                       <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
                         <TrendingUp size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
@@ -688,7 +729,7 @@ export default function PruebasPage() {
                   {/* Comparar con otra sección del mismo grado, lado a lado — dos
                       llamadas al mismo /dashboard/academico, sin endpoint nuevo. */}
                   {secciones.length > 1 && (
-                    <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4 space-y-2.5 min-w-0">
+                    <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 space-y-2.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <GitCompare size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
                         <p className="m-0 text-[14px] font-bold text-teal-900 dark:text-ink-dark">Comparar con otra sección del mismo grado</p>
@@ -722,7 +763,7 @@ export default function PruebasPage() {
                   {[dashboard, dashboardComparado].map((dash, i) => (
                     <div
                       key={i}
-                      className={`rounded-xl border bg-surface dark:bg-surface-dark p-4 ${
+                      className={`rounded-xl border bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 ${
                         i === 0 ? "border-teal-400/70 dark:border-teal-accent-dark/60" : "border-border dark:border-border-dark"
                       }`}
                     >
@@ -737,8 +778,8 @@ export default function PruebasPage() {
               )}
 
               {/* --- Alumnos --- */}
-              <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden">
-                <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark">
+              <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] overflow-hidden">
+                <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.08] dark:bg-acento-azul-dark/[0.08]">
                   <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
                     <Users size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
                     Alumnos

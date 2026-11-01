@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { type TonoBadge } from "@/components/ui/Badge";
-import { EncabezadoPagina, PastillaBanner } from "@/components/ui/Encabezado";
+import { EncabezadoPagina, PastillaBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { BloqueFicha, CuadriculaDatos, DatoFicha } from "@/components/educativo/BloqueFicha";
 import {
   Settings,
@@ -155,7 +155,7 @@ export default function ConfiguracionPage() {
         : { texto: "Licencia vigente", tono: "teal" };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-4">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina variante="destacado"
         icono={Settings}
         acento="pizarra"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -11,23 +11,21 @@ import {
   UsersRound,
   MapPin,
   Clock,
-  X,
   Presentation,
   MessagesSquare,
   Handshake,
   Shapes,
   AlertTriangle,
+  Search,
+  CalendarPlus,
   type LucideIcon,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
-import { CampoEditable } from "@/components/ui/CampoEditable";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Cita, CitaCreate, CitaUpdate, Persona } from "@/types/api";
-import { EncabezadoPagina, claseBotonBanner } from "@/components/ui/Encabezado";
+import { Cita, CitaUpdate, Persona } from "@/types/api";
+import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
+import { ModalNuevaActividad, type InicialActividad } from "@/components/educativo/ModalNuevaActividad";
 
 const TIPOS_ACTIVIDAD = ["Taller", "Charla", "Reunión", "Otro"];
 
@@ -173,28 +171,18 @@ export default function AgendaPage() {
   const [formReprogramar, setFormReprogramar] = useState({ fecha: "", hora: "", titulo: "", tipo_actividad: "", lugar: "", duracion: "45" });
   const [guardando, setGuardando] = useState(false);
 
-  // --- Actividad grupal (taller, charla, otro) — a diferencia de una cita
-  // individual, NO se agenda "poniendo en cada estudiante" uno por uno:
-  // se crea directamente aquí, en la agenda, con una lista de asistentes
-  // OPCIONAL (puede quedar vacía). Es visible para todo el staff de la
-  // institución apenas se crea (GET /citas/mi-agenda ya la incluye),
-  // mientras que una cita individual sigue siendo privada de quien la
-  // agendó. ---
-  const [formularioActividad, setFormularioActividad] = useState<{
-    titulo: string;
-    tipo_actividad: string;
-    fecha: string;
-    hora: string;
-    lugar: string;
-    duracion: string;
-    participantes_ids: Set<number>;
-  } | null>(null);
+  // --- Nueva cita individual / actividad grupal — ver
+  // components/educativo/ModalNuevaActividad.tsx. Una actividad grupal es
+  // visible para todo el staff apenas se crea (GET /citas/mi-agenda ya la
+  // incluye); una cita individual sigue siendo privada de quien la agendó.
+  // 🆕 (sesión 2026-10-31) La cita individual ya no exige pasar por la
+  // ficha del alumno: se busca aquí mismo (bloque lateral o el modal). ---
+  const [modal, setModal] = useState<InicialActividad | null>(null);
   const [personas, setPersonas] = useState<Persona[]>([]);
+  const [personasCargadas, setPersonasCargadas] = useState(false);
   const [cargandoPersonas, setCargandoPersonas] = useState(false);
   const [errorPersonas, setErrorPersonas] = useState<string | null>(null);
-  const [filtroPersonas, setFiltroPersonas] = useState("");
-  const [guardandoActividad, setGuardandoActividad] = useState(false);
-  const [errorFormularioActividad, setErrorFormularioActividad] = useState<string | null>(null);
+  const [busquedaCita, setBusquedaCita] = useState("");
 
   function cargar() {
     setCargando(true);
@@ -207,16 +195,6 @@ export default function AgendaPage() {
   }
 
   useEffect(cargar, []);
-
-  // Esc cierra el modal de nueva actividad.
-  useEffect(() => {
-    if (!formularioActividad) return;
-    function alPresionar(e: KeyboardEvent) {
-      if (e.key === "Escape") setFormularioActividad(null);
-    }
-    window.addEventListener("keydown", alPresionar);
-    return () => window.removeEventListener("keydown", alPresionar);
-  }, [formularioActividad]);
 
   const inicioSemanaVisible = useMemo(() => {
     const hoy = inicioDeSemana(new Date());
@@ -346,83 +324,38 @@ export default function AgendaPage() {
     }
   }
 
+  // Carga perezosa del padrón (solo activos) — recién cuando de verdad se
+  // va a elegir a alguien, no en cada carga de la agenda.
+  function asegurarPersonas() {
+    if (personasCargadas || cargandoPersonas || !sesion?.institucionId) return;
+    setCargandoPersonas(true);
+    setErrorPersonas(null);
+    apiClient
+      .getTodasLasPaginas<Persona>(`/admin/personas/${sesion.institucionId}`)
+      .then((lista) => {
+        setPersonas(lista);
+        setPersonasCargadas(true);
+      })
+      .catch((err) => setErrorPersonas((err instanceof Error && err.message) || "No se pudo cargar el padrón."))
+      .finally(() => setCargandoPersonas(false));
+  }
+
   // `fecha` opcional: el "+" de cada día de la semana abre el formulario
   // con ese día ya puesto (como al hacer clic en un día de un calendario).
-  function abrirFormularioActividad(fecha?: Date) {
-    setFormularioActividad({
-      titulo: "",
-      tipo_actividad: "Taller",
-      fecha: fecha ? fechaInputLocal(fecha) : "",
-      hora: "",
-      lugar: "",
-      duracion: "60",
-      participantes_ids: new Set(),
-    });
-    setErrorFormularioActividad(null);
-    setFiltroPersonas("");
-    // Carga perezosa del padrón — solo cuando de verdad se va a elegir
-    // asistentes, no en cada carga de la agenda.
-    if (personas.length === 0 && sesion?.institucionId) {
-      setCargandoPersonas(true);
-      apiClient
-        .getTodasLasPaginas<Persona>(`/admin/personas/${sesion.institucionId}`)
-        .then(setPersonas)
-        .catch((err: any) => setErrorPersonas(err.message || "No se pudo cargar el padrón."))
-        .finally(() => setCargandoPersonas(false));
-    }
+  function abrirModal(inicial: InicialActividad) {
+    asegurarPersonas();
+    setModal(inicial);
   }
 
-  function alternarParticipante(personaId: number) {
-    setFormularioActividad((f) => {
-      if (!f) return f;
-      const copia = new Set(f.participantes_ids);
-      if (copia.has(personaId)) copia.delete(personaId);
-      else copia.add(personaId);
-      return { ...f, participantes_ids: copia };
-    });
+  function alCrear(fechaHora: Date) {
+    setModal(null);
+    setBusquedaCita("");
+    // Salta a la semana de lo recién agendado para que se vea.
+    irAFecha(fechaHora);
+    cargar();
   }
 
-  async function guardarActividad(e: React.FormEvent) {
-    e.preventDefault();
-    if (!formularioActividad) return;
-    const { titulo, tipo_actividad, fecha, hora, lugar, duracion, participantes_ids } = formularioActividad;
-    if (!titulo.trim() || !fecha || !hora) {
-      setErrorFormularioActividad("Indica al menos el título, la fecha y la hora.");
-      return;
-    }
-    const fechaHora = new Date(`${fecha}T${hora}`);
-    if (Number.isNaN(fechaHora.getTime())) {
-      setErrorFormularioActividad("La fecha u hora ingresadas no son válidas.");
-      return;
-    }
-    const duracionMin = Number(duracion);
-    if (!duracionMin || duracionMin < 5 || duracionMin > 720) {
-      setErrorFormularioActividad("La duración debe estar entre 5 y 720 minutos.");
-      return;
-    }
-    setGuardandoActividad(true);
-    setErrorFormularioActividad(null);
-    try {
-      const payload: CitaCreate = {
-        motivo: titulo,
-        titulo,
-        tipo_actividad,
-        lugar: lugar || null,
-        fecha_hora: fechaHora.toISOString(),
-        duracion_minutos: duracionMin,
-        participantes_ids: Array.from(participantes_ids),
-      };
-      await apiClient.post("/admin/personas/citas/", payload);
-      setFormularioActividad(null);
-      // Salta a la semana de la actividad recién creada para que se vea.
-      irAFecha(fechaHora);
-      cargar();
-    } catch (err: any) {
-      setErrorFormularioActividad(err.message || "No se pudo crear la actividad.");
-    } finally {
-      setGuardandoActividad(false);
-    }
-  }
+  const cerrarModal = useCallback(() => setModal(null), []);
 
   const hoy = new Date();
   const finSemana = diasVisibles[6];
@@ -437,9 +370,13 @@ export default function AgendaPage() {
   const totalIndividuales = citas.filter((c) => c.persona_id !== null).length;
   const totalGrupales = citas.length - totalIndividuales;
 
-  const personasFiltradasModal = filtroPersonas.trim()
-    ? personas.filter((p) => `${p.nombres} ${p.apellidos}`.toLowerCase().includes(filtroPersonas.trim().toLowerCase()))
-    : personas;
+  const resultadosCita = busquedaCita.trim()
+    ? personas
+        .filter((p) =>
+          `${p.nombres} ${p.apellidos} ${p.documento_identidad ?? ""}`.toLowerCase().includes(busquedaCita.trim().toLowerCase()),
+        )
+        .slice(0, 6)
+    : [];
 
   const claseNav =
     "inline-flex items-center justify-center rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark transition-colors disabled:opacity-40";
@@ -454,7 +391,7 @@ export default function AgendaPage() {
   ];
 
   return (
-    <div className="max-w-[90rem] mx-auto flex flex-col gap-4">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       <EncabezadoPagina
         variante="destacado"
         acento="pizarra"
@@ -462,10 +399,16 @@ export default function AgendaPage() {
         titulo="Mi agenda"
         descripcion="Tus citas individuales y las actividades grupales de todo tu equipo."
         acciones={
-          <button type="button" onClick={() => abrirFormularioActividad()} className={claseBotonBanner("primario")}>
-            <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
-            Nueva actividad
-          </button>
+          <>
+            <button type="button" onClick={() => abrirModal({ modo: "individual" })} className={claseBotonBanner("secundario")}>
+              <User size={15} aria-hidden="true" />
+              Nueva cita
+            </button>
+            <button type="button" onClick={() => abrirModal({ modo: "grupal" })} className={claseBotonBanner("primario")}>
+              <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
+              Nueva actividad
+            </button>
+          </>
         }
       />
       <div className="grid gap-4 xl:grid-cols-[17.5rem_1fr] items-start">
@@ -561,6 +504,59 @@ export default function AgendaPage() {
             </div>
           </div>
 
+          {/* --- 🆕 Agendar cita individual sin salir de la agenda --- */}
+          <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
+            <p className="m-0 mb-1 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+              <User size={12} aria-hidden="true" className={ESTILO_CATEGORIA.individual.texto} />
+              Agendar cita individual
+            </p>
+            <p className="m-0 mb-2.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">Busca al estudiante y agenda sin entrar a su ficha.</p>
+            <div className="relative">
+              <Search size={13} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" />
+              <input
+                type="search"
+                aria-label="Buscar estudiante para una cita"
+                placeholder={cargandoPersonas ? "Cargando padrón..." : "Nombre o documento…"}
+                value={busquedaCita}
+                onFocus={asegurarPersonas}
+                onChange={(e) => setBusquedaCita(e.target.value)}
+                className="w-full rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
+              />
+            </div>
+            {errorPersonas && <p className="m-0 mt-2 text-[11.5px] text-red-700 dark:text-red-300">{errorPersonas}</p>}
+            {resultadosCita.length > 0 && (
+              <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-0.5">
+                {resultadosCita.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => abrirModal({ modo: "individual", persona: p })}
+                      className="group w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-teal-600/[0.07] dark:hover:bg-teal-accent-dark/10"
+                    >
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-600/10 text-[10.5px] font-bold text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                        {`${p.nombres[0] ?? ""}${p.apellidos[0] ?? ""}`.toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[12.5px] font-medium text-ink dark:text-ink-dark">
+                          {p.nombres} {p.apellidos}
+                        </span>
+                        <span className="block truncate text-[10.5px] text-ink/45 dark:text-ink-dark/45">
+                          {p.seccion_actual
+                            ? [p.seccion_actual.nivel_educativo, p.seccion_actual.grado, p.seccion_actual.seccion].filter(Boolean).join(" · ")
+                            : "Sin matrícula"}
+                        </span>
+                      </span>
+                      <CalendarPlus size={14} aria-hidden="true" className="shrink-0 text-ink/30 group-hover:text-teal-700 dark:group-hover:text-teal-accent-dark" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {busquedaCita.trim() && !cargandoPersonas && personasCargadas && resultadosCita.length === 0 && (
+              <p className="m-0 mt-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Ningún estudiante activo coincide.</p>
+            )}
+          </div>
+
           {/* --- Próximas --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
             <p className="m-0 mb-2.5 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas</p>
@@ -611,7 +607,7 @@ export default function AgendaPage() {
             <div className="min-w-0">
               <p className="m-0 text-[15px] font-semibold text-teal-700 dark:text-teal-accent-dark">{rangoSemana}</p>
               <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
-                Las citas individuales se agendan desde la ficha del alumno; talleres y charlas, aquí — las ve todo tu equipo.
+                Citas individuales: búscalas en el panel lateral o desde la ficha del alumno. Talleres y charlas los ve todo tu equipo.
               </p>
             </div>
             <div className="inline-flex items-center gap-1">
@@ -671,7 +667,7 @@ export default function AgendaPage() {
                       )}
                       <button
                         type="button"
-                        onClick={() => abrirFormularioActividad(dia)}
+                        onClick={() => abrirModal({ modo: "grupal", fecha: fechaInputLocal(dia) })}
                         aria-label={`Nueva actividad el ${NOMBRES_DIA[i].toLowerCase()} ${dia.getDate()}`}
                         title="Nueva actividad este día"
                         className={`${citasDelDia.length === 0 ? "" : "ml-auto"} md:ml-0 md:absolute md:top-2 md:right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink/40 dark:text-ink-dark/40 hover:bg-accion hover:text-white dark:hover:bg-teal-accent-dark dark:hover:text-mist-dark md:opacity-0 md:group-hover/dia:opacity-100 focus:opacity-100 transition-all`}
@@ -858,179 +854,16 @@ export default function AgendaPage() {
         </section>
       </div>
 
-      {/* ======================= MODAL: NUEVA ACTIVIDAD ======================= */}
-      {formularioActividad && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto">
-          <div className="fixed inset-0 bg-ink/45" aria-hidden="true" onClick={() => setFormularioActividad(null)} />
-          <form
-            onSubmit={guardarActividad}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="titulo-nueva-actividad"
-            className="relative w-full max-w-2xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-xl text-sm"
-          >
-            <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border dark:border-border-dark">
-              <h2 id="titulo-nueva-actividad" className="m-0 flex items-center gap-2 font-display text-[17px] text-teal-900 dark:text-ink-dark font-semibold">
-                <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-white ${ESTILO_CATEGORIA.grupal.muestra}`}>
-                  <UsersRound size={15} aria-hidden="true" />
-                </span>
-                Nueva actividad grupal
-              </h2>
-              <button
-                type="button"
-                onClick={() => setFormularioActividad(null)}
-                className="rounded-lg p-1.5 text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-raised-dark"
-                aria-label="Cerrar"
-              >
-                <X size={17} aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="px-5 py-4 space-y-4">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <CampoEditable etiqueta="Título (obligatorio)" className="sm:col-span-2">
-                  <Input
-                    required
-                    autoFocus
-                    placeholder="Ej. Taller de habilidades sociales"
-                    value={formularioActividad.titulo}
-                    onChange={(e) => setFormularioActividad({ ...formularioActividad, titulo: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Tipo">
-                  <Select
-                    value={formularioActividad.tipo_actividad}
-                    onChange={(e) => setFormularioActividad({ ...formularioActividad, tipo_actividad: e.target.value })}
-                  >
-                    {TIPOS_ACTIVIDAD.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
-                  </Select>
-                </CampoEditable>
-                <CampoEditable etiqueta="Lugar (opcional)">
-                  <Input
-                    placeholder="Ej. Auditorio"
-                    value={formularioActividad.lugar}
-                    onChange={(e) => setFormularioActividad({ ...formularioActividad, lugar: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Fecha">
-                  <Input
-                    type="date"
-                    required
-                    value={formularioActividad.fecha}
-                    onChange={(e) => setFormularioActividad({ ...formularioActividad, fecha: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Hora">
-                  <Input
-                    type="time"
-                    required
-                    value={formularioActividad.hora}
-                    onChange={(e) => setFormularioActividad({ ...formularioActividad, hora: e.target.value })}
-                  />
-                </CampoEditable>
-                <div className="sm:col-span-2 flex flex-col gap-1">
-                  <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Duración</span>
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {DURACIONES_RAPIDAS.map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        onClick={() => setFormularioActividad({ ...formularioActividad, duracion: String(d) })}
-                        aria-pressed={formularioActividad.duracion === String(d)}
-                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          formularioActividad.duracion === String(d)
-                            ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
-                            : "border-border dark:border-border-dark text-ink/70 dark:text-ink-dark/70 hover:border-teal-400"
-                        }`}
-                      >
-                        {textoDuracion(d)}
-                      </button>
-                    ))}
-                    <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50">
-                      u otra:
-                      <Input
-                        type="number"
-                        min={5}
-                        max={720}
-                        aria-label="Duración en minutos"
-                        value={formularioActividad.duracion}
-                        onChange={(e) => setFormularioActividad({ ...formularioActividad, duracion: e.target.value })}
-                        className="w-20"
-                      />
-                      min
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <span className="text-xs font-medium text-ink/50 dark:text-ink-dark/50 uppercase tracking-wide">
-                    Estudiantes asistentes (opcional)
-                    {formularioActividad.participantes_ids.size > 0 && (
-                      <span className="normal-case tracking-normal font-semibold text-teal-700 dark:text-teal-accent-dark">
-                        {" "}
-                        · {formularioActividad.participantes_ids.size} seleccionado(s)
-                      </span>
-                    )}
-                  </span>
-                  {personas.length > 8 && (
-                    <input
-                      type="search"
-                      aria-label="Buscar estudiante"
-                      placeholder="Buscar…"
-                      value={filtroPersonas}
-                      onChange={(e) => setFiltroPersonas(e.target.value)}
-                      className="w-40 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-2.5 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    />
-                  )}
-                </div>
-                <TextoError>{errorPersonas}</TextoError>
-                {cargandoPersonas ? (
-                  <p className="text-xs text-ink/40 dark:text-ink-dark/40">Cargando padrón...</p>
-                ) : personas.length === 0 ? (
-                  <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">No hay estudiantes en el padrón todavía.</p>
-                ) : (
-                  <div className="max-h-52 overflow-y-auto rounded-lg border border-border dark:border-border-dark grid sm:grid-cols-2">
-                    {personasFiltradasModal.map((p) => (
-                      <label
-                        key={p.id}
-                        className="flex items-center gap-2 px-2.5 py-1.5 text-xs text-ink dark:text-ink-dark hover:bg-mist/60 dark:hover:bg-surface-raised-dark cursor-pointer border-b border-border/60 dark:border-border-dark"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formularioActividad.participantes_ids.has(p.id)}
-                          onChange={() => alternarParticipante(p.id)}
-                          className="accent-teal-600"
-                        />
-                        {p.nombres} {p.apellidos}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <TextoError>{errorFormularioActividad}</TextoError>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-border dark:border-border-dark bg-mist/40 dark:bg-surface-raised-dark rounded-b-2xl">
-              <button
-                type="button"
-                onClick={() => setFormularioActividad(null)}
-                className="text-sm font-medium text-ink/60 dark:text-ink-dark/60 hover:underline"
-              >
-                Cancelar
-              </button>
-              <Boton type="submit" disabled={guardandoActividad}>
-                {guardandoActividad ? "Creando..." : "Crear actividad"}
-              </Boton>
-            </div>
-          </form>
-        </div>
+      {/* ======================= MODAL: NUEVA CITA / ACTIVIDAD ======================= */}
+      {modal && (
+        <ModalNuevaActividad
+          inicial={modal}
+          personas={personas}
+          cargandoPersonas={cargandoPersonas}
+          errorPersonas={errorPersonas}
+          onCerrar={cerrarModal}
+          onCreada={alCrear}
+        />
       )}
     </div>
   );

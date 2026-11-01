@@ -94,6 +94,10 @@ export type Persona = {
   activo: boolean;
   fecha_registro: string;
   seccion_actual: SeccionActual | null;
+  // 🆕 "Con Dx" — derivado en el backend de los antecedentes clínicos
+  // externos (terapia psicológica o atención psiquiátrica externa = Sí). Solo
+  // viene resuelto en el listado del padrón; en otros endpoints llega false.
+  con_diagnostico?: boolean;
 };
 
 // ==========================================
@@ -554,6 +558,11 @@ export type ConteosEstructuraAcademica = {
   niveles: Record<string, number>;
   grados: Record<string, number>;
   secciones: Record<string, number>;
+  // 🆕 Cuántos de esos estudiantes están "con Dx" (sin Dx = total - con Dx).
+  total_con_diagnostico: number;
+  niveles_con_diagnostico: Record<string, number>;
+  grados_con_diagnostico: Record<string, number>;
+  secciones_con_diagnostico: Record<string, number>;
 };
 
 export type Cita = {

@@ -6,9 +6,19 @@ import {
   CalendarClock,
   Mail,
   IdCard,
+  Stethoscope,
+  ShieldCheck,
+  HelpCircle,
   type LucideIcon,
 } from "lucide-react";
-import type { Cita, HistorialInformePersona, Persona, SeccionActual, SesionSeguimiento } from "@/types/api";
+import type {
+  Cita,
+  HistorialInformePersona,
+  Persona,
+  PersonaAntecedentesClinicos,
+  SeccionActual,
+  SesionSeguimiento,
+} from "@/types/api";
 import { ACENTOS, type Acento } from "@/lib/acentos";
 
 // 🆕 Perfil del estudiante (sesión 2026-10-30, a pedido del usuario: "como
@@ -78,6 +88,8 @@ export function TarjetaPerfil({
   alumno,
   matricula,
   consentimientoVigente,
+  antecedentes = null,
+  puedeEditarAntecedentes = false,
   acciones,
   children,
 }: {
@@ -85,9 +97,13 @@ export function TarjetaPerfil({
   matricula: SeccionActual | null;
   // null = todavía no cargó (o el rol no lo ve): no se afirma nada.
   consentimientoVigente: boolean | null;
+  // null = no cargó / error: no se muestra el apartado de riesgo.
+  antecedentes?: PersonaAntecedentesClinicos | null;
+  puedeEditarAntecedentes?: boolean;
   acciones?: ReactNode;
   children?: ReactNode;
 }) {
+  const estadoDx = estadoDiagnostico(antecedentes);
   const edad = calcularEdad(alumno.fecha_nacimiento);
   const iniciales = `${alumno.nombres.trim()[0] ?? ""}${alumno.apellidos.trim()[0] ?? ""}`.toUpperCase();
   const ubicacion = matricula ? [matricula.nivel_educativo, matricula.grado, matricula.seccion].filter(Boolean).join(" · ") : null;
@@ -96,9 +112,12 @@ export function TarjetaPerfil({
     <section className="rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
       <div className="h-1.5 bg-gradient-to-r from-teal-900 via-teal-600 to-teal-400 dark:from-teal-accent-dark/60 dark:to-teal-accent-dark/20" />
 
-      <div className="grid lg:grid-cols-[minmax(16rem,20rem)_1fr_13rem]">
+      {/* 🔧 (sesión 2026-10-31) Fondo teal suave SOLO en la cabecera del
+          perfil, para que se distinga de los bloques de datos del estudiante
+          (filiación, abajo, sobre fondo neutro). */}
+      <div className="grid lg:grid-cols-[minmax(16rem,20rem)_1fr_13rem] bg-gradient-to-br from-teal-600/[0.10] via-teal-400/[0.06] to-teal-600/[0.02] dark:from-teal-accent-dark/[0.10] dark:via-teal-accent-dark/[0.04] dark:to-transparent">
         {/* --- 1. Perfil --- */}
-        <div className="flex items-center gap-4 p-6 border-b lg:border-b-0 lg:border-r border-border dark:border-border-dark">
+        <div className="flex items-center gap-4 p-6 border-b lg:border-b-0 lg:border-r border-teal-600/15 dark:border-border-dark">
           <div className="relative shrink-0">
             <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-teal-900 to-teal-600 font-display text-[26px] font-bold text-white ring-4 ring-teal-600/10 dark:from-teal-accent-dark/40 dark:to-teal-accent-dark/10 dark:text-teal-accent-dark dark:ring-teal-accent-dark/10">
               {iniciales}
@@ -131,18 +150,24 @@ export function TarjetaPerfil({
             <span
               className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${
                 alumno.activo
-                  ? "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
-                  : "bg-border text-ink/55 dark:bg-border-dark dark:text-ink-dark/55"
+                  ? "bg-surface text-teal-800 ring-1 ring-teal-600/20 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark dark:ring-0"
+                  : "bg-surface text-ink/55 ring-1 ring-border dark:bg-border-dark dark:text-ink-dark/55 dark:ring-0"
               }`}
             >
               <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${alumno.activo ? "bg-teal-500 dark:bg-teal-accent-dark" : "bg-ink/30"}`} />
               {alumno.activo ? "Activo" : "Inactivo"}
             </span>
+            {estadoDx === "con-dx" && (
+              <span className="ml-1.5 mt-2 inline-flex items-center gap-1 rounded-full bg-amber/20 px-2.5 py-0.5 text-[11.5px] font-bold text-amber-800 dark:bg-amber/15 dark:text-amber">
+                <Stethoscope size={12} aria-hidden="true" />
+                Con Dx
+              </span>
+            )}
           </div>
         </div>
 
         {/* --- 2. Datos clave (los que no están en filiación) --- */}
-        <dl className="m-0 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 p-6 content-center border-b lg:border-b-0 lg:border-r border-border dark:border-border-dark">
+        <dl className="m-0 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 p-6 content-center border-b lg:border-b-0 lg:border-r border-teal-600/15 dark:border-border-dark">
           <Dato etiqueta="Edad" valor={edad !== null ? `${edad} años` : null} />
           <Dato
             etiqueta="Nivel · grado · sección"
@@ -169,9 +194,108 @@ export function TarjetaPerfil({
         )}
       </div>
 
+      {estadoDx !== null && antecedentes && (
+        <SituacionRiesgo estado={estadoDx} antecedentes={antecedentes} puedeEditar={puedeEditarAntecedentes} />
+      )}
+
       {/* --- Datos de filiación editables, dentro del mismo bloque --- */}
-      {children && <div className="border-t border-border dark:border-border-dark bg-mist/30 dark:bg-surface-raised-dark/30 p-5">{children}</div>}
+      {children && <div className="border-t border-teal-600/15 dark:border-border-dark bg-surface dark:bg-surface-dark p-5">{children}</div>}
     </section>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 🆕 Situación de riesgo (sesión 2026-10-31). No hay un botón "marcar en
+// riesgo": el estado se DERIVA de los antecedentes clínicos externos que ya
+// se llenan en la ficha — mismo criterio que el backend usa para el padrón y
+// la estructura académica (crud._condicion_con_diagnostico):
+// - "con-dx": terapia psicológica externa = Sí o atención psiquiátrica externa = Sí.
+// - "sin-dx": ambas respondidas y ninguna es Sí.
+// - "sin-completar": alguna sigue sin responder (NULL) y ninguna es Sí —
+//   nunca se afirma "sin Dx" sobre algo que no se preguntó.
+type EstadoDx = "con-dx" | "sin-dx" | "sin-completar";
+
+export function estadoDiagnostico(a: PersonaAntecedentesClinicos | null | undefined): EstadoDx | null {
+  if (!a) return null;
+  const terapia = a.recibe_terapia_psicologica_externa;
+  const psiquiatria = a.recibe_atencion_psiquiatrica_externa;
+  if (terapia === true || psiquiatria === true) return "con-dx";
+  if (terapia === false && psiquiatria === false) return "sin-dx";
+  return "sin-completar";
+}
+
+function SituacionRiesgo({
+  estado,
+  antecedentes,
+  puedeEditar,
+}: {
+  estado: EstadoDx;
+  antecedentes: PersonaAntecedentesClinicos;
+  puedeEditar: boolean;
+}) {
+  const enlace = (
+    <a href="#antecedentes-clinicos" className="font-semibold underline underline-offset-2 hover:no-underline">
+      {puedeEditar ? "Actualizar en Antecedentes clínicos externos" : "Ver Antecedentes clínicos externos"}
+    </a>
+  );
+
+  if (estado === "con-dx") {
+    const motivos: { etiqueta: string; detalle: string | null | undefined }[] = [];
+    if (antecedentes.recibe_terapia_psicologica_externa) {
+      motivos.push({ etiqueta: "Recibe terapia psicológica externa", detalle: antecedentes.detalle_terapia_psicologica_externa });
+    }
+    if (antecedentes.recibe_atencion_psiquiatrica_externa) {
+      motivos.push({ etiqueta: "Recibe atención psiquiátrica externa", detalle: antecedentes.detalle_atencion_psiquiatrica_externa });
+    }
+    return (
+      <div role="status" className="border-t border-amber/40 bg-amber/[0.08] px-6 py-4 shadow-[inset_4px_0_0_var(--color-amber)]">
+        <div className="flex items-start gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber/20 text-amber-800 dark:text-amber">
+            <Stethoscope size={17} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="m-0 font-display text-[15px] font-bold text-amber-800 dark:text-amber">Situación de riesgo: estudiante con diagnóstico</p>
+            <ul className="m-0 mt-1.5 list-none p-0 space-y-1 text-[13px] text-ink/80 dark:text-ink-dark/80">
+              {motivos.map((m) => (
+                <li key={m.etiqueta}>
+                  <span className="font-semibold">{m.etiqueta}</span>
+                  {m.detalle ? <span className="text-ink/60 dark:text-ink-dark/60"> — {m.detalle}</span> : null}
+                </li>
+              ))}
+              {antecedentes.diagnostico_reportado && (
+                <li>
+                  <span className="font-semibold">Diagnóstico reportado:</span>{" "}
+                  <span className="text-ink/70 dark:text-ink-dark/70">{antecedentes.diagnostico_reportado}</span>
+                </li>
+              )}
+            </ul>
+            <p className="m-0 mt-2 text-[11.5px] text-ink/55 dark:text-ink-dark/55">
+              Se marca automáticamente a partir de los antecedentes clínicos externos — aparece en amarillo en el Padrón y en la
+              Estructura académica. {enlace}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const sinDx = estado === "sin-dx";
+  const Icono = sinDx ? ShieldCheck : HelpCircle;
+  return (
+    <div className="border-t border-border dark:border-border-dark px-6 py-3">
+      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+        <Icono size={15} aria-hidden="true" className={sinDx ? "text-teal-600 dark:text-teal-accent-dark" : "text-ink/40 dark:text-ink-dark/40"} />
+        <span className="font-semibold text-ink/75 dark:text-ink-dark/75">
+          {sinDx ? "Sin diagnóstico externo registrado" : "Situación de riesgo sin definir"}
+        </span>
+        <span>
+          {sinDx
+            ? "No recibe terapia psicológica ni atención psiquiátrica externa."
+            : "Responde Sí/No a terapia psicológica y atención psiquiátrica externa para definirla."}
+        </span>
+        {enlace}
+      </p>
+    </div>
   );
 }
 
@@ -203,10 +327,10 @@ function Indicador({
   tono: Tono;
 }) {
   return (
-    <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4 flex flex-col gap-2">
+    <div className={`rounded-xl border p-4 flex flex-col gap-2 ${ACENTOS[acento].fondo}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="m-0 text-[12.5px] font-medium text-ink/65 dark:text-ink-dark/65">{titulo}</p>
-        <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${ACENTOS[acento].chip}`}>
+        <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${ACENTOS[acento].chipSolido}`}>
           <Icono size={14} aria-hidden="true" />
         </span>
       </div>

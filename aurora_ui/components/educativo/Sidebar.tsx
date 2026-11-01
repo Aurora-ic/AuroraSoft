@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -13,9 +12,10 @@ import {
   ChevronRight,
   LogOut,
   X,
+  School,
   type LucideIcon,
 } from "lucide-react";
-import { ACENTOS, type Acento } from "@/lib/acentos";
+import { type Acento } from "@/lib/acentos";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
 import type { Cita, Institucion } from "@/types/api";
@@ -80,6 +80,35 @@ const GRUPOS: Grupo[] = [
     ],
   },
 ];
+
+// 🆕 (sesión 2026-10-31, a pedido del usuario, con una imagen de referencia
+// SOLO para el color) Barra lateral en verde petróleo con degradado, texto
+// claro y el enlace activo en una pastilla verde agua — los mismos verdes
+// de los bloques del Inicio. Arriba ya no va AuroraSoft sino el logo y el
+// nombre de la INSTITUCIÓN (Institucion.logo_url, el mismo logo de
+// encabezado que se sube en Configuración); AuroraSoft pasó a la esquina
+// superior derecha del Topbar.
+const PASTILLA_ACTIVA =
+  "bg-gradient-to-r from-[#2BB3A0] to-[#1C8F80] text-white shadow-[0_6px_16px_-6px_rgba(43,179,160,0.65)]";
+const TEXTO_ENLACE = "text-white/75 hover:bg-white/[0.08] hover:text-white";
+
+// Chip del ícono de cada grupo sobre fondo oscuro: las variantes "-dark" de
+// cada acento (pensadas justamente para fondos oscuros, ver globals.css).
+const CHIP_GRUPO: Record<Acento, string> = {
+  teal: "bg-teal-accent-dark/20 text-teal-accent-dark",
+  azul: "bg-acento-azul-dark/20 text-acento-azul-dark",
+  violeta: "bg-acento-violeta-dark/20 text-acento-violeta-dark",
+  pizarra: "bg-acento-pizarra-dark/25 text-acento-pizarra-dark",
+  riesgo: "bg-amber/20 text-amber",
+};
+
+function inicialesInstitucion(nombre: string): string {
+  const palabras = nombre
+    .replace(/[^\p{L}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2 || /^[A-ZÁÉÍÓÚÑ]/.test(w));
+  return (palabras.slice(0, 2).map((w) => w[0]).join("") || nombre.slice(0, 2)).toUpperCase();
+}
 
 // 🆕 Responsive (sesión 2026-10-29, a pedido del usuario) — antes la barra
 // lateral era fija en todo ancho y se comía el espacio del contenido en
@@ -157,16 +186,14 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
         className={`flex items-center justify-between gap-2 rounded-lg text-[13px] transition-colors ${
           indentado ? "px-3 py-1.5 font-medium" : "px-3 py-2 font-semibold"
         } ${
-          activo
-            ? "bg-teal-900 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
-            : "text-ink/75 dark:text-ink-dark/75 hover:bg-mist dark:hover:bg-surface-dark"
+          activo ? PASTILLA_ACTIVA : TEXTO_ENLACE
         }`}
       >
         {enlace.label}
         {enlace.href === "/agenda" && !!citasHoy && (
           <span
             className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold leading-none ${
-              activo ? "bg-white/20 text-white" : "bg-teal-600/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-teal-accent-dark"
+              activo ? "bg-white/25 text-white" : "bg-teal-accent-dark/25 text-[#7FE3D2]"
             }`}
           >
             {citasHoy}
@@ -178,7 +205,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] shrink-0 border-r border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark flex flex-col justify-between h-screen overflow-y-auto transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:transition-none ${
+      className={`fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] shrink-0 bg-gradient-to-b from-[#0E4A44] via-[#0A3B36] to-[#062B28] dark:from-[#0A2E2A] dark:via-[#082522] dark:to-[#051A18] text-white flex flex-col justify-between h-screen overflow-y-auto transition-transform duration-200 lg:sticky lg:top-0 lg:z-auto lg:translate-x-0 lg:transition-none ${
         abierto ? "translate-x-0 shadow-xl" : "-translate-x-full"
       }`}
     >
@@ -188,22 +215,33 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar menú"
-            className="lg:hidden absolute top-5 right-3 p-1.5 rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-dark"
+            className="lg:hidden absolute top-5 right-3 p-1.5 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
           >
             <X size={18} strokeWidth={2} aria-hidden="true" />
           </button>
-          <div className="flex items-center gap-2.5">
-            <Image src="/logo.png" alt="" width={140} height={99} className="h-7 w-auto" />
-            <span className="font-display text-[17px] font-bold text-ink dark:text-ink-dark">AuroraSoft</span>
+          {/* Logo + nombre de la institución. El logo va sobre una
+              pastilla blanca: cualquier logo (fondo blanco o transparente,
+              a color) se lee igual sobre el verde oscuro. */}
+          <div className="flex items-center gap-3 pr-6">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-white/20">
+              {institucion?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- URL externa configurada por la institución (mismo <img> que Configuración)
+                <img src={institucion.logo_url} alt="" className="h-full w-full object-contain p-1" />
+              ) : institucion ? (
+                <span className="font-display text-[15px] font-bold text-teal-900">{inicialesInstitucion(institucion.nombre)}</span>
+              ) : (
+                <School size={20} className="text-teal-900/60" aria-hidden="true" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <p className="m-0 font-display text-[15px] font-bold leading-tight text-white line-clamp-2" title={institucion?.nombre}>
+                {institucion?.nombre ?? "Mi institución"}
+              </p>
+              <p className="m-0 mt-0.5 text-[11px] text-white/55 truncate">
+                {institucion?.anio_escolar_activo ? `Año escolar ${institucion.anio_escolar_activo}` : institucion?.tipo || "Institución educativa"}
+              </p>
+            </div>
           </div>
-          {institucion && (
-            <p
-              className="mt-1.5 text-[11.5px] text-ink/45 dark:text-ink-dark/45 truncate"
-              title={institucion.nombre}
-            >
-              {institucion.nombre}
-            </p>
-          )}
         </div>
 
         {/* Inicio — único enlace de nivel superior: icono + label, SIN
@@ -212,9 +250,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
           <Link
             href="/inicio"
             className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-semibold transition-colors ${
-              pathname?.startsWith("/inicio")
-                ? "bg-teal-900 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
-                : "text-ink/80 dark:text-ink-dark/80 hover:bg-mist dark:hover:bg-surface-dark"
+              pathname?.startsWith("/inicio") ? PASTILLA_ACTIVA : TEXTO_ENLACE
             }`}
           >
             <Home size={17} strokeWidth={2} aria-hidden="true" />
@@ -222,7 +258,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
           </Link>
         </nav>
 
-        <div className="h-px bg-border dark:bg-border-dark mx-4 my-2" />
+        <div className="h-px bg-white/10 mx-4 my-2" />
 
         <nav className="flex flex-col gap-0.5 px-3 pb-3">
           {GRUPOS.map((grupo) => {
@@ -244,12 +280,12 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
                   aria-expanded={abierto}
                   className={`w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-[13px] font-semibold transition-colors ${
                     contieneActiva
-                      ? "bg-mist dark:bg-surface-dark text-ink dark:text-ink-dark"
-                      : "text-ink/60 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-dark"
+                      ? "bg-white/[0.07] text-white"
+                      : "text-white/70 hover:bg-white/[0.08] hover:text-white"
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-md ${ACENTOS[grupo.acento].chip}`}>
+                    <span className={`flex h-6 w-6 items-center justify-center rounded-md ${CHIP_GRUPO[grupo.acento]}`}>
                       <Icono size={14} strokeWidth={2.1} aria-hidden="true" />
                     </span>
                     {grupo.titulo}
@@ -262,7 +298,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
                   />
                 </button>
                 {abierto && (
-                  <div className="flex flex-col gap-0.5 mt-1 ml-[25px] pl-3.5 border-l border-border dark:border-border-dark">
+                  <div className="flex flex-col gap-0.5 mt-1 ml-[25px] pl-3.5 border-l border-white/15">
                     {grupo.enlaces.map((e) => renderEnlace(e, true))}
                   </div>
                 )}
@@ -273,21 +309,21 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
       </div>
 
       {/* Cuenta / cerrar sesión */}
-      <div className="p-3 border-t border-border dark:border-border-dark">
+      <div className="p-3 border-t border-white/10 bg-black/10">
         <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg">
-          <div className="w-8 h-8 rounded-full bg-mist dark:bg-surface-dark flex items-center justify-center text-[12px] font-bold text-teal-700 dark:text-teal-accent-dark flex-shrink-0">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2BB3A0] to-[#1C8F80] flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0">
             {(sesion?.email?.[0] || "?").toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark truncate" title={sesion?.email}>
+            <p className="m-0 text-[12.5px] font-semibold text-white truncate" title={sesion?.email}>
               {sesion?.email}
             </p>
-            <p className="m-0 text-[11px] text-ink/45 dark:text-ink-dark/45 capitalize">{sesion?.rol}</p>
+            <p className="m-0 text-[11px] text-white/55 capitalize">{sesion?.rol}</p>
           </div>
           <button
             onClick={cerrarSesion}
             aria-label="Cerrar sesión"
-            className="flex-shrink-0 text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:hover:text-ink-dark p-1.5 rounded-lg hover:bg-mist dark:hover:bg-surface-dark"
+            className="flex-shrink-0 text-white/55 hover:text-white p-1.5 rounded-lg hover:bg-white/10"
           >
             <LogOut size={15} strokeWidth={2} aria-hidden="true" />
           </button>

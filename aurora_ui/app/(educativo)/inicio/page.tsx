@@ -32,6 +32,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { ACENTOS, type Acento } from "@/lib/acentos";
 import type { Cita, Evaluacion, RespuestaPaginada, ResumenInicio, SeriesInicio } from "@/types/api";
 import { AvanceCampanas, GraficoEvaluacionesMes, GraficoSeguimientoMes } from "@/components/educativo/GraficosInicio";
+import { CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 
 type CasoPendiente = {
   persona_id: number;
@@ -57,15 +58,18 @@ function cierraEnMenosDe(fechaIso: string | null, dias: number): boolean {
   return new Date(fechaIso) <= limite;
 }
 
+// 🆕 (sesión 2026-10-31) Fondo de cada bloque = color de su sección:
+// ACENTOS[x].fondo (bloques chicos) / .fondoSuave (grandes), lib/acentos.ts.
+
 // --- Accesos rápidos: 4 atajos a la acción más común de cada área ---
 // 🆕 `acento` = color de la sección a la que lleva (lib/acentos.ts).
 function AccesoRapido({ href, icono: Icono, label, acento }: { href: string; icono: typeof Plus; label: string; acento: Acento }) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl px-4 py-3.5 hover:border-teal-400 dark:hover:border-teal-accent-dark transition-colors group"
+      className={`flex items-center gap-3 border rounded-xl px-4 py-3.5 hover:shadow-sm hover:-translate-y-px transition-all group ${ACENTOS[acento].fondo}`}
     >
-      <div className={`w-9 h-9 rounded-lg ${ACENTOS[acento].chip} flex items-center justify-center flex-shrink-0`}>
+      <div className={`w-9 h-9 rounded-lg ${ACENTOS[acento].chipSolido} flex items-center justify-center flex-shrink-0`}>
         <Icono size={17} strokeWidth={2} aria-hidden="true" />
       </div>
       <span className="flex-1 min-w-0 text-[13px] font-semibold leading-snug text-ink dark:text-ink-dark">{label}</span>
@@ -73,7 +77,7 @@ function AccesoRapido({ href, icono: Icono, label, acento }: { href: string; ico
         size={15}
         strokeWidth={2}
         aria-hidden="true"
-        className="text-ink/25 dark:text-ink-dark/25 group-hover:text-teal-600 dark:group-hover:text-teal-accent-dark group-hover:translate-x-0.5 transition-all flex-shrink-0"
+        className={`opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all flex-shrink-0 ${ACENTOS[acento].texto}`}
       />
     </Link>
   );
@@ -94,12 +98,14 @@ function TarjetaKpi({
   acento: Acento;
 }) {
   return (
-    <div className="bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-4 sm:p-5 flex flex-col gap-3">
-      <div className={`w-8 h-8 rounded-lg ${ACENTOS[acento].chip} flex items-center justify-center`}>
-        <Icono size={15} strokeWidth={2} aria-hidden="true" />
+    // 🆕 Ícono a la izquierda y, al costado, número + nombre (antes iban
+    // apilados y dejaban espacio sobrante a la derecha de cada tarjeta).
+    <div className={`border rounded-xl px-4 py-3.5 sm:px-5 sm:py-4 flex items-center gap-3.5 ${ACENTOS[acento].fondo}`}>
+      <div className={`w-11 h-11 rounded-xl ${ACENTOS[acento].chipSolido} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+        <Icono size={20} strokeWidth={2} aria-hidden="true" />
       </div>
-      <div>
-        <p className="m-0 font-display text-[28px] font-bold text-ink dark:text-ink-dark leading-none">
+      <div className="min-w-0">
+        <p className="m-0 font-display text-[26px] font-bold text-ink dark:text-ink-dark leading-none">
           {valor === null ? (
             <span className="inline-block w-10 h-6 bg-mist dark:bg-surface-raised-dark rounded animate-pulse align-middle" />
           ) : (
@@ -109,7 +115,7 @@ function TarjetaKpi({
             </>
           )}
         </p>
-        <p className="m-0 mt-1.5 text-[12px] font-medium text-ink/55 dark:text-ink-dark/55">{label}</p>
+        <p className="m-0 mt-1 text-[12px] font-medium leading-snug text-ink/60 dark:text-ink-dark/60">{label}</p>
       </div>
     </div>
   );
@@ -134,7 +140,7 @@ function TarjetaResumen({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`bg-surface dark:bg-surface-dark border border-border dark:border-border-dark rounded-xl p-5 flex flex-col gap-3.5 min-w-0 ${className}`}>
+    <div className={`border rounded-xl p-5 flex flex-col gap-3.5 min-w-0 ${ACENTOS[acento].fondoSuave} ${className}`}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="m-0 flex items-center gap-2 text-[13px] font-bold text-ink dark:text-ink-dark">
           <span className={`flex h-6 w-6 items-center justify-center rounded-md ${ACENTOS[acento].chip}`}>
@@ -219,7 +225,7 @@ export default function InicioPage() {
   const nombreMes = new Date().toLocaleDateString("es-PE", { month: "long" });
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-5">
+    <div className={CLASE_CONTENEDOR_SECCION}>
       {/* ===== Encabezado ===== */}
       <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between flex-wrap gap-5">
         <div>
@@ -252,8 +258,8 @@ export default function InicioPage() {
         {/* 4 columnas solo cuando de verdad entran (xl) — antes `sm:grid-cols-4`
             apretaba "Casos en riesgo"/"Documentos" fuera de su tarjeta. */}
         <div className="grid grid-cols-1 min-[440px]:grid-cols-2 xl:grid-cols-4 gap-3">
-          <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" acento="azul" />
           <AccesoRapido href="/estudiantes" icono={Users} label="Padrón" acento="teal" />
+          <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" acento="azul" />
           <AccesoRapido href="/documentos" icono={FileText} label="Documentos" acento="violeta" />
           <AccesoRapido href="/casos-riesgo" icono={AlertTriangle} label="Casos en riesgo" acento="riesgo" />
         </div>

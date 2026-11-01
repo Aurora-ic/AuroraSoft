@@ -6,9 +6,14 @@ import Link from "next/link";
 // estás parado. El último ítem (sin `href`) es la página actual.
 export type MigaItem = { label: string; href?: string };
 
-export function Migas({ items }: { items: MigaItem[] }) {
+// `sinMargen`: dentro de CLASE_CONTENEDOR_SECCION (flex + gap) el mb-4 se
+// SUMARÍA al gap — en un contenedor space-y se colapsaba y no se notaba.
+export function Migas({ items, sinMargen = false }: { items: MigaItem[]; sinMargen?: boolean }) {
   return (
-    <nav className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50 mb-4 flex-wrap" aria-label="Ruta de navegación">
+    <nav
+      className={`flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50 flex-wrap ${sinMargen ? "-mb-1" : "mb-4"}`}
+      aria-label="Ruta de navegación"
+    >
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
           {i > 0 && <span className="text-ink/30 dark:text-ink-dark/30">/</span>}
