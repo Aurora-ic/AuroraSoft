@@ -19,6 +19,10 @@ export default defineConfig({
   // padrón, rompiendo un locator que esperaba uno solo).
   workers: 1,
   retries: 0,
+  // 🔧 (sesión 2026-11-02) 90 s por test (antes, los 30 s por defecto): los
+  // flujos largos (agenda, documentos, master) encadenan muchos pasos contra
+  // el backend y la BD reales, y en desarrollo cada consulta cuesta ~80 ms.
+  timeout: 90_000,
   reporter: "list",
   use: {
     // 🔒 "localhost", nunca "127.0.0.1" -- `next dev` (Next.js 16) bloquea

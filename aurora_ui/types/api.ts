@@ -815,6 +815,10 @@ export type Prueba = {
   modo_interpretacion: string;
   visible_para_clientes: boolean;
   informante_tipo: string;
+  // 🆕 (sesión 2026-11-02) Reaplicación: el valor guardado y el que aplica
+  // de verdad la regla del backend (NULL o 0 -> 60 días).
+  dias_minimos_entre_aplicaciones?: number | null;
+  dias_reaplicacion?: number;
 };
 
 export type Dimension = {

@@ -315,9 +315,12 @@ def main(url_base):
     comprobar("Reanudar no permite cambiar edad/población a mitad del examen",
               tuple(datos) == ("En Progreso", 15, "Secundaria"), str(tuple(datos)))
     prog = exigir(requests.get(f"{API}/educativo/examen/{token_p}/progreso", timeout=30), 200, "Progreso")
+    # 🔧 (sesión 2026-11-02) La respuesta trae también respuesta_numerica
+    # (ítems numéricos, sesión posterior a este test): se comparan solo
+    # pregunta y opción.
     comprobar("/progreso devuelve lo ya contestado para retomar",
-              prog["respuestas"] == [{"pregunta_id": pregs_r[1]["id"],
-                                      "opcion_id": pregs_r[1]["opciones"][1]["id"]}], str(prog))
+              [(r["pregunta_id"], r["opcion_id"]) for r in prog["respuestas"]]
+              == [(pregs_r[1]["id"], pregs_r[1]["opciones"][1]["id"])], str(prog))
     comprobar("/progreso no expone puntajes", "puntaje" not in str(prog).lower())
     exigir(requests.post(f"{API}/educativo/examen/{token_p}/guardar", json={"respuestas": [
         {"pregunta_id": pregs_r[i]["id"], "opcion_id": pregs_r[i]["opciones"][0]["id"]} for i in (2, 3)]},

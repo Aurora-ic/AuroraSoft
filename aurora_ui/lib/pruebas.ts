@@ -5,6 +5,18 @@ import type { Prueba } from "@/types/api";
 // "DASS-21" → DASS + 21, "CHASIDE" → CHA, "HAMILTON_AUTOINFORME" → HAM —
 // en vez de las 2 primeras letras de cualquier nombre ("PH", "NI", "Es").
 // Compartido por el catálogo (/pruebas) y el paso 1 de /campanas/nueva.
+// 🆕 (sesión 2026-11-02) "Cada 14 días (2 semanas)", "Cada 180 días (6
+// meses)" — la reaplicación de una prueba en lenguaje de calendario.
+export function textoReaplicacion(dias: number): string {
+  const equivalente =
+    dias % 30 === 0 && dias >= 30
+      ? `${dias / 30} ${dias / 30 === 1 ? "mes" : "meses"}`
+      : dias % 7 === 0
+        ? `${dias / 7} ${dias / 7 === 1 ? "semana" : "semanas"}`
+        : null;
+  return `Cada ${dias} días${equivalente ? ` (${equivalente})` : ""}`;
+}
+
 export function siglaPrueba(p: Pick<Prueba, "nombre_tecnico">): { sigla: string; numero: string | null } {
   const partes = p.nombre_tecnico.split(/[-_\s]+/).filter(Boolean);
   const primera = (partes[0] ?? p.nombre_tecnico).toUpperCase();

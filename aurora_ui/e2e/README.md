@@ -63,3 +63,11 @@ tampoco limpian solos, por eso existe `--limpiar`). Los datos quedan prefijados
 `ZZPLAYWRIGHT` en institución/personas/pruebas/usuarios (`zzpw.*@ejemplo.com`) —
 bórralos a mano contra la base de datos cuando quieras, o pide que se limpien en
 la misma sesión que corriste la suite.
+
+🆕 (sesión 2026-11-02) Hay un limpiador: desde `backend/`,
+`python -m tests.limpiar_playwright` simula (cuenta lo que borraría) y
+`python -m tests.limpiar_playwright borrar` lo elimina en una transacción,
+siguiendo las claves foráneas. Aborta si encuentra filas de una institución
+real. Para la sesión del navegador, la suite usa el superadmin DEDICADO a
+pruebas (`E2E_SUPERADMIN_EMAIL`/`E2E_SUPERADMIN_PASSWORD`, ver
+`seeds/seed_superadmin_e2e.py`).

@@ -375,7 +375,7 @@ El usuario pidió dos cosas: priorizar el salón al crear una campaña y que no 
   - `LOGIN_CAPTCHA_OBLIGATORIO=false` lo sigue apagando; `LOGIN_CAPTCHA_SIEMPRE=true` vuelve al comportamiento anterior.
   - Los contadores viven en la memoria del proceso, igual que el almacén de captchas y el rate limit (mismo aviso de despliegue con varios workers).
 - **Bloqueo por inactividad** (`components/auth/BloqueoInactividad.tsx`, `lib/inactividad.ts`, montado en los layouts de `(educativo)` y del superadmin):
-  - Tras **20 minutos** sin teclado, ratón, toque ni scroll en **ninguna** pestaña, la pantalla se bloquea y pide la contraseña. Un aviso aparece 60 s antes, con el botón "Seguir trabajando".
+  - Tras **15 minutos** sin teclado, ratón, toque ni scroll en **ninguna** pestaña, la pantalla se bloquea y pide la contraseña. Un aviso aparece 60 s antes, con el botón "Seguir trabajando". Era de 20 minutos y se bajó a 15 el 2026-11-02 (ver más abajo).
   - **No se cierra la sesión**: la página sigue montada debajo (`inert`) y lo que se estaba escribiendo sigue ahí al desbloquear.
   - Desbloquear es un login real que emite un token nuevo; pide captcha si el servidor lo exige (se consulta al abrir el bloqueo).
   - El estado se comparte entre pestañas por `localStorage`. Si se cierra la pestaña y se vuelve después del límite, arranca bloqueada.
@@ -411,3 +411,24 @@ El usuario pidió dos cosas: priorizar el salón al crear una campaña y que no 
   - diálogo con foco en "Volver" que se cierra con Escape;
   - aviso de salir sin guardar al hacer clic en el menú, con "Seguir editando" conservando el texto;
   - Agenda e Inicio sin desbordes con la letra nueva.
+
+## 🆕 Verificación pendiente, reaplicación en el catálogo y bloqueo a 15 minutos (sesión 2026-11-02)
+
+- **Superadmin de pruebas configurado:** `E2E_SUPERADMIN_EMAIL`/`E2E_SUPERADMIN_PASSWORD` en `backend/.env` (no se sube) + `python -m seeds.seed_superadmin_e2e`. Con eso corrieron por primera vez desde los cambios del 2026-11-01:
+  - **e2e del backend que se habían adaptado:** `fase0` 33/33, `fase3` 48/48, `informe_phq9` 42/42, `informe_pdf` 55/55, `flujo_completo` 72/72, `edicion_persona` 29/29 y `paginacion` 20/20.
+  - **Por qué fallaban** (ninguno por los cambios recientes): asumían el PHQ-9 viejo de **una** dimensión y 9 ítems, pero el catálogo actual tiene 3 dimensiones más el ítem 10 informativo; y el backend exige responder **todas** las preguntas antes de finalizar.
+  - **Cómo se arreglaron:** las preguntas se toman de todas las dimensiones; `completar_restantes()` responde con la primera opción lo que el test no armó (hoy, solo el ítem 10, que no puntúa) justo antes de finalizar; con varios diagnósticos se mira el que lleva la alerta; y dos comprobaciones viejas se reemplazaron: "v2" ya no se imprime en el PDF (se verifica el checksum de la v2) y `/progreso` trae también `respuesta_numerica`.
+  - **Playwright:** 11/11.
+    - Los specs dependían de textos y estructuras de antes de los rediseños: "+ Nueva Cita" ahora es "Nueva cita", acciones de bloque acotadas a su `<section>`, el panel `/master` rediseñado, plantillas que nacen inactivas, la hora en 12 h, y la cita cancelada que sale de la agenda.
+    - `playwright.config.ts` sube el tiempo máximo por test a 90 s, porque los flujos largos contra la BD real superaban los 30 s.
+- **Bug real encontrado por Playwright, corregido:** en la vista semanal de `/agenda`, la fila "Reprogramar · Cancelar" desbordaba la columna del día (más aún con la letra mínima nueva). La columna del día siguiente quedaba **encima** e interceptaba el clic: **no se podía cancelar** la cita. Se corrigió con `min-w-0` en la columna del día, `min-w-0 overflow-hidden` en la tarjeta y `flex-wrap` en la fila de acciones.
+- **Limpieza de Playwright:** `python -m tests.limpiar_playwright`.
+  - Sin argumentos simula; con `borrar` elimina todo lo que cuelga por FK de lo `ZZPLAYWRIGHT`/`zzpw.*`.
+  - Aborta si alguna fila pertenece a una institución real.
+  - Primera corrida: 704 filas de 28 corridas acumuladas, sin tocar los datos reales.
+- **Reaplicación en el catálogo:** la tarjeta de cada prueba en `/pruebas` → Catálogo muestra "Reaplicación: cada N días (equivalente)" (`PruebaResponse.dias_reaplicacion`, la misma regla del backend). Los valores son los de cada prueba, sin cambios (tabla en docs/catalogo-pruebas.md).
+- **Bloqueo por inactividad: 15 minutos** (antes 20), `lib/inactividad.ts`.
+  - Es el estándar para datos sensibles: PCI DSS 4.0 req. 8.2.8 y la línea base FedRAMP del control AC-11 de NIST SP 800-53; en historias clínicas electrónicas lo habitual es 10–15.
+  - Un valor corto cuesta poco aquí: solo bloquea, sin perder lo escrito, y teclear, desplazarse o mover el ratón cuentan como actividad.
+  - Si el psicólogo abre el examen en su equipo para que lo rinda el alumno, la pestaña de AuroraSoft se bloquea sola, porque el examen no cuenta como actividad del staff.
+  - Verificado en el navegador: 14 min sin actividad → abierta; 16 min → bloqueada.

@@ -30,7 +30,7 @@ test.describe("Citas y agenda", () => {
     await page.waitForLoadState("networkidle");
     await expect(page.getByRole("heading", { name: nombreAlumno })).toBeVisible();
 
-    await page.getByRole("button", { name: "+ Nueva Cita" }).click();
+    await page.getByRole("button", { name: "Nueva cita" }).first().click();
     await page.waitForURL(new RegExp(`/estudiantes/${personaId}/cita/nueva`));
     const motivoCita = `Entrevista de seguimiento ${fixtures.sello}`;
     await page.getByLabel("Motivo").fill(motivoCita);
@@ -40,15 +40,18 @@ test.describe("Citas y agenda", () => {
 
     // Vuelve a la ficha -- la cita recién creada aparece "Programada".
     await page.waitForURL(new RegExp(`/estudiantes/${personaId}$`));
-    await expect(page.getByText(`Motivo: ${motivoCita}`)).toBeVisible();
-    await expect(page.getByText("Programada")).toBeVisible();
+    // 🔧 (sesión 2026-11-02) La ficha rediseñada repite textos en varios
+    // bloques (indicadores, citas, agenda): se acota al bloque "Citas programadas".
+    const bloqueCitas = page.locator("section", { has: page.getByRole("heading", { name: "Citas programadas" }) });
+    await expect(bloqueCitas.getByText(`Motivo: ${motivoCita}`)).toBeVisible();
+    await expect(bloqueCitas.getByText("Programada", { exact: true })).toBeVisible();
 
     // --- Reprogramar desde la ficha (formulario inline) ---
-    await page.getByRole("button", { name: "Reprogramar" }).click();
-    await page.getByLabel("Nueva fecha").fill(hoyISO());
-    await page.getByLabel("Nueva hora").fill("15:30");
-    await page.getByRole("button", { name: "Guardar" }).click();
-    await expect(page.getByText("Reprogramar")).toBeVisible(); // el botón vuelve a aparecer tras guardar
+    await bloqueCitas.getByRole("button", { name: "Reprogramar" }).click();
+    await bloqueCitas.getByLabel("Nueva fecha").fill(hoyISO());
+    await bloqueCitas.getByLabel("Nueva hora").fill("15:30");
+    await bloqueCitas.getByRole("button", { name: "Guardar" }).click();
+    await expect(bloqueCitas.getByRole("button", { name: "Reprogramar" })).toBeVisible(); // vuelve a aparecer tras guardar
 
     // --- La misma cita aparece en /agenda -- reprogramarla de nuevo, esta
     //     vez desde la grilla semanal (código distinto al de la ficha). ---
@@ -62,16 +65,27 @@ test.describe("Citas y agenda", () => {
     await expect(tarjetaAgenda).toBeVisible();
 
     await tarjetaAgenda.getByRole("button", { name: "Reprogramar" }).click();
-    await tarjetaAgenda.locator('input[type="date"]').fill(hoyISO());
-    await tarjetaAgenda.locator('input[type="time"]').fill("16:45");
-    await tarjetaAgenda.getByRole("button", { name: "Guardar" }).click();
-    await expect(tarjetaAgenda.getByText("16:45")).toBeVisible();
+    // 🔧 (sesión 2026-11-02) Al abrir el formulario el botón "Reprogramar" se
+    // oculta, así que `tarjetaAgenda` deja de coincidir: la tarjeta en
+    // edición se ubica por el motivo + el campo de fecha.
+    const tarjetaEnEdicion = page
+      .locator("div")
+      .filter({ hasText: motivoCita })
+      .filter({ has: page.locator('input[type="date"]') })
+      .last();
+    await tarjetaEnEdicion.locator('input[type="date"]').fill(hoyISO());
+    await tarjetaEnEdicion.locator('input[type="time"]').fill("16:45");
+    await tarjetaEnEdicion.getByRole("button", { name: "Guardar" }).click();
+    // La agenda muestra la hora en 12 h con rango ("04:45 p. m. – 05:30 p. m.").
+    await expect(tarjetaAgenda.getByText(/04:45\s*p\.\s*m\./)).toBeVisible();
 
     // --- Cancelar desde /agenda -- la otra mitad de este control. ---
     // 🆕 (sesión 2026-11-01) Diálogo de confirmación propio, ya no window.confirm.
     await tarjetaAgenda.getByRole("button", { name: "Cancelar" }).click();
     await page.getByRole("alertdialog").getByRole("button", { name: "Cancelar cita" }).click();
-    await expect(tarjetaAgenda.getByText("Cancelada")).toBeVisible();
+    // Cancelada, la cita sale de la agenda (GET /citas/mi-agenda ya no la
+    // devuelve; el diálogo lo avisa: "sale de la agenda del día").
+    await expect(page.getByText(motivoCita)).toHaveCount(0);
   });
 });
 
@@ -90,7 +104,7 @@ test.describe("Sesiones de seguimiento", () => {
     // --- Registrar la sesión desde la ficha ("+ Registrar Sesión") ---
     await page.goto(`/estudiantes/${personaId}`);
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: "+ Registrar Sesión" }).click();
+    await page.getByRole("button", { name: "Registrar sesión" }).first().click();
     await page.waitForURL(new RegExp(`/estudiantes/${personaId}/seguimiento/nuevo`));
 
     const observacionesIniciales = `Primera sesión de seguimiento ${fixtures.sello}`;
@@ -101,23 +115,25 @@ test.describe("Sesiones de seguimiento", () => {
     // Vuelve a la ficha -- la sesión recién creada aparece en el historial,
     // nace en estado "Atendido" (ver docstring de seguimiento/nuevo/page.tsx).
     await page.waitForURL(new RegExp(`/estudiantes/${personaId}$`));
-    await expect(page.getByText(observacionesIniciales)).toBeVisible();
-    await expect(page.getByText("Atendido")).toBeVisible();
+    // 🔧 Acotado al bloque del historial de sesiones (la ficha repite textos).
+    const bloqueSesiones = page.locator("section", { has: page.getByRole("heading", { name: "Historial de sesiones de seguimiento" }) });
+    await expect(bloqueSesiones.getByText(observacionesIniciales)).toBeVisible();
+    await expect(bloqueSesiones.getByText("Atendido", { exact: true })).toBeVisible();
 
     // --- Editar la sesión (los 5 campos que solo son editables después de
     //     creada -- observaciones/acción tomada/acuerdos/próxima cita/estado) ---
-    await page.getByRole("button", { name: "Editar" }).click();
+    await bloqueSesiones.getByRole("button", { name: "Editar" }).click();
     const observacionesEditadas = `Sesión editada ${fixtures.sello}`;
-    await page.getByLabel("Observaciones de la sesión").fill(observacionesEditadas);
-    await page.getByLabel("Acuerdos y compromisos").fill("El estudiante se compromete a asistir semanalmente.");
-    await page.getByLabel("Próxima cita — fecha").fill(hoyISO());
-    await page.getByLabel("Próxima cita — hora").fill("09:00");
-    await page.getByLabel("Estado").selectOption("En proceso");
-    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    await bloqueSesiones.getByLabel("Observaciones de la sesión").fill(observacionesEditadas);
+    await bloqueSesiones.getByLabel("Acuerdos y compromisos").fill("El estudiante se compromete a asistir semanalmente.");
+    await bloqueSesiones.getByLabel("Próxima cita — fecha").fill(hoyISO());
+    await bloqueSesiones.getByLabel("Próxima cita — hora").fill("09:00");
+    await bloqueSesiones.getByLabel("Estado").selectOption("En proceso");
+    await bloqueSesiones.getByRole("button", { name: "Guardar cambios" }).click();
 
-    await expect(page.getByText(observacionesEditadas)).toBeVisible();
-    await expect(page.getByText("El estudiante se compromete a asistir semanalmente.")).toBeVisible();
-    await expect(page.getByText("En proceso")).toBeVisible();
-    await expect(page.getByText(/Próxima cita:/)).toBeVisible();
+    await expect(bloqueSesiones.getByText(observacionesEditadas)).toBeVisible();
+    await expect(bloqueSesiones.getByText("El estudiante se compromete a asistir semanalmente.")).toBeVisible();
+    await expect(bloqueSesiones.getByText("En proceso", { exact: true })).toBeVisible();
+    await expect(bloqueSesiones.getByText(/Próxima cita:/)).toBeVisible();
   });
 });

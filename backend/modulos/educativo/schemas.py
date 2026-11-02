@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, computed_field, field_validator, model_validator
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Any, Literal
 from enum import Enum
@@ -152,6 +152,16 @@ class PruebaCreate(PruebaBase):
 
 class PruebaResponse(PruebaBase):
     id: int
+    # 🆕 (sesión 2026-11-02) Cada cuánto se puede volver a aplicar la prueba
+    # al mismo estudiante — el valor guardado y el que de verdad aplica la
+    # regla de reaplicación (crud._dias_minimos_de_prueba: NULL o 0 -> 60).
+    # Lo muestra el catálogo de /pruebas.
+    dias_minimos_entre_aplicaciones: Optional[int] = None
+
+    @computed_field
+    @property
+    def dias_reaplicacion(self) -> int:
+        return self.dias_minimos_entre_aplicaciones or 60
 
     class Config:
         from_attributes = True

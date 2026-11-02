@@ -29,33 +29,35 @@ test.describe("Datos de filiación del estudiante", () => {
     // --- Datos familiares --- "Editar" es ambiguo en la página (Identidad/
     // Datos familiares/Antecedentes tienen los tres un botón "Editar"), así
     // que se ubica por el <h3> hermano dentro de la misma fila flex.
-    const filaDatosFamiliares = page.getByRole("heading", { name: "Datos familiares", level: 3 }).locator("..");
+    // 🔧 (sesión 2026-11-02) Las acciones del bloque ya no son hermanas del
+    // título: se acota a la <section> de cada bloque (BloqueFicha).
+    const filaDatosFamiliares = page.locator("section", { has: page.getByRole("heading", { name: "Datos familiares", level: 3 }) }).last();
     await filaDatosFamiliares.getByRole("button", { name: "Editar" }).click();
 
-    await page.getByLabel("Número de hermanos").fill("2");
-    await page.getByLabel("Vive con").fill("Ambos padres");
-    await page.getByLabel("Lugar de nacimiento").fill("Lima");
-    await page.getByLabel("Lugar de procedencia").fill("Arequipa");
+    await filaDatosFamiliares.getByLabel("Número de hermanos").fill("2");
+    await filaDatosFamiliares.getByLabel("Vive con").fill("Ambos padres");
+    await filaDatosFamiliares.getByLabel("Lugar de nacimiento").fill("Lima");
+    await filaDatosFamiliares.getByLabel("Lugar de procedencia").fill("Arequipa");
     // Único formulario abierto en este momento -- "Guardar cambios" no es
     // ambiguo todavía (Identidad/Antecedentes no están en edición).
-    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    await filaDatosFamiliares.getByRole("button", { name: "Guardar cambios" }).click();
 
-    await expect(page.getByText("Ambos padres")).toBeVisible();
-    await expect(page.getByText("Arequipa")).toBeVisible();
+    await expect(filaDatosFamiliares.getByText("Ambos padres")).toBeVisible();
+    await expect(filaDatosFamiliares.getByText("Arequipa")).toBeVisible();
 
     // --- Antecedentes clínicos externos ---
-    const filaAntecedentes = page.getByRole("heading", { name: "Antecedentes clínicos externos", level: 3 }).locator("..");
+    const filaAntecedentes = page.locator("section", { has: page.getByRole("heading", { name: "Antecedentes clínicos externos", level: 3 }) }).last();
     await filaAntecedentes.getByRole("button", { name: "Editar" }).click();
 
-    await page.getByLabel("Recibe terapia psicológica externa").selectOption("true");
+    await filaAntecedentes.getByLabel("Recibe terapia psicológica externa").selectOption("true");
     // "Detalle" se repite (terapia psicológica / atención psiquiátrica) --
     // mismo orden fijo del formulario, ver page.tsx.
-    await page.getByLabel("Detalle").first().fill("Terapia semanal por ansiedad");
-    await page.getByLabel("Recibe atención psiquiátrica externa").selectOption("false");
-    await page.getByLabel("Diagnóstico reportado").fill("Trastorno de ansiedad generalizada (reportado por la familia)");
-    await page.getByRole("button", { name: "Guardar cambios" }).click();
+    await filaAntecedentes.getByLabel("Detalle").first().fill("Terapia semanal por ansiedad");
+    await filaAntecedentes.getByLabel("Recibe atención psiquiátrica externa").selectOption("false");
+    await filaAntecedentes.getByLabel("Diagnóstico reportado").fill("Trastorno de ansiedad generalizada (reportado por la familia)");
+    await filaAntecedentes.getByRole("button", { name: "Guardar cambios" }).click();
 
-    await expect(page.getByText("Terapia semanal por ansiedad")).toBeVisible();
-    await expect(page.getByText("Trastorno de ansiedad generalizada (reportado por la familia)")).toBeVisible();
+    await expect(filaAntecedentes.getByText("Terapia semanal por ansiedad")).toBeVisible();
+    await expect(filaAntecedentes.getByText("Trastorno de ansiedad generalizada (reportado por la familia)")).toBeVisible();
   });
 });

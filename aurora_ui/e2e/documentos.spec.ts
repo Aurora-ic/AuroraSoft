@@ -57,6 +57,11 @@ test.describe("Motor de documentos institucionales", () => {
     // matchea la <option> del <select> "Tipo" en el resto de la pantalla.
     await expect(filaSeccion.getByText("Texto libre")).toBeVisible();
 
+    // 🔧 (sesión 2026-11-02) Una plantilla nueva nace INACTIVA y solo las
+    // activas aparecen al crear un documento: se activa aquí.
+    await page.getByRole("button", { name: "Activar", exact: true }).click();
+    await expect(page.getByText("Activa", { exact: true })).toBeVisible();
+
     const urlPlantilla = page.url();
     const plantillaId = urlPlantilla.match(/\/documentos\/plantillas\/(\d+)/)?.[1];
     if (!plantillaId) throw new Error(`No se pudo extraer el id de la plantilla de ${urlPlantilla}`);

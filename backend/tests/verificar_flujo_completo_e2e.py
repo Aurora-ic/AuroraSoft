@@ -58,6 +58,20 @@ def exigir(r, esperado, contexto):
     return r.json() if r.text else None
 
 
+def completar_restantes(token):
+    """🔧 (sesión 2026-11-02) El backend exige responder TODAS las preguntas
+    antes de finalizar; este test arma a mano solo las puntuables (ítems 1-9
+    del PHQ-9). Responde con la primera opción lo que falte — hoy, el ítem 10
+    informativo, que no puntúa — para no alterar el puntaje verificado."""
+    progreso = requests.get(f"{API}/educativo/examen/{token}/progreso", timeout=30).json()
+    hechas = {r["pregunta_id"] for r in progreso.get("respuestas", [])}
+    preguntas = requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30).json()
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in preguntas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": faltan}, timeout=30),
+               200, "Completar ítems restantes")
+
 def sql_uno(consulta, **p):
     with MOTOR.connect() as c:
         return c.execute(text(consulta), p).fetchone()
@@ -218,7 +232,11 @@ def montar_institucion(h_super, letra, sello):
     # necesita esto, ve las mismas 9 preguntas por el endpoint público de arriba.
     detalle_staff = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=ctx.h, timeout=30),
                            200, f"Detalle staff PHQ-9 {letra}")
-    preg_por_orden = {p["orden"]: p for p in detalle_staff["dimensiones"][0]["preguntas"]}
+    # 🔧 (sesión 2026-11-02) PHQ-9 se reorganizó en 3 dimensiones (afectivo-
+    # cognitiva, somática/vegetativa y el total 'Depresión') + el ítem 10
+    # informativo: las preguntas se toman de TODAS las dimensiones, no solo
+    # de la primera (antes daba KeyError al pedir el ítem 3).
+    preg_por_orden = {p["orden"]: p for d in detalle_staff["dimensiones"] for p in d["preguntas"]}
 
     def opcion_id_publica(pregunta_publica_id, valor_deseado):
         orden = next(o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id)
@@ -226,7 +244,11 @@ def montar_institucion(h_super, letra, sello):
 
     # Puntaje alto (3 en cada uno de los 9 ítems = 27) -> dispara alerta por
     # baremo, para poder ejercitar de verdad revisión + liberación más abajo.
-    respuestas = [{"pregunta_id": p["id"], "opcion_id": opcion_id_publica(p["id"], 3)} for p in preguntas_publicas]
+    # 🔧 (sesión 2026-11-02) Solo los ítems puntuables (1-9); el ítem 10
+    # informativo lo completa completar_restantes() antes de finalizar.
+    ids_puntuables = {o["id"] for o in preg_por_orden.values()}
+    respuestas = [{"pregunta_id": p["id"], "opcion_id": opcion_id_publica(p["id"], 3)}
+                  for p in preguntas_publicas if p["id"] in ids_puntuables]
     r_guardar = requests.post(f"{API}/educativo/examen/{ctx.token}/guardar", json={"respuestas": respuestas}, timeout=30)
     comprobar(f"[{letra}] Guardar respuestas (público, sin JWT) -> 200", r_guardar.status_code == 200,
               "POST /api/educativo/examen/{token}/guardar", r_guardar.text[:200])
@@ -235,6 +257,7 @@ def montar_institucion(h_super, letra, sello):
     comprobar(f"[{letra}] Progreso (público) refleja las 9 respondidas", r_progreso.status_code == 200,
               "GET /api/educativo/examen/{token}/progreso")
 
+    completar_restantes(ctx.token)
     r_finalizar = requests.post(f"{API}/educativo/examen/{ctx.token}/finalizar", timeout=60)
     comprobar(f"[{letra}] Finalizar (público) -> 200", r_finalizar.status_code == 200,
               "POST /api/educativo/examen/{token}/finalizar", r_finalizar.text[:200])

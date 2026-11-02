@@ -40,7 +40,7 @@ import type {
   TendenciaSeccion,
   AlumnoDashboard,
 } from "@/types/api";
-import { siglaPrueba } from "@/lib/pruebas";
+import { siglaPrueba, textoReaplicacion } from "@/lib/pruebas";
 
 // Catálogo de solo lectura — cargar una prueba nueva (ítems, dimensiones,
 // baremos) es un ejercicio de datos vía seed/API directa (ver CLAUDE.md
@@ -428,6 +428,16 @@ export default function PruebasPage() {
                             <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Responde</dt>
                             <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaInformante(p.informante_tipo)}</dd>
                           </div>
+                          {/* 🆕 Cada cuánto se puede volver a aplicar al mismo
+                              estudiante (Prueba.dias_minimos_entre_aplicaciones):
+                              la misma regla que bloquea la reaplicación al
+                              matricular. */}
+                          {p.dias_reaplicacion != null && (
+                            <div className="col-span-2 rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
+                              <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Reaplicación</dt>
+                              <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80">{textoReaplicacion(p.dias_reaplicacion)}</dd>
+                            </div>
+                          )}
                         </dl>
                         {!p.activa && (
                           <span className="self-start rounded-full px-2 py-0.5 text-[11.5px] font-semibold bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60">

@@ -56,6 +56,20 @@ def exigir(r, esperado, contexto):
     return r.json() if r.text else None
 
 
+def completar_restantes(token):
+    """🔧 (sesión 2026-11-02) El backend exige responder TODAS las preguntas
+    antes de finalizar; este test arma a mano solo las puntuables (ítems 1-9
+    del PHQ-9). Responde con la primera opción lo que falte — hoy, el ítem 10
+    informativo, que no puntúa — para no alterar el puntaje verificado."""
+    progreso = requests.get(f"{API}/educativo/examen/{token}/progreso", timeout=30).json()
+    hechas = {r["pregunta_id"] for r in progreso.get("respuestas", [])}
+    preguntas = requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30).json()
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in preguntas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": faltan}, timeout=30),
+               200, "Completar ítems restantes")
+
 def sql_uno(consulta, **p):
     with MOTOR.connect() as c:
         return c.execute(text(consulta), p).fetchone()
@@ -135,13 +149,18 @@ def main(url_base):
         "acepta_terminos": True}, timeout=30), 200, "Comenzar")
 
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_a, timeout=30), 200, "Detalle PHQ-9")
-    preg_phq9 = {p["orden"]: p for p in detalle_phq9["dimensiones"][0]["preguntas"]}
+    # 🔧 (sesión 2026-11-02) PHQ-9 se reorganizó en 3 dimensiones (afectivo-
+    # cognitiva, somática/vegetativa y el total 'Depresión') + el ítem 10
+    # informativo: las preguntas se toman de TODAS las dimensiones, no solo
+    # de la primera (antes daba KeyError al pedir el ítem 3).
+    preg_phq9 = {p["orden"]: p for d in detalle_phq9["dimensiones"] for p in d["preguntas"]}
 
     def opcion_id(orden, valor):
         return next(o["id"] for o in preg_phq9[orden]["opciones"] if o["valor_puntuacion"] == valor)
 
     respuestas = [{"pregunta_id": preg_phq9[i + 1]["id"], "opcion_id": opcion_id(i + 1, 0)} for i in range(9)]
     exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": respuestas}, timeout=30), 200, "Guardar")
+    completar_restantes(token)
     exigir(requests.post(f"{API}/educativo/examen/{token}/finalizar", timeout=60), 200, "Finalizar")
 
     insc_id = sql_uno("select id from edu_inscripciones where token=:t", t=token)[0]

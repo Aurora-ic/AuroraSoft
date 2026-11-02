@@ -9,7 +9,13 @@
 // contraseña), no se cierra la sesión: lo que se estaba escribiendo sigue en
 // la página al desbloquear.
 
-export const MINUTOS_INACTIVIDAD = 20;
+// 15 min (sesión 2026-11-02, antes 20): el estándar de la industria para
+// datos sensibles — PCI DSS 4.0 req. 8.2.8 y la línea base FedRAMP del
+// control AC-11 de NIST SP 800-53 fijan 15 min; en historias clínicas
+// electrónicas lo habitual es 10–15. Aquí el costo de un valor corto es bajo:
+// se BLOQUEA (no se pierde lo escrito) y teclear, desplazarse o mover el ratón
+// cuentan como actividad, así que redactar un informe largo nunca bloquea.
+export const MINUTOS_INACTIVIDAD = 15;
 export const SEGUNDOS_AVISO = 60;
 
 const CLAVE_ACTIVIDAD = "aurora_ultima_actividad";

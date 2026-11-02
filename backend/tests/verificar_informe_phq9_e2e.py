@@ -57,6 +57,20 @@ def exigir(r, esperado, contexto):
     return r.json() if r.text else None
 
 
+def completar_restantes(token):
+    """🔧 (sesión 2026-11-02) El backend exige responder TODAS las preguntas
+    antes de finalizar; este test arma a mano solo las puntuables (ítems 1-9
+    del PHQ-9). Responde con la primera opción lo que falte — hoy, el ítem 10
+    informativo, que no puntúa — para no alterar el puntaje verificado."""
+    progreso = requests.get(f"{API}/educativo/examen/{token}/progreso", timeout=30).json()
+    hechas = {r["pregunta_id"] for r in progreso.get("respuestas", [])}
+    preguntas = requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30).json()
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in preguntas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": faltan}, timeout=30),
+               200, "Completar ítems restantes")
+
 def sql_uno(consulta, **p):
     with MOTOR.connect() as c:
         return c.execute(text(consulta), p).fetchone()
@@ -160,11 +174,16 @@ def main(url_base):
 
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa",
                                        headers=h_a, timeout=30), 200, "Detalle PHQ-9")
-    comprobar("PHQ-9 tiene exactamente 1 dimensión", len(detalle_phq9["dimensiones"]) == 1)
-    dim_phq9 = detalle_phq9["dimensiones"][0]
-    comprobar("PHQ-9 tiene 9 preguntas", len(dim_phq9["preguntas"]) == 9, str(len(dim_phq9["preguntas"])))
-    preg_phq9 = {p["orden"]: p for p in dim_phq9["preguntas"]}
-    comprobar("PHQ-9 tiene 5 tramos de baremo (sin huecos 0-27)", len(detalle_phq9["baremos"]) == 5)
+    # 🔧 (sesión 2026-11-02) PHQ-9 se reorganizó en 3 dimensiones (afectivo-
+    # cognitiva, somática/vegetativa y el total 'Depresión') + el ítem 10
+    # informativo: las preguntas se toman de TODAS las dimensiones, no solo
+    # de la primera (antes daba KeyError al pedir el ítem 3).
+    preg_phq9 = {p["orden"]: p for d in detalle_phq9["dimensiones"] for p in d["preguntas"]}
+    comprobar("PHQ-9 tiene sus 9 ítems puntuables (1-9) repartidos en sus dimensiones",
+              set(preg_phq9) == set(range(1, 10)), str(sorted(preg_phq9)))
+    ids_total = [d["id"] for d in detalle_phq9["dimensiones"] if d["nombre"].lower().startswith("depresi")]
+    tramos_total = [b for b in detalle_phq9["baremos"] if ids_total and b["dimension_id"] == ids_total[0]]
+    comprobar("La dimensión total 'Depresión' tiene 5 tramos (0-27 sin huecos)", len(tramos_total) == 5, str(len(tramos_total)))
 
     # ==================================================================
     print("\n1-8 · Aplicación SIN alerta (todo 'Nunca' -> puntaje 0)")
@@ -178,15 +197,15 @@ def main(url_base):
     tok_ok = matricular(h_a, campana_ok["id"], persona_ok)
 
     responder_phq9(tok_ok, preg_phq9, [0] * 9)
+    completar_restantes(tok_ok)
     r = requests.post(f"{API}/educativo/examen/{tok_ok}/finalizar", timeout=60)
     comprobar("[1] Finaliza correctamente (200)", r.status_code == 200, f"status {r.status_code}")
     diagnosticos = r.json()
-    comprobar("[1] Se devuelve el diagnóstico al alumno (sin alerta)", len(diagnosticos) == 1)
-    # No se asume un texto de nivel concreto (el catálogo público puede tener
-    # su propia redacción): lo único que importa es el indicador es_alerta,
-    # igual que el resto del sistema — ver "nunca infieras riesgo del nivel".
-    comprobar("[1] Puntaje 0/27 cae en un tramo SIN alerta",
-              diagnosticos[0]["es_alerta"] is False, f"nivel={diagnosticos[0]['nivel']!r}")
+    # 🔧 (sesión 2026-11-02) PHQ-9 produce un diagnóstico por dimensión
+    # (3); se mira el que lleva la alerta, no uno cualquiera.
+    comprobar("[1] Se devuelven los diagnósticos al alumno (uno por dimensión, campaña con interruptor)", len(diagnosticos) >= 1)
+    comprobar("[1] Puntaje 0/27: ninguna dimensión en tramo de alerta",
+              all(d["es_alerta"] is False for d in diagnosticos), str([(d["nivel"], d["es_alerta"]) for d in diagnosticos]))
 
     insc_ok = sql_uno("select id, resultado_visible_alumno, informe_liberado from edu_inscripciones where token=:t", t=tok_ok)
     comprobar("[2] resultado_visible_alumno=True, informe_liberado=True", insc_ok[1] is True and insc_ok[2] is True)
@@ -232,13 +251,17 @@ def main(url_base):
     tok_alerta = matricular(h_a, campana_alerta["id"], persona_alerta)
 
     responder_phq9(tok_alerta, preg_phq9, [3] * 9)
+    completar_restantes(tok_alerta)
     r = requests.post(f"{API}/educativo/examen/{tok_alerta}/finalizar", timeout=60)
     comprobar("[9] Finaliza correctamente (200)", r.status_code == 200, f"status {r.status_code}")
     comprobar("[9] No se devuelve ningún diagnóstico al alumno (retenido)", r.json() == [])
 
     insc_alerta = sql_uno("select id, resultado_visible_alumno, informe_liberado from edu_inscripciones where token=:t", t=tok_alerta)
     comprobar("[10] resultado_visible_alumno=False, informe_liberado=False", insc_alerta[1] is False and insc_alerta[2] is False)
-    nivel_alerta = sql_uno("select nivel, es_alerta from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_alerta[0])
+    # 🔧 (sesión 2026-11-02) PHQ-9 produce un diagnóstico por dimensión
+    # (3); se mira el que lleva la alerta, no uno cualquiera.
+    nivel_alerta = sql_uno("select nivel, es_alerta from edu_diagnosticos_alumno where inscripcion_id=:i "
+                           "order by es_alerta desc limit 1", i=insc_alerta[0])
     comprobar("[10] Puntaje 27/27 cae en un tramo CON alerta", nivel_alerta[1] is True, f"nivel={nivel_alerta[0]!r}")
 
     meta_alerta = esperar_informe(h_a, insc_alerta[0])
@@ -313,6 +336,7 @@ def main(url_base):
     op_id = next(o["id"] for o in preg_sb[1]["opciones"] if o["valor_puntuacion"] == 1)
     exigir(requests.post(f"{API}/educativo/examen/{tok_sb}/guardar",
                          json={"respuestas": [{"pregunta_id": preg_sb[1]["id"], "opcion_id": op_id}]}, timeout=30), 200, "Guardar sin baremo")
+    completar_restantes(tok_sb)
     exigir(requests.post(f"{API}/educativo/examen/{tok_sb}/finalizar", timeout=60), 200, "Finalizar sin baremo")
 
     insc_sb = sql_uno("select id, estado_interpretacion, resultado_visible_alumno from edu_inscripciones where token=:t", t=tok_sb)

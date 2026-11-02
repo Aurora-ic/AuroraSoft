@@ -34,3 +34,35 @@ Los tres campos PROCEDIMENTALES (no clínicos) de las 14 pruebas — `motivo_con
 
 **🆕 `Prueba.nombre_corto`** (migración `2026_10_13_1200-e6b1d4a9c3f5`, sesión 2026-10-13): título corto curado para la UI (catálogo de pruebas, selects de campaña, dashboards) — `NULL` por defecto, la UI cae en `nombre_tecnico` como respaldo (razonable para 12 de los 14: "PHQ-9", "GAD-7", "CES-DC"...). Curado explícitamente solo para los dos cuyo `nombre_tecnico` es un identificador interno no legible: `HAMILTON_AUTOINFORME` → "Escala de Hamilton (autoinforme)", `VANDERBILT_PADRES` → "NICHQ Vanderbilt — Padres". `nombre_tecnico` nunca se renombra para esto — sigue siendo el identificador estable que usan los seeds/lookups.
 
+
+### 🆕 Reaplicación de cada prueba (sesión 2026-11-02)
+
+Cada cuánto se puede volver a aplicar **la misma prueba** al mismo estudiante. El valor se guarda en `Prueba.dias_minimos_entre_aplicaciones`, viene cargado con cada instrumento y **no se modificó**: el usuario confirmó mantener el criterio propio de cada prueba.
+- **Dónde se aplica:** lo hace cumplir `crud.puede_aplicar_prueba` al matricular. La misma regla, en bloque, está en `crud.elegibilidad_prueba` (lo que muestran "Nueva campaña" y "Aplicar prueba"). Un valor vacío o 0 equivale a 60 días.
+- **Dónde se muestra:** la API lo expone en `PruebaResponse` (`dias_minimos_entre_aplicaciones` y el calculado `dias_reaplicacion`), y la vista Catálogo de `/pruebas` lo muestra en cada tarjeta como "Reaplicación: cada N días (equivalente)".
+
+| Prueba | Reaplicación |
+|---|---|
+| CES-DC | cada 7 días (1 semana) |
+| DASS-21 | cada 7 días (1 semana) |
+| Hamilton (autoinforme) | cada 7 días (1 semana) |
+| GAD-7 | cada 14 días (2 semanas) |
+| PHQ-9 | cada 14 días (2 semanas) |
+| APGAR-FAMILIAR | cada 90 días (3 meses) |
+| EAR | cada 90 días (3 meses) |
+| RCADS-47 | cada 90 días (3 meses) |
+| SCARED-C | cada 90 días (3 meses) |
+| BARSIT | cada 180 días (6 meses) |
+| CHASIDE | cada 180 días (6 meses) |
+| IPIP-RIASEC | cada 180 días (6 meses) |
+| SDQ-CAS | cada 180 días (6 meses) |
+| Vanderbilt (padres) | cada 180 días (6 meses) |
+
+Patrón visible en los datos:
+- **7–14 días:** los tamizajes de síntomas, pensados para monitorear la evolución con frecuencia.
+- **3 meses:** las escalas de ansiedad, autoestima y familia.
+- **6 meses:** los inventarios vocacionales y de aptitud, y las escalas conductuales.
+
+`APTITUD_TECNICA_INTERNA` (prueba interna, no visible para colegios) tiene 0 guardado, que la regla trata como 60 días.
+
+Para cambiar un valor no hace falta migración: basta un `PATCH /educativo/pruebas/{id}` con `dias_minimos_entre_aplicaciones` (superadmin).

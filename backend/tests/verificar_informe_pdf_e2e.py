@@ -60,6 +60,20 @@ def exigir(r, esperado, contexto):
     return r.json() if r.text else None
 
 
+def completar_restantes(token):
+    """🔧 (sesión 2026-11-02) El backend exige responder TODAS las preguntas
+    antes de finalizar; este test arma a mano solo las puntuables (ítems 1-9
+    del PHQ-9). Responde con la primera opción lo que falte — hoy, el ítem 10
+    informativo, que no puntúa — para no alterar el puntaje verificado."""
+    progreso = requests.get(f"{API}/educativo/examen/{token}/progreso", timeout=30).json()
+    hechas = {r["pregunta_id"] for r in progreso.get("respuestas", [])}
+    preguntas = requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30).json()
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in preguntas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": faltan}, timeout=30),
+               200, "Completar ítems restantes")
+
 def sql_uno(consulta, **p):
     with MOTOR.connect() as c:
         return c.execute(text(consulta), p).fetchone()
@@ -143,6 +157,7 @@ def aplicar_phq9(headers, inst_id, sello, etiqueta, preg_phq9, phq9_id, valores,
 
     respuestas = [{"pregunta_id": preg_phq9[i + 1]["id"], "opcion_id": opcion_id(i + 1, v)} for i, v in enumerate(valores)]
     exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": respuestas}, timeout=30), 200, f"Guardar {etiqueta}")
+    completar_restantes(token)
     exigir(requests.post(f"{API}/educativo/examen/{token}/finalizar", timeout=60), 200, f"Finalizar {etiqueta}")
 
     insc = sql_uno("select id, persona_id from edu_inscripciones where token=:t", t=token)
@@ -176,7 +191,11 @@ def main(url_base):
 
     phq9_id = sql_uno("select id from edu_pruebas where nombre_tecnico = 'PHQ-9' and institucion_id is null")[0]
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_a, timeout=30), 200, "Detalle PHQ-9")
-    preg_phq9 = {p["orden"]: p for p in detalle_phq9["dimensiones"][0]["preguntas"]}
+    # 🔧 (sesión 2026-11-02) PHQ-9 se reorganizó en 3 dimensiones (afectivo-
+    # cognitiva, somática/vegetativa y el total 'Depresión') + el ítem 10
+    # informativo: las preguntas se toman de TODAS las dimensiones, no solo
+    # de la primera (antes daba KeyError al pedir el ítem 3).
+    preg_phq9 = {p["orden"]: p for d in detalle_phq9["dimensiones"] for p in d["preguntas"]}
 
     nivel = exigir(requests.post(f"{API}/admin/personas/academico/niveles", json={
         "institucion_id": inst_a, "nombre": f"{PREFIJO}-Secundaria-{sello}"}, headers=h_a, timeout=30), 200, "Nivel")
@@ -213,6 +232,7 @@ def main(url_base):
 
     respuestas_ok = [{"pregunta_id": preg_phq9[i + 1]["id"], "opcion_id": opcion_id_de(preg_phq9, i + 1, 0)} for i in range(9)]
     exigir(requests.post(f"{API}/educativo/examen/{tok_ok}/guardar", json={"respuestas": respuestas_ok}, timeout=30), 200, "Guardar SinAlerta")
+    completar_restantes(tok_ok)
     exigir(requests.post(f"{API}/educativo/examen/{tok_ok}/finalizar", timeout=60), 200, "Finalizar SinAlerta")
     insc_ok = sql_uno("select id from edu_inscripciones where token=:t", t=tok_ok)[0]
 
@@ -307,6 +327,7 @@ def main(url_base):
         timeout=30), 200, "Comenzar histórico")
     respuestas_hist = [{"pregunta_id": preg_phq9[i + 1]["id"], "opcion_id": opcion_id_de(preg_phq9, i + 1, 0)} for i in range(9)]
     exigir(requests.post(f"{API}/educativo/examen/{tok_hist}/guardar", json={"respuestas": respuestas_hist}, timeout=30), 200, "Guardar histórico")
+    completar_restantes(tok_hist)
     exigir(requests.post(f"{API}/educativo/examen/{tok_hist}/finalizar", timeout=60), 200, "Finalizar histórico")
     insc_hist = sql_uno("select id from edu_inscripciones where token=:t", t=tok_hist)[0]
     esperar_informe(h_a, insc_hist)
@@ -347,7 +368,12 @@ def main(url_base):
     comprobar("[6] v2 conserva el motivo de la reemisión", v2_meta["motivo_version"] == "Verificación de snapshot histórico tras reemitir")
     comprobar("[6] Cada versión tiene su propio checksum (no son el mismo archivo)",
               v1_meta["checksum_sha256"] != v2_meta["checksum_sha256"])
-    comprobar("[6] El PDF v2 se identifica a sí mismo como 'v2' en su propio texto", "v2" in texto_hist_v2)
+    # 🔧 (sesión 2026-11-02) "Versión del informe: vN" dejó de imprimirse en
+    # la cara del PDF a pedido (ver core/pdf_generator.py); la versión se
+    # comprueba por el checksum registrado de la v2.
+    import hashlib as _hashlib
+    comprobar("[6] El PDF servido tras reemitir es exactamente la v2 registrada (mismo checksum)",
+              _hashlib.sha256(r_pdf_hist_v2.content).hexdigest() == v2_meta["checksum_sha256"])
 
     print("\n· Cruce entre estudiantes — ningún PDF contiene datos de otro alumno")
     comprobar("[2] El PDF de 'SinAlerta' NO menciona al alumno 'Historico'", "Historico" not in texto_ok)
@@ -383,7 +409,10 @@ def main(url_base):
     comprobar("[7][8][alerta por regla] La columna de origen dice 'Regla de interpretación'", "Regla de interpretación" in texto_reg)
     comprobar("[7][8][alerta por regla] Incluye el motivo textual de la regla del ítem 9 (autolesión)",
               "autolesión" in texto_reg.lower() or "muerto" in texto_reg.lower())
-    diag_reg = sql_uno("select es_alerta, alerta_por from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_reg)
+    # 🔧 (sesión 2026-11-02) PHQ-9 produce un diagnóstico por dimensión
+    # (3); se mira el que lleva la alerta, no uno cualquiera.
+    diag_reg = sql_uno("select es_alerta, alerta_por from edu_diagnosticos_alumno where inscripcion_id=:i "
+                       "order by es_alerta desc limit 1", i=insc_reg)
     comprobar("[8] DiagnosticoAlumno queda marcado (es_alerta=True, alerta_por='regla')",
               diag_reg[0] is True and diag_reg[1] == "regla")
 
@@ -409,6 +438,7 @@ def main(url_base):
     op_sb = next(o["id"] for o in preg_sb[1]["opciones"] if o["valor_puntuacion"] == 1)
     exigir(requests.post(f"{API}/educativo/examen/{tok_sb}/guardar",
                          json={"respuestas": [{"pregunta_id": preg_sb[1]["id"], "opcion_id": op_sb}]}, timeout=30), 200, "Guardar sin baremo")
+    completar_restantes(tok_sb)
     exigir(requests.post(f"{API}/educativo/examen/{tok_sb}/finalizar", timeout=60), 200, "Finalizar sin baremo")
     insc_sb = sql_uno("select id from edu_inscripciones where token=:t", t=tok_sb)[0]
     esperar_informe(h_a, insc_sb)

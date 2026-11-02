@@ -636,7 +636,7 @@ export default function AgendaPage() {
                 return (
                   <div
                     key={dia.getTime()}
-                    className={`group/dia relative flex flex-col border-b md:border-b-0 border-border dark:border-border-dark md:min-h-[30rem] ${
+                    className={`group/dia relative flex min-w-0 flex-col border-b md:border-b-0 border-border dark:border-border-dark md:min-h-[30rem] ${
                       esHoy
                         ? "bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05]"
                         : esFinDeSemana
@@ -685,7 +685,11 @@ export default function AgendaPage() {
                         return (
                         <div
                           key={cita.id}
-                          className={`rounded-md border-l-[3px] px-2 py-1.5 text-xs space-y-1 ${
+                          // 🔧 (sesión 2026-11-02) min-w-0 + overflow-hidden: con la
+                          // letra mínima más grande, la fila de acciones
+                          // desbordaba hacia la columna del día siguiente, que
+                          // quedaba encima y "se comía" el clic en Cancelar.
+                          className={`min-w-0 overflow-hidden rounded-md border-l-[3px] px-2 py-1.5 text-xs space-y-1 ${
                             cancelada ? "border-l-border dark:border-l-border-dark bg-mist/60 dark:bg-surface-raised-dark" : `${estilo.borde} ${estilo.fondo}`
                           }`}
                         >
@@ -739,7 +743,7 @@ export default function AgendaPage() {
                             </p>
                           )}
                           {cita.estado === "Programada" && reprogramandoId !== cita.id && (
-                            <div className="flex items-center gap-2.5 pt-0.5 text-[12px] font-semibold">
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-0.5 text-[12px] font-semibold">
                               <button onClick={() => abrirReprogramar(cita)} className="text-teal-700 dark:text-teal-accent-dark hover:underline">
                                 {esGrupal ? "Editar" : "Reprogramar"}
                               </button>
