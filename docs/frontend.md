@@ -373,7 +373,7 @@ El usuario pidió dos cosas: priorizar el salón al crear una campaña y que no 
   - Ya no se pide en cada login; solo tras `LOGIN_CAPTCHA_TRAS_FALLOS` (3) contraseñas fallidas en 15 minutos, contando **por IP o por correo**. Así cubre tanto muchas cuentas desde una IP como una cuenta desde muchas IPs. Un login correcto reinicia ambos contadores.
   - `GET /auth/captcha?email=` devuelve `habilitado` según esa regla, y la pantalla de login lo vuelve a consultar tras cada intento fallido.
   - `LOGIN_CAPTCHA_OBLIGATORIO=false` lo sigue apagando; `LOGIN_CAPTCHA_SIEMPRE=true` vuelve al comportamiento anterior.
-  - Los contadores viven en la memoria del proceso, igual que el almacén de captchas y el rate limit (mismo aviso de despliegue con varios workers).
+  - Los contadores, el almacén de captchas y el rate limit van a Redis si `ALMACEN_SEGURIDAD_URL` está definida (compartidos entre workers); si no, a la memoria del proceso. Ver docs/multi-tenancy-y-permisos.md.
 - **Bloqueo por inactividad** (`components/auth/BloqueoInactividad.tsx`, `lib/inactividad.ts`, montado en los layouts de `(educativo)` y del superadmin):
   - Tras **15 minutos** sin teclado, ratón, toque ni scroll en **ninguna** pestaña, la pantalla se bloquea y pide la contraseña. Un aviso aparece 60 s antes, con el botón "Seguir trabajando". Era de 20 minutos y se bajó a 15 el 2026-11-02 (ver más abajo).
   - **No se cierra la sesión**: la página sigue montada debajo (`inert`) y lo que se estaba escribiendo sigue ahí al desbloquear.

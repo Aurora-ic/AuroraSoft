@@ -30,9 +30,19 @@ Answering a public exam endpoint (no login, just a magic-link token) goes throug
 
 ### Captcha de imagen en el login (`core/captcha.py`)
 
-🆕 `GET /api/auth/captcha` (público, 30/min por IP) devuelve `{habilitado, captcha_id, imagen}` — la imagen es un PNG en data URL con 5 caracteres distorsionados (fuente, tamaño, color y rotación distintos por carácter, ondulación y trazos cruzados). El texto **nunca** sale del backend: el almacén guarda solo un HMAC-SHA256 del código con `SECRET_KEY`. `POST /api/auth/login` recibe además `captcha_id`/`captcha_respuesta` como campos de formulario y valida el captcha **antes** de mirar la contraseña — si fuera después, un script podría seguir probando claves y solo "fallar el captcha" sin coste. Cada captcha es de **uso único** (se saca del almacén al verificarlo, acierte o no), vence a los 5 minutos y el almacén tiene tope de 10 000 pendientes. Igual que el contador de `core/limiter.py`, el almacén vive en la memoria del proceso: con varios workers de uvicorn hay que fijar la sesión a un worker o mover el almacén a Redis.
+🆕 `GET /api/auth/captcha` (público, 30/min por IP) devuelve `{habilitado, captcha_id, imagen}` — la imagen es un PNG en data URL con 5 caracteres distorsionados (fuente, tamaño, color y rotación distintos por carácter, ondulación y trazos cruzados). El texto **nunca** sale del backend: el almacén guarda solo un HMAC-SHA256 del código con `SECRET_KEY`. `POST /api/auth/login` recibe además `captcha_id`/`captcha_respuesta` como campos de formulario y valida el captcha **antes** de mirar la contraseña — si fuera después, un script podría seguir probando claves y solo "fallar el captcha" sin coste. Cada captcha es de **uso único** (se saca del almacén al verificarlo, acierte o no), vence a los 5 minutos y el almacén tiene tope de 10 000 pendientes. Igual que el contador de `core/limiter.py`, el almacén sigue la regla de `ALMACEN_SEGURIDAD_URL` (ver la sección siguiente).
 
 `LOGIN_CAPTCHA_OBLIGATORIO=false` lo apaga (entonces `/captcha` responde `habilitado=false` y el login de `aurora_ui/app/page.tsx` oculta el bloque). Por defecto está **encendido** — por eso el uvicorn de `:8010` que usan los `verificar_*_e2e.py` y la suite de Playwright debe arrancarse con `LOGIN_CAPTCHA_OBLIGATORIO=false`: todos inician sesión por script y no pueden leer la imagen.
+
+### Contadores de seguridad compartidos en Redis (`core/almacen_seguridad.py`)
+
+🆕 (sesión 2026-11-02) El rate limit de slowapi, el almacén de captchas y los contadores del captcha adaptativo vivían en la memoria de cada proceso. Con más de un worker de uvicorn no se compartían: un captcha emitido por un worker no lo conocía otro, y cada worker tenía su propio cupo de intentos. Con `ALMACEN_SEGURIDAD_URL=redis://host:6379/2` los tres van a Redis (el mismo servidor de Celery, en otra base; db 0/1 son de Celery), con claves bajo el prefijo `aurora:seg:`:
+
+- captchas → `SET ... EX 300`, y la verificación hace `GET`+`DEL` en una transacción, así que siguen siendo de uso único aunque dos workers reciban el mismo `captcha_id`;
+- fallos de contraseña → un sorted set por IP o por correo, puntuado con `time.time()`, recortado a la ventana de 15 min y con TTL;
+- rate limit → `storage_uri` de slowapi con `in_memory_fallback_enabled`.
+
+Sin la variable todo queda en memoria como antes (desarrollo y tests unitarios); fuera de `ENTORNO=development`, `main.py` deja un aviso en el log al arrancar. **En producción con varios workers es obligatoria.** Si Redis se cae en pleno uso, cada operación vuelve a la memoria del proceso y lo registra en el log, en vez de impedir el login. ⚠️ Si `:8000` y `:8010` comparten la misma URL, también comparten el cupo de `/login` (5/min por IP), así que conviene no definirla en el `.env` de desarrollo o usar una base distinta por servidor. Test: `tests/test_almacen_seguridad_redis.py` (necesita Redis, usa la db 15 y la vacía; simula cada worker con un subproceso de Python real).
 
 ### Recuperación de contraseña: solo superadmin
 

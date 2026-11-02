@@ -73,6 +73,16 @@ from modulos.documentos import router as documentos_router
 # ==========================================
 ENTORNO = os.getenv("ENTORNO", "development")
 
+# 🆕 (sesión 2026-11-02) Fuera de desarrollo, los contadores de seguridad
+# (rate limit, captchas, captcha adaptativo) deben ir a Redis para que los
+# compartan todos los workers — ver core/almacen_seguridad.py.
+from core.almacen_seguridad import ALMACEN_SEGURIDAD_URL  # noqa: E402
+if ENTORNO != "development" and not ALMACEN_SEGURIDAD_URL:
+    logger.warning(
+        "ALMACEN_SEGURIDAD_URL no está definida: rate limit y captchas viven en la "
+        "memoria de cada proceso. Con más de un worker de uvicorn NO se comparten."
+    )
+
 app = FastAPI(
     title="AuroraSoft API",
     docs_url="/docs" if ENTORNO == "development" else None,

@@ -15,10 +15,10 @@
 #     captchas en bucle no hace crecer la memoria sin límite (además del
 #     rate limit del endpoint).
 #
-# ⚠️ Despliegue: igual que el contador de core/limiter.py, el almacén vive en
-# la memoria del proceso. Con varios workers de uvicorn, un captcha emitido
-# por un worker no lo conoce otro — en ese caso hay que fijar la sesión al
-# mismo worker o mover el almacén a Redis.
+# 🆕 (sesión 2026-11-02) Despliegue: con ALMACEN_SEGURIDAD_URL el almacén y
+# los contadores de fallos viven en Redis y los comparten todos los workers
+# (ver core/almacen_seguridad.py). Sin la variable, en la memoria del proceso
+# como antes — y entonces un captcha emitido por un worker no lo conoce otro.
 #
 # LOGIN_CAPTCHA_OBLIGATORIO=false lo apaga (p. ej. el uvicorn de :8010 que
 # usan los verificar_*_e2e y la suite de Playwright, que inician sesión por
@@ -31,8 +31,8 @@
 # cuenta desde muchas IPs). Un login correcto reinicia ambos contadores. El
 # profesional que entra todos los días no ve el captcha; un script que prueba
 # claves sí. LOGIN_CAPTCHA_SIEMPRE=true vuelve al comportamiento anterior
-# (captcha en cada login). Mismo aviso de despliegue: los contadores viven en
-# la memoria del proceso, como el almacén de captchas y el rate limit.
+# (captcha en cada login). Los contadores siguen la misma regla de despliegue
+# que el almacén de captchas (Redis si ALMACEN_SEGURIDAD_URL, si no memoria).
 import base64
 import hashlib
 import hmac
@@ -47,6 +47,7 @@ from collections import OrderedDict
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+from core.almacen_seguridad import PREFIJO, avisar_caida, cliente_redis
 from core.security import SECRET_KEY
 
 CAPTCHA_OBLIGATORIO = os.getenv("LOGIN_CAPTCHA_OBLIGATORIO", "true").strip().lower() not in ("false", "0", "no")
@@ -171,13 +172,22 @@ def generar_captcha() -> dict:
     codigo = "".join(_rng.choice(_ALFABETO) for _ in range(LONGITUD_CODIGO))
     png = _dibujar(codigo)
     captcha_id = secrets.token_urlsafe(24)
+    imagen = "data:image/png;base64," + base64.b64encode(png).decode()
+    r = cliente_redis()
+    if r is not None:
+        try:
+            # El TTL de Redis reemplaza a la purga y al tope de pendientes.
+            r.set(PREFIJO + "captcha:" + captcha_id, _huella(codigo), ex=CAPTCHA_TTL_SEGUNDOS)
+            return {"captcha_id": captcha_id, "imagen": imagen}
+        except Exception as exc:  # noqa: BLE001 — cualquier fallo de Redis
+            avisar_caida("generar_captcha", exc)
     ahora = time.monotonic()
     with _candado:
         _purgar_vencidos(ahora)
         while len(_almacen) >= CAPTCHA_MAX_PENDIENTES:
             _almacen.popitem(last=False)  # el más antiguo
         _almacen[captcha_id] = (_huella(codigo), ahora + CAPTCHA_TTL_SEGUNDOS)
-    return {"captcha_id": captcha_id, "imagen": "data:image/png;base64," + base64.b64encode(png).decode()}
+    return {"captcha_id": captcha_id, "imagen": imagen}
 
 
 def verificar_captcha(captcha_id: str | None, respuesta: str | None) -> None:
@@ -186,8 +196,23 @@ def verificar_captcha(captcha_id: str | None, respuesta: str | None) -> None:
     espacios alrededor."""
     if not captcha_id or not respuesta or not respuesta.strip():
         raise CaptchaInvalido("Ingresa el código de verificación que aparece en la imagen.")
-    with _candado:
-        entrada = _almacen.pop(captcha_id, None)
+    entrada = None
+    r = cliente_redis()
+    if r is not None:
+        try:
+            # GET + DEL en una transacción: uso único aunque dos workers
+            # reciban el mismo captcha_id a la vez.
+            clave = PREFIJO + "captcha:" + captcha_id
+            with r.pipeline(transaction=True) as tubo:
+                huella_redis, _ = tubo.get(clave).delete(clave).execute()
+            if huella_redis is not None:
+                entrada = (huella_redis, time.monotonic() + 1)  # Redis ya aplicó el TTL
+        except Exception as exc:  # noqa: BLE001
+            avisar_caida("verificar_captcha", exc)
+    if entrada is None:
+        # Sin Redis, o emitido mientras Redis estaba caído.
+        with _candado:
+            entrada = _almacen.pop(captcha_id, None)
     if entrada is None:
         raise CaptchaInvalido("El código de verificación ya no es válido. Usa el nuevo código que aparece en la imagen.")
     huella, expira = entrada
@@ -222,8 +247,29 @@ def _recientes(clave: str, ahora: float) -> list[float]:
     return marcas
 
 
+def _clave_redis(clave: str) -> str:
+    return PREFIJO + "fallos:" + clave
+
+
 def registrar_fallo(ip: str | None, email: str | None) -> None:
     """Una contraseña incorrecta (o un correo inexistente) desde esa IP/correo."""
+    r = cliente_redis()
+    if r is not None:
+        try:
+            # Un sorted set por clave, puntuado por hora real (time.time(): en
+            # Redis lo comparten procesos distintos, el reloj monotónico no).
+            ahora_real = time.time()
+            with r.pipeline(transaction=True) as tubo:
+                for clave in _claves(ip, email):
+                    k = _clave_redis(clave)
+                    tubo.zadd(k, {f"{ahora_real}:{secrets.token_hex(4)}": ahora_real})
+                    tubo.zremrangebyscore(k, "-inf", ahora_real - VENTANA_FALLOS_SEGUNDOS)
+                    tubo.zremrangebyrank(k, 0, -51)  # conserva los 50 más recientes
+                    tubo.expire(k, VENTANA_FALLOS_SEGUNDOS)
+                tubo.execute()
+            return
+        except Exception as exc:  # noqa: BLE001
+            avisar_caida("registrar_fallo", exc)
     ahora = time.monotonic()
     with _candado_fallos:
         for clave in _claves(ip, email):
@@ -237,6 +283,13 @@ def registrar_fallo(ip: str | None, email: str | None) -> None:
 
 def limpiar_fallos(ip: str | None, email: str | None) -> None:
     """Login correcto: esa IP y ese correo vuelven a entrar sin captcha."""
+    r = cliente_redis()
+    claves = _claves(ip, email)
+    if r is not None and claves:
+        try:
+            r.delete(*[_clave_redis(c) for c in claves])
+        except Exception as exc:  # noqa: BLE001
+            avisar_caida("limpiar_fallos", exc)
     with _candado_fallos:
         for clave in _claves(ip, email):
             _fallos.pop(clave, None)
@@ -247,6 +300,17 @@ def captcha_requerido(ip: str | None, email: str | None = None) -> bool:
         return False
     if CAPTCHA_SIEMPRE:
         return True
+    r = cliente_redis()
+    if r is not None:
+        try:
+            desde = time.time() - VENTANA_FALLOS_SEGUNDOS
+            with r.pipeline(transaction=False) as tubo:
+                for clave in _claves(ip, email):
+                    tubo.zcount(_clave_redis(clave), desde, "+inf")
+                conteos = tubo.execute()
+            return any(c >= FALLOS_PARA_CAPTCHA for c in conteos)
+        except Exception as exc:  # noqa: BLE001
+            avisar_caida("captcha_requerido", exc)
     ahora = time.monotonic()
     with _candado_fallos:
         return any(len(_recientes(clave, ahora)) >= FALLOS_PARA_CAPTCHA for clave in _claves(ip, email))

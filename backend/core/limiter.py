@@ -2,7 +2,22 @@
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-limiter = Limiter(key_func=get_remote_address)
+from core.almacen_seguridad import ALMACEN_SEGURIDAD_URL, PREFIJO
+
+# 🆕 (sesión 2026-11-02) Con ALMACEN_SEGURIDAD_URL los contadores van a Redis
+# y todos los workers comparten el mismo cupo (ver core/almacen_seguridad.py).
+# in_memory_fallback_enabled: si Redis se cae, slowapi sigue limitando con un
+# contador en memoria en vez de dejar pasar todo o devolver 500.
+if ALMACEN_SEGURIDAD_URL:
+    limiter = Limiter(
+        key_func=get_remote_address,
+        storage_uri=ALMACEN_SEGURIDAD_URL,
+        storage_options={"socket_connect_timeout": 2, "socket_timeout": 2},
+        in_memory_fallback_enabled=True,
+        key_prefix=PREFIJO + "rl",
+    )
+else:
+    limiter = Limiter(key_func=get_remote_address)
 
 
 # ==========================================
@@ -28,8 +43,9 @@ limiter = Limiter(key_func=get_remote_address)
 #
 # ⚠️ Despliegue: la IP sale de `request.client.host`. Detrás de un proxy
 # inverso hay que arrancar uvicorn con --proxy-headers (y --forwarded-allow-ips)
-# o todos los alumnos compartirían la IP del proxy. Y el contador vive en la
-# memoria de cada proceso: con varios workers, cada uno cuenta por separado.
+# o todos los alumnos compartirían la IP del proxy. El contador vive en Redis
+# si ALMACEN_SEGURIDAD_URL está definida (compartido entre workers); si no, en
+# la memoria de cada proceso, y con varios workers cada uno cuenta por separado.
 
 def clave_por_token(request) -> str:
     """Agrupa el conteo por enlace mágico en vez de por IP."""
