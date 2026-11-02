@@ -26,6 +26,7 @@ sus propios endpoints) nunca dispara una doble importación ni un ciclo.
 import os
 
 from celery import Celery
+from celery.schedules import crontab
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/1")
@@ -38,6 +39,8 @@ app = Celery(
         "modulos.educativo.crud",
         "modulos.documentos.crud",
         "core.email_service",
+        # 🆕 (sesión 2026-11-02) tareas periódicas de Celery beat.
+        "tareas.tareas_programadas",
     ],
 )
 
@@ -64,3 +67,24 @@ app.conf.update(
     broker_transport_options={"socket_connect_timeout": 3, "socket_timeout": 3},
     broker_connection_timeout=3,
 )
+
+# ==========================================
+# 🆕 (sesión 2026-11-02) Calendario de Celery beat
+# ==========================================
+# Antes estas dos tareas eran scripts sueltos "para poner en un cron" que en
+# producción nadie había programado. Basta con un proceso
+# `celery -A core.cola_tareas beat` (UNO solo) junto al worker. Ver
+# tareas/tareas_programadas.py.
+#
+# El crontab se evalúa en `timezone` (UTC, arriba). Perú no tiene horario de
+# verano, así que las 7:00 de Lima son siempre las 12:00 UTC.
+app.conf.beat_schedule = {
+    "reconciliar-tareas-colgadas": {
+        "task": "tareas.reconciliar_tareas_colgadas",
+        "schedule": crontab(minute="*/15"),
+    },
+    "notificar-agenda-diaria": {
+        "task": "tareas.notificar_agenda_diaria",
+        "schedule": crontab(hour=12, minute=0),  # 7:00 America/Lima
+    },
+}
