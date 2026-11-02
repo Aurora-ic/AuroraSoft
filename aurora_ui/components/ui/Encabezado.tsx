@@ -133,8 +133,8 @@ export function TarjetaKpi({
       </span>
       <span className="min-w-0">
         <span className="block font-display text-[22px] font-bold leading-none text-ink dark:text-ink-dark">{valor}</span>
-        <span className="block mt-1 text-[11.5px] font-medium text-ink/55 dark:text-ink-dark/55 truncate">{etiqueta}</span>
-        {detalle && <span className="block text-[11px] text-ink/40 dark:text-ink-dark/40 truncate">{detalle}</span>}
+        <span className="block mt-1 text-[12px] font-medium text-ink/55 dark:text-ink-dark/55 truncate">{etiqueta}</span>
+        {detalle && <span className="block text-[12px] text-ink/40 dark:text-ink-dark/40 truncate">{detalle}</span>}
       </span>
     </Elemento>
   );

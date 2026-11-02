@@ -1,5 +1,6 @@
 import { RequireAuth } from "@/contexts/AuthContext";
 import { ShellEducativo } from "@/components/educativo/ShellEducativo";
+import { BloqueoInactividad } from "@/components/auth/BloqueoInactividad";
 
 // Este es el layout que Next.js realmente resuelve para /estudiantes,
 // /campanas, /pruebas, /agenda y /casos-riesgo — el nombre entre paréntesis
@@ -22,7 +23,10 @@ export default function EducativoLayout({ children }: { children: React.ReactNod
   return (
     <RequireAuth rolesPermitidos={["psicologo", "admin", "colegio"]}>
       {/* Barra lateral + Topbar + <main>, responsive — ver ShellEducativo. */}
-      <ShellEducativo>{children}</ShellEducativo>
+      {/* 🆕 Bloqueo por inactividad (lib/inactividad.ts). */}
+      <BloqueoInactividad>
+        <ShellEducativo>{children}</ShellEducativo>
+      </BloqueoInactividad>
     </RequireAuth>
   );
 }

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Flag, Plus } from "lucide-react";
-import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
+import { Flag, Plus, UserRound } from "lucide-react";
+import { EncabezadoPagina, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
@@ -32,7 +32,13 @@ type Campana = {
   estado: string;
   fecha_fin: string | null;
   fecha_creacion: string;
+  tipo?: "grupal" | "individual";
 };
+
+// 🆕 (sesión 2026-11-01) Las aplicaciones individuales (una prueba a un
+// estudiante, desde su perfil) son campañas de un solo inscrito: se listan
+// aquí, separadas de las grupales.
+type TipoLista = "grupal" | "individual";
 
 const TAMANO_PAGINA = 50;
 
@@ -41,11 +47,13 @@ export default function CampanasPage() {
   const [campanas, setCampanas] = useState<Campana[]>([]);
   const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(0);
+  const [tipo, setTipo] = useState<TipoLista>("grupal");
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sesion) return;
+    let vigente = true;
     setCargando(true);
     // Nota: si sesion.rol es "superadmin", institucionId puede venir null
     // (el backend lo exige para ese rol) — en ese caso esta pantalla
@@ -61,15 +69,22 @@ export default function CampanasPage() {
     // campaña creada sin tope; ahora pide de a 50 con skip/limit.
     apiClient
       .get<RespuestaPaginada<Campana>>(
-        `/educativo/campanas/?institucion_id=${sesion.institucionId}&skip=${pagina * TAMANO_PAGINA}&limit=${TAMANO_PAGINA}`,
+        `/educativo/campanas/?institucion_id=${sesion.institucionId}&tipo=${tipo}&skip=${pagina * TAMANO_PAGINA}&limit=${TAMANO_PAGINA}`,
       )
       .then((res) => {
+        if (!vigente) return;
         setCampanas(res.items);
         setTotal(res.total);
       })
-      .catch((err) => setError(err.message || "No se pudieron cargar las campañas."))
-      .finally(() => setCargando(false));
-  }, [sesion, pagina]);
+      .catch((err) => vigente && setError(err.message || "No se pudieron cargar las campañas."))
+      .finally(() => vigente && setCargando(false));
+    // 🔧 (sesión 2026-11-01) Al cambiar de pestaña, una respuesta lenta de la
+    // pestaña anterior pisaba la lista nueva (se veían grupales en
+    // "Individuales"): se descarta toda respuesta que ya no corresponde.
+    return () => {
+      vigente = false;
+    };
+  }, [sesion, pagina, tipo]);
 
   // STAFF_CLINICO del backend (superadmin/admin/psicologo) — "colegio"
   // puede ver el listado pero nunca crear campañas (ver campanas/nueva/page.tsx).
@@ -94,6 +109,26 @@ export default function CampanasPage() {
 
       <TextoError className="mb-4">{error}</TextoError>
 
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <ControlSegmentado<TipoLista>
+          etiqueta="Tipo de campaña"
+          valor={tipo}
+          onCambiar={(v) => {
+            setTipo(v);
+            setPagina(0);
+          }}
+          opciones={[
+            { valor: "grupal", etiqueta: "Grupales" },
+            { valor: "individual", etiqueta: "Individuales" },
+          ]}
+        />
+        {tipo === "individual" && (
+          <p className="m-0 text-xs text-ink/55 dark:text-ink-dark/55">
+            Se crean desde el perfil del estudiante con «Aplicar prueba». No cuentan en las estadísticas por salón.
+          </p>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {cargando && <EsqueletoTarjetas cantidad={4} />}
         {!cargando && campanas.map((campana) => (
@@ -105,7 +140,7 @@ export default function CampanasPage() {
             <div className="flex items-center justify-between gap-3 mb-2">
               <h2 className="flex min-w-0 items-center gap-2.5 font-display text-base text-ink dark:text-ink-dark">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
-                  <Flag size={15} aria-hidden="true" />
+                  {campana.tipo === "individual" ? <UserRound size={15} aria-hidden="true" /> : <Flag size={15} aria-hidden="true" />}
                 </span>
                 <span className="truncate">{campana.nombre_grupo}</span>
               </h2>
@@ -127,7 +162,11 @@ export default function CampanasPage() {
       </div>
 
       {!cargando && !error && campanas.length === 0 && (
-        <p className="text-sm text-ink/40 dark:text-ink-dark/40 mt-4">Todavía no hay campañas creadas.</p>
+        <p className="text-sm text-ink/40 dark:text-ink-dark/40 mt-4">
+          {tipo === "individual"
+            ? "Todavía no hay aplicaciones individuales. Se crean desde el perfil del estudiante."
+            : "Todavía no hay campañas creadas."}
+        </p>
       )}
 
       {!cargando && !error && total > 0 && (

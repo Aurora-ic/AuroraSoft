@@ -122,7 +122,9 @@ def main(url_base):
 
     phq9_id = sql_uno("select id from edu_pruebas where nombre_tecnico = 'PHQ-9' and institucion_id is null")[0]
     campana = exigir(requests.post(f"{API}/educativo/campanas/", json={
-        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} {sello}", "institucion_id": inst_a},
+        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} {sello}", "institucion_id": inst_a,
+        # 🆕 (sesión 2026-11-01) el montaje descarga el PDF por el enlace del alumno.
+        "alumno_ve_informe": True},
         headers=h_a, timeout=30), 200, "Campaña")
     matricula = exigir(requests.post(f"{API}/educativo/campanas/{campana['id']}/matricular-roster",
                                      json=[persona], headers=h_a, timeout=30), 200, "Matrícula")

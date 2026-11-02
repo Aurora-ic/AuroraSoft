@@ -224,7 +224,7 @@ export default function ConfiguracionPage() {
           >
             <div className="flex items-end justify-between gap-3 flex-wrap">
               <div>
-                <p className="m-0 text-[11px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Actual</p>
+                <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Actual</p>
                 <p className="m-0 font-display text-[28px] font-bold leading-none text-teal-900 dark:text-ink-dark">
                   {institucion.anio_escolar_activo ?? <span className="text-base text-ink/40 dark:text-ink-dark/40">No configurado</span>}
                 </p>
@@ -248,7 +248,7 @@ export default function ConfiguracionPage() {
                 </form>
               )}
             </div>
-            <p className="m-0 mt-3 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+            <p className="m-0 mt-3 text-[12px] text-ink/50 dark:text-ink-dark/50">
               Cambiarlo es una acción explícita — nunca se activa solo al confirmar una promoción de estudiantes.
             </p>
             <TextoError className="mt-2">{errorAnio}</TextoError>
@@ -260,7 +260,7 @@ export default function ConfiguracionPage() {
                 <p id="etiqueta-asentimiento" className="m-0 text-sm font-semibold text-ink dark:text-ink-dark">
                   Exigir también el asentimiento del propio estudiante
                 </p>
-                <p className="m-0 mt-1 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                <p className="m-0 mt-1 text-[12px] text-ink/50 dark:text-ink-dark/50">
                   El consentimiento del apoderado siempre es obligatorio. Esta opción exige, además, el asentimiento vigente del
                   estudiante para matricularlo o para que siga rindiendo un examen ya empezado.
                 </p>
@@ -321,7 +321,7 @@ export default function ConfiguracionPage() {
                 <div className="p-3 flex flex-col gap-2 flex-1">
                   <div>
                     <p className="m-0 text-[13px] font-semibold text-ink dark:text-ink-dark">{ETIQUETAS_BRANDING[tipo].titulo}</p>
-                    <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50">{ETIQUETAS_BRANDING[tipo].descripcion}</p>
+                    <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{ETIQUETAS_BRANDING[tipo].descripcion}</p>
                   </div>
                   {puedeEditar && (
                     <>

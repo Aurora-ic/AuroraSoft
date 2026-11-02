@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,6 +8,8 @@ import { apiClient, descargarBlob } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton, claseBoton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
+import { ModalAplicarPrueba } from "@/components/educativo/ModalAplicarPrueba";
+import { IndiceFicha, type GrupoIndice } from "@/components/educativo/IndiceFicha";
 import { Campo } from "@/components/ui/Campo";
 import { CampoEditable } from "@/components/ui/CampoEditable";
 import { Input } from "@/components/ui/Input";
@@ -193,13 +196,24 @@ function formatearSeccion(seccion: SeccionActual): { linea: string; detalle: str
   };
 }
 
+const GRUPOS_INDICE_FICHA: GrupoIndice[] = [
+  { id: "grupo-filiacion", etiqueta: "Datos del estudiante" },
+  { id: "grupo-evaluacion", etiqueta: "Evaluación y seguimiento" },
+  { id: "grupo-clinico", etiqueta: "Registro clínico" },
+  { id: "grupo-matricula", etiqueta: "Matrícula y documentos" },
+];
+
 export default function FichaAlumnoPage() {
+  // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
+  const confirmar = useConfirmar();
   const params = useParams();
   const router = useRouter();
   const { sesion, cargando: cargandoSesion } = useAuth();
   const personaId = params.personaId as string;
 
   const [alumno, setAlumno] = useState<Persona | null>(null);
+  // 🆕 (sesión 2026-11-01) Modal "Aplicar prueba" (aplicación individual).
+  const [aplicandoPrueba, setAplicandoPrueba] = useState(false);
   const [citas, setCitas] = useState<Cita[]>([]);
   const [seguimientos, setSeguimientos] = useState<SesionSeguimiento[]>([]);
   const [loading, setLoading] = useState(true);
@@ -933,7 +947,14 @@ export default function FichaAlumnoPage() {
   }
 
   async function desactivarContacto(id: number) {
-    if (!window.confirm("¿Desactivar este contacto familiar? No hay una acción para reactivarlo desde aquí.")) {
+    if (
+      !(await confirmar({
+        titulo: "¿Desactivar este contacto familiar?",
+        mensaje: "No hay una acción para reactivarlo desde aquí: habría que registrarlo de nuevo.",
+        textoConfirmar: "Desactivar contacto",
+        peligro: true,
+      }))
+    ) {
       return;
     }
     setDesactivandoContactoId(id);
@@ -949,7 +970,15 @@ export default function FichaAlumnoPage() {
   }
 
   async function cancelarCita(id: number) {
-    if (!window.confirm("¿Cancelar esta cita?")) return;
+    if (
+      !(await confirmar({
+        titulo: "¿Cancelar esta cita?",
+        mensaje: "La cita queda registrada como cancelada.",
+        textoConfirmar: "Cancelar cita",
+        peligro: true,
+      }))
+    )
+      return;
     setCancelandoCitaId(id);
     setErrorCitas(null);
     try {
@@ -1257,7 +1286,14 @@ export default function FichaAlumnoPage() {
 
   async function revocarAutorizacion() {
     if (!autorizacionVigente) return;
-    if (!window.confirm("¿Revocar la autorización de acceso del colegio al expediente de este estudiante?")) {
+    if (
+      !(await confirmar({
+        titulo: "¿Revocar la autorización del colegio?",
+        mensaje: "El colegio deja de poder ver el expediente de este estudiante desde ahora.",
+        textoConfirmar: "Revocar autorización",
+        peligro: true,
+      }))
+    ) {
       return;
     }
     setRevocandoAutorizacion(true);
@@ -1331,9 +1367,13 @@ export default function FichaAlumnoPage() {
 
   async function revocarConsentimiento(tipo: TipoConsentimiento, consentimientoId: number) {
     if (
-      !window.confirm(
-        "¿Revocar este consentimiento? El historial anterior se conserva, pero este alumno dejará de poder ser matriculado o completar un examen hasta registrar uno nuevo.",
-      )
+      !(await confirmar({
+        titulo: "¿Revocar este consentimiento?",
+        mensaje:
+          "El historial anterior se conserva, pero el estudiante dejará de poder ser matriculado o completar un examen hasta registrar uno nuevo.",
+        textoConfirmar: "Revocar consentimiento",
+        peligro: true,
+      }))
     ) {
       return;
     }
@@ -1420,6 +1460,8 @@ export default function FichaAlumnoPage() {
   // controles editables que el backend le rechazaría con 403 al guardar.
   const puedeEscribirDatosPrincipales =
     sesion?.rol === "psicologo" || sesion?.rol === "admin" || sesion?.rol === "superadmin";
+  // Mismo criterio (staff clínico) que POST /personas/{id}/aplicacion-individual.
+  const puedeAplicarPrueba = puedeEscribirDatosPrincipales;
 
   // A lo sumo una fila con fecha_fin null (índice único parcial en el
   // backend) — esa es la matrícula vigente; el resto es historial.
@@ -1447,6 +1489,9 @@ export default function FichaAlumnoPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <Migas items={[{ label: "Padrón", href: "/estudiantes" }, { label: `${alumno.nombres} ${alumno.apellidos}` }]} />
+      {/* 🆕 Índice fijo de la ficha (punto 5 del análisis de UI/UX) — a nivel
+          raíz para que quede fijo a lo largo de TODA la ficha. */}
+      <IndiceFicha grupos={GRUPOS_INDICE_FICHA} />
       {/* 🆕 Perfil del estudiante (sesión 2026-10-30) — tarjeta de perfil
           (identidad + datos clave, sin el código institucional, que sigue en
           el bloque "Identidad") e indicadores actuales, y debajo los
@@ -1492,6 +1537,7 @@ export default function FichaAlumnoPage() {
             modelo de datos. */}
         <section className="space-y-4">
           <TituloGrupoFicha
+            id="grupo-filiacion"
             titulo="Datos de filiación"
             descripcion="Identidad, entorno familiar, antecedentes y contactos."
             acento="teal"
@@ -1919,6 +1965,7 @@ export default function FichaAlumnoPage() {
       )}
 
       <TituloGrupoFicha
+        id="grupo-evaluacion"
         titulo="Evaluación y seguimiento"
         descripcion="Pruebas aplicadas, citas y sesiones con el estudiante."
         acento="azul"
@@ -1935,8 +1982,24 @@ export default function FichaAlumnoPage() {
         titulo="Pruebas aplicadas"
         descripcion="Informes generados por cada evaluación finalizada."
         cuerpoClassName="space-y-4"
+        acciones={
+          // 🆕 (sesión 2026-11-01) Aplicación individual: una prueba a este
+          // estudiante sin armar una campaña (staff clínico; `colegio` no).
+          puedeAplicarPrueba && alumno?.activo !== false ? (
+            <button type="button" onClick={() => setAplicandoPrueba(true)} className={claseBoton("primario", "!py-1.5 !text-xs")}>
+              Aplicar prueba
+            </button>
+          ) : undefined
+        }
       >
         <TextoError>{errorPruebas}</TextoError>
+        {aplicandoPrueba && alumno && (
+          <ModalAplicarPrueba
+            personaId={alumno.id}
+            nombreAlumno={`${alumno.nombres} ${alumno.apellidos}`}
+            onCerrar={() => setAplicandoPrueba(false)}
+          />
+        )}
 
         {pruebasAplicadas === null ? (
           <p className="text-sm text-ink/60">Cargando...</p>
@@ -2220,7 +2283,7 @@ export default function FichaAlumnoPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     {esGrupal && (
-                      <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium bg-teal-600/10 text-teal-900 mb-1">
+                      <span className="inline-block rounded-full px-2 py-0.5 text-[12px] font-medium bg-teal-600/10 text-teal-900 mb-1">
                         Actividad grupal{cita.tipo_actividad ? `: ${cita.tipo_actividad}` : ""}
                       </span>
                     )}
@@ -2437,7 +2500,7 @@ export default function FichaAlumnoPage() {
         )}
       </BloqueFicha>
 
-      <TituloGrupoFicha titulo="Registro clínico" descripcion="Expediente y acceso del colegio." acento="teal" />
+      <TituloGrupoFicha id="grupo-clinico" titulo="Registro clínico" descripcion="Expediente y acceso del colegio." acento="teal" />
       {/* Línea de tiempo del expediente clínico */}
       <BloqueFicha
         icono={FolderLock}
@@ -2946,6 +3009,7 @@ export default function FichaAlumnoPage() {
       )}
 
       <TituloGrupoFicha
+        id="grupo-matricula"
         titulo="Matrícula, consentimientos y documentos"
         descripcion="Situación académica, autorizaciones y documentos emitidos."
         acento="violeta"

@@ -50,7 +50,7 @@ export function BloqueFicha({
           </span>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark leading-tight">{titulo}</h3>
-            {descripcion && <p className="text-[11.5px] text-ink/50 dark:text-ink-dark/50 leading-tight mt-0.5">{descripcion}</p>}
+            {descripcion && <p className="text-[12px] text-ink/50 dark:text-ink-dark/50 leading-tight mt-0.5">{descripcion}</p>}
           </div>
         </div>
         {acciones && <div className="flex items-center gap-1.5 flex-wrap">{acciones}</div>}
@@ -100,7 +100,7 @@ export function DatoFicha({
   const vacio = valor === null || valor === undefined || valor === "";
   return (
     <div className={`bg-surface dark:bg-surface-dark px-3.5 py-2.5 ${ancho ? "sm:col-span-full" : ""}`}>
-      <dt className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+      <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
         {Icono && <Icono size={12} aria-hidden="true" />}
         {etiqueta}
       </dt>

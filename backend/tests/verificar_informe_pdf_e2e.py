@@ -190,7 +190,9 @@ def main(url_base):
     # ==================================================================
     print("\n1 · CASO SIN ALERTA — aplicación -> resultado -> informe -> PDF -> storage -> descarga autorizada")
     campana_ok = exigir(requests.post(f"{API}/educativo/campanas/", json={
-        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} SinAlerta {sello}", "institucion_id": inst_a},
+        # 🆕 (sesión 2026-11-01) el alumno solo ve su PDF si la campaña lo permite.
+        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} SinAlerta {sello}", "institucion_id": inst_a,
+        "alumno_ve_informe": True},
         headers=h_a, timeout=30), 200, "Campaña sin alerta")
     persona_ok = exigir(requests.post(f"{API}/admin/personas/", json={
         "institucion_id": inst_a, "nombres": f"{PREFIJO} SinAlerta", "apellidos": "Uno",
@@ -271,8 +273,13 @@ def main(url_base):
 
     exigir(requests.patch(f"{API}/educativo/inscripciones/{insc_al}/liberar-informe",
                           json={}, headers=h_a, timeout=30), 200, "Liberar informe")
+    # 🆕 (sesión 2026-11-01) liberar no abre el PDF al alumno: lo abre el
+    # interruptor de la campaña (Evaluacion.alumno_ve_informe).
+    campana_de_tok_al = sql_uno("select evaluacion_id from edu_inscripciones where token=:t", t=tok_al)[0]
+    exigir(requests.patch(f"{API}/educativo/campanas/{campana_de_tok_al}", json={"alumno_ve_informe": True},
+                          headers=h_a, timeout=30), 200, "Encender 'los estudiantes ven su resultado'")
     r_pdf_al_liberado = requests.get(f"{API}/educativo/examen/{tok_al}/informe-pdf", timeout=60)
-    comprobar("[4] Tras liberar, el alumno SÍ puede descargarlo (200)", r_pdf_al_liberado.status_code == 200)
+    comprobar("[4] Liberado + interruptor encendido: el alumno SÍ puede descargarlo (200)", r_pdf_al_liberado.status_code == 200)
     comprobar("[4] Es el MISMO PDF que ya estaba almacenado (no se regeneró al liberar)",
               r_pdf_al_liberado.content == r_pdf_al_staff.content)
 
@@ -281,7 +288,9 @@ def main(url_base):
     persona_hist_id = sql_uno("select persona_id from edu_inscripciones where id=:i", i=insc_al)[0]
     # (ConAlerta no estaba matriculado académicamente; usamos un tercer caso matriculado)
     campana_hist = exigir(requests.post(f"{API}/educativo/campanas/", json={
-        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} Historico {sello}", "institucion_id": inst_a},
+        # 🆕 (sesión 2026-11-01) el alumno solo ve su PDF si la campaña lo permite.
+        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} Historico {sello}", "institucion_id": inst_a,
+        "alumno_ve_informe": True},
         headers=h_a, timeout=30), 200, "Campaña histórico")
     persona_hist = exigir(requests.post(f"{API}/admin/personas/", json={
         "institucion_id": inst_a, "nombres": f"{PREFIJO} Historico", "apellidos": "Tres",

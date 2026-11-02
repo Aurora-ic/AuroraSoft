@@ -386,8 +386,17 @@ def main(url_base):
             headers=h_psi, timeout=30,
         ), 200, "Liberar informe",
     )
+    # 🆕 (sesión 2026-11-01) Liberar ya no abre el PDF al alumno: eso lo
+    # decide solo el interruptor de la campaña (Evaluacion.alumno_ve_informe).
     r = requests.get(f"{API}/educativo/examen/{token}/informe-pdf", timeout=60)
-    comprobar("Tras la liberación el alumno ya descarga su PDF",
+    comprobar("Liberado pero con el interruptor de la campaña apagado: el alumno sigue sin PDF (403)",
+              r.status_code == 403, f"status {r.status_code}")
+    exigir(
+        requests.patch(f"{API}/educativo/campanas/{campana_id}", json={"alumno_ve_informe": True},
+                       headers=h_psi, timeout=30), 200, "Encender 'los estudiantes ven su resultado'",
+    )
+    r = requests.get(f"{API}/educativo/examen/{token}/informe-pdf", timeout=60)
+    comprobar("Con el interruptor encendido el alumno ya descarga su PDF",
               r.status_code == 200 and r.content[:4] == b"%PDF",
               f"status {r.status_code}, {len(r.content)} bytes")
 

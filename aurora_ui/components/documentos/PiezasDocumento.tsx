@@ -63,7 +63,7 @@ export function Insignia({ children, variante = "contorno", icono: Icono }: { ch
       ? VIOLETA.chip
       : "border border-dashed border-ink/25 text-ink/60 dark:border-ink-dark/25 dark:text-ink-dark/60";
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${clase}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap ${clase}`}>
       {Icono && <Icono size={11} aria-hidden="true" />}
       {children}
     </span>
@@ -158,7 +158,7 @@ export function CampoFormulario({ etiqueta, ayuda, children, className = "" }: {
     <label className={`flex flex-col gap-1 text-sm ${className}`}>
       <span className="text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">{etiqueta}</span>
       {children}
-      {ayuda && <span className="text-[11.5px] text-ink/45 dark:text-ink-dark/45">{ayuda}</span>}
+      {ayuda && <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">{ayuda}</span>}
     </label>
   );
 }

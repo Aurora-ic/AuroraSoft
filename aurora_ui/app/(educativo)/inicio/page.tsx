@@ -30,16 +30,12 @@ import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { ACENTOS, type Acento } from "@/lib/acentos";
-import type { Cita, Evaluacion, RespuestaPaginada, ResumenInicio, SeriesInicio } from "@/types/api";
+import type { BandejaCasosRiesgo, CasoRiesgo, Cita, Evaluacion, RespuestaPaginada, ResumenInicio, SeriesInicio } from "@/types/api";
+import { CLASE_URGENCIA, ETIQUETA_URGENCIA } from "@/lib/casos-riesgo";
+import { primerNombre, useUsuarioActual } from "@/lib/usuario";
 import { AvanceCampanas, GraficoEvaluacionesMes, GraficoSeguimientoMes } from "@/components/educativo/GraficosInicio";
 import { CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 
-type CasoPendiente = {
-  persona_id: number;
-  nombre_completo: string;
-  nivel_alerta: string;
-  [clave: string]: unknown;
-};
 
 function esHoy(fechaIso: string): boolean {
   const fecha = new Date(fechaIso);
@@ -151,7 +147,7 @@ function TarjetaResumen({
         </h2>
         <Link
           href={enlace}
-          className="text-[11.5px] font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline whitespace-nowrap"
+          className="text-[12px] font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline whitespace-nowrap"
         >
           Ver todo →
         </Link>
@@ -168,11 +164,14 @@ function EsqueletoGrafico({ bajo = false }: { bajo?: boolean }) {
 export default function InicioPage() {
   const { sesion } = useAuth();
   const vePerfilClinico = sesion?.rol === "psicologo" || sesion?.rol === "admin";
+  // 🆕 Saludo con el nombre real (GET /auth/me), no con el usuario del correo.
+  const usuario = useUsuarioActual(!!sesion);
+  const saludo = primerNombre(usuario?.nombre_completo) ?? sesion?.email?.split("@")[0] ?? null;
 
   const [resumen, setResumen] = useState<ResumenInicio | null>(null);
   const [errorResumen, setErrorResumen] = useState<string | null>(null);
 
-  const [casos, setCasos] = useState<CasoPendiente[] | null>(null);
+  const [casos, setCasos] = useState<CasoRiesgo[] | null>(null);
   const [errorCasos, setErrorCasos] = useState<string | null>(null);
 
   const [citas, setCitas] = useState<Cita[] | null>(null);
@@ -187,11 +186,13 @@ export default function InicioPage() {
 
   useEffect(() => {
     if (vePerfilClinico) {
+      // 🆕 (sesión 2026-11-01) La bandeja con urgencia (GET /casos-riesgo),
+      // que ya viene ordenada: urgentes primero. Un alumno puede tener más
+      // de un caso abierto; la tarjeta lista alumnos, cada uno con su caso
+      // más urgente.
       apiClient
-        .get<CasoPendiente[]>("/educativo/casos-pendientes")
-        // Un alumno puede venir varias veces (varias alertas y/o antecedentes
-        // clínicos externos): la tarjeta lista alumnos, uno por persona.
-        .then((lista) => setCasos(lista.filter((c, i) => lista.findIndex((o) => o.persona_id === c.persona_id) === i)))
+        .get<BandejaCasosRiesgo>("/educativo/casos-riesgo")
+        .then(({ casos: lista }) => setCasos(lista.filter((c, i) => lista.findIndex((o) => o.persona_id === c.persona_id) === i)))
         .catch((err) => setErrorCasos(err.message || "No se pudieron cargar los casos pendientes."));
 
       apiClient
@@ -235,7 +236,7 @@ export default function InicioPage() {
             {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
           </p>
           <h1 className="m-0 mt-1 font-display text-[26px] font-bold text-white dark:text-ink-dark">
-            Hola{sesion?.email ? `, ${sesion.email.split("@")[0]}` : ""}
+            Hola{saludo ? `, ${saludo}` : ""}
           </h1>
           <p className="m-0 mt-1.5 text-[13px] text-white/75 dark:text-ink-dark/60 max-w-md">
             Esto es lo que está pasando en tu institución este {nombreMes}.
@@ -261,9 +262,19 @@ export default function InicioPage() {
             apretaba "Casos en riesgo"/"Documentos" fuera de su tarjeta. */}
         <div className="grid grid-cols-1 min-[440px]:grid-cols-2 xl:grid-cols-4 gap-3">
           <AccesoRapido href="/estudiantes" icono={Users} label="Padrón" acento="teal" />
-          <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" acento="azul" />
+          {/* 🆕 (sesión 2026-11-01) El rol colegio no crea campañas ni ve la
+              bandeja clínica: sus accesos son de consulta. */}
+          {vePerfilClinico ? (
+            <AccesoRapido href="/campanas/nueva" icono={Flag} label="Nueva campaña" acento="azul" />
+          ) : (
+            <AccesoRapido href="/campanas" icono={Flag} label="Campañas" acento="azul" />
+          )}
           <AccesoRapido href="/documentos" icono={FileText} label="Documentos" acento="violeta" />
-          <AccesoRapido href="/casos-riesgo" icono={AlertTriangle} label="Casos en riesgo" acento="riesgo" />
+          {vePerfilClinico ? (
+            <AccesoRapido href="/casos-riesgo" icono={AlertTriangle} label="Casos en riesgo" acento="riesgo" />
+          ) : (
+            <AccesoRapido href="/academico" icono={Users} label="Estructura académica" acento="teal" />
+          )}
         </div>
       </div>
 
@@ -326,13 +337,13 @@ export default function InicioPage() {
                   {casos.slice(0, 4).map((c) => (
                     <li key={c.persona_id} className="flex items-center justify-between gap-2 text-[12.5px]">
                       <span className="truncate text-ink/80 dark:text-ink-dark/80">{c.nombre_completo}</span>
-                      <span className="flex-shrink-0 text-[10.5px] font-semibold text-amber-800 dark:text-amber bg-amber/15 rounded-full px-2 py-0.5">
-                        {c.nivel_alerta}
+                      <span className={`flex-shrink-0 text-[11.5px] font-semibold rounded-full px-2 py-0.5 ${CLASE_URGENCIA[c.urgencia].insignia}`}>
+                        {ETIQUETA_URGENCIA[c.urgencia]}
                       </span>
                     </li>
                   ))}
                   {casos.length > 4 && (
-                    <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{casos.length - 4} más</li>
+                    <li className="text-[12px] text-ink/40 dark:text-ink-dark/40">+{casos.length - 4} más</li>
                   )}
                 </ul>
               )}
@@ -348,14 +359,14 @@ export default function InicioPage() {
                   {citasHoy.slice(0, 4).map((c) => (
                     <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
                       <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
-                      <span className="font-mono text-[11.5px]">
+                      <span className="font-mono text-[12px]">
                         {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <span className="truncate">{c.titulo || c.motivo}</span>
                     </li>
                   ))}
                   {citasHoy.length > 4 && (
-                    <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
+                    <li className="text-[12px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
                   )}
                 </ul>
               )}
@@ -376,14 +387,14 @@ export default function InicioPage() {
                 {citasHoy.slice(0, 4).map((c) => (
                   <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
                     <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
-                    <span className="font-mono text-[11.5px]">
+                    <span className="font-mono text-[12px]">
                       {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                     <span className="truncate">{c.titulo || c.motivo}</span>
                   </li>
                 ))}
                 {citasHoy.length > 4 && (
-                  <li className="text-[11.5px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
+                  <li className="text-[12px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
                 )}
               </ul>
             )}

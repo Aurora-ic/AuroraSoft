@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { olvidarInactividad } from "@/lib/inactividad";
 import { useRouter } from "next/navigation";
 import { decodificarToken, tokenExpirado } from "@/lib/jwt";
 import { login as loginApi, type RespuestaCaptcha } from "@/lib/api-client";
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   function cerrarSesion() {
     localStorage.removeItem("aurora_token");
+    olvidarInactividad(); // 🆕 sin sesión no hay nada que bloquear
     setSesion(null);
     router.push("/");
   }

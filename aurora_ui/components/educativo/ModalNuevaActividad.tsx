@@ -316,7 +316,7 @@ export function ModalNuevaActividad({
                     <p className="m-0 font-semibold text-teal-900 dark:text-ink-dark truncate">
                       {persona.nombres} {persona.apellidos}
                     </p>
-                    <p className="m-0 text-[11.5px] text-ink/55 dark:text-ink-dark/55">{ubicacionDe(persona) ?? "Sin matrícula"}</p>
+                    <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55">{ubicacionDe(persona) ?? "Sin matrícula"}</p>
                   </div>
                   <button
                     type="button"
@@ -354,7 +354,7 @@ export function ModalNuevaActividad({
                             <span className="font-medium text-ink dark:text-ink-dark truncate">
                               {p.nombres} {p.apellidos}
                             </span>
-                            <span className="shrink-0 text-[11px] text-ink/45 dark:text-ink-dark/45">{ubicacionDe(p) ?? "Sin matrícula"}</span>
+                            <span className="shrink-0 text-[12px] text-ink/45 dark:text-ink-dark/45">{ubicacionDe(p) ?? "Sin matrícula"}</span>
                           </button>
                         </li>
                       ))}
@@ -451,7 +451,7 @@ export function ModalNuevaActividad({
                   <p className="m-0 text-[12.5px] font-bold text-teal-900 dark:text-ink-dark">
                     Asistentes <span className="font-normal text-ink/50 dark:text-ink-dark/50">(opcional)</span>
                   </p>
-                  <p className="m-0 text-[11.5px] text-ink/55 dark:text-ink-dark/55" aria-live="polite">
+                  <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55" aria-live="polite">
                     {seleccion.size === 0 ? (
                       "Nadie seleccionado — puedes crearla sin asistentes."
                     ) : (
@@ -500,7 +500,7 @@ export function ModalNuevaActividad({
                             className="px-3 py-2 bg-mist/40 dark:bg-surface-raised-dark rounded-t-lg"
                           >
                             <span className="flex-1 text-[12.5px] font-semibold text-ink dark:text-ink-dark">{g.etiqueta} — grado completo</span>
-                            <span className="text-[11px] font-semibold text-ink/45 dark:text-ink-dark/45">{g.ids.length}</span>
+                            <span className="text-[12px] font-semibold text-ink/45 dark:text-ink-dark/45">{g.ids.length}</span>
                           </CasillaGrupo>
                           <div className="flex flex-wrap gap-1.5 px-3 py-2">
                             {g.secciones.map((s) => {
@@ -532,7 +532,7 @@ export function ModalNuevaActividad({
                         </div>
                       ))}
                       {sinMatricula > 0 && (
-                        <p className="m-0 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                        <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">
                           {sinMatricula} estudiante(s) sin matrícula no aparecen aquí — búscalos en “Uno por uno”.
                         </p>
                       )}
@@ -547,7 +547,7 @@ export function ModalNuevaActividad({
                   >
                     <span className="flex-1">
                       <span className="block text-[13px] font-semibold text-ink dark:text-ink-dark">Todos los estudiantes activos</span>
-                      <span className="block text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                      <span className="block text-[12px] text-ink/50 dark:text-ink-dark/50">
                         {todosLosIds.length} estudiante(s) del padrón, de todos los niveles y grados.
                       </span>
                     </span>
@@ -574,7 +574,7 @@ export function ModalNuevaActividad({
                           <span className="min-w-0 flex-1 truncate">
                             {p.nombres} {p.apellidos}
                           </span>
-                          <span className="shrink-0 text-[10.5px] text-ink/40 dark:text-ink-dark/40">{ubicacionDe(p) ?? "—"}</span>
+                          <span className="shrink-0 text-[11.5px] text-ink/40 dark:text-ink-dark/40">{ubicacionDe(p) ?? "—"}</span>
                         </label>
                       ))}
                       {listaUno.length === 0 && (

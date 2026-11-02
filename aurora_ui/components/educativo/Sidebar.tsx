@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -18,9 +19,13 @@ import {
 import { type Acento } from "@/lib/acentos";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
-import type { Cita, Institucion } from "@/types/api";
+import type { BandejaCasosRiesgo, Cita, Institucion } from "@/types/api";
+import { ETIQUETA_ROL, useUsuarioActual } from "@/lib/usuario";
 
-type Enlace = { href: string; label: string };
+// 🆕 `soloStaff` (sesión 2026-11-01, punto 4 del análisis de UI/UX): el rol
+// `colegio` (dirección) no ve enlaces a pantallas cuyo backend le responde
+// 403 — antes el menú era el mismo para todos y esas páginas le fallaban.
+type Enlace = { href: string; label: string; soloStaff?: boolean };
 // 🆕 `acento` (sesión 2026-10-30): color de identidad del grupo, solo en su
 // ícono — ver lib/acentos.ts.
 type Grupo = { titulo: string; icono: LucideIcon; acento: Acento; enlaces: Enlace[] };
@@ -58,7 +63,7 @@ const GRUPOS: Grupo[] = [
     enlaces: [
       { href: "/campanas", label: "Campañas" },
       { href: "/pruebas", label: "Pruebas" },
-      { href: "/casos-riesgo", label: "Casos en riesgo" },
+      { href: "/casos-riesgo", label: "Casos en riesgo", soloStaff: true },
     ],
   },
   {
@@ -67,7 +72,7 @@ const GRUPOS: Grupo[] = [
     icono: FileText,
     enlaces: [
       { href: "/documentos", label: "Documentos" },
-      { href: "/asentimiento", label: "Consentimiento y asentimiento" },
+      { href: "/asentimiento", label: "Consentimiento y asentimiento", soloStaff: true },
     ],
   },
   {
@@ -130,6 +135,21 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
   // activa (ajuste de estado derivado durante el render, no en un efecto,
   // ver react-hooks/set-state-in-effect en components/ui/VisorArchivo.tsx
   // para el mismo patrón ya usado antes en este proyecto).
+  const esStaff = sesion?.rol !== "colegio";
+  const usuario = useUsuarioActual(!!sesion);
+  // 🆕 Contador de casos URGENTES junto a "Casos en riesgo" — misma consulta
+  // (y misma caché) que la bandeja, así se actualiza sola al trabajarla.
+  const bandeja = useQuery({
+    queryKey: ["casos-riesgo", false],
+    queryFn: () => apiClient.get<BandejaCasosRiesgo>("/educativo/casos-riesgo"),
+    enabled: !!sesion && esStaff,
+    staleTime: 60 * 1000,
+  });
+  const urgentes = (bandeja.data?.casos ?? []).filter((c) => c.urgencia === "urgente").length;
+  const grupos = GRUPOS.map((g) => ({ ...g, enlaces: g.enlaces.filter((e) => esStaff || !e.soloStaff) })).filter(
+    (g) => g.enlaces.length > 0,
+  );
+
   const [abiertos, setAbiertos] = useState<Set<string>>(() => {
     const grupoActivo = GRUPOS.find((g) => g.enlaces.some((e) => pathname?.startsWith(e.href)));
     return new Set(grupoActivo ? [grupoActivo.titulo] : []);
@@ -190,9 +210,17 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
         }`}
       >
         {enlace.label}
+        {enlace.href === "/casos-riesgo" && urgentes > 0 && (
+          <span
+            className="rounded-full bg-red-600 px-1.5 py-0.5 text-[11.5px] font-bold leading-none text-white"
+            title={`${urgentes} caso${urgentes === 1 ? "" : "s"} urgente${urgentes === 1 ? "" : "s"}`}
+          >
+            {urgentes}
+          </span>
+        )}
         {enlace.href === "/agenda" && !!citasHoy && (
           <span
-            className={`rounded-full px-1.5 py-0.5 text-[10.5px] font-semibold leading-none ${
+            className={`rounded-full px-1.5 py-0.5 text-[11.5px] font-semibold leading-none ${
               activo ? "bg-white/25 text-white" : "bg-teal-accent-dark/25 text-[#7FE3D2]"
             }`}
           >
@@ -237,7 +265,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
               <p className="m-0 font-display text-[15px] font-bold leading-tight text-white line-clamp-2" title={institucion?.nombre}>
                 {institucion?.nombre ?? "Mi institución"}
               </p>
-              <p className="m-0 mt-0.5 text-[11px] text-white/55 truncate">
+              <p className="m-0 mt-0.5 text-[12px] text-white/55 truncate">
                 {institucion?.anio_escolar_activo ? `Año escolar ${institucion.anio_escolar_activo}` : institucion?.tipo || "Institución educativa"}
               </p>
             </div>
@@ -261,7 +289,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
         <div className="h-px bg-white/10 mx-4 my-2" />
 
         <nav className="flex flex-col gap-0.5 px-3 pb-3">
-          {GRUPOS.map((grupo) => {
+          {grupos.map((grupo) => {
             const abierto = abiertos.has(grupo.titulo);
             const contieneActiva = grupo.enlaces.some((e) => pathname?.startsWith(e.href));
             const Icono = grupo.icono;
@@ -312,13 +340,16 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
       <div className="p-3 border-t border-white/10 bg-black/10">
         <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#2BB3A0] to-[#1C8F80] flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0">
-            {(sesion?.email?.[0] || "?").toUpperCase()}
+            {(usuario?.nombre_completo?.[0] || sesion?.email?.[0] || "?").toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
+            {/* 🆕 Nombre del profesional y rol legible (antes: correo y "psicologo"). */}
             <p className="m-0 text-[12.5px] font-semibold text-white truncate" title={sesion?.email}>
-              {sesion?.email}
+              {usuario?.nombre_completo || sesion?.email}
             </p>
-            <p className="m-0 text-[11px] text-white/55 capitalize">{sesion?.rol}</p>
+            <p className="m-0 text-[12px] text-white/55 truncate">
+              {usuario?.cargo || (sesion?.rol ? ETIQUETA_ROL[sesion.rol] : "")}
+            </p>
           </div>
           <button
             onClick={cerrarSesion}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useAvisoSinGuardar } from "@/lib/useAvisoSinGuardar";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -48,6 +49,8 @@ export default function NuevaSesionSeguimientoPage() {
   // undefined = cargando, null = sin sesiones previas
   const [ultima, setUltima] = useState<SesionSeguimiento | null | undefined>(undefined);
   const [totalSesiones, setTotalSesiones] = useState(0);
+  // 🆕 Aviso al salir con lo escrito sin registrar (punto 5 del análisis de UI/UX).
+  useAvisoSinGuardar(!guardando && (observaciones.trim() !== "" || accionTomada.trim() !== ""), "La sesión que estás escribiendo todavía no se registró.");
 
   useEffect(() => {
     apiClient
@@ -135,7 +138,7 @@ export default function NuevaSesionSeguimientoPage() {
               />
             </CampoEditable>
 
-            <p className="m-0 flex items-start gap-1.5 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">
               <Info size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
               Acuerdos, compromisos y la próxima cita se completan después con “Editar” en el historial de la ficha.
             </p>
@@ -144,7 +147,7 @@ export default function NuevaSesionSeguimientoPage() {
 
         <aside className="lg:sticky lg:top-4 space-y-4">
           <TarjetaAlumnoLateral personaId={personaId} alumno={alumno} seccion={seccion}>
-            <p className="m-0 mb-2 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
               Última sesión{totalSesiones > 1 ? ` · ${totalSesiones} en total` : ""}
             </p>
             {ultima === undefined ? (

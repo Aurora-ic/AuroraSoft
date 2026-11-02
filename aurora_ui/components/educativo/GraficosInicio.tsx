@@ -41,7 +41,7 @@ function topeRedondo(max: number): number {
 
 function Leyenda({ items }: { items: { color: string; etiqueta: string }[] }) {
   return (
-    <div className="flex items-center gap-3.5 flex-wrap text-[11.5px] text-ink/60 dark:text-ink-dark/60">
+    <div className="flex items-center gap-3.5 flex-wrap text-[12px] text-ink/60 dark:text-ink-dark/60">
       {items.map((i) => (
         <span key={i.etiqueta} className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-[3px] ${i.color}`} />
@@ -82,7 +82,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
         <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: ALTO }} aria-hidden="true">
           {[1, 0.5, 0].map((f) => (
             <div key={f} className="absolute inset-x-0 flex items-center gap-2" style={{ top: `${(1 - f) * 100}%` }}>
-              <span className="w-6 -translate-y-1/2 text-right text-[10px] tabular-nums text-ink/35 dark:text-ink-dark/35">
+              <span className="w-6 -translate-y-1/2 text-right text-[11.5px] tabular-nums text-ink/35 dark:text-ink-dark/35">
                 {Math.round(tope * f)}
               </span>
               <span className={`flex-1 -translate-y-1/2 border-t ${f === 0 ? "border-border dark:border-border-dark" : "border-dashed border-border/70 dark:border-border-dark/70"}`} />
@@ -111,7 +111,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
                   style={{ height: ALTO }}
                 >
                   {m.evaluaciones > 0 && (
-                    <span className="mb-1 text-[11px] font-semibold tabular-nums text-ink/70 dark:text-ink-dark/70">{m.evaluaciones}</span>
+                    <span className="mb-1 text-[12px] font-semibold tabular-nums text-ink/70 dark:text-ink-dark/70">{m.evaluaciones}</span>
                   )}
                   <div className="flex w-[55%] max-w-9 flex-col items-stretch gap-[2px]">
                     {m.con_alerta > 0 && (
@@ -125,14 +125,14 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
                     )}
                   </div>
                 </div>
-                <span className={`mt-1.5 text-[11px] capitalize ${activo ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/50 dark:text-ink-dark/50"}`}>
+                <span className={`mt-1.5 text-[12px] capitalize ${activo ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/50 dark:text-ink-dark/50"}`}>
                   {mesCorto(m.mes)}
                 </span>
 
                 {activo && (
                   <div
                     role="tooltip"
-                    className="absolute bottom-full mb-1 z-10 w-40 -translate-y-6 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark px-3 py-2 text-[11.5px] shadow-lg pointer-events-none"
+                    className="absolute bottom-full mb-1 z-10 w-40 -translate-y-6 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark px-3 py-2 text-[12px] shadow-lg pointer-events-none"
                   >
                     <p className="m-0 mb-1 font-semibold capitalize text-ink dark:text-ink-dark">{mesLargo(m.mes)}</p>
                     <p className="m-0 flex justify-between text-ink/70 dark:text-ink-dark/70">
@@ -266,7 +266,7 @@ export function GraficoSeguimientoMes({ meses }: { meses: MesSerieInicio[] }) {
         {activo && hover !== null && (
           <div
             role="tooltip"
-            className="absolute top-0 z-10 w-36 -translate-x-1/2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark px-3 py-2 text-[11.5px] shadow-lg pointer-events-none"
+            className="absolute top-0 z-10 w-36 -translate-x-1/2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark px-3 py-2 text-[12px] shadow-lg pointer-events-none"
             style={{ left: `${Math.min(Math.max((x(hover) / ANCHO) * 100, 18), 82)}%` }}
           >
             <p className="m-0 mb-1 font-semibold capitalize text-ink dark:text-ink-dark">{mesLargo(activo.mes)}</p>
@@ -322,14 +322,14 @@ export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }
                 <span className="truncate text-[12.5px] font-semibold text-ink dark:text-ink-dark group-hover:text-acento-azul dark:group-hover:text-acento-azul-dark">
                   {c.nombre_grupo}
                 </span>
-                <span className="shrink-0 text-[11px] tabular-nums text-ink/55 dark:text-ink-dark/55">
+                <span className="shrink-0 text-[12px] tabular-nums text-ink/55 dark:text-ink-dark/55">
                   {c.finalizados}/{c.inscritos} · <strong className="text-ink dark:text-ink-dark">{pct}%</strong>
                 </span>
               </div>
               <div className="mt-1.5 h-1.5 rounded-full bg-border dark:bg-border-dark overflow-hidden">
                 <div className="h-full rounded-full bg-acento-azul dark:bg-acento-azul-dark transition-all" style={{ width: `${Math.max(pct, c.finalizados > 0 ? 3 : 0)}%` }} />
               </div>
-              <div className="mt-1 flex items-center justify-between gap-2 text-[10.5px] text-ink/45 dark:text-ink-dark/45">
+              <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
                 <span className="truncate">{c.prueba ?? ""}</span>
                 {dias !== null && (
                   <span className={`inline-flex items-center gap-1 shrink-0 ${urgente ? "font-semibold text-red-700 dark:text-red-300" : ""}`}>
@@ -343,7 +343,7 @@ export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }
         );
       })}
       <li>
-        <Link href="/campanas" className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-acento-azul dark:text-acento-azul-dark hover:underline">
+        <Link href="/campanas" className="inline-flex items-center gap-1 text-[12px] font-semibold text-acento-azul dark:text-acento-azul-dark hover:underline">
           Ver todas las campañas
           <ArrowRight size={12} aria-hidden="true" />
         </Link>

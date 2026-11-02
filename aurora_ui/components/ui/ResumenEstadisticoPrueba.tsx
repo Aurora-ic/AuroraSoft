@@ -50,10 +50,10 @@ function EstadisticasNumericas({ d }: { d: DimensionResumenEstadistico }) {
 
 function BadgeTipoCalculo({ tipoCalculo }: { tipoCalculo: DimensionResumenEstadistico["tipo_calculo"] }) {
   if (tipoCalculo === "suma_de_dimensiones") {
-    return <span className="rounded-full px-2 py-0.5 bg-teal-900/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-teal-accent-dark text-[10px] font-semibold uppercase tracking-wide">Total</span>;
+    return <span className="rounded-full px-2 py-0.5 bg-teal-900/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-teal-accent-dark text-[11.5px] font-semibold uppercase tracking-wide">Total</span>;
   }
   if (tipoCalculo === "conteo_sintomas") {
-    return <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60 text-[10px] font-semibold uppercase tracking-wide">Conteo</span>;
+    return <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60 text-[11.5px] font-semibold uppercase tracking-wide">Conteo</span>;
   }
   return null;
 }

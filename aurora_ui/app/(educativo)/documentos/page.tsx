@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -67,6 +68,8 @@ type FiltroEstado = "todos" | "borradores" | "emitidos";
 // usa e2e/documentos.spec.ts ("+ Nueva desde cero", la etiqueta del select
 // de tipo, "Crear y abrir el constructor").
 export default function DocumentosPage() {
+  // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
+  const confirmar = useConfirmar();
   const { sesion } = useAuth();
   const router = useRouter();
 
@@ -176,7 +179,15 @@ export default function DocumentosPage() {
   // documentos ya emitidos con ella no cambian; responde 409 si todavía
   // tiene borradores en curso (ver crud.eliminar_plantilla_documento).
   async function eliminarPlantilla(p: PlantillaDocumento) {
-    if (!window.confirm(`¿Eliminar la plantilla "${p.nombre}"? Los documentos ya emitidos con ella no cambian.`)) return;
+    if (
+      !(await confirmar({
+        titulo: `¿Eliminar la plantilla «${p.nombre}»?`,
+        mensaje: "Los documentos ya emitidos con ella no cambian.",
+        textoConfirmar: "Eliminar plantilla",
+        peligro: true,
+      }))
+    )
+      return;
     setEliminandoId(p.id);
     setErrorPlantilla(null);
     try {
@@ -250,7 +261,15 @@ export default function DocumentosPage() {
   // auditoría de lecturas del borrador se conserva.
   async function descartarBorrador(d: DocumentoInstitucional) {
     const quien = d.estudiantes_resumen?.length ? ` de ${d.estudiantes_resumen.join(", ")}` : "";
-    if (!window.confirm(`¿Descartar el borrador "${d.titulo}"${quien}? Se pierde lo que se haya escrito en él.`)) return;
+    if (
+      !(await confirmar({
+        titulo: `¿Descartar el borrador «${d.titulo}»${quien}?`,
+        mensaje: "Se pierde lo que se haya escrito en él. Esta acción no se puede deshacer.",
+        textoConfirmar: "Descartar borrador",
+        peligro: true,
+      }))
+    )
+      return;
     setDescartandoId(d.id);
     setErrorDocumentos(null);
     try {
@@ -424,7 +443,7 @@ export default function DocumentosPage() {
               <Boton onClick={crearPlantilla} disabled={!tipoNuevaPlantilla || creandoPlantilla}>
                 {creandoPlantilla ? "Creando..." : "Crear y abrir el constructor"}
               </Boton>
-              <p className="basis-full m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+              <p className="basis-full m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
                 ¿Prefieres partir de un formato ya armado? Usa el{" "}
                 <button type="button" onClick={() => setTab("catalogo")} className={`font-semibold hover:underline ${VIOLETA.texto}`}>
                   catálogo para clonar
@@ -467,13 +486,13 @@ export default function DocumentosPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <h3 className="m-0 text-sm font-semibold text-ink dark:text-ink-dark leading-snug">{p.nombre}</h3>
-                        <p className="m-0 mt-0.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">{nombreTipo(p.tipo_documento_id)}</p>
+                        <p className="m-0 mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50">{nombreTipo(p.tipo_documento_id)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <PildoraEstado activa={p.activa} />
                         {duplicadas.has(p.id) && (
                           <span
-                            className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink/30 dark:border-ink-dark/30 px-2 py-0.5 text-[10.5px] font-semibold text-ink/60 dark:text-ink-dark/60"
+                            className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink/30 dark:border-ink-dark/30 px-2 py-0.5 text-[11.5px] font-semibold text-ink/60 dark:text-ink-dark/60"
                             title="Hay otra plantilla tuya del mismo tipo con el mismo nombre. Si la clonaste dos veces por accidente, elimina la que sobre."
                           >
                             <CopyCheck size={10} aria-hidden="true" />
@@ -483,7 +502,7 @@ export default function DocumentosPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[12px] text-ink/50 dark:text-ink-dark/50">
                       {n !== undefined && n >= 0 && (
                         <span className={n === 0 ? "text-red-700 dark:text-red-300 font-medium" : ""}>
                           {n} {n === 1 ? "sección" : "secciones"}
@@ -500,7 +519,7 @@ export default function DocumentosPage() {
 
                     {/* Activa + sin secciones = generaría un documento vacío. */}
                     {p.activa && n === 0 && (
-                      <p className="m-0 text-[11.5px] text-red-700 dark:text-red-300 font-medium">
+                      <p className="m-0 text-[12px] text-red-700 dark:text-red-300 font-medium">
                         Sin secciones: no generará contenido. Agrégalas en Editar.
                       </p>
                     )}
@@ -569,7 +588,7 @@ export default function DocumentosPage() {
           ) : (
             gruposCatalogo.map((g) => (
               <div key={g.tipo.id}>
-                <h3 className="m-0 mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                <h3 className="m-0 mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
                   <span className={`h-1.5 w-1.5 rounded-full ${VIOLETA.solido}`} aria-hidden="true" />
                   {g.tipo.nombre}
                   <span className="font-semibold text-ink/30 dark:text-ink-dark/30">{g.items.length}</span>
@@ -588,7 +607,7 @@ export default function DocumentosPage() {
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-auto">
                         {yaClonada(item) ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ink/50 dark:text-ink-dark/50">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-ink/50 dark:text-ink-dark/50">
                             <CheckCircle2 size={12} aria-hidden="true" />
                             Ya en tus plantillas
                           </span>
@@ -671,7 +690,7 @@ export default function DocumentosPage() {
                       >
                         {d.titulo}
                       </Link>
-                      <p className="m-0 mt-0.5 flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                      <p className="m-0 mt-0.5 flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-[12px] text-ink/50 dark:text-ink-dark/50">
                         {alumnos.length > 0 && (
                           <span className="inline-flex items-center gap-1 text-ink/70 dark:text-ink-dark/70 font-medium" title={alumnos.join(", ")}>
                             <Users size={11} aria-hidden="true" />
@@ -683,7 +702,7 @@ export default function DocumentosPage() {
                       </p>
                     </div>
                     <span
-                      className={`hidden sm:inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                      className={`hidden sm:inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                         borrador ? "border border-dashed border-ink/25 text-ink/55 dark:border-ink-dark/25 dark:text-ink-dark/55" : VIOLETA.chipSolido
                       }`}
                     >
@@ -801,7 +820,7 @@ function TarjetaPestana({
           <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark truncate">{titulo}</span>
           <span className={`font-display text-[17px] font-bold leading-none ${VIOLETA.texto}`}>{valor}</span>
         </span>
-        <span className="block mt-0.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50 truncate">{descripcion}</span>
+        <span className="block mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50 truncate">{descripcion}</span>
       </span>
     </button>
   );
@@ -810,7 +829,7 @@ function TarjetaPestana({
 function PildoraEstado({ activa }: { activa: boolean }) {
   return (
     <span
-      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
+      className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap ${
         activa ? VIOLETA.chipSolido : "border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
       }`}
     >

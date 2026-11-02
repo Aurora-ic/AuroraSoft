@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -152,6 +153,8 @@ function iconoDe(cita: Cita): LucideIcon {
 // ("16:45", una sola vez) y "Cancelar"/"Cancelada" — no envolver el
 // contenido de la tarjeta en un <div> interno.
 export default function AgendaPage() {
+  // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
+  const confirmar = useConfirmar();
   const { sesion } = useAuth();
   const [citas, setCitas] = useState<Cita[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -258,7 +261,15 @@ export default function AgendaPage() {
   }
 
   async function cancelar(citaId: number) {
-    if (!window.confirm("¿Cancelar esta cita?")) return;
+    if (
+      !(await confirmar({
+        titulo: "¿Cancelar esta cita?",
+        mensaje: "La cita queda registrada como cancelada y sale de la agenda del día.",
+        textoConfirmar: "Cancelar cita",
+        peligro: true,
+      }))
+    )
+      return;
     try {
       await apiClient.delete(`/admin/personas/citas/${citaId}`);
       cargar();
@@ -429,7 +440,7 @@ export default function AgendaPage() {
               </div>
               <div className="grid grid-cols-7 text-center">
                 {INICIALES_DIA.map((d, i) => (
-                  <span key={i} className="py-1 text-[10.5px] font-semibold text-ink/40 dark:text-ink-dark/40">
+                  <span key={i} className="py-1 text-[11.5px] font-semibold text-ink/40 dark:text-ink-dark/40">
                     {d}
                   </span>
                 ))}
@@ -470,7 +481,7 @@ export default function AgendaPage() {
 
             {/* --- Filtros por tipo (muestra de color + ícono + conteo) --- */}
             <div className="mt-4 pt-4 border-t border-border dark:border-border-dark space-y-1">
-              <p className="m-0 mb-1.5 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Mostrar</p>
+              <p className="m-0 mb-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Mostrar</p>
               {filtrosTipo.map((f) => (
                 <label
                   key={f.cat}
@@ -487,7 +498,7 @@ export default function AgendaPage() {
                   </span>
                   <f.icono size={13} className={ESTILO_CATEGORIA[f.cat].texto} aria-hidden="true" />
                   <span className="flex-1">{f.etiqueta}</span>
-                  <span className="text-[11px] font-semibold text-ink/40 dark:text-ink-dark/40">{f.n}</span>
+                  <span className="text-[12px] font-semibold text-ink/40 dark:text-ink-dark/40">{f.n}</span>
                 </label>
               ))}
             </div>
@@ -495,11 +506,11 @@ export default function AgendaPage() {
 
           {/* --- 🆕 Agendar cita individual sin salir de la agenda --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
-            <p className="m-0 mb-1 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 mb-1 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
               <User size={12} aria-hidden="true" className={ESTILO_CATEGORIA.individual.texto} />
               Agendar cita individual
             </p>
-            <p className="m-0 mb-2.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">Busca al estudiante y agenda sin entrar a su ficha.</p>
+            <p className="m-0 mb-2.5 text-[12px] text-ink/50 dark:text-ink-dark/50">Busca al estudiante y agenda sin entrar a su ficha.</p>
             <div className="relative">
               <Search size={13} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" />
               <input
@@ -511,7 +522,7 @@ export default function AgendaPage() {
                 className="w-full rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
               />
             </div>
-            {errorPersonas && <p className="m-0 mt-2 text-[11.5px] text-red-700 dark:text-red-300">{errorPersonas}</p>}
+            {errorPersonas && <p className="m-0 mt-2 text-[12px] text-red-700 dark:text-red-300">{errorPersonas}</p>}
             {resultadosCita.length > 0 && (
               <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-0.5">
                 {resultadosCita.map((p) => (
@@ -521,14 +532,14 @@ export default function AgendaPage() {
                       onClick={() => abrirModal({ modo: "individual", persona: p })}
                       className="group w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-teal-600/[0.07] dark:hover:bg-teal-accent-dark/10"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-600/10 text-[10.5px] font-bold text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-600/10 text-[11.5px] font-bold text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
                         {`${p.nombres[0] ?? ""}${p.apellidos[0] ?? ""}`.toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[12.5px] font-medium text-ink dark:text-ink-dark">
                           {p.nombres} {p.apellidos}
                         </span>
-                        <span className="block truncate text-[10.5px] text-ink/45 dark:text-ink-dark/45">
+                        <span className="block truncate text-[11.5px] text-ink/45 dark:text-ink-dark/45">
                           {p.seccion_actual
                             ? [p.seccion_actual.nivel_educativo, p.seccion_actual.grado, p.seccion_actual.seccion].filter(Boolean).join(" · ")
                             : "Sin matrícula"}
@@ -541,13 +552,13 @@ export default function AgendaPage() {
               </ul>
             )}
             {busquedaCita.trim() && !cargandoPersonas && personasCargadas && resultadosCita.length === 0 && (
-              <p className="m-0 mt-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Ningún estudiante activo coincide.</p>
+              <p className="m-0 mt-2 text-[12px] text-ink/45 dark:text-ink-dark/45">Ningún estudiante activo coincide.</p>
             )}
           </div>
 
           {/* --- Próximas --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
-            <p className="m-0 mb-2.5 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas</p>
+            <p className="m-0 mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas</p>
             {cargando ? (
               <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
             ) : proximas.length === 0 ? (
@@ -566,13 +577,13 @@ export default function AgendaPage() {
                         className="w-full text-left flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-mist dark:hover:bg-surface-raised-dark"
                       >
                         <span className="flex w-9 shrink-0 flex-col items-center rounded-md border border-border dark:border-border-dark py-0.5">
-                          <span className="text-[9px] font-bold uppercase text-ink/45 dark:text-ink-dark/45">
+                          <span className="text-[11px] font-bold uppercase text-ink/45 dark:text-ink-dark/45">
                             {NOMBRES_DIA_CORTO[(f.getDay() + 6) % 7]}
                           </span>
                           <span className="font-display text-[15px] font-bold leading-none text-ink dark:text-ink-dark">{f.getDate()}</span>
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className={`flex items-center gap-1 text-[11px] font-semibold ${ESTILO_CATEGORIA[cat].texto}`}>
+                          <span className={`flex items-center gap-1 text-[12px] font-semibold ${ESTILO_CATEGORIA[cat].texto}`}>
                             <Icono size={11} aria-hidden="true" />
                             {horaCorta(c.fecha_hora)}
                           </span>
@@ -594,7 +605,7 @@ export default function AgendaPage() {
           <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark">
             <div className="min-w-0">
               <p className="m-0 text-[15px] font-semibold text-teal-700 dark:text-teal-accent-dark">{rangoSemana}</p>
-              <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
                 Citas individuales: búscalas en el panel lateral o desde la ficha del alumno. Talleres y charlas los ve todo tu equipo.
               </p>
             </div>
@@ -643,7 +654,7 @@ export default function AgendaPage() {
                         {dia.getDate()}
                       </span>
                       <span
-                        className={`text-[11px] font-bold uppercase tracking-wider md:mt-1 ${
+                        className={`text-[12px] font-bold uppercase tracking-wider md:mt-1 ${
                           esHoy ? "text-teal-700 dark:text-teal-accent-dark" : "text-ink/45 dark:text-ink-dark/45"
                         }`}
                       >
@@ -651,7 +662,7 @@ export default function AgendaPage() {
                         <span className="hidden md:inline">{NOMBRES_DIA_CORTO[i]}</span>
                       </span>
                       {citasDelDia.length === 0 && (
-                        <span className="md:hidden ml-auto text-[11px] italic text-ink/30 dark:text-ink-dark/30">Sin citas</span>
+                        <span className="md:hidden ml-auto text-[12px] italic text-ink/30 dark:text-ink-dark/30">Sin citas</span>
                       )}
                       <button
                         type="button"
@@ -678,12 +689,12 @@ export default function AgendaPage() {
                             cancelada ? "border-l-border dark:border-l-border-dark bg-mist/60 dark:bg-surface-raised-dark" : `${estilo.borde} ${estilo.fondo}`
                           }`}
                         >
-                          <p className="m-0 flex items-center gap-1 font-mono text-[11px] text-ink/60 dark:text-ink-dark/60">
+                          <p className="m-0 flex items-center gap-1 font-mono text-[12px] text-ink/60 dark:text-ink-dark/60">
                             <Clock size={10} aria-hidden="true" className="shrink-0" />
                             {rangoHorario(cita)}
                           </p>
                           {cruzadas.has(cita.id) && (
-                            <p className="m-0 inline-flex items-center gap-1 rounded bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-red-700 dark:text-red-300">
+                            <p className="m-0 inline-flex items-center gap-1 rounded bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[11.5px] font-semibold text-red-700 dark:text-red-300">
                               <AlertTriangle size={10} aria-hidden="true" />
                               Se cruza con otra cita
                             </p>
@@ -708,7 +719,7 @@ export default function AgendaPage() {
                             </p>
                           )}
                           {esGrupal && (
-                            <p className="m-0 text-[10.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                            <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
                               {cita.tipo_actividad || "Actividad"}
                             </p>
                           )}
@@ -728,7 +739,7 @@ export default function AgendaPage() {
                             </p>
                           )}
                           {cita.estado === "Programada" && reprogramandoId !== cita.id && (
-                            <div className="flex items-center gap-2.5 pt-0.5 text-[11px] font-semibold">
+                            <div className="flex items-center gap-2.5 pt-0.5 text-[12px] font-semibold">
                               <button onClick={() => abrirReprogramar(cita)} className="text-teal-700 dark:text-teal-accent-dark hover:underline">
                                 {esGrupal ? "Editar" : "Reprogramar"}
                               </button>

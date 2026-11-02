@@ -689,6 +689,8 @@ export type IntakeExamen = {
   poblacion: string | null;
   informante_tipo: string;
   ya_acepto_asentimiento: boolean;
+  // 🆕 Prueba.instrucciones, textual — se muestran antes de la 1.ª pregunta.
+  instrucciones?: string | null;
 };
 
 // 🆕 Texto versionado del asentimiento informado (reemplaza la constante
@@ -784,6 +786,9 @@ export type EstadoResultadosAlumno = {
   informe_liberado: boolean;
   estado_interpretacion: string;
   mensaje: string;
+  // 🆕 Llave del alumno (Evaluacion.alumno_ve_informe) y su resumen en pantalla.
+  alumno_puede_ver_informe: boolean;
+  resultados: { dimension: string; nivel: string }[];
 };
 
 // ==========================================
@@ -869,6 +874,10 @@ export type Evaluacion = {
   estado: string; // "activa" | "cerrada" | "cancelada"
   fecha_fin: string | null;
   fecha_creacion: string;
+  // 🆕 Si los estudiantes ven su resultado y su PDF al terminar (apagado por defecto).
+  alumno_ve_informe: boolean;
+  // 🆕 "grupal" (uno o varios salones) | "individual" (un estudiante, desde su perfil).
+  tipo?: "grupal" | "individual";
 };
 
 export type EvaluacionCreate = {
@@ -876,11 +885,13 @@ export type EvaluacionCreate = {
   nombre_grupo: string;
   institucion_id: number;
   fecha_fin?: string | null;
+  alumno_ve_informe?: boolean;
 };
 
 export type EvaluacionUpdate = Partial<{
   nombre_grupo: string;
   fecha_fin: string | null;
+  alumno_ve_informe: boolean;
   prueba_id: number;
 }>;
 
@@ -1001,6 +1012,7 @@ export type DashboardCampana = {
   // en el backend.
   estado: "activa" | "cerrada" | "cancelada";
   fecha_fin: string | null;
+  alumno_ve_informe?: boolean;
   prueba_id: number;
 };
 
@@ -1379,4 +1391,86 @@ export type RevisionInformeRequest = {
   firma_cargo_override?: string | null;
   firma_nombre_override?: string | null;
   firma_dni_override?: string | null;
+};
+
+// ==========================================
+// 🆕 Casos en riesgo con urgencia, estado y responsable (sesión 2026-11-01)
+// — GET/PATCH /educativo/casos-riesgo, ver crud.listar_casos_riesgo.
+// ==========================================
+export type UrgenciaCaso = "urgente" | "alerta" | "seguimiento";
+export type EstadoCaso = "nuevo" | "en_atencion" | "derivado" | "en_seguimiento" | "cerrado";
+
+export type AlertaCaso = {
+  dimension: string | null;
+  nivel: string;
+  item_critico: boolean; // la disparó una regla de ítem crítico
+  motivo: string | null; // descripción de esa regla
+};
+
+export type CasoRiesgo = {
+  id: number;
+  origen: "prueba" | "antecedentes";
+  estado: EstadoCaso;
+  urgencia: UrgenciaCaso;
+  persona_id: number;
+  nombre_completo: string;
+  responsable: { id: number; nombre: string | null } | null;
+  creado_en: string;
+  actualizado_en: string;
+  cerrado_en: string | null;
+  motivo_cierre: string | null;
+  ultimo_seguimiento: string | null;
+  fecha_referencia: string | null;
+  // origen "prueba"
+  inscripcion_id?: number;
+  evaluacion_id?: number;
+  campana?: string | null;
+  prueba?: string | null;
+  fecha_evaluacion?: string | null;
+  alertas?: AlertaCaso[];
+  // origen "antecedentes"
+  motivos?: string[];
+  diagnostico_reportado?: string | null;
+};
+
+export type BandejaCasosRiesgo = {
+  casos: CasoRiesgo[];
+  profesionales: { id: number; nombre: string }[];
+  yo: number;
+};
+
+export type EventoCasoRiesgo = {
+  id: number;
+  tipo: "creado" | "estado" | "responsable";
+  creado_en: string;
+  usuario: string | null; // null = el sistema
+  estado_anterior: EstadoCaso | null;
+  estado_nuevo: EstadoCaso | null;
+  responsable_anterior: string | null;
+  responsable_nuevo: string | null;
+  nota: string | null;
+};
+
+// ==========================================
+// 🆕 Elegibilidad y aplicación individual (sesión 2026-11-01) —
+// GET /educativo/pruebas/{id}/elegibilidad, POST /educativo/personas/{id}/aplicacion-individual
+// ==========================================
+export type MotivoNoElegible = "sin_consentimiento" | "sin_asentimiento" | "pendiente" | "reciente" | "limite_mensual";
+
+export type NoElegible = {
+  persona_id: number;
+  motivo: MotivoNoElegible;
+  detalle: string;
+  disponible_desde: string | null;
+};
+
+export type ElegibilidadPrueba = {
+  dias_minimos_entre_aplicaciones: number;
+  limite_mensual: number;
+  no_elegibles: NoElegible[];
+};
+
+export type AplicacionIndividual = {
+  evaluacion: Evaluacion;
+  token: string;
 };

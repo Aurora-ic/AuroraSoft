@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,6 +49,8 @@ function iniciales(persona: Persona): string {
 }
 
 export default function PadronPage() {
+  // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
+  const confirmar = useConfirmar();
   const { sesion } = useAuth();
   const router = useRouter();
   const [personas, setPersonas] = useState<Persona[]>([]);
@@ -169,10 +172,20 @@ export default function PadronPage() {
 
   async function alternarActivo(persona: Persona, e: React.MouseEvent) {
     e.stopPropagation(); // no navegar a la ficha al hacer clic en el botón de la fila
-    const pregunta = persona.activo
-      ? `¿Desactivar a ${persona.nombres} ${persona.apellidos}?`
-      : `¿Reactivar a ${persona.nombres} ${persona.apellidos}?`;
-    if (!window.confirm(pregunta)) return;
+    const nombre = `${persona.nombres} ${persona.apellidos}`;
+    if (
+      !(await confirmar(
+        persona.activo
+          ? {
+              titulo: `¿Desactivar a ${nombre}?`,
+              mensaje: "Deja de aparecer en el padrón activo y no se le podrá aplicar pruebas. Puedes reactivarlo después.",
+              textoConfirmar: "Desactivar",
+              peligro: true,
+            }
+          : { titulo: `¿Reactivar a ${nombre}?`, mensaje: "Vuelve al padrón activo.", textoConfirmar: "Reactivar" },
+      ))
+    )
+      return;
     setActualizandoId(persona.id);
     setErrorAccion(null);
     try {
@@ -367,7 +380,7 @@ export default function PadronPage() {
                         <div className="flex items-center gap-2.5">
                           <span
                             aria-hidden="true"
-                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
                               conDx
                                 ? "bg-amber/25 text-amber-800 dark:bg-amber/20 dark:text-amber"
                                 : persona.activo
@@ -387,7 +400,7 @@ export default function PadronPage() {
                           {conDx && (
                             <span
                               title="Con diagnóstico: terapia o psiquiatría externa en sus antecedentes clínicos"
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber/20 px-2 py-0.5 text-[10.5px] font-bold text-amber-800 dark:bg-amber/15 dark:text-amber"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber/20 px-2 py-0.5 text-[11.5px] font-bold text-amber-800 dark:bg-amber/15 dark:text-amber"
                             >
                               <Stethoscope size={11} aria-hidden="true" />
                               Dx

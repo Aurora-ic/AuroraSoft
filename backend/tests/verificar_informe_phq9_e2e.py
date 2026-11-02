@@ -169,7 +169,10 @@ def main(url_base):
     # ==================================================================
     print("\n1-8 · Aplicación SIN alerta (todo 'Nunca' -> puntaje 0)")
     campana_ok = exigir(requests.post(f"{API}/educativo/campanas/", json={
-        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} Sin alerta {sello}", "institucion_id": inst_a},
+        "prueba_id": phq9_id, "nombre_grupo": f"{PREFIJO} Sin alerta {sello}", "institucion_id": inst_a,
+        # 🆕 (sesión 2026-11-01) el alumno solo ve su resultado/PDF si la
+        # campaña lo permite — esta parte del test verifica justamente eso.
+        "alumno_ve_informe": True},
         headers=h_a, timeout=30), 200, "Campaña sin alerta")
     persona_ok = crear_persona_con_consentimiento(h_a, inst_a, sello, "OK")
     tok_ok = matricular(h_a, campana_ok["id"], persona_ok)
@@ -203,7 +206,7 @@ def main(url_base):
               fila_version[0].startswith(f"instituciones/{inst_a}/informes/"), fila_version[0])
 
     r_pdf_alumno = requests.get(f"{API}/educativo/examen/{tok_ok}/informe-pdf", timeout=60)
-    comprobar("[5] El alumno descarga su PDF (200, liberado automáticamente sin alerta)",
+    comprobar("[5] El alumno descarga su PDF (200, campaña con 'los estudiantes ven su resultado')",
               r_pdf_alumno.status_code == 200, f"status {r_pdf_alumno.status_code}")
     comprobar("[5] Es un PDF real", r_pdf_alumno.content[:4] == b"%PDF")
     comprobar("[6] tamano_bytes/checksum en BD coinciden con el PDF servido",
@@ -255,8 +258,12 @@ def main(url_base):
 
     exigir(requests.patch(f"{API}/educativo/inscripciones/{insc_alerta[0]}/liberar-informe",
                           json={}, headers=h_a, timeout=30), 200, "Liberar informe")
+    # 🆕 (sesión 2026-11-01) liberar no abre el PDF al alumno: lo abre el
+    # interruptor de la campaña (Evaluacion.alumno_ve_informe).
+    exigir(requests.patch(f"{API}/educativo/campanas/{campana_alerta['id']}", json={"alumno_ve_informe": True},
+                          headers=h_a, timeout=30), 200, "Encender 'los estudiantes ven su resultado'")
     r_pdf_tras_liberar = requests.get(f"{API}/educativo/examen/{tok_alerta}/informe-pdf", timeout=60)
-    comprobar("[13] Tras liberar, el alumno SÍ puede descargar su PDF (200)",
+    comprobar("[13] Liberado + interruptor encendido: el alumno SÍ puede descargar su PDF (200)",
               r_pdf_tras_liberar.status_code == 200, f"status {r_pdf_tras_liberar.status_code}")
 
     r_reemitir_sin_motivo = requests.post(f"{API}/educativo/inscripciones/{insc_alerta[0]}/informe/reemitir",

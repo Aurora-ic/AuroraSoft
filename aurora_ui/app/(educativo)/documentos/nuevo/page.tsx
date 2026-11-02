@@ -411,7 +411,7 @@ export default function NuevoDocumentoPage() {
                           <span className="flex-1 min-w-0 truncate text-ink dark:text-ink-dark">
                             {p.nombres} {p.apellidos}
                           </span>
-                          {p.grado_seccion && <span className="text-[11.5px] text-ink/45 dark:text-ink-dark/45">{p.grado_seccion}</span>}
+                          {p.grado_seccion && <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">{p.grado_seccion}</span>}
                         </label>
                       );
                     })}
@@ -425,7 +425,7 @@ export default function NuevoDocumentoPage() {
                     )}
                   </div>
                   {totalResultados > personasFiltradas.length && (
-                    <p className="m-0 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                    <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">
                       Mostrando {personasFiltradas.length} de {totalResultados}. Escribe nombre, apellido o DNI para afinar.
                     </p>
                   )}
@@ -465,7 +465,7 @@ export default function NuevoDocumentoPage() {
                     </Select>
                   </CampoFormulario>
                 </div>
-                <p className="m-0 flex items-start gap-1.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
                   <Info size={12} className="mt-px shrink-0" aria-hidden="true" />
                   Se usa lo más específico que elijas: una sección, o todo el grado/nivel si dejas la sección o el grado en blanco.
                 </p>
@@ -489,7 +489,7 @@ export default function NuevoDocumentoPage() {
               />
             </CampoFormulario>
             {tituloSugerido && plantillaElegida && titulo && (
-              <p className="m-0 mt-1.5 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Sugerido a partir de la plantilla; puedes cambiarlo.</p>
+              <p className="m-0 mt-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">Sugerido a partir de la plantilla; puedes cambiarlo.</p>
             )}
           </PasoFormulario>
         </div>
@@ -516,12 +516,12 @@ export default function NuevoDocumentoPage() {
                         <ArrowRight size={12} aria-hidden="true" />
                       </Link>
                       {d.estudiantes_resumen?.length ? (
-                        <span className="block text-[11.5px] text-ink/50 dark:text-ink-dark/50">{d.estudiantes_resumen.join(", ")}</span>
+                        <span className="block text-[12px] text-ink/50 dark:text-ink-dark/50">{d.estudiantes_resumen.join(", ")}</span>
                       ) : null}
                     </li>
                   ))}
                 </ul>
-                <p className="m-0 mt-1.5 text-[11px] text-ink/45 dark:text-ink-dark/45">Puedes crear otro igual si lo necesitas.</p>
+                <p className="m-0 mt-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">Puedes crear otro igual si lo necesitas.</p>
               </div>
             )}
 
@@ -529,7 +529,7 @@ export default function NuevoDocumentoPage() {
             <Boton type="submit" disabled={!puedeCrear} className="mt-4 w-full">
               {creando ? "Creando..." : "Crear documento"}
             </Boton>
-            <p className="m-0 mt-2 text-[11.5px] text-center text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 mt-2 text-[12px] text-center text-ink/45 dark:text-ink-dark/45">
               Se crea como borrador: después completas el contenido y generas el PDF.
             </p>
           </TarjetaLateral>
@@ -547,7 +547,7 @@ function tituloDesdePlantilla(p: PlantillaDocumento): string {
 function FilaResumen({ etiqueta, valor }: { etiqueta: string; valor?: string }) {
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">{etiqueta}</dt>
+      <dt className="text-[12px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">{etiqueta}</dt>
       <dd className={`m-0 mt-0.5 break-words ${valor ? "font-medium text-ink dark:text-ink-dark" : "italic text-ink/35 dark:text-ink-dark/35"}`}>
         {valor || "Sin elegir"}
       </dd>

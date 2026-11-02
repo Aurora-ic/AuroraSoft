@@ -66,7 +66,7 @@ function FilaMapa({
         </span>
         <span className="flex items-center gap-1.5 shrink-0">
           {tieneAlertasPosibles && pct !== null && pct > 0 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-1.5 py-0.5 text-[10.5px] font-bold text-amber-700 dark:text-amber">
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-1.5 py-0.5 text-[11.5px] font-bold text-amber-700 dark:text-amber">
               <AlertTriangle size={10} strokeWidth={2.4} aria-hidden="true" />
               {pct.toFixed(0)}%
             </span>
@@ -79,7 +79,7 @@ function FilaMapa({
         </span>
       </div>
       {d.n === 0 ? (
-        <p className="m-0 mt-1 text-[11px] italic text-ink/40 dark:text-ink-dark/40">Sin datos todavía</p>
+        <p className="m-0 mt-1 text-[12px] italic text-ink/40 dark:text-ink-dark/40">Sin datos todavía</p>
       ) : (
         <div className="mt-1.5 flex items-center gap-2">
           {/* Pista = escala completa; relleno = media del grupo. Una sola
@@ -89,7 +89,7 @@ function FilaMapa({
               <div className="absolute inset-y-0 left-0 rounded-full bg-teal-600 dark:bg-teal-accent-dark" style={{ width: `${Math.max(posMedia, 2)}%` }} />
             )}
           </div>
-          <span className="shrink-0 font-mono text-[10.5px] text-ink/50 dark:text-ink-dark/50">
+          <span className="shrink-0 font-mono text-[11.5px] text-ink/50 dark:text-ink-dark/50">
             x̄ {fmt(d.media)}
             {escala != null ? `/${fmt(escala)}` : ""}
           </span>
@@ -102,7 +102,7 @@ function FilaMapa({
 function Estadistico({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-3 py-2">
-      <p className="m-0 text-[10.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">{etiqueta}</p>
+      <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">{etiqueta}</p>
       <p className="m-0 mt-0.5 font-display text-[17px] font-bold text-ink dark:text-ink-dark leading-tight">{valor}</p>
     </div>
   );
@@ -153,8 +153,8 @@ function DetalleDimension({ d, tieneAlertasPosibles }: { d: DimensionResumenEsta
       {d.distribucion.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2 gap-2">
-            <p className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Distribución por nivel</p>
-            <p className="m-0 text-[11px] text-ink/50 dark:text-ink-dark/50 min-h-[1em]" aria-live="polite">
+            <p className="m-0 text-[12px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Distribución por nivel</p>
+            <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50 min-h-[1em]" aria-live="polite">
               {hover ? (
                 <>
                   <span className="font-semibold text-ink dark:text-ink-dark">{hover.nivel}</span>: {hover.cantidad} de {totalConNivel} alumnos
@@ -189,7 +189,7 @@ function DetalleDimension({ d, tieneAlertasPosibles }: { d: DimensionResumenEsta
                       style={{ width: `${Math.max((niv.pct / maxPct) * 100, 2)}%` }}
                     />
                   </div>
-                  <span className="w-[4.5rem] text-right font-mono text-[11px] text-ink/60 dark:text-ink-dark/60">
+                  <span className="w-[4.5rem] text-right font-mono text-[12px] text-ink/60 dark:text-ink-dark/60">
                     {niv.cantidad} · {niv.pct.toFixed(0)}%
                   </span>
                 </li>

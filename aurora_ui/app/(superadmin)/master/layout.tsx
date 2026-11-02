@@ -1,10 +1,13 @@
 import { RequireAuth } from "@/contexts/AuthContext";
 import { ShellMaster } from "@/components/superadmin/ShellMaster";
+import { BloqueoInactividad } from "@/components/auth/BloqueoInactividad";
 
 export default function MasterLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireAuth rolesPermitidos={["superadmin"]}>
-      <ShellMaster>{children}</ShellMaster>
+      <BloqueoInactividad>
+        <ShellMaster>{children}</ShellMaster>
+      </BloqueoInactividad>
     </RequireAuth>
   );
 }

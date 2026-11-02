@@ -68,8 +68,9 @@ test.describe("Citas y agenda", () => {
     await expect(tarjetaAgenda.getByText("16:45")).toBeVisible();
 
     // --- Cancelar desde /agenda -- la otra mitad de este control. ---
-    page.once("dialog", (dialog) => dialog.accept());
+    // 🆕 (sesión 2026-11-01) Diálogo de confirmación propio, ya no window.confirm.
     await tarjetaAgenda.getByRole("button", { name: "Cancelar" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "Cancelar cita" }).click();
     await expect(tarjetaAgenda.getByText("Cancelada")).toBeVisible();
   });
 });

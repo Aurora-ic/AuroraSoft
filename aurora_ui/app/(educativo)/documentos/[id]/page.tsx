@@ -1,5 +1,7 @@
 "use client";
 
+import { useAvisoSinGuardar } from "@/lib/useAvisoSinGuardar";
+import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -90,6 +92,8 @@ function estable(valor: unknown): string {
 // sola vez, "Guardar", "Generar versión 1", "v1 — fecha", "Descargar PDF",
 // "Reemitir (v2)", el placeholder del motivo y "Confirmar reemisión".
 export default function DetalleDocumentoPage() {
+  // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
+  const confirmar = useConfirmar();
   const params = useParams();
   const router = useRouter();
   const documentoId = params.id as string;
@@ -365,7 +369,15 @@ export default function DetalleDocumentoPage() {
   // si ya se emitió. Soft-delete: ver crud.descartar_borrador_documento.
   async function descartarBorrador() {
     if (!documento) return;
-    if (!window.confirm(`¿Descartar el borrador "${documento.titulo}"? Se pierde lo que se haya escrito en él.`)) return;
+    if (
+      !(await confirmar({
+        titulo: `¿Descartar el borrador «${documento.titulo}»?`,
+        mensaje: "Se pierde lo que se haya escrito en él. Esta acción no se puede deshacer.",
+        textoConfirmar: "Descartar borrador",
+        peligro: true,
+      }))
+    )
+      return;
     setDescartando(true);
     setError(null);
     try {
@@ -429,6 +441,11 @@ export default function DetalleDocumentoPage() {
   }
 
   const ordenadas = useMemo(() => secciones.slice().sort((a, b) => a.orden - b.orden), [secciones]);
+  // 🆕 Aviso al salir con secciones sin guardar (punto 5 del análisis de UI/UX).
+  useAvisoSinGuardar(
+    ordenadas.some((s) => !esAutomatica(s) && sinGuardar(s)),
+    "Hay secciones del documento con cambios sin guardar; si sales ahora se perderán.",
+  );
   const migas = [{ label: "Documentos", href: "/documentos" }, { label: "Documentos generados", href: "/documentos" }, { label: documento?.titulo ?? "Documento" }];
 
   if (cargando) {
@@ -486,7 +503,7 @@ export default function DetalleDocumentoPage() {
                 </p>
               )}
               {!borrador && (
-                <p className="m-0 mt-2 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                <p className="m-0 mt-2 text-[12px] text-ink/50 dark:text-ink-dark/50">
                   Lo que cambies aquí se incluye en la próxima versión al reemitir; las versiones emitidas no cambian.
                 </p>
               )}
@@ -507,7 +524,7 @@ export default function DetalleDocumentoPage() {
               <article key={id} className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden">
                 <header className="flex items-start gap-3 px-4 py-3 border-b border-border/70 dark:border-border-dark">
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11.5px] font-bold ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
                       automatica ? "bg-mist text-ink/45 dark:bg-surface-raised-dark dark:text-ink-dark/50" : completa ? VIOLETA.chipSolido : VIOLETA.chip
                     }`}
                     aria-hidden="true"
@@ -518,7 +535,7 @@ export default function DetalleDocumentoPage() {
                     <h3 className="m-0 text-[14px] font-bold text-ink dark:text-ink-dark leading-tight">
                       {seccion.titulo || ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion] || seccion.tipo_seccion}
                     </h3>
-                    <p className="m-0 mt-0.5 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                    <p className="m-0 mt-0.5 text-[12px] text-ink/45 dark:text-ink-dark/45">
                       {seccion.titulo ? `${ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]} · ` : ""}
                       {automatica && !esTablaAutomatica(seccion)
                         ? DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]
@@ -553,7 +570,7 @@ export default function DetalleDocumentoPage() {
                           >
                             • Agregar viñeta
                           </button>
-                          <span className="text-[11px] text-ink/40 dark:text-ink-dark/40">
+                          <span className="text-[12px] text-ink/40 dark:text-ink-dark/40">
                             <code className="font-mono">**así**</code> sale en <strong>negrita</strong> en el PDF
                           </span>
                         </div>
@@ -633,7 +650,7 @@ export default function DetalleDocumentoPage() {
                           ) : (
                             <p className="m-0 text-ink/50 dark:text-ink-dark/50">Sin imagen todavía.</p>
                           )}
-                          <p className="m-0 text-[11px] text-ink/40 dark:text-ink-dark/40">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
+                          <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
                         </div>
                         <label
                           className={claseBoton("secundario", "inline-flex items-center gap-1.5 !py-1.5 cursor-pointer")}
@@ -724,7 +741,7 @@ export default function DetalleDocumentoPage() {
                     <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">
                       v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
                     </p>
-                    {v.motivo_version && <p className="m-0 mt-0.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">{v.motivo_version}</p>}
+                    {v.motivo_version && <p className="m-0 mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50">{v.motivo_version}</p>}
                     <div className="mt-1.5 flex items-center gap-3">
                       <button type="button" onClick={() => ver(v)} className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${VIOLETA.texto}`}>
                         <Eye size={12} aria-hidden="true" />
@@ -754,12 +771,12 @@ export default function DetalleDocumentoPage() {
                 {documento.estudiantes.map((e) => (
                   <li key={e.persona_id} className="flex items-center justify-between gap-2 text-[13px]">
                     <span className="min-w-0 truncate font-medium text-ink dark:text-ink-dark">{e.nombre_completo_historico}</span>
-                    {e.grado_seccion_historico && <span className="shrink-0 text-[11.5px] text-ink/45 dark:text-ink-dark/45">{e.grado_seccion_historico}</span>}
+                    {e.grado_seccion_historico && <span className="shrink-0 text-[12px] text-ink/45 dark:text-ink-dark/45">{e.grado_seccion_historico}</span>}
                   </li>
                 ))}
               </ul>
             )}
-            <p className="m-0 mt-2.5 text-[11px] text-ink/40 dark:text-ink-dark/40">Lista congelada al crear el documento.</p>
+            <p className="m-0 mt-2.5 text-[12px] text-ink/40 dark:text-ink-dark/40">Lista congelada al crear el documento.</p>
           </TarjetaLateral>
         </div>
       </div>
@@ -772,7 +789,7 @@ export default function DetalleDocumentoPage() {
 function EstadoSeccion({ automatica, completa, pendiente }: { automatica: boolean; completa: boolean; pendiente: boolean }) {
   if (automatica) {
     return (
-      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[10.5px] font-semibold text-ink/50 dark:text-ink-dark/55">
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/50 dark:text-ink-dark/55">
         <Wand2 size={10} aria-hidden="true" />
         Automática
       </span>
@@ -780,18 +797,18 @@ function EstadoSeccion({ automatica, completa, pendiente }: { automatica: boolea
   }
   if (pendiente) {
     return (
-      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-500/15 px-2 py-0.5 text-[10.5px] font-semibold text-red-700 dark:text-red-300">
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-500/15 px-2 py-0.5 text-[11.5px] font-semibold text-red-700 dark:text-red-300">
         Sin guardar
       </span>
     );
   }
   return completa ? (
-    <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${VIOLETA.chip}`}>
+    <span className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${VIOLETA.chip}`}>
       <CheckCircle2 size={10} aria-hidden="true" />
       Lista
     </span>
   ) : (
-    <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-dashed border-ink/25 dark:border-ink-dark/25 px-2 py-0.5 text-[10.5px] font-semibold text-ink/50 dark:text-ink-dark/55">
+    <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-dashed border-ink/25 dark:border-ink-dark/25 px-2 py-0.5 text-[11.5px] font-semibold text-ink/50 dark:text-ink-dark/55">
       <Circle size={9} aria-hidden="true" />
       Por completar
     </span>
@@ -824,7 +841,7 @@ function EditorDatosFiliacion({
 }) {
   return (
     <>
-      <p className="m-0 flex items-start gap-1.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+      <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
         <Info size={12} className="mt-px shrink-0" aria-hidden="true" />
         Nombre, edad, documento y grado salen solos de la ficha del alumno. Aquí completas solo estos campos.
       </p>
@@ -1006,7 +1023,7 @@ function EditorResultadoVinculable({
           )}
           {otras.length > 0 && (
             <div className="space-y-1.5">
-              {vinculada && <p className="m-0 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Otras aplicaciones del alumno:</p>}
+              {vinculada && <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">Otras aplicaciones del alumno:</p>}
               {otras.map((h) => (
                 <FilaAplicacion
                   key={h.inscripcion_id}

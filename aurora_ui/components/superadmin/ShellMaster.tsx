@@ -53,7 +53,7 @@ export function ShellMaster({ children }: { children: React.ReactNode }) {
         </button>
         <Image src="/logo.png" alt="" width={140} height={99} className="h-6 w-auto" />
         <span className="font-display text-[16px] font-bold text-ink dark:text-ink-dark">AuroraSoft</span>
-        <span className="ml-auto rounded-full bg-teal-600/10 dark:bg-teal-accent-dark/15 px-2.5 py-0.5 text-[11px] font-semibold text-teal-900 dark:text-teal-accent-dark">
+        <span className="ml-auto rounded-full bg-teal-600/10 dark:bg-teal-accent-dark/15 px-2.5 py-0.5 text-[12px] font-semibold text-teal-900 dark:text-teal-accent-dark">
           Panel interno
         </span>
       </header>
@@ -95,7 +95,7 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
             <Image src="/logo.png" alt="" width={140} height={99} className="h-7 w-auto" />
             <span className="font-display text-[17px] font-bold text-ink dark:text-ink-dark">AuroraSoft</span>
           </div>
-          <p className="mt-1.5 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Panel interno · Superadmin</p>
+          <p className="mt-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">Panel interno · Superadmin</p>
         </div>
 
         <nav className="flex flex-col gap-0.5 px-3">
@@ -141,7 +141,7 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
             <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark truncate" title={sesion?.email}>
               {sesion?.email}
             </p>
-            <p className="m-0 text-[11px] text-ink/45 dark:text-ink-dark/45 capitalize">{sesion?.rol}</p>
+            <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45 capitalize">{sesion?.rol}</p>
           </div>
           <button
             type="button"

@@ -228,13 +228,13 @@ function Columna({
             <h2 className="m-0 text-sm font-semibold text-teal-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
               {titulo}
               {cantidad !== null && (
-                <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[10.5px] font-bold text-ink/55 dark:text-ink-dark/60">
+                <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[11.5px] font-bold text-ink/55 dark:text-ink-dark/60">
                   {cantidad}
                 </span>
               )}
             </h2>
             {(subtitulo || (totalEstudiantes !== null && totalEstudiantes !== undefined)) && (
-              <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50 truncate">
+              <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50 truncate">
                 {[
                   subtitulo,
                   totalEstudiantes !== null && totalEstudiantes !== undefined
@@ -286,7 +286,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
         <>
           <span
             title={`${sinDx} sin diagnóstico`}
-            className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums ${
+            className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11.5px] font-bold tabular-nums ${
               activo ? "bg-white/15 text-white dark:bg-mist-dark/20 dark:text-mist-dark" : "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/10 dark:text-teal-accent-dark"
             }`}
           >
@@ -295,7 +295,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
           </span>
           <span
             title={`${nDx} con diagnóstico (terapia o psiquiatría externa)`}
-            className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums ${
+            className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11.5px] font-bold tabular-nums ${
               nDx === 0
                 ? activo
                   ? "bg-white/10 text-white/60"
@@ -308,12 +308,12 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
             <span className="sr-only">Con diagnóstico: </span>
             {nDx}
           </span>
-          <span aria-hidden="true" className={`text-[11px] font-bold ${activo ? "text-white/70" : "text-ink/35 dark:text-ink-dark/35"}`}>=</span>
+          <span aria-hidden="true" className={`text-[12px] font-bold ${activo ? "text-white/70" : "text-ink/35 dark:text-ink-dark/35"}`}>=</span>
         </>
       )}
       <span
         title={`${n} estudiante${n === 1 ? "" : "s"} matriculado${n === 1 ? "" : "s"}`}
-        className={`inline-flex min-w-[2rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${
+        className={`inline-flex min-w-[2rem] items-center justify-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold tabular-nums ${
           activo
             ? "bg-white/20 text-white dark:bg-mist-dark/25 dark:text-mist-dark"
             : n === 0
@@ -684,7 +684,7 @@ export default function EstructuraAcademicaPage() {
       </div>
 
       {/* 🆕 Leyenda del recuento de cada fila: sin Dx + con Dx = total. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-ink/60 dark:text-ink-dark/60">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink/60 dark:text-ink-dark/60">
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-teal-600/30 dark:bg-teal-accent-dark/40" />
           Sin diagnóstico
@@ -783,7 +783,7 @@ export default function EstructuraAcademicaPage() {
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate">{nivel.nombre}</span>
                         <span className="flex items-center gap-1.5 shrink-0">
-                          {esAdmin && <span className="text-[11px] opacity-50">orden {nivel.orden}</span>}
+                          {esAdmin && <span className="text-[12px] opacity-50">orden {nivel.orden}</span>}
                           <Recuento n={contarNivel(nivel.id)} nDx={contarNivelDx(nivel.id)} activo={nivelSeleccionado?.id === nivel.id} />
                           <ChevronRight size={14} className="opacity-40" aria-hidden="true" />
                         </span>
@@ -870,7 +870,7 @@ export default function EstructuraAcademicaPage() {
                           <span className="flex items-center justify-between gap-2">
                             <span className="truncate">{grado.nombre}</span>
                             <span className="flex items-center gap-1.5 shrink-0">
-                              {esAdmin && <span className="text-[11px] opacity-50">orden {grado.orden}</span>}
+                              {esAdmin && <span className="text-[12px] opacity-50">orden {grado.orden}</span>}
                               <Recuento n={contarGrado(grado.id)} nDx={contarGradoDx(grado.id)} activo={gradoSeleccionado?.id === grado.id} />
                               <ChevronRight size={14} className="opacity-40" aria-hidden="true" />
                             </span>
@@ -972,7 +972,7 @@ export default function EstructuraAcademicaPage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm text-ink dark:text-ink-dark font-semibold truncate">Sección {seccion.nombre}</div>
-                          <div className="text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                          <div className="text-[12px] text-ink/50 dark:text-ink-dark/50">
                             Año {seccion.anio_escolar}
                             {seccion.turno ? ` · Turno ${seccion.turno}` : ""}
                           </div>

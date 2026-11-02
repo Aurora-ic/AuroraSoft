@@ -1,68 +1,60 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Users, Hourglass, Search, ArrowRight, HeartHandshake, CheckCircle2, Stethoscope } from "lucide-react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  Siren,
+  Hourglass,
+  Search,
+  ArrowRight,
+  HeartHandshake,
+  CheckCircle2,
+  Stethoscope,
+  History,
+  UserRound,
+} from "lucide-react";
 import { apiClient } from "@/lib/api-client";
+import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
 import { EsqueletoLista } from "@/components/ui/Esqueleto";
 import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { VacioFicha } from "@/components/educativo/BloqueFicha";
+import {
+  CLASE_URGENCIA,
+  DESCRIPCION_URGENCIA,
+  ESTADOS_CASO,
+  ETIQUETA_ESTADO,
+  ETIQUETA_URGENCIA,
+} from "@/lib/casos-riesgo";
+import type { BandejaCasosRiesgo, CasoRiesgo, EstadoCaso, EventoCasoRiesgo, UrgenciaCaso } from "@/types/api";
 
-// Forma real de GET /educativo/casos-pendientes (ver
-// crud.obtener_casos_pendientes_de_seguimiento). 🔧 Antes esta pantalla
-// leía `prueba`/`nivel`/`fecha`, claves que el endpoint nunca devolvía —
-// cada tarjeta mostraba el nombre del alumno con todo lo demás vacío.
-// `prueba`/`dimension`/`campana`/ids se sumaron al backend en la sesión
-// 2026-10-30 (aditivo: Inicio sigue leyendo `nivel_alerta` igual que antes).
-// 🆕 (sesión 2026-11-01) `origen`: "prueba" = resultado en alerta sin
-// seguimiento posterior; "antecedentes" = el alumno tiene Sí en terapia
-// psicológica o atención psiquiátrica externa (criterio "Con Dx" de la
-// ficha). Este segundo tipo NO desaparece con una sesión: sigue en la lista
-// mientras los antecedentes digan Sí, y `fecha_referencia` es la última
-// sesión de seguimiento (o la última edición de los antecedentes).
-type CasoRiesgo = {
-  origen?: "prueba" | "antecedentes";
-  persona_id: number;
-  nombre_completo: string | null;
-  nivel_alerta: string;
-  fecha_evaluacion: string | null;
-  inscripcion_id?: number;
-  evaluacion_id?: number;
-  campana?: string | null;
-  prueba?: string | null;
-  dimension?: string | null;
-  fecha_referencia?: string | null;
-  ultimo_seguimiento?: string | null;
-  motivos?: string[];
-  diagnostico_reportado?: string | null;
-};
-
-const FILTRO_ANTECEDENTES = "__antecedentes__";
-
-function esAntecedente(c: CasoRiesgo): boolean {
-  return c.origen === "antecedentes";
-}
-
-// Un alumno puede tener varias dimensiones en alerta (incluso de pruebas
-// distintas) — el worklist es POR ALUMNO, no una fila por diagnóstico.
-type CasoAgrupado = {
-  persona_id: number;
-  nombre_completo: string;
-  alertas: CasoRiesgo[];
-  antecedente: CasoRiesgo | null;
-  pruebas: string[];
-  fechaMasAntigua: Date | null;
-};
-
-type Orden = "antiguos" | "recientes";
+// 🆕 (sesión 2026-11-01, decisiones del usuario) Bandeja de casos con
+// urgencia, estado y responsable — GET/PATCH /educativo/casos-riesgo (ver
+// models.CasoRiesgo en el backend). Antes: una lista por alumno de
+// GET /casos-pendientes, ordenada solo por antigüedad, donde una ideación
+// suicida se veía igual que una ansiedad leve y un caso desaparecía con
+// cualquier sesión registrada.
+// - Urgencia automática: URGENTE (ítem crítico, p. ej. PHQ-9 ítem 9),
+//   ALERTA (tramo de alerta del baremo), SEGUIMIENTO (antecedentes "Sí").
+//   Urgentes siempre primero.
+// - Estados: Nuevo → En atención → Derivado → En seguimiento → Cerrado. Un
+//   caso solo sale de la bandeja al cerrarlo, con motivo. Registrar una
+//   sesión lo pasa solo de Nuevo a En atención.
+// - Responsable: el creador de la campaña, reasignable a cualquier
+//   psicólogo/admin del colegio.
+// La unidad es el CASO (una evaluación en alerta, o los antecedentes), no
+// el alumno: un alumno puede tener más de un caso abierto.
 
 const DIA_MS = 24 * 60 * 60 * 1000;
 
-function diasDesde(fecha: Date | null): number | null {
-  if (!fecha) return null;
-  return Math.max(0, Math.floor((Date.now() - fecha.getTime()) / DIA_MS));
+function diasDesde(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return null;
+  return Math.max(0, Math.floor((Date.now() - t) / DIA_MS));
 }
 
 function textoDias(dias: number | null): string {
@@ -72,108 +64,105 @@ function textoDias(dias: number | null): string {
   return `Hace ${dias} días`;
 }
 
-function iniciales(nombre: string): string {
-  return nombre
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
+function fecha(iso: string | null | undefined): string {
+  return iso ? new Date(iso).toLocaleDateString("es-PE") : "—";
 }
 
-export default function CasosRiesgoPage() {
-  const [casos, setCasos] = useState<CasoRiesgo[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+type FiltroUrgencia = "todas" | UrgenciaCaso;
+type FiltroEstado = "abiertos" | EstadoCaso;
+// "todos" | "mios" | "sin" | String(usuario_id)
+type FiltroResponsable = string;
 
+function CasosRiesgoPageContenido() {
+  const queryClient = useQueryClient();
   const [busqueda, setBusqueda] = useState("");
-  const [filtroPrueba, setFiltroPrueba] = useState("todas");
-  const [orden, setOrden] = useState<Orden>("antiguos");
+  const [filtroUrgencia, setFiltroUrgencia] = useState<FiltroUrgencia>("todas");
+  const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("abiertos");
+  const [filtroResponsable, setFiltroResponsable] = useState<FiltroResponsable>("todos");
 
-  useEffect(() => {
-    // 🆕 Antes esta llamada no tenía .catch(): un fallo de red/servidor
-    // (o un 401 por sesión vencida) dejaba `casos=[]` sin ningún aviso —
-    // en la ÚNICA pantalla cuyo trabajo es mostrar alumnos en riesgo, eso
-    // se veía idéntico a "no hay nadie en riesgo". Un 401 además ya se
-    // resuelve aparte (ver lib/api-client.ts/AuthContext.tsx: cierra sesión
-    // y redirige); este mensaje cubre todo lo demás (red caída, 500, etc.).
-    apiClient
-      .get<CasoRiesgo[]>("/educativo/casos-pendientes")
-      .then(setCasos)
-      .catch((err) => setError(err.message || "No se pudieron cargar los casos en riesgo."))
-      .finally(() => setCargando(false));
-  }, []);
+  // Los cerrados solo se piden al filtrar por "Cerrado".
+  const incluirCerrados = filtroEstado === "cerrado";
+  const claveBandeja = ["casos-riesgo", incluirCerrados];
+  const consulta = useQuery({
+    queryKey: claveBandeja,
+    queryFn: () =>
+      apiClient.get<BandejaCasosRiesgo>(`/educativo/casos-riesgo${incluirCerrados ? "?incluir_cerrados=true" : ""}`),
+    placeholderData: keepPreviousData,
+  });
+  const bandeja = consulta.data ?? null;
+  const cargando = consulta.isPending;
+  const error = consulta.error instanceof Error ? consulta.error.message : consulta.error ? "No se pudieron cargar los casos en riesgo." : null;
 
-  const agrupados = useMemo<CasoAgrupado[]>(() => {
-    const mapa = new Map<number, CasoAgrupado>();
-    for (const c of casos) {
-      const g = mapa.get(c.persona_id) ?? {
-        persona_id: c.persona_id,
-        nombre_completo: c.nombre_completo || "Alumno sin nombre",
-        alertas: [],
-        antecedente: null,
-        pruebas: [],
-        fechaMasAntigua: null,
-      };
-      if (esAntecedente(c)) g.antecedente = c;
-      else g.alertas.push(c);
-      if (c.prueba && !g.pruebas.includes(c.prueba)) g.pruebas.push(c.prueba);
-      const fechaIso = c.fecha_referencia ?? c.fecha_evaluacion;
-      if (fechaIso) {
-        const f = new Date(fechaIso);
-        if (!Number.isNaN(f.getTime()) && (!g.fechaMasAntigua || f < g.fechaMasAntigua)) g.fechaMasAntigua = f;
-      }
-      mapa.set(c.persona_id, g);
-    }
-    return Array.from(mapa.values());
-  }, [casos]);
-
-  const pruebasDisponibles = useMemo(
-    () => Array.from(new Set(casos.map((c) => c.prueba).filter((p): p is string => !!p))).sort(),
-    [casos],
-  );
+  const casos = useMemo(() => bandeja?.casos ?? [], [bandeja]);
+  const abiertos = useMemo(() => casos.filter((c) => c.estado !== "cerrado"), [casos]);
 
   const visibles = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    const filtrados = agrupados.filter((g) => {
-      if (filtroPrueba === FILTRO_ANTECEDENTES) {
-        if (!g.antecedente) return false;
-      } else if (filtroPrueba !== "todas" && !g.pruebas.includes(filtroPrueba)) return false;
-      if (texto && !g.nombre_completo.toLowerCase().includes(texto)) return false;
+    return casos.filter((c) => {
+      if (filtroEstado === "abiertos" ? c.estado === "cerrado" : c.estado !== filtroEstado) return false;
+      if (filtroUrgencia !== "todas" && c.urgencia !== filtroUrgencia) return false;
+      if (filtroResponsable === "mios" && c.responsable?.id !== bandeja?.yo) return false;
+      if (filtroResponsable === "sin" && c.responsable) return false;
+      if (!["todos", "mios", "sin"].includes(filtroResponsable) && String(c.responsable?.id) !== filtroResponsable) return false;
+      if (texto && !c.nombre_completo.toLowerCase().includes(texto)) return false;
       return true;
     });
-    // Sin fecha al final siempre, en ambos órdenes.
-    return filtrados.sort((a, b) => {
-      const ta = a.fechaMasAntigua?.getTime();
-      const tb = b.fechaMasAntigua?.getTime();
-      if (ta === undefined && tb === undefined) return 0;
-      if (ta === undefined) return 1;
-      if (tb === undefined) return -1;
-      return orden === "antiguos" ? ta - tb : tb - ta;
-    });
-  }, [agrupados, busqueda, filtroPrueba, orden]);
+  }, [casos, busqueda, filtroEstado, filtroUrgencia, filtroResponsable, bandeja?.yo]);
 
-  const resultadosEnAlerta = useMemo(() => casos.filter((c) => !esAntecedente(c)).length, [casos]);
-  const conAntecedentes = useMemo(() => agrupados.filter((g) => g.antecedente).length, [agrupados]);
-
+  const conteo = (u: UrgenciaCaso) => abiertos.filter((c) => c.urgencia === u).length;
   const masAntiguo = useMemo(() => {
-    const dias = agrupados.map((g) => diasDesde(g.fechaMasAntigua)).filter((d): d is number => d !== null);
+    const dias = abiertos.map((c) => diasDesde(c.fecha_referencia)).filter((d): d is number => d !== null);
     return dias.length ? Math.max(...dias) : null;
-  }, [agrupados]);
+  }, [abiertos]);
+
+  // Tras un PATCH: se reemplaza el caso en la caché (sin recargar todo).
+  function reemplazarCaso(actualizado: CasoRiesgo) {
+    queryClient.setQueryData<BandejaCasosRiesgo>(claveBandeja, (previo) =>
+      previo ? { ...previo, casos: previo.casos.map((c) => (c.id === actualizado.id ? actualizado : c)) } : previo,
+    );
+    // La otra vista (con/sin cerrados) queda vieja: se vuelve a pedir al abrirla.
+    queryClient.invalidateQueries({ queryKey: ["casos-riesgo", !incluirCerrados] });
+    queryClient.invalidateQueries({ queryKey: ["caso-historial", actualizado.id] });
+  }
 
   return (
     <div className={CLASE_CONTENEDOR_SECCION}>
-      <EncabezadoPagina variante="destacado"
+      <EncabezadoPagina
+        variante="destacado"
         icono={AlertTriangle}
         acento="azul"
         titulo="Casos en riesgo"
-        descripcion="Alumnos con antecedentes clínicos externos (terapia o atención psiquiátrica) y alumnos con un resultado en nivel de alerta sin sesión de seguimiento desde entonces."
+        descripcion="Casos ordenados por urgencia. Un caso sale de esta lista solo cuando lo cierras, indicando el motivo."
       />
 
       <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3">
-        <TarjetaKpi icono={Users} tono="riesgo" etiqueta="Alumnos en riesgo" valor={cargando ? "…" : agrupados.length} />
-        <TarjetaKpi icono={Stethoscope} tono="riesgo" etiqueta="Con antecedentes clínicos" valor={cargando ? "…" : conAntecedentes} />
-        <TarjetaKpi icono={AlertTriangle} tono="riesgo" etiqueta="Resultados en alerta" valor={cargando ? "…" : resultadosEnAlerta} />
+        <TarjetaKpi
+          icono={Siren}
+          tono="riesgo"
+          etiqueta="Urgentes"
+          valor={cargando ? "…" : conteo("urgente")}
+          detalle="ítem crítico"
+          activa={filtroUrgencia === "urgente"}
+          onClick={() => setFiltroUrgencia((v) => (v === "urgente" ? "todas" : "urgente"))}
+        />
+        <TarjetaKpi
+          icono={AlertTriangle}
+          tono="riesgo"
+          etiqueta="En alerta"
+          valor={cargando ? "…" : conteo("alerta")}
+          detalle="por baremo"
+          activa={filtroUrgencia === "alerta"}
+          onClick={() => setFiltroUrgencia((v) => (v === "alerta" ? "todas" : "alerta"))}
+        />
+        <TarjetaKpi
+          icono={Stethoscope}
+          tono="pizarra"
+          etiqueta="Seguimiento"
+          valor={cargando ? "…" : conteo("seguimiento")}
+          detalle="antecedentes"
+          activa={filtroUrgencia === "seguimiento"}
+          onClick={() => setFiltroUrgencia((v) => (v === "seguimiento" ? "todas" : "seguimiento"))}
+        />
         <TarjetaKpi
           icono={Hourglass}
           tono="azul"
@@ -185,157 +174,350 @@ export default function CasosRiesgoPage() {
 
       <TextoError>{error}</TextoError>
 
-      {(agrupados.length > 0 || cargando) && (
-        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
-            <input
-              type="search"
-              aria-label="Buscar alumno"
-              placeholder="Buscar alumno…"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
-            />
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {pruebasDisponibles.length + (conAntecedentes > 0 ? 1 : 0) > 1 && (
-              <Select value={filtroPrueba} onChange={(e) => setFiltroPrueba(e.target.value)} aria-label="Filtrar por origen">
-                <option value="todas">Todos los casos</option>
-                {conAntecedentes > 0 && <option value={FILTRO_ANTECEDENTES}>Antecedentes clínicos externos</option>}
-                {pruebasDisponibles.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </Select>
-            )}
-            <ControlSegmentado<Orden>
-              etiqueta="Orden"
-              valor={orden}
-              onCambiar={setOrden}
-              opciones={[
-                { valor: "antiguos", etiqueta: "Más antiguos" },
-                { valor: "recientes", etiqueta: "Más recientes" },
-              ]}
-            />
-          </div>
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
+        <div className="relative w-full lg:max-w-xs">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Buscar alumno"
+            placeholder="Buscar alumno…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+          />
         </div>
-      )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <ControlSegmentado<FiltroUrgencia>
+            etiqueta="Urgencia"
+            valor={filtroUrgencia}
+            onCambiar={setFiltroUrgencia}
+            opciones={[
+              { valor: "todas", etiqueta: "Todas" },
+              { valor: "urgente", etiqueta: "Urgente" },
+              { valor: "alerta", etiqueta: "Alerta" },
+              { valor: "seguimiento", etiqueta: "Seguimiento" },
+            ]}
+          />
+          <Select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value as FiltroEstado)} aria-label="Filtrar por estado">
+            <option value="abiertos">Todos los abiertos</option>
+            {ESTADOS_CASO.map((e) => (
+              <option key={e} value={e}>
+                {ETIQUETA_ESTADO[e]}
+              </option>
+            ))}
+          </Select>
+          <Select value={filtroResponsable} onChange={(e) => setFiltroResponsable(e.target.value)} aria-label="Filtrar por responsable">
+            <option value="todos">Todos los responsables</option>
+            <option value="mios">Mis casos</option>
+            <option value="sin">Sin responsable</option>
+            {(bandeja?.profesionales ?? []).map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.nombre}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </div>
 
       {cargando && <EsqueletoLista cantidad={4} />}
 
-      {!cargando && !error && casos.length === 0 && (
-        <VacioFicha icono={CheckCircle2} texto="No hay casos en riesgo: ningún alumno tiene antecedentes clínicos externos marcados y todos los resultados en alerta ya tienen una sesión registrada." />
+      {!cargando && !error && filtroEstado === "abiertos" && abiertos.length === 0 && (
+        <VacioFicha icono={CheckCircle2} texto="No hay casos abiertos: ningún resultado en alerta ni antecedentes clínicos externos pendientes de cierre." />
       )}
 
-      {!cargando && agrupados.length > 0 && visibles.length === 0 && (
+      {!cargando && (filtroEstado !== "abiertos" || abiertos.length > 0) && visibles.length === 0 && (
         <p className="m-0 text-sm text-ink/50 dark:text-ink-dark/50 italic">Ningún caso coincide con el filtro.</p>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        {visibles.map((g) => {
-          const dias = diasDesde(g.fechaMasAntigua);
-          // >14 días sin seguimiento: se resalta la espera, no el riesgo
-          // (el riesgo ya lo marca el ámbar de toda la tarjeta).
-          const esperaLarga = dias !== null && dias > 14;
-          return (
-            <article
-              key={g.persona_id}
-              className="rounded-xl border border-amber/35 border-l-4 border-l-amber bg-amber/[0.05] dark:bg-amber/[0.05] p-4 flex flex-col gap-3"
-            >
-              <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber/15 text-amber-700 dark:text-amber font-display text-[13px] font-bold">
-                  {iniciales(g.nombre_completo)}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/estudiantes/${g.persona_id}`}
-                    className="block text-[14px] font-bold text-ink dark:text-ink-dark hover:text-teal-700 dark:hover:text-teal-accent-dark truncate"
-                  >
-                    {g.nombre_completo}
-                  </Link>
-                  <p className="m-0 mt-0.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
-                    {[
-                      g.antecedente ? "Antecedentes clínicos externos" : null,
-                      g.alertas.length > 0
-                        ? `${g.alertas.length} resultado${g.alertas.length === 1 ? "" : "s"} en alerta` +
-                          (g.pruebas.length > 0 ? ` · ${g.pruebas.join(", ")}` : "")
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
-                    esperaLarga
-                      ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-                      : "bg-mist text-ink/60 dark:bg-surface-raised-dark dark:text-ink-dark/60"
-                  }`}
-                  title={g.fechaMasAntigua ? g.fechaMasAntigua.toLocaleDateString("es-PE") : undefined}
-                >
-                  <Hourglass size={10} aria-hidden="true" />
-                  {textoDias(dias)}
-                </span>
-              </div>
-
-              {g.antecedente && (
-                <div className="rounded-lg border border-amber/30 bg-amber/[0.07] px-3 py-2 text-[12px]">
-                  <p className="m-0 flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber">
-                    <Stethoscope size={13} className="shrink-0" aria-hidden="true" />
-                    Con diagnóstico (antecedentes clínicos externos)
-                  </p>
-                  <p className="m-0 mt-1 text-ink/70 dark:text-ink-dark/70">
-                    {(g.antecedente.motivos ?? []).join(" · ")}
-                    {g.antecedente.diagnostico_reportado ? ` — ${g.antecedente.diagnostico_reportado}` : ""}
-                  </p>
-                  <p className="m-0 mt-1 text-[11px] text-ink/50 dark:text-ink-dark/50">
-                    {g.antecedente.ultimo_seguimiento
-                      ? `Último seguimiento: ${new Date(g.antecedente.ultimo_seguimiento).toLocaleDateString("es-PE")}`
-                      : "Sin sesiones de seguimiento registradas"}
-                  </p>
-                </div>
-              )}
-
-              {g.alertas.length > 0 && (
-              <ul className="m-0 p-0 list-none flex flex-wrap gap-1.5">
-                {g.alertas.map((a, i) => (
-                  <li
-                    key={`${a.inscripcion_id ?? i}-${a.dimension ?? i}`}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber/30 bg-amber/[0.07] px-2 py-1 text-[11.5px]"
-                    title={a.campana ? `Campaña: ${a.campana}` : undefined}
-                  >
-                    <AlertTriangle size={11} className="text-amber shrink-0" aria-hidden="true" />
-                    <span className="text-ink/70 dark:text-ink-dark/70">
-                      {[a.prueba, a.dimension].filter(Boolean).join(" · ") || "Resultado"}
-                    </span>
-                    <span className="font-bold text-amber-800 dark:text-amber">{a.nivel_alerta}</span>
-                  </li>
-                ))}
-              </ul>
-              )}
-
-              <div className="flex items-center justify-end gap-3 pt-2 border-t border-border/70 dark:border-border-dark text-[12px] font-semibold">
-                <Link
-                  href={`/estudiantes/${g.persona_id}/seguimiento/nuevo`}
-                  className="inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
-                >
-                  <HeartHandshake size={14} aria-hidden="true" />
-                  Registrar seguimiento
-                </Link>
-                <Link
-                  href={`/estudiantes/${g.persona_id}`}
-                  className="inline-flex items-center gap-1 text-teal-700 dark:text-teal-accent-dark hover:underline"
-                >
-                  Ver ficha
-                  <ArrowRight size={13} aria-hidden="true" />
-                </Link>
-              </div>
-            </article>
-          );
-        })}
+      <div className="grid gap-3 xl:grid-cols-2">
+        {visibles.map((c) => (
+          <TarjetaCaso key={c.id} caso={c} profesionales={bandeja?.profesionales ?? []} onActualizado={reemplazarCaso} />
+        ))}
       </div>
     </div>
   );
+}
+
+function TarjetaCaso({
+  caso,
+  profesionales,
+  onActualizado,
+}: {
+  caso: CasoRiesgo;
+  profesionales: { id: number; nombre: string }[];
+  onActualizado: (c: CasoRiesgo) => void;
+}) {
+  const [guardando, setGuardando] = useState(false);
+  const [errorAccion, setErrorAccion] = useState<string | null>(null);
+  const [cerrando, setCerrando] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [verHistorial, setVerHistorial] = useState(false);
+  // Lo elegido se muestra mientras se guarda (si no, el desplegable volvía
+  // un instante al valor anterior); si falla, vuelve al valor real.
+  const [estadoPendiente, setEstadoPendiente] = useState<EstadoCaso | null>(null);
+  const [responsablePendiente, setResponsablePendiente] = useState<string | null>(null);
+
+  const dias = diasDesde(caso.fecha_referencia);
+  const esperaLarga = caso.estado !== "cerrado" && dias !== null && dias > 14;
+  const clases = CLASE_URGENCIA[caso.urgencia];
+  // El responsable actual puede no estar ya en la lista (desactivado): se
+  // muestra igual para no "perderlo" en el desplegable.
+  const opcionesResponsable =
+    caso.responsable && !profesionales.some((p) => p.id === caso.responsable!.id)
+      ? [...profesionales, { id: caso.responsable.id, nombre: caso.responsable.nombre ?? "Usuario inactivo" }]
+      : profesionales;
+
+  async function guardar(cambios: Record<string, unknown>) {
+    setGuardando(true);
+    setErrorAccion(null);
+    try {
+      onActualizado(await apiClient.patch<CasoRiesgo>(`/educativo/casos-riesgo/${caso.id}`, cambios));
+      return true;
+    } catch (err: unknown) {
+      setErrorAccion(err instanceof Error ? err.message : "No se pudo guardar el cambio.");
+      return false;
+    } finally {
+      setGuardando(false);
+      setEstadoPendiente(null);
+      setResponsablePendiente(null);
+    }
+  }
+
+  function cambiarEstado(nuevo: EstadoCaso) {
+    if (nuevo === "cerrado") {
+      setCerrando(true);
+      return;
+    }
+    setCerrando(false);
+    setEstadoPendiente(nuevo);
+    guardar({ estado: nuevo });
+  }
+
+  async function confirmarCierre(e: React.FormEvent) {
+    e.preventDefault();
+    if (await guardar({ estado: "cerrado", motivo_cierre: motivo.trim() })) {
+      setCerrando(false);
+      setMotivo("");
+    }
+  }
+
+  return (
+    <article className={`rounded-xl border border-l-4 p-4 flex flex-col gap-3 ${clases.tarjeta} ${caso.estado === "cerrado" ? "opacity-75" : ""}`}>
+      <div className="flex items-start gap-3">
+        <span
+          className={`shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-bold uppercase tracking-wide ${clases.insignia}`}
+          title={DESCRIPCION_URGENCIA[caso.urgencia]}
+        >
+          {caso.urgencia === "urgente" && <Siren size={12} aria-hidden="true" />}
+          {ETIQUETA_URGENCIA[caso.urgencia]}
+        </span>
+        <div className="min-w-0 flex-1">
+          <Link
+            href={`/estudiantes/${caso.persona_id}`}
+            className="block text-[14px] font-bold text-ink dark:text-ink-dark hover:text-teal-700 dark:hover:text-teal-accent-dark truncate"
+          >
+            {caso.nombre_completo}
+          </Link>
+          <p className="m-0 mt-0.5 text-[12px] text-ink/55 dark:text-ink-dark/55">
+            {caso.origen === "prueba"
+              ? [caso.prueba, caso.campana, caso.fecha_evaluacion ? `evaluado el ${fecha(caso.fecha_evaluacion)}` : null]
+                  .filter(Boolean)
+                  .join(" · ")
+              : "Antecedentes clínicos externos"}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold ${
+            esperaLarga
+              ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
+              : "bg-surface/80 text-ink/60 dark:bg-surface-raised-dark dark:text-ink-dark/60"
+          }`}
+          title={caso.ultimo_seguimiento ? `Último seguimiento: ${fecha(caso.ultimo_seguimiento)}` : "Sin sesiones de seguimiento"}
+        >
+          <Hourglass size={11} aria-hidden="true" />
+          {textoDias(dias)}
+        </span>
+      </div>
+
+      {caso.origen === "prueba" && (caso.alertas ?? []).length > 0 && (
+        <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
+          {(caso.alertas ?? []).map((a, i) => (
+            <li key={i} className="rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 px-2.5 py-1.5 text-[12.5px]">
+              <span className="text-ink/70 dark:text-ink-dark/70">{a.dimension || "Resultado"}</span>{" "}
+              <span className="font-bold text-ink dark:text-ink-dark">{a.nivel}</span>
+              {a.item_critico && (
+                <span className="mt-0.5 flex items-start gap-1.5 font-semibold text-red-700 dark:text-red-300">
+                  <Siren size={12} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <span>Ítem crítico{a.motivo ? `: ${a.motivo}` : ""}</span>
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {caso.origen === "antecedentes" && (
+        <p className="m-0 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 px-2.5 py-1.5 text-[12.5px] text-ink/75 dark:text-ink-dark/75">
+          {(caso.motivos ?? []).join(" · ") || "Antecedentes en «Sí»"}
+          {caso.diagnostico_reportado ? ` — ${caso.diagnostico_reportado}` : ""}
+        </p>
+      )}
+
+      {/* Estado y responsable, editables en el lugar. */}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/55 dark:text-ink-dark/55">
+          Estado
+          <Select
+            value={cerrando ? "cerrado" : (estadoPendiente ?? caso.estado)}
+            onChange={(e) => cambiarEstado(e.target.value as EstadoCaso)}
+            disabled={guardando}
+            aria-label={`Estado del caso de ${caso.nombre_completo}`}
+          >
+            {ESTADOS_CASO.map((e) => (
+              <option key={e} value={e}>
+                {ETIQUETA_ESTADO[e]}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/55 dark:text-ink-dark/55">
+          Responsable
+          <Select
+            value={responsablePendiente ?? (caso.responsable ? String(caso.responsable.id) : "")}
+            onChange={(e) => {
+              setResponsablePendiente(e.target.value);
+              guardar({ responsable_usuario_id: e.target.value ? Number(e.target.value) : null });
+            }}
+            disabled={guardando}
+            aria-label={`Responsable del caso de ${caso.nombre_completo}`}
+          >
+            <option value="">Sin responsable</option>
+            {opcionesResponsable.map((p) => (
+              <option key={p.id} value={String(p.id)}>
+                {p.nombre}
+              </option>
+            ))}
+          </Select>
+        </label>
+      </div>
+
+      {cerrando && caso.estado !== "cerrado" && (
+        <form onSubmit={confirmarCierre} className="flex flex-col gap-2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-3">
+          <label htmlFor={`motivo-${caso.id}`} className="text-[12px] font-semibold text-ink dark:text-ink-dark">
+            Motivo del cierre
+          </label>
+          <textarea
+            id={`motivo-${caso.id}`}
+            required
+            minLength={3}
+            rows={2}
+            value={motivo}
+            onChange={(e) => setMotivo(e.target.value)}
+            placeholder="Ej.: síntomas remitidos tras la intervención; alta en terapia externa…"
+            className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+          />
+          <div className="flex items-center justify-end gap-3">
+            <button type="button" onClick={() => setCerrando(false)} className="text-[12.5px] text-ink/60 dark:text-ink-dark/60 hover:underline">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={guardando || motivo.trim().length < 3}
+              className="rounded-card bg-accion px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-accion-hover disabled:opacity-40 dark:bg-teal-accent-dark dark:text-mist-dark"
+            >
+              {guardando ? "Cerrando…" : "Cerrar caso"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {caso.estado === "cerrado" && caso.motivo_cierre && (
+        <p className="m-0 text-[12px] text-ink/60 dark:text-ink-dark/60">
+          <strong className="font-semibold">Cerrado el {fecha(caso.cerrado_en)}:</strong> {caso.motivo_cierre}
+        </p>
+      )}
+
+      <TextoError className="text-xs">{errorAccion}</TextoError>
+
+      {verHistorial && <HistorialCaso casoId={caso.id} />}
+
+      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 pt-2 border-t border-border/70 dark:border-border-dark text-[12.5px] font-semibold">
+        <button
+          type="button"
+          onClick={() => setVerHistorial((v) => !v)}
+          aria-expanded={verHistorial}
+          className="mr-auto inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+        >
+          <History size={14} aria-hidden="true" />
+          {verHistorial ? "Ocultar historial" : "Historial"}
+        </button>
+        <Link
+          href={`/estudiantes/${caso.persona_id}/seguimiento/nuevo`}
+          className="inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+        >
+          <HeartHandshake size={14} aria-hidden="true" />
+          Registrar seguimiento
+        </Link>
+        <Link
+          href={`/estudiantes/${caso.persona_id}`}
+          className="inline-flex items-center gap-1 text-teal-700 dark:text-teal-accent-dark hover:underline"
+        >
+          Ver ficha
+          <ArrowRight size={13} aria-hidden="true" />
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function HistorialCaso({ casoId }: { casoId: number }) {
+  const consulta = useQuery({
+    queryKey: ["caso-historial", casoId],
+    queryFn: () => apiClient.get<EventoCasoRiesgo[]>(`/educativo/casos-riesgo/${casoId}/historial`),
+  });
+  if (consulta.isPending) return <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">Cargando historial…</p>;
+  if (consulta.error) return <TextoError className="text-xs">No se pudo cargar el historial.</TextoError>;
+  return (
+    <ol className="m-0 flex flex-col gap-1.5 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 p-3 list-none">
+      {(consulta.data ?? []).map((e) => (
+        <li key={e.id} className="text-[12px] text-ink/70 dark:text-ink-dark/70">
+          <span className="text-ink/45 dark:text-ink-dark/45">{new Date(e.creado_en).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>{" "}
+          <span className="inline-flex items-center gap-1 font-semibold text-ink dark:text-ink-dark">
+            <UserRound size={11} aria-hidden="true" />
+            {e.usuario ?? "Sistema"}
+          </span>{" "}
+          {e.tipo === "creado" && "abrió el caso."}
+          {e.tipo === "estado" && (
+            <>
+              cambió el estado: {e.estado_anterior ? ETIQUETA_ESTADO[e.estado_anterior] : "—"} →{" "}
+              <strong className="font-semibold">{e.estado_nuevo ? ETIQUETA_ESTADO[e.estado_nuevo] : "—"}</strong>.
+            </>
+          )}
+          {e.tipo === "responsable" && (
+            <>
+              cambió el responsable: {e.responsable_anterior ?? "sin responsable"} →{" "}
+              <strong className="font-semibold">{e.responsable_nuevo ?? "sin responsable"}</strong>.
+            </>
+          )}
+          {e.nota && <span className="block pl-4 italic text-ink/55 dark:text-ink-dark/55">“{e.nota}”</span>}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// 🆕 (sesión 2026-11-01, punto 4 del análisis de UI/UX) El rol colegio no
+// tiene acceso a esta sección (el backend le responde 403): se le explica en
+// vez de mostrarle un error. El menú ya no le ofrece el enlace.
+export default function CasosRiesgoPage() {
+  const { sesion } = useAuth();
+  if (sesion?.rol === "colegio") {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-6 text-sm text-ink/70 dark:text-ink-dark/70">
+        <p className="m-0 font-semibold text-ink dark:text-ink-dark">Casos en riesgo</p>
+        <p className="m-0 mt-1">Esta sección es solo para el equipo de psicología del colegio.</p>
+      </div>
+    );
+  }
+  return <CasosRiesgoPageContenido />;
 }

@@ -57,7 +57,7 @@ export function TarjetaAlumnoLateral({
               {alumno ? `${alumno.nombres} ${alumno.apellidos}` : "Cargando…"}
             </p>
             {alumno?.documento_identidad && (
-              <p className="m-0 mt-0.5 font-mono text-[11.5px] text-ink/50 dark:text-ink-dark/50">{alumno.documento_identidad}</p>
+              <p className="m-0 mt-0.5 font-mono text-[12px] text-ink/50 dark:text-ink-dark/50">{alumno.documento_identidad}</p>
             )}
           </div>
         </div>

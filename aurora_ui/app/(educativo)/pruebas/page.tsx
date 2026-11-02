@@ -407,7 +407,7 @@ export default function PruebasPage() {
                             <p className="m-0 font-display text-[17px] font-bold leading-tight text-teal-900 dark:text-ink-dark line-clamp-2 break-words">
                               {titulo}
                             </p>
-                            <p className="m-0 mt-1 text-[11px] font-semibold uppercase tracking-wide text-acento-azul dark:text-acento-azul-dark">
+                            <p className="m-0 mt-1 text-[12px] font-semibold uppercase tracking-wide text-acento-azul dark:text-acento-azul-dark">
                               {p.modo_interpretacion === "perfil" ? "Interpretación por perfil" : "Interpretación por rangos"}
                             </p>
                           </div>
@@ -419,18 +419,18 @@ export default function PruebasPage() {
                         <p className="m-0 min-h-[2.6rem] text-[12.5px] leading-snug text-ink/65 dark:text-ink-dark/65 line-clamp-2" title={p.nombre_publico}>
                           {p.nombre_publico}
                         </p>
-                        <dl className="m-0 grid grid-cols-2 gap-2 text-[11.5px]">
+                        <dl className="m-0 grid grid-cols-2 gap-2 text-[12px]">
                           <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
-                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Cálculo</dt>
+                            <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Cálculo</dt>
                             <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaModo(p.modo_calculo)}</dd>
                           </div>
                           <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
-                            <dt className="text-[10px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Responde</dt>
+                            <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Responde</dt>
                             <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaInformante(p.informante_tipo)}</dd>
                           </div>
                         </dl>
                         {!p.activa && (
-                          <span className="self-start rounded-full px-2 py-0.5 text-[10.5px] font-semibold bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60">
+                          <span className="self-start rounded-full px-2 py-0.5 text-[11.5px] font-semibold bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60">
                             Inactiva
                           </span>
                         )}
@@ -464,7 +464,7 @@ export default function PruebasPage() {
                           )}
                           {!cargandoDetalle && detalle && detalle.id === p.id && (
                             <div>
-                              <p className="m-0 mb-1.5 text-[10.5px] font-bold text-ink/50 dark:text-ink-dark/50 uppercase tracking-wide">
+                              <p className="m-0 mb-1.5 text-[11.5px] font-bold text-ink/50 dark:text-ink-dark/50 uppercase tracking-wide">
                                 Dimensiones ({detalle.dimensiones.length})
                               </p>
                               {detalle.dimensiones.length === 0 ? (
@@ -474,7 +474,7 @@ export default function PruebasPage() {
                                   {detalle.dimensiones.map((d) => (
                                     <span
                                       key={d.id}
-                                      className="rounded-md border border-acento-azul/20 dark:border-border-dark bg-surface dark:bg-surface-dark px-2 py-0.5 text-[11.5px] text-ink/75 dark:text-ink-dark/75"
+                                      className="rounded-md border border-acento-azul/20 dark:border-border-dark bg-surface dark:bg-surface-dark px-2 py-0.5 text-[12px] text-ink/75 dark:text-ink-dark/75"
                                     >
                                       {d.nombre}
                                       {d.tipo_calculo !== "items" ? ` (${d.tipo_calculo})` : ""}
@@ -518,7 +518,7 @@ export default function PruebasPage() {
                 ]}
               />
               {pruebaElegida && (
-                <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50 truncate max-w-md" title={pruebaElegida.nombre_publico}>
+                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50 truncate max-w-md" title={pruebaElegida.nombre_publico}>
                   {pruebaElegida.nombre_publico}
                 </p>
               )}
@@ -668,7 +668,7 @@ export default function PruebasPage() {
                       <BarChart3 size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
                       Resumen estadístico
                     </h2>
-                    <span className="text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                    <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">
                       {dashboard.resumen_estadistico.dimensiones.length} dimensión(es)
                     </span>
                   </div>
@@ -833,13 +833,13 @@ export default function PruebasPage() {
                             </span>
                             <span className="flex items-center gap-1.5">
                               {enAlerta && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-2 py-0.5 text-[10.5px] font-bold text-amber-700 dark:text-amber">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-2 py-0.5 text-[11.5px] font-bold text-amber-700 dark:text-amber">
                                   <AlertTriangle size={10} strokeWidth={2.4} aria-hidden="true" />
                                   Alerta
                                 </span>
                               )}
                               <span
-                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${
                                   finalizado
                                     ? "bg-teal-600/10 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
                                     : "bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60"

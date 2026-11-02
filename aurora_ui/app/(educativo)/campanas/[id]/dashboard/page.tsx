@@ -19,6 +19,7 @@ import {
   Download,
   Lock,
   Ban,
+  Eye,
   type LucideIcon,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -99,6 +100,9 @@ export default function DashboardCampanaPage() {
 
   const [exportando, setExportando] = useState(false);
   const [accionando, setAccionando] = useState(false);
+  // 🆕 Interruptor "los estudiantes ven su resultado" (Evaluacion.alumno_ve_informe).
+  const [cambiandoVisibilidad, setCambiandoVisibilidad] = useState(false);
+  const [errorVisibilidad, setErrorVisibilidad] = useState<string | null>(null);
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
   const [motivoCancelar, setMotivoCancelar] = useState("");
   const [mostrarCancelar, setMostrarCancelar] = useState(false);
@@ -351,6 +355,23 @@ export default function DashboardCampanaPage() {
     await navigator.clipboard.writeText(texto);
     setCopiadoLinksPendientes(true);
     setTimeout(() => setCopiadoLinksPendientes(false), 2000);
+  }
+
+  // Se puede cambiar en cualquier estado de la campaña (también cerrada):
+  // afecta al instante a todos sus estudiantes, incluidos los que ya terminaron.
+  async function alternarVisibilidadAlumno() {
+    if (!dashboard) return;
+    setCambiandoVisibilidad(true);
+    setErrorVisibilidad(null);
+    try {
+      await apiClient.patch(`/educativo/campanas/${campanaId}`, { alumno_ve_informe: !dashboard.alumno_ve_informe });
+      const actualizado = await apiClient.get<DashboardCampana>(`/educativo/campanas/${campanaId}/dashboard`);
+      setDashboard(actualizado);
+    } catch (err: unknown) {
+      setErrorVisibilidad(err instanceof Error ? err.message : "No se pudo cambiar la visibilidad para los estudiantes.");
+    } finally {
+      setCambiandoVisibilidad(false);
+    }
   }
 
   async function cerrar() {
@@ -693,13 +714,13 @@ export default function DashboardCampanaPage() {
                               )}
                               <td className="px-3 py-2.5 align-top">
                                 <span className="flex items-center gap-2.5">
-                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-acento-azul/10 text-[11px] font-bold text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark">
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-acento-azul/10 text-[12px] font-bold text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark">
                                     {iniciales(a.nombre_completo)}
                                   </span>
                                   <span className="min-w-0">
                                     <span className="block font-medium text-ink dark:text-ink-dark">{a.nombre_completo || "(sin nombre)"}</span>
                                     {a.fecha_resolucion && (
-                                      <span className="block text-[11px] text-ink/45 dark:text-ink-dark/45">
+                                      <span className="block text-[12px] text-ink/45 dark:text-ink-dark/45">
                                         {new Date(a.fecha_resolucion).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}
                                       </span>
                                     )}
@@ -708,7 +729,7 @@ export default function DashboardCampanaPage() {
                               </td>
                               <td className="px-3 py-2.5 align-top">
                                 <span
-                                  className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                                  className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[12px] font-semibold ${
                                     finalizado
                                       ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
                                       : "bg-ink/[0.06] text-ink/60 dark:bg-white/10 dark:text-ink-dark/60"
@@ -867,14 +888,14 @@ export default function DashboardCampanaPage() {
                         <li key={ins.id} className="flex items-center gap-2 px-1 py-2">
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-[13px] font-medium text-ink dark:text-ink-dark">{ins.nombre_completo}</span>
-                            <span className={`block text-[11px] ${finalizado ? "text-teal-700 dark:text-teal-accent-dark" : "text-ink/45 dark:text-ink-dark/45"}`}>
+                            <span className={`block text-[12px] ${finalizado ? "text-teal-700 dark:text-teal-accent-dark" : "text-ink/45 dark:text-ink-dark/45"}`}>
                               {ins.estado}
                             </span>
                           </span>
                           <button
                             type="button"
                             onClick={() => copiarLink(ins.id, url)}
-                            className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                            className={`shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[12px] font-semibold transition-colors ${
                               copiadoLinkId === ins.id
                                 ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
                                 : "bg-mist text-teal-700 hover:bg-teal-600/10 dark:bg-surface-raised-dark dark:text-teal-accent-dark"
@@ -895,6 +916,42 @@ export default function DashboardCampanaPage() {
               </p>
             )}
           </section>
+
+          {puedeAdministrar && (
+            <section className={`${CLASE_TARJETA} overflow-hidden`}>
+              <CabeceraTarjeta icono={Eye} titulo="Resultados para los estudiantes" />
+              <div className="p-4 space-y-3">
+                <TextoError>{errorVisibilidad}</TextoError>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="m-0 text-[13px] font-semibold text-ink dark:text-ink-dark">
+                    {dashboard.alumno_ve_informe ? "Ven su resultado y su PDF" : "No ven su resultado"}
+                  </p>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!!dashboard.alumno_ve_informe}
+                    aria-label="Los estudiantes ven su resultado al terminar"
+                    onClick={alternarVisibilidadAlumno}
+                    disabled={cambiandoVisibilidad}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:opacity-50 ${
+                      dashboard.alumno_ve_informe ? "bg-accion dark:bg-teal-accent-dark" : "bg-border dark:bg-border-dark"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                        dashboard.alumno_ve_informe ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                </div>
+                <p className="m-0 text-[12px] leading-relaxed text-ink/60 dark:text-ink-dark/60">
+                  Encendido, cada estudiante ve un resumen por dimensión y puede descargar su informe en PDF —{" "}
+                  <strong className="font-semibold">también si hay alerta clínica, sin tu revisión previa</strong>. Tú siempre
+                  recibes todos los resultados. El cambio aplica al instante, también a quienes ya terminaron.
+                </p>
+              </div>
+            </section>
+          )}
 
           {puedeAdministrar && (
             <section className={`${CLASE_TARJETA} overflow-hidden`}>

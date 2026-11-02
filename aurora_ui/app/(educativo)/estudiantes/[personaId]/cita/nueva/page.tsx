@@ -1,5 +1,6 @@
 "use client";
 
+import { useAvisoSinGuardar } from "@/lib/useAvisoSinGuardar";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -51,6 +52,8 @@ export default function NuevaCitaPage() {
   // Duración — 45 min por defecto, igual que el backend.
   const [duracion, setDuracion] = useState("45");
   const [guardando, setGuardando] = useState(false);
+  // 🆕 Aviso al salir con la cita a medio llenar (punto 5 del análisis de UI/UX).
+  useAvisoSinGuardar(!guardando && (motivo.trim() !== "" || fecha !== "" || hora !== ""), "La cita todavía no se agendó.");
   const [error, setError] = useState<string | null>(null);
   const [proximas, setProximas] = useState<Cita[] | null>(null);
 
@@ -208,7 +211,7 @@ export default function NuevaCitaPage() {
 
         <aside className="lg:sticky lg:top-4 space-y-4">
           <TarjetaAlumnoLateral personaId={personaId} alumno={alumno} seccion={seccion}>
-            <p className="m-0 mb-2 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas citas</p>
+            <p className="m-0 mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas citas</p>
             {proximas === null ? (
               <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">—</p>
             ) : proximas.length === 0 ? (

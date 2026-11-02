@@ -576,6 +576,10 @@ ESTADO_CAMPANA_CANCELADA = "cancelada"
 ESTADOS_CAMPANA_VALIDOS = {ESTADO_CAMPANA_ACTIVA, ESTADO_CAMPANA_CERRADA, ESTADO_CAMPANA_CANCELADA}
 
 
+TIPO_CAMPANA_GRUPAL = "grupal"
+TIPO_CAMPANA_INDIVIDUAL = "individual"
+
+
 class Evaluacion(Base):
     """Representa una campaña de evaluación creada por un psicólogo para un grupo específico"""
     __tablename__ = "edu_evaluaciones"
@@ -584,6 +588,7 @@ class Evaluacion(Base):
             "estado IN ('activa', 'cerrada', 'cancelada')",
             name="ck_evaluaciones_estado_valido",
         ),
+        CheckConstraint("tipo IN ('grupal', 'individual')", name="ck_evaluaciones_tipo_valido"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -623,6 +628,26 @@ class Evaluacion(Base):
         nullable=True,
     )
     motivo_cierre = Column(Text, nullable=True)
+    # 🆕 (sesión 2026-11-01, decisión del usuario) Si los estudiantes de ESTA
+    # campaña ven su resultado al terminar: el resumen por dimensión en
+    # pantalla y el PDF de su informe. Apagado por defecto. Encendido,
+    # muestra también los casos con alerta clínica, sin revisión previa
+    # (así lo decidió el usuario: p. ej. CHASIDE, orientación vocacional,
+    # con resultados inmediatos). Es SOLO la llave del alumno: el psicólogo
+    # recibe siempre todos los resultados, y `Inscripcion.informe_liberado`
+    # sigue significando "revisado/liberado por el profesional" para el
+    # staff y el rol `colegio`. Ver crud.alumno_puede_ver_resultados.
+    alumno_ve_informe = Column(Boolean, nullable=False, server_default="false", default=False)
+    # 🆕 (sesión 2026-11-01) 'grupal' = la campaña de siempre (uno o varios
+    # salones); 'individual' = aplicación de UNA prueba a UN estudiante
+    # desde su perfil (POST /educativo/personas/{id}/aplicacion-individual).
+    # Por debajo es la misma Evaluacion de un solo inscrito, así que corrección,
+    # informe, casos en riesgo, consentimiento y reaplicación funcionan igual.
+    # Las individuales NO entran en las estadísticas por salón/grado
+    # (dashboard académico y su tendencia): se aplican a alumnos puntuales,
+    # casi siempre derivados por una preocupación, y sesgarían el grupo.
+    # Tampoco cuentan como "campañas activas" en el Inicio.
+    tipo = Column(String, nullable=False, server_default=TIPO_CAMPANA_GRUPAL, default=TIPO_CAMPANA_GRUPAL)
 
 # 🆕 Texto versionado del asentimiento informado que el alumno ve al abrir
 # su link de examen (sesión 2026-10-18, ver Inscripcion.asentimiento_texto_
@@ -1095,6 +1120,94 @@ class SesionSeguimiento(Base):
     proxima_cita = Column(DateTime, nullable=True)
     estado = Column(String, default="Atendido")  # 'Pendiente', 'En proceso', 'Atendido'
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+# ==========================================
+# 🆕 CASOS EN RIESGO (sesión 2026-11-01, decisiones del usuario)
+# ==========================================
+# Un caso es la unidad de trabajo de la bandeja "Casos en riesgo":
+# - origen 'prueba': UNA aplicación (Inscripcion) con al menos un
+#   diagnóstico en alerta — un caso por inscripción, aunque tenga varias
+#   dimensiones en alerta;
+# - origen 'antecedentes': el estudiante con "Sí" en terapia psicológica o
+#   atención psiquiátrica externa.
+# Estados: nuevo → en_atencion → derivado → en_seguimiento → cerrado. Un
+# caso SOLO sale de la bandeja al cerrarlo (con motivo); registrar una
+# sesión de seguimiento lo pasa de 'nuevo' a 'en_atencion', no lo saca.
+# Responsable: el creador de la campaña (prueba) o nadie (antecedentes),
+# reasignable. La URGENCIA no se guarda: se calcula al leer, a partir de los
+# diagnósticos (ítem crítico → urgente, baremo → alerta, antecedentes →
+# seguimiento), para que siga siendo correcta tras un reproceso. Las filas se
+# crean solas al consultar la bandeja (crud.sincronizar_casos_riesgo).
+ESTADO_CASO_NUEVO = "nuevo"
+ESTADO_CASO_EN_ATENCION = "en_atencion"
+ESTADO_CASO_DERIVADO = "derivado"
+ESTADO_CASO_EN_SEGUIMIENTO = "en_seguimiento"
+ESTADO_CASO_CERRADO = "cerrado"
+ESTADOS_CASO = (
+    ESTADO_CASO_NUEVO, ESTADO_CASO_EN_ATENCION, ESTADO_CASO_DERIVADO,
+    ESTADO_CASO_EN_SEGUIMIENTO, ESTADO_CASO_CERRADO,
+)
+ORIGEN_CASO_PRUEBA = "prueba"
+ORIGEN_CASO_ANTECEDENTES = "antecedentes"
+
+
+def _ahora_utc_naive():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+class CasoRiesgo(Base):
+    __tablename__ = "edu_casos_riesgo"
+    __table_args__ = (
+        CheckConstraint("origen IN ('prueba', 'antecedentes')", name="ck_edu_casos_riesgo_origen"),
+        CheckConstraint(
+            "estado IN ('nuevo', 'en_atencion', 'derivado', 'en_seguimiento', 'cerrado')",
+            name="ck_edu_casos_riesgo_estado",
+        ),
+        CheckConstraint(
+            "(origen = 'prueba') = (inscripcion_id IS NOT NULL)", name="ck_edu_casos_riesgo_inscripcion_segun_origen",
+        ),
+        # Como mucho UN caso abierto por antecedentes y estudiante (el de
+        # prueba ya es único por inscripción).
+        Index(
+            "uq_edu_casos_riesgo_antecedentes_abierto", "persona_id", unique=True,
+            postgresql_where=text("origen = 'antecedentes' AND estado <> 'cerrado'"),
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    institucion_id = Column(Integer, ForeignKey("instituciones.id"), nullable=False, index=True)
+    persona_id = Column(Integer, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False, index=True)
+    origen = Column(String, nullable=False)
+    inscripcion_id = Column(
+        Integer, ForeignKey("edu_inscripciones.id", ondelete="CASCADE"), nullable=True, unique=True,
+    )
+    estado = Column(String, nullable=False, server_default=ESTADO_CASO_NUEVO, default=ESTADO_CASO_NUEVO)
+    responsable_usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=True, index=True)
+    motivo_cierre = Column(Text, nullable=True)
+    cerrado_en = Column(DateTime, nullable=True)
+    cerrado_por_usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=True)
+    creado_en = Column(DateTime, nullable=False, default=_ahora_utc_naive, server_default=func.now())
+    actualizado_en = Column(DateTime, nullable=False, default=_ahora_utc_naive, onupdate=_ahora_utc_naive,
+                            server_default=func.now())
+
+
+class CasoRiesgoEvento(Base):
+    """Historial de un caso: creación, cambios de estado y de responsable.
+    `usuario_id` NULL = lo hizo el sistema (alta automática, o el paso a
+    'en_atencion' al registrarse una sesión)."""
+    __tablename__ = "edu_casos_riesgo_eventos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    caso_id = Column(Integer, ForeignKey("edu_casos_riesgo.id", ondelete="CASCADE"), nullable=False, index=True)
+    usuario_id = Column(Integer, ForeignKey("auth_usuarios.id"), nullable=True)
+    tipo = Column(String, nullable=False)  # 'creado' | 'estado' | 'responsable'
+    estado_anterior = Column(String, nullable=True)
+    estado_nuevo = Column(String, nullable=True)
+    responsable_anterior_id = Column(Integer, nullable=True)
+    responsable_nuevo_id = Column(Integer, nullable=True)
+    nota = Column(Text, nullable=True)
+    creado_en = Column(DateTime, nullable=False, default=_ahora_utc_naive, server_default=func.now())
 
 # ==========================================
 # 5. INFORMES (PDF versionado por aplicación)

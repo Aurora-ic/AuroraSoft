@@ -62,11 +62,11 @@ export default function LoginPage() {
       .finally(() => sigueVigente() && setCaptchaCargando(false));
   }, []);
 
-  const cargarCaptcha = useCallback(() => {
+  const cargarCaptcha = useCallback((email?: string) => {
     setCaptchaCargando(true);
     setCaptchaErrorCarga("");
     setCaptchaValor("");
-    return aplicarCaptcha(obtenerCaptcha());
+    return aplicarCaptcha(obtenerCaptcha(email));
   }, [aplicarCaptcha]);
 
   // Primer captcha al entrar (el estado inicial ya es "cargando").
@@ -78,7 +78,10 @@ export default function LoginPage() {
     };
   }, [aplicarCaptcha]);
 
-  const conCaptcha = captcha?.habilitado ?? true;
+  // 🆕 (sesión 2026-11-01) El captcha es adaptativo: el profesional que entra
+  // a diario no lo ve; aparece solo tras varias contraseñas fallidas
+  // (backend/core/captcha.py). Mientras carga la primera consulta, oculto.
+  const conCaptcha = captcha?.habilitado ?? false;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,9 +115,10 @@ export default function LoginPage() {
       } else {
         setMensajeError(texto);
       }
-      // El backend consume el captcha en cada intento, acierte o no: siempre
-      // hace falta uno nuevo para el siguiente.
-      if (conCaptcha) await cargarCaptcha();
+      // El backend consume el captcha en cada intento, acierte o no; y tras
+      // un fallo puede empezar a exigirlo: siempre se vuelve a preguntar,
+      // con el correo, si el siguiente intento lo necesita.
+      await cargarCaptcha(usuario.trim() || undefined);
       if (esDeCaptcha) refCaptcha.current?.focus();
       else if (error instanceof ApiError && error.status === 401) refPassword.current?.focus();
     }
@@ -231,7 +235,7 @@ export default function LoginPage() {
               }}
               onRecargar={() => {
                 setErrores((p) => ({ ...p, captcha: undefined }));
-                cargarCaptcha();
+                cargarCaptcha(usuario.trim() || undefined);
               }}
               error={errores.captcha}
               deshabilitado={ocupado}

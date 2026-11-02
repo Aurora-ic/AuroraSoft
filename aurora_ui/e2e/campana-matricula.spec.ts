@@ -18,21 +18,22 @@ test.describe("Crear campaña y matricular", () => {
     await autenticarEnNavegador(page, fixtures.psicologoToken);
     await page.goto("/campanas/nueva");
     await page.waitForLoadState("networkidle");
-    // Sin nombre_corto cargado, el <option> muestra nombre_tecnico tal cual.
-    await page.getByLabel("Prueba").selectOption({ label: `ZZPLAYWRIGHT-${fixtures.sello}` });
-    const nombreCampana = `ZZPLAYWRIGHT Campaña ${fixtures.sello}`;
-    await page.getByLabel("Nombre del grupo").fill(nombreCampana);
-    await page.getByRole("button", { name: "Crear campaña" }).click();
-
-    // Paso 2: elegir a quién matricular -- busca al alumno recién creado en
-    // la lista del padrón y lo marca.
-    await expect(page.getByText(nombreCampana)).toBeVisible();
+    // 🆕 (sesión 2026-11-01) Flujo nuevo en una sola pantalla: prueba →
+    // salones (el alumno del fixture no tiene salón) → ajuste alumno por
+    // alumno → detalles; la campaña se crea recién con el botón final.
+    await page.getByRole("radio", { name: new RegExp(`ZZPLAYWRIGHT-${fixtures.sello}`) }).click();
+    await page.getByRole("button", { name: "Ver y ajustar la lista" }).click();
+    await page.getByLabel("Buscar alumno").fill(`Alumno ${fixtures.sello}`);
     await page.getByText(new RegExp(`Alumno ${fixtures.sello}`)).click();
-    await page.getByRole("button", { name: /Matricular 1 alumno/ }).click();
+    const nombreCampana = `ZZPLAYWRIGHT Campaña ${fixtures.sello}`;
+    await page.getByRole("button", { name: "Editar el nombre" }).click();
+    await page.getByLabel("Nombre de la campaña").fill(nombreCampana);
+    await page.getByRole("button", { name: "Crear campaña y generar links" }).click();
 
-    // Paso 3: el link mágico se generó.
-    await expect(page.getByText(/1 link\(s\) generado\(s\)/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Copiar link" })).toBeVisible();
+    // El link mágico se generó.
+    await expect(page.getByRole("heading", { name: "¡Campaña lista!" })).toBeVisible();
+    await expect(page.getByText("links generados")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Copiar", exact: true })).toBeVisible();
 
     // El dashboard de la campaña refleja al alumno recién matriculado.
     await page.getByRole("button", { name: "Ir al dashboard de la campaña" }).click();

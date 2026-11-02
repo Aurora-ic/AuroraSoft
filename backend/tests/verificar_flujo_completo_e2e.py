@@ -265,6 +265,12 @@ def montar_institucion(h_super, letra, sello):
               "PATCH /api/educativo/inscripciones/{id}/liberar-informe", r_liberar.text[:200])
 
     # --- PDF, ya liberado ---
+    # 🆕 (sesión 2026-11-01) liberar no abre el PDF al alumno: lo abre el
+    # interruptor de la campaña (Evaluacion.alumno_ve_informe).
+    r_interruptor = requests.patch(f"{API}/educativo/campanas/{ctx.campana_id}", json={"alumno_ve_informe": True},
+                                   headers=ctx.h, timeout=30)
+    comprobar(f"[{letra}] Encender 'los estudiantes ven su resultado' (200)", r_interruptor.status_code == 200,
+              "PATCH /api/educativo/campanas/{id}", r_interruptor.text[:200])
     limite = time.time() + 20
     r_pdf = None
     while time.time() < limite:
@@ -272,7 +278,7 @@ def montar_institucion(h_super, letra, sello):
         if r_pdf.status_code == 200:
             break
         time.sleep(0.5)
-    comprobar(f"[{letra}] PDF descargable tras liberar (200, %PDF- real)",
+    comprobar(f"[{letra}] PDF descargable con el interruptor encendido (200, %PDF- real)",
               r_pdf is not None and r_pdf.status_code == 200 and r_pdf.content[:5] == b"%PDF-",
               "GET /api/educativo/examen/{token}/informe-pdf")
     ctx.pdf_bytes = r_pdf.content if r_pdf else b""

@@ -57,7 +57,7 @@ const INFO_TIPO: Record<TipoTextoConsentimiento, { titulo: string; uso: string }
 // "general" = modelo del colegio sin nivel; si no, el id del nivel.
 type Ambito = "general" | number;
 
-export default function ConsentimientoYAsentimientoPage() {
+function ConsentimientoYAsentimientoPageContenido() {
   const { sesion } = useAuth();
   const puedeEditar = sesion?.rol === "admin" || sesion?.rol === "superadmin";
 
@@ -257,7 +257,7 @@ export default function ConsentimientoYAsentimientoPage() {
                   <Icono size={15} className="shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-semibold text-ink dark:text-ink-dark">{nombre}</span>
-                    <span className="block text-[11px] text-ink/50 dark:text-ink-dark/50">
+                    <span className="block text-[12px] text-ink/50 dark:text-ink-dark/50">
                       {activa ? `Modelo propio · v${activa.version}` : esGeneral ? "Usa el modelo por defecto" : "Usa el general"}
                     </span>
                   </span>
@@ -269,7 +269,7 @@ export default function ConsentimientoYAsentimientoPage() {
               );
             })}
             {niveles.length === 0 && (
-              <p className="m-0 px-2.5 py-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+              <p className="m-0 px-2.5 py-2 text-[12px] text-ink/45 dark:text-ink-dark/45">
                 Crea niveles en Estructura académica para tener un modelo distinto por nivel.
               </p>
             )}
@@ -282,7 +282,7 @@ export default function ConsentimientoYAsentimientoPage() {
                 <h2 className="m-0 text-[15px] font-bold text-teal-900 dark:text-ink-dark">
                   {INFO_TIPO[tipo].titulo} — {nombreAmbito}
                 </h2>
-                <p className="m-0 text-[11.5px] text-ink/55 dark:text-ink-dark/55">
+                <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55">
                   {activaAmbito
                     ? `Versión activa: v${activaAmbito.version}, desde el ${new Date(activaAmbito.creado_en).toLocaleDateString("es-PE")}`
                     : heredadaDe
@@ -293,7 +293,7 @@ export default function ConsentimientoYAsentimientoPage() {
                 </p>
               </div>
               <span
-                className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                   activaAmbito
                     ? "bg-teal-600/10 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
                     : "bg-border text-ink/60 dark:bg-border-dark dark:text-ink-dark/60"
@@ -305,7 +305,7 @@ export default function ConsentimientoYAsentimientoPage() {
 
             <form onSubmit={guardarNuevaVersion} className="p-4 space-y-3">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45 mr-1">
+                <span className="text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45 mr-1">
                   Insertar dato:
                 </span>
                 {MARCADORES.map((m) => (
@@ -314,7 +314,7 @@ export default function ConsentimientoYAsentimientoPage() {
                     type="button"
                     title={m.descripcion}
                     onClick={() => insertarMarcador(m.clave)}
-                    className="rounded-md border border-border dark:border-border-dark px-2 py-0.5 font-mono text-[11px] text-teal-800 dark:text-teal-accent-dark hover:border-teal-400 hover:bg-teal-600/5"
+                    className="rounded-md border border-border dark:border-border-dark px-2 py-0.5 font-mono text-[12px] text-teal-800 dark:text-teal-accent-dark hover:border-teal-400 hover:bg-teal-600/5"
                   >
                     {`{{${m.clave}}}`}
                   </button>
@@ -371,7 +371,7 @@ export default function ConsentimientoYAsentimientoPage() {
                           <span className="font-semibold text-ink dark:text-ink-dark">
                             v{v.version}{" "}
                             {v.activo && (
-                              <span className="ml-1 rounded-full bg-teal-600/10 px-2 py-0.5 text-[10.5px] font-semibold text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                              <span className="ml-1 rounded-full bg-teal-600/10 px-2 py-0.5 text-[11.5px] font-semibold text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
                                 activa
                               </span>
                             )}
@@ -390,4 +390,20 @@ export default function ConsentimientoYAsentimientoPage() {
       )}
     </div>
   );
+}
+
+// 🆕 (sesión 2026-11-01, punto 4 del análisis de UI/UX) El rol colegio no
+// tiene acceso a esta sección (el backend le responde 403): se le explica en
+// vez de mostrarle un error. El menú ya no le ofrece el enlace.
+export default function ConsentimientoYAsentimientoPage() {
+  const { sesion } = useAuth();
+  if (sesion?.rol === "colegio") {
+    return (
+      <div className="mx-auto max-w-xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-6 text-sm text-ink/70 dark:text-ink-dark/70">
+        <p className="m-0 font-semibold text-ink dark:text-ink-dark">Consentimiento y asentimiento</p>
+        <p className="m-0 mt-1">Esta sección es solo para el equipo de psicología del colegio.</p>
+      </div>
+    );
+  }
+  return <ConsentimientoYAsentimientoPageContenido />;
 }

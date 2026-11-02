@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiClient, descargarBlob, ApiError } from "@/lib/api-client";
+import { ArrowLeft, ArrowRight, CheckCircle2, Download, ListChecks } from "lucide-react";
+import { apiClient, ApiError, descargarBlob } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import type {
@@ -12,9 +13,16 @@ import type {
   CampoSociodemografico,
   PreguntaExamen,
   ProgresoExamen,
-  DiagnosticoAlumno,
   EstadoResultadosAlumno,
 } from "@/types/api";
+
+// Botones del examen SIN variantes `dark:` — el examen es siempre claro
+// (ver su layout), y <Boton> se oscurecería si quien abre el link tiene el
+// tema oscuro guardado en ese navegador.
+const BOTON_PRIMARIO =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-accion px-5 text-base font-semibold text-white shadow-sm transition-colors hover:bg-accion-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40";
+const BOTON_SECUNDARIO =
+  "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 text-base font-medium text-ink transition-colors hover:bg-mist focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40";
 
 // Flujo público, sin sesión: 1) datos sociodemográficos + asentimiento
 // (comenzar-test, también reanuda un examen "En Progreso") — primero se
@@ -22,9 +30,27 @@ import type {
 // matricular por padrón, 2) campos sociodemográficos propios de la
 // institución (si tiene alguno configurado — la mayoría no), 3) preguntas
 // con autoguardado por respuesta (resumible: progreso ya contestado se
-// precarga), 4) finalizar y mostrar el estado de revisión / descargar el
-// informe si ya está liberado.
+// precarga), 4) finalizar.
+//
+// 🆕 Rediseño del examen (sesión 2026-11-01, decisiones del usuario):
+// - las instrucciones de la prueba (Prueba.instrucciones, vía /intake) se
+//   muestran TEXTUALES antes de la primera pregunta — antes no se mostraban;
+// - UNA pregunta por pantalla, con Anterior/Siguiente, barra de progreso y
+//   un mapa de preguntas para saltar a cualquiera (antes: todas en una sola
+//   página larga — 47 tarjetas seguidas en RCADS-47);
+// - opciones como tarjetas grandes tocables (antes: el radio nativo);
+// - antes de finalizar, una pantalla de revisión que lista las preguntas
+//   sin responder y deja ir a cada una (antes: "Faltan N" sin decir cuáles,
+//   y un window.confirm);
+// - al terminar, agradecimiento; el resumen por dimensión y el PDF solo si
+//   la campaña tiene encendido "los estudiantes ven su resultado"
+//   (Evaluacion.alumno_ve_informe, apagado por defecto — ver irAFinalizado).
+//   Apagado, el mensaje es el mismo haya o no alerta.
+// El autoguardado por respuesta (cola por pregunta, reintento, rollback) no
+// cambió.
 type Fase = "intake" | "socio" | "preguntas" | "finalizado" | "error_terminal";
+// Dentro de la fase "preguntas".
+type VistaPreguntas = "instrucciones" | "pregunta" | "revision";
 
 // 🆕 Lo que el alumno respondió para UNA pregunta: un opcion_id (opción
 // múltiple) o una lista de números (ítem "numerico", ver PreguntaExamen.
@@ -148,10 +174,18 @@ export default function ExamenPage() {
   const colaPorPreguntaRef = useRef<Record<number, Promise<void>>>({});
   const intentoVigentePorPreguntaRef = useRef<Record<number, number>>({});
 
+  // 🆕 Una pregunta por pantalla: cuál se ve y qué vista de la fase.
+  const [indiceActual, setIndiceActual] = useState(0);
+  const [vista, setVista] = useState<VistaPreguntas>("pregunta");
+  const refTituloVista = useRef<HTMLHeadingElement>(null);
+
   // --- Fase 4: finalizado ---
-  const [diagnosticos, setDiagnosticos] = useState<DiagnosticoAlumno[] | null>(null);
+  // 🆕 Solo se usa si la campaña deja que el alumno vea su resultado
+  // (alumno_puede_ver_informe) — si no, la pantalla final es solo un
+  // agradecimiento.
   const [estadoResultados, setEstadoResultados] = useState<EstadoResultadosAlumno | null>(null);
   const [descargando, setDescargando] = useState(false);
+  const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
 
   async function enviarIntake(e: React.FormEvent) {
     e.preventDefault();
@@ -243,6 +277,13 @@ export default function ExamenPage() {
       setRespuestas(previas);
       setBorradorNumerico(borrador);
       confirmadoRef.current = { ...previas }; // lo que ya está confirmado en el servidor al cargar
+      // Al reanudar, se sigue en la primera pregunta sin responder (o en la
+      // revisión si ya estaban todas). Las instrucciones se muestran
+      // primero siempre que la prueba las tenga, también al reanudar.
+      const primeraSinResponder = listaPreguntas.findIndex((p) => previas[p.id] === undefined);
+      const todasRespondidas = primeraSinResponder === -1 && listaPreguntas.length > 0;
+      setIndiceActual(primeraSinResponder === -1 ? Math.max(0, listaPreguntas.length - 1) : primeraSinResponder);
+      setVista(intakePrevio?.instrucciones ? "instrucciones" : todasRespondidas ? "revision" : "pregunta");
       setFase("preguntas");
     } catch (err: any) {
       setErrorPreguntas(err.message || "No se pudieron cargar las preguntas.");
@@ -384,11 +425,32 @@ export default function ExamenPage() {
     respuestasRef.current = respuestas;
   }, [respuestas]);
 
-  async function finalizar() {
-    if (faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0) return;
-    if (!window.confirm("¿Confirmas que terminaste de responder? No podrás modificar tus respuestas después.")) {
+  // 🆕 Navegación de una pregunta por pantalla. Sube al inicio y lleva el
+  // foco al título de la vista nueva (lectores de pantalla y teclado).
+  function irAPregunta(indice: number) {
+    setIndiceActual(Math.min(Math.max(0, indice), Math.max(0, preguntas.length - 1)));
+    setVista("pregunta");
+    window.scrollTo({ top: 0 });
+  }
+  function irARevision() {
+    setVista("revision");
+    window.scrollTo({ top: 0 });
+  }
+  const primeraVistaRef = useRef(true);
+  useEffect(() => {
+    if (fase !== "preguntas") return;
+    // La primera vista no roba el foco (el alumno recién llega); las
+    // siguientes sí, para que el lector de pantalla lea la pregunta nueva.
+    if (primeraVistaRef.current) {
+      primeraVistaRef.current = false;
       return;
     }
+    refTituloVista.current?.focus();
+  }, [fase, vista, indiceActual]);
+
+  // La pantalla de revisión hace de confirmación (antes, window.confirm).
+  async function finalizar() {
+    if (faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0) return;
     setFinalizando(true);
     setErrorFinalizar(null);
     try {
@@ -402,12 +464,13 @@ export default function ExamenPage() {
       const faltanAhora = preguntas.filter((p) => respuestasRef.current[p.id] === undefined);
       if (faltanAhora.length > 0) {
         setErrorFinalizar(
-          "Alguna respuesta no se pudo guardar. Revisa las preguntas marcadas y vuelve a seleccionarlas."
+          "Alguna respuesta no se pudo guardar. Vuelve a responder las preguntas que aparecen sin responder."
         );
         return;
       }
-      const resultado = await apiClient.post<DiagnosticoAlumno[]>(`/educativo/examen/${token}/finalizar`);
-      setDiagnosticos(resultado);
+      // La respuesta (diagnósticos) se ignora a propósito: el alumno no ve
+      // niveles — ver el comentario al inicio del archivo.
+      await apiClient.post(`/educativo/examen/${token}/finalizar`);
       await irAFinalizado();
     } catch (err: any) {
       setErrorFinalizar(err.message || "No se pudo finalizar la evaluación.");
@@ -416,23 +479,28 @@ export default function ExamenPage() {
     }
   }
 
+  // 🆕 Lo que ve el alumno al terminar lo decide el interruptor de la
+  // campaña (Evaluacion.alumno_ve_informe), leído de /estado-resultados:
+  // apagado (por defecto) solo agradecimiento; encendido, resumen por
+  // dimensión + PDF, haya o no alerta. Si la consulta falla, solo
+  // agradecimiento.
   async function irAFinalizado() {
     try {
-      const estado = await apiClient.get<EstadoResultadosAlumno>(`/educativo/examen/${token}/estado-resultados`);
-      setEstadoResultados(estado);
+      setEstadoResultados(await apiClient.get<EstadoResultadosAlumno>(`/educativo/examen/${token}/estado-resultados`));
     } catch {
-      // Si falla, igual mostramos la fase final con lo que ya tengamos.
+      setEstadoResultados(null);
     }
     setFase("finalizado");
   }
 
   async function descargarInforme() {
     setDescargando(true);
+    setErrorDescarga(null);
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/examen/${token}/informe-pdf`);
       descargarBlob(blob, "mi_informe.pdf");
-    } catch (err: any) {
-      setErrorFinalizar(err.message || "No se pudo descargar tu informe.");
+    } catch (err: unknown) {
+      setErrorDescarga(err instanceof Error && err.message ? err.message : "No se pudo descargar tu informe.");
     } finally {
       setDescargando(false);
     }
@@ -656,96 +724,267 @@ export default function ExamenPage() {
   }
 
   if (fase === "preguntas") {
+    const total = preguntas.length;
+    const respondidas = total - faltanPreguntas.length;
+    const actual = preguntas[indiceActual];
+    const esUltima = indiceActual >= total - 1;
+    const indicePorId = new Map(preguntas.map((p, i) => [p.id, i]));
+    const guardandoActual = actual ? guardandoPreguntaIds.has(actual.id) : false;
+
     return (
       <div className="space-y-4">
-        <div className="bg-white rounded-card border border-border p-6">
-          <h1 className="font-display text-xl text-teal-900">Evaluación</h1>
-          <p className="text-sm text-ink/60">
-            {Object.keys(respuestas).length} de {preguntas.length} respondidas — se guarda automáticamente.
-          </p>
+        {/* Encabezado: progreso siempre visible. */}
+        <div className="bg-white rounded-card border border-border p-5 sm:p-6">
+          <div className="flex items-baseline justify-between gap-3">
+            <h1 className="font-display text-xl text-teal-900">Evaluación</h1>
+            <p className="text-sm text-ink/60">
+              {respondidas} de {total} respondidas
+            </p>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="Preguntas respondidas"
+            aria-valuemin={0}
+            aria-valuemax={total}
+            aria-valuenow={respondidas}
+            className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-mist"
+          >
+            <div
+              className="h-full rounded-full bg-teal-600 transition-[width] duration-300"
+              style={{ width: `${total ? (respondidas / total) * 100 : 0}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-ink/50">Tus respuestas se guardan automáticamente.</p>
         </div>
 
         <TextoError>{errorPreguntas}</TextoError>
         <TextoError>{errorGuardar}</TextoError>
 
-        {preguntas.map((p, i) => (
-          <div key={p.id} className="bg-white rounded-card border border-border p-5 space-y-2">
-            <p className="text-sm font-medium text-ink">
-              {i + 1}. {p.texto_pregunta}
-              {guardandoPreguntaIds.has(p.id) && <span className="text-xs text-ink/40 ml-2">guardando...</span>}
-            </p>
-            {p.tipo_respuesta === "numerico" ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {Array.from({ length: p.cantidad_valores_numericos ?? 0 }).map((_, idx) => (
+        {/* ===== Instrucciones (textuales, tal como están cargadas) ===== */}
+        {vista === "instrucciones" && (
+          <section className="bg-white rounded-card border border-border p-6 sm:p-8 space-y-5">
+            <h2 ref={refTituloVista} tabIndex={-1} className="font-display text-lg text-teal-900 focus:outline-none">
+              Instrucciones
+            </h2>
+            <p className="whitespace-pre-line text-base leading-relaxed text-ink/85">{intakePrevio?.instrucciones}</p>
+            <button
+              type="button"
+              // Al reanudar con todo ya respondido, directo a la revisión.
+              onClick={() => (total > 0 && faltanPreguntas.length === 0 ? irARevision() : irAPregunta(indiceActual))}
+              className={`${BOTON_PRIMARIO} w-full sm:w-auto`}
+            >
+              {respondidas > 0 ? "Continuar con las preguntas" : "Comenzar las preguntas"}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </button>
+          </section>
+        )}
+
+        {/* ===== Una pregunta por pantalla ===== */}
+        {vista === "pregunta" && actual && (
+          <section className="bg-white rounded-card border border-border p-5 sm:p-7">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
+                Pregunta {indiceActual + 1} de {total}
+              </p>
+              <span aria-live="polite" className="text-xs text-ink/45">
+                {guardandoActual ? "Guardando…" : respuestas[actual.id] !== undefined ? "Guardada" : ""}
+              </span>
+            </div>
+            <h2
+              id={`pregunta-${actual.id}-texto`}
+              ref={refTituloVista}
+              tabIndex={-1}
+              className="mt-2 text-lg sm:text-xl font-medium leading-snug text-ink focus:outline-none"
+            >
+              {actual.texto_pregunta}
+            </h2>
+
+            {actual.tipo_respuesta === "numerico" ? (
+              <div role="group" aria-labelledby={`pregunta-${actual.id}-texto`} className="mt-5 flex flex-wrap items-center gap-3">
+                {Array.from({ length: actual.cantidad_valores_numericos ?? 0 }).map((_, idx) => (
                   <input
                     key={idx}
                     type="number"
                     inputMode="numeric"
-                    aria-label={`Valor ${idx + 1} de ${p.cantidad_valores_numericos}`}
-                    value={borradorNumerico[p.id]?.[idx] ?? ""}
+                    aria-label={`Valor ${idx + 1} de ${actual.cantidad_valores_numericos}`}
+                    value={borradorNumerico[actual.id]?.[idx] ?? ""}
                     onChange={(e) =>
-                      actualizarValorNumerico(p.id, idx, p.cantidad_valores_numericos ?? 0, e.target.value)
+                      actualizarValorNumerico(actual.id, idx, actual.cantidad_valores_numericos ?? 0, e.target.value)
                     }
-                    className="w-20 rounded-card border border-border px-3 py-2 text-center focus:outline-none focus:ring-2 focus:ring-teal-400"
+                    className="h-14 w-24 rounded-xl border-2 border-border px-3 text-center text-lg focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-400/40"
                   />
                 ))}
               </div>
             ) : (
-              <div className="space-y-1">
-                {p.opciones.map((o) => (
-                  <label key={o.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`pregunta-${p.id}`}
-                      checked={respuestas[p.id] === o.id}
-                      onChange={() => elegirOpcion(p.id, o.id)}
-                    />
-                    {o.texto_opcion}
-                  </label>
-                ))}
+              <div role="radiogroup" aria-labelledby={`pregunta-${actual.id}-texto`} className="mt-5 space-y-2.5">
+                {actual.opciones.map((o) => {
+                  const marcada = respuestas[actual.id] === o.id;
+                  return (
+                    <label
+                      key={o.id}
+                      className={`flex min-h-13 cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 text-base transition-colors focus-within:ring-2 focus-within:ring-teal-400 focus-within:ring-offset-1 ${
+                        marcada
+                          ? "border-teal-600 bg-teal-50 font-medium text-teal-900"
+                          : "border-border bg-white text-ink hover:border-ink/25 hover:bg-mist/60"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name={`pregunta-${actual.id}`}
+                        checked={marcada}
+                        onChange={() => elegirOpcion(actual.id, o.id)}
+                        className="h-5 w-5 shrink-0 accent-teal-600"
+                      />
+                      <span>{o.texto_opcion}</span>
+                    </label>
+                  );
+                })}
               </div>
             )}
-          </div>
-        ))}
 
-        <div className="bg-white rounded-card border border-border p-6 space-y-2">
-          {faltanPreguntas.length > 0 && (
-            <p className="text-sm text-ink/60">Faltan {faltanPreguntas.length} pregunta(s) por responder.</p>
-          )}
-          <TextoError>{errorFinalizar}</TextoError>
-          <Boton
-            onClick={finalizar}
-            disabled={finalizando || faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0}
-          >
-            {finalizando
-              ? "Finalizando..."
-              : guardandoPreguntaIds.size > 0
-                ? "Guardando respuestas..."
-                : "Finalizar evaluación"}
-          </Boton>
-        </div>
+            <div className="mt-7 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => irAPregunta(indiceActual - 1)}
+                disabled={indiceActual === 0}
+                className={BOTON_SECUNDARIO}
+              >
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+                Anterior
+              </button>
+              {esUltima ? (
+                <button type="button" onClick={irARevision} className={BOTON_PRIMARIO}>
+                  Revisar y finalizar
+                  <ListChecks className="h-4 w-4" aria-hidden />
+                </button>
+              ) : (
+                <button type="button" onClick={() => irAPregunta(indiceActual + 1)} className={BOTON_PRIMARIO}>
+                  Siguiente
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ===== Revisión final (hace de confirmación) ===== */}
+        {vista === "revision" && (
+          <section className="bg-white rounded-card border border-border p-6 sm:p-8 space-y-5">
+            <h2 ref={refTituloVista} tabIndex={-1} className="font-display text-lg text-teal-900 focus:outline-none">
+              Revisión final
+            </h2>
+            {faltanPreguntas.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-base text-ink/85">
+                  {faltanPreguntas.length === 1
+                    ? "Te falta responder 1 pregunta. Tócala para ir a ella:"
+                    : `Te faltan responder ${faltanPreguntas.length} preguntas. Toca una para ir a ella:`}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {faltanPreguntas.map((p) => {
+                    const i = indicePorId.get(p.id) ?? 0;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => irAPregunta(i)}
+                        className="min-h-11 rounded-xl border-2 border-dashed border-teal-600/60 bg-white px-4 text-sm font-semibold text-teal-800 transition-colors hover:bg-teal-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+                      >
+                        Pregunta {i + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <p className="text-base text-ink/85">
+                Respondiste las {total} preguntas. Cuando finalices ya no podrás cambiar tus respuestas.
+              </p>
+            )}
+            <TextoError>{errorFinalizar}</TextoError>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" onClick={() => irAPregunta(indiceActual)} className={BOTON_SECUNDARIO}>
+                <ArrowLeft className="h-4 w-4" aria-hidden />
+                Volver a las preguntas
+              </button>
+              <button
+                type="button"
+                onClick={finalizar}
+                disabled={finalizando || faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0}
+                className={BOTON_PRIMARIO}
+              >
+                {finalizando
+                  ? "Finalizando..."
+                  : guardandoPreguntaIds.size > 0
+                    ? "Guardando respuestas..."
+                    : "Finalizar evaluación"}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Mapa de preguntas: saltar a cualquiera (respondida = llena). */}
+        {vista !== "instrucciones" && total > 1 && (
+          <details className="bg-white rounded-card border border-border p-4 sm:p-5">
+            <summary className="cursor-pointer text-sm font-medium text-ink/75">Ver todas las preguntas</summary>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {preguntas.map((p, i) => {
+                const respondida = respuestas[p.id] !== undefined;
+                const esActual = vista === "pregunta" && i === indiceActual;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => irAPregunta(i)}
+                    aria-label={`Pregunta ${i + 1}${respondida ? ", respondida" : ", sin responder"}`}
+                    aria-current={esActual ? "step" : undefined}
+                    className={`h-10 w-10 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
+                      respondida ? "bg-teal-600 text-white hover:bg-teal-900" : "border border-border bg-white text-ink/70 hover:bg-mist"
+                    } ${esActual ? "ring-2 ring-teal-900 ring-offset-2" : ""}`}
+                  >
+                    {i + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </details>
+        )}
       </div>
     );
   }
 
-  // fase === "finalizado"
+  // fase === "finalizado" — agradecimiento siempre; resumen + PDF solo si
+  // la campaña lo permite (ver irAFinalizado). Apagado, el mensaje es el
+  // mismo haya o no alerta.
+  const puedeVer = !!estadoResultados?.alumno_puede_ver_informe;
   return (
-    <div className="bg-white rounded-card border border-border p-8 space-y-4">
-      <h1 className="font-display text-xl text-teal-900">Evaluación finalizada</h1>
-      <p className="text-sm text-ink/70">{estadoResultados?.mensaje ?? "Gracias por completar la evaluación."}</p>
+    <div className="space-y-4">
+      <div className="bg-white rounded-card border border-border p-8 sm:p-10 text-center space-y-3">
+        <CheckCircle2 className="mx-auto h-12 w-12 text-teal-600" aria-hidden />
+        <h1 className="font-display text-xl text-teal-900">Evaluación finalizada</h1>
+        <p className="text-base text-ink/80">Gracias por completar la evaluación. Tus respuestas quedaron registradas.</p>
+        <p className="text-sm text-ink/60">Si tienes alguna duda, acércate al equipo de orientación de tu institución.</p>
+      </div>
 
-      {diagnosticos && diagnosticos.length > 0 && (
-        <ul className="text-sm text-ink/80 list-disc list-inside">
-          {diagnosticos.map((d) => (
-            <li key={d.id}>Nivel: {d.nivel}</li>
-          ))}
-        </ul>
-      )}
-
-      {estadoResultados?.informe_liberado && (
-        <Boton onClick={descargarInforme} disabled={descargando}>
-          {descargando ? "Descargando..." : "Descargar mi informe (PDF)"}
-        </Boton>
+      {puedeVer && (
+        <section className="bg-white rounded-card border border-border p-6 sm:p-8 space-y-4">
+          <h2 className="font-display text-lg text-teal-900">Tus resultados</h2>
+          {estadoResultados && estadoResultados.resultados.length > 0 && (
+            <ul className="divide-y divide-border rounded-xl border border-border">
+              {estadoResultados.resultados.map((r, i) => (
+                <li key={`${r.dimension}-${i}`} className="flex items-baseline justify-between gap-4 px-4 py-3">
+                  <span className="text-sm text-ink/75">{r.dimension}</span>
+                  <span className="text-right text-sm font-semibold text-ink">{r.nivel}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <TextoError>{errorDescarga}</TextoError>
+          <button type="button" onClick={descargarInforme} disabled={descargando} className={`${BOTON_PRIMARIO} w-full sm:w-auto`}>
+            <Download className="h-4 w-4" aria-hidden />
+            {descargando ? "Descargando..." : "Descargar mi informe (PDF)"}
+          </button>
+        </section>
       )}
     </div>
   );

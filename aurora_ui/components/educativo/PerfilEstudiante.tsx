@@ -64,7 +64,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   const vacio = valor === null || valor === undefined || valor === "";
   return (
     <div className="min-w-0">
-      <dt className="text-[11.5px] text-ink/50 dark:text-ink-dark/50">{etiqueta}</dt>
+      <dt className="text-[12px] text-ink/50 dark:text-ink-dark/50">{etiqueta}</dt>
       <dd className={`m-0 mt-1 text-[14px] font-semibold break-words ${vacio ? "text-ink/30 dark:text-ink-dark/30" : "text-ink dark:text-ink-dark"}`}>
         {vacio ? "—" : valor}
       </dd>
@@ -148,7 +148,7 @@ export function TarjetaPerfil({
               )}
             </div>
             <span
-              className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${
+              className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                 alumno.activo
                   ? "bg-surface text-teal-800 ring-1 ring-teal-600/20 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark dark:ring-0"
                   : "bg-surface text-ink/55 ring-1 ring-border dark:bg-border-dark dark:text-ink-dark/55 dark:ring-0"
@@ -158,7 +158,7 @@ export function TarjetaPerfil({
               {alumno.activo ? "Activo" : "Inactivo"}
             </span>
             {estadoDx === "con-dx" && (
-              <span className="ml-1.5 mt-2 inline-flex items-center gap-1 rounded-full bg-amber/20 px-2.5 py-0.5 text-[11.5px] font-bold text-amber-800 dark:bg-amber/15 dark:text-amber">
+              <span className="ml-1.5 mt-2 inline-flex items-center gap-1 rounded-full bg-amber/20 px-2.5 py-0.5 text-[12px] font-bold text-amber-800 dark:bg-amber/15 dark:text-amber">
                 <Stethoscope size={12} aria-hidden="true" />
                 Con Dx
               </span>
@@ -269,7 +269,7 @@ function SituacionRiesgo({
                 </li>
               )}
             </ul>
-            <p className="m-0 mt-2 text-[11.5px] text-ink/55 dark:text-ink-dark/55">
+            <p className="m-0 mt-2 text-[12px] text-ink/55 dark:text-ink-dark/55">
               Se marca automáticamente a partir de los antecedentes clínicos externos — aparece en amarillo en el Padrón y en la
               Estructura académica. {enlace}
             </p>
@@ -419,9 +419,20 @@ export function IndicadoresEstudiante({
 
 // Título de grupo de apartados — da la jerarquía de la ficha (Evaluación y
 // seguimiento → Expediente → Datos del estudiante → Documentos).
-export function TituloGrupoFicha({ titulo, descripcion, acento }: { titulo: string; descripcion?: string; acento: Acento }) {
+export function TituloGrupoFicha({
+  titulo,
+  descripcion,
+  acento,
+  id,
+}: {
+  titulo: string;
+  descripcion?: string;
+  acento: Acento;
+  /** 🆕 Ancla para el índice fijo de la ficha (components/educativo/IndiceFicha.tsx). */
+  id?: string;
+}) {
   return (
-    <div className="flex items-center gap-3 pt-2">
+    <div id={id} className="flex scroll-mt-16 items-center gap-3 pt-2">
       <span aria-hidden="true" className={`h-6 w-1 rounded-full ${ACENTOS[acento].solido}`} />
       <div className="min-w-0">
         <h2 className="m-0 font-display text-[18px] font-bold text-teal-900 dark:text-ink-dark">{titulo}</h2>

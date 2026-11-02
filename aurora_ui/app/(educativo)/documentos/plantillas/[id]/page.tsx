@@ -1,5 +1,6 @@
 "use client";
 
+import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -60,6 +61,8 @@ const VIOLETA = ACENTOS.violeta;
 // <h1> con el nombre, "Título (opcional)", "+ Agregar sección", el
 // placeholder "(sin título propio)" en la MISMA fila que la etiqueta del tipo).
 export default function ConstructorPlantillaPage() {
+  // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
+  const confirmar = useConfirmar();
   const params = useParams();
   const plantillaId = params.id as string;
   const router = useRouter();
@@ -150,7 +153,15 @@ export default function ConstructorPlantillaPage() {
   // clonado por accidente) — soft-delete; 409 si tiene borradores en curso.
   async function eliminarPlantilla() {
     if (!plantilla) return;
-    if (!window.confirm(`¿Eliminar la plantilla "${plantilla.nombre}"? Los documentos ya emitidos con ella no cambian.`)) return;
+    if (
+      !(await confirmar({
+        titulo: `¿Eliminar la plantilla «${plantilla.nombre}»?`,
+        mensaje: "Los documentos ya emitidos con ella no cambian.",
+        textoConfirmar: "Eliminar plantilla",
+        peligro: true,
+      }))
+    )
+      return;
     setEliminando(true);
     setErrorActiva(null);
     try {
@@ -239,7 +250,15 @@ export default function ConstructorPlantillaPage() {
   }
 
   async function borrarSeccion(seccion: PlantillaSeccion) {
-    if (!confirm(`¿Borrar la sección "${seccion.titulo || ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}"?`)) return;
+    if (
+      !(await confirmar({
+        titulo: `¿Borrar la sección «${seccion.titulo || ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}»?`,
+        mensaje: "Se quita de la plantilla. Los documentos ya emitidos no cambian.",
+        textoConfirmar: "Borrar sección",
+        peligro: true,
+      }))
+    )
+      return;
     try {
       await apiClient.delete(`/documentos/secciones/${seccion.id}`);
       setSecciones(secciones.filter((s) => s.id !== seccion.id));
@@ -405,10 +424,10 @@ export default function ConstructorPlantillaPage() {
                     {/* La etiqueta del tipo y el campo del título comparten
                         esta fila a propósito (ver e2e/documentos.spec.ts). */}
                     <div className="flex items-center gap-2 px-3 pt-2.5 flex-wrap sm:flex-nowrap">
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${VIOLETA.chip}`}>
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${VIOLETA.chip}`}>
                         {idx + 1}
                       </span>
-                      <span className="shrink-0 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11px] font-semibold text-ink/60 dark:text-ink-dark/60">
+                      <span className="shrink-0 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">
                         {ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}
                       </span>
                       <Input
@@ -427,7 +446,7 @@ export default function ConstructorPlantillaPage() {
                         <BotonIcono etiqueta="Borrar sección" onClick={() => borrarSeccion(seccion)} icono={Trash2} peligro />
                       </div>
                     </div>
-                    <p className="m-0 px-3 pb-2.5 pt-1 pl-11 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                    <p className="m-0 px-3 pb-2.5 pt-1 pl-11 text-[12px] text-ink/45 dark:text-ink-dark/45">
                       {DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}
                     </p>
 
@@ -472,7 +491,7 @@ export default function ConstructorPlantillaPage() {
                 {agregando ? "Agregando..." : "+ Agregar sección"}
               </Boton>
             </div>
-            <p className="m-0 text-[11.5px] text-ink/50 dark:text-ink-dark/50">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
+            <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
             <TextoError>{errorAgregar}</TextoError>
           </div>
         </BloqueFicha>
@@ -564,7 +583,7 @@ export default function ConstructorPlantillaPage() {
           {/* Membrete / pie / fondo de página del colegio */}
           {puedeEditarBranding && (
             <TarjetaLateral icono={ImageIcon} titulo="Membrete, pie y fondo">
-              <p className="m-0 mb-3 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 mb-3 text-[12px] text-ink/50 dark:text-ink-dark/50">
                 Valen para todos los documentos de tu institución, no solo esta plantilla.
               </p>
               <TextoError>{errorBranding}</TextoError>
@@ -577,7 +596,7 @@ export default function ConstructorPlantillaPage() {
                     <li key={tipo} className="flex items-center justify-between gap-2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
                       <div className="min-w-0">
                         <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">{etiqueta}</p>
-                        <p className={`m-0 text-[11px] ${urlActual ? VIOLETA.texto : "text-ink/40 dark:text-ink-dark/40"}`}>
+                        <p className={`m-0 text-[12px] ${urlActual ? VIOLETA.texto : "text-ink/40 dark:text-ink-dark/40"}`}>
                           {subiendoBranding === tipo ? "Subiendo..." : urlActual ? "Imagen cargada" : "Sin imagen"}
                         </p>
                       </div>

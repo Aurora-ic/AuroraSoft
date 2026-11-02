@@ -28,7 +28,7 @@ function TextoConMarcadores({ texto }: { texto: string }) {
     <>
       {partes.map((p, i) =>
         /^\{\{/.test(p) ? (
-          <span key={i} className="rounded bg-teal-600/10 dark:bg-teal-accent-dark/15 px-1 font-mono text-[11px] text-teal-800 dark:text-teal-accent-dark">
+          <span key={i} className="rounded bg-teal-600/10 dark:bg-teal-accent-dark/15 px-1 font-mono text-[12px] text-teal-800 dark:text-teal-accent-dark">
             {p}
           </span>
         ) : (
@@ -97,7 +97,7 @@ export function ModeloConsentimiento({
 
   if (estado === "sin_modelo" || !modelo) {
     return (
-      <p className="m-0 flex items-center gap-1.5 text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+      <p className="m-0 flex items-center gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
         <FileText size={13} aria-hidden="true" />
         Tu colegio todavía no configuró el modelo de {tipo === "apoderado" ? "consentimiento" : "asentimiento"}.{" "}
         <Link href="/asentimiento" className="font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline">
@@ -144,7 +144,7 @@ export function ModeloConsentimiento({
               </p>
             ))}
           {expandido && (
-            <p className="m-0 pt-1 text-[11px] italic text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 pt-1 text-[12px] italic text-ink/45 dark:text-ink-dark/45">
               Al registrar, queda guardado que se usó esta versión del modelo.
             </p>
           )}

@@ -258,3 +258,156 @@ La pantalla leía `prueba`/`nivel`/`fecha`, claves que `GET /educativo/casos-pen
 - **Costo por página del padrón:** `seccion_actual` y `con_diagnostico` se resuelven solo para los alumnos de la página (`persona_ids` en `_secciones_vigentes_de_institucion`/`_ids_con_diagnostico`). Antes cada página de 200 recorría las matrículas de toda la institución.
 - **Casos pendientes de seguimiento:** se resuelven en **un** SELECT: `es_alerta` en el WHERE, con el índice parcial `ix_edu_diagnosticos_alumno_alerta`, y "sin sesión posterior" como `NOT EXISTS`, con el índice `ix_edu_sesiones_seguimiento_persona_fecha`. Antes traía todos los diagnósticos y hacía una consulta por alerta. La forma de la respuesta no cambia y sigue sin paginar a propósito: es el worklist clínico completo. La equivalencia con la versión anterior está probada en `tests/verificar_casos_pendientes_equivalencia.py` (escenarios armados en una transacción revertida). Esa prueba destapó que la versión anterior daba **500** si una inscripción en alerta tenía `fecha_resolucion` NULL; la nueva la trata como pendiente.
 - **Entorno de desarrollo en Windows:** `scripts/entorno-dev.ps1 estado|detener|iniciar` (`detener -Simular` muestra qué detendría sin detener nada). Además de uvicorn, Celery y `next dev`, corta los hijos `spawn_main` huérfanos descritos en "Problema conocido — backend dev en Windows". `iniciar` abre una ventana por proceso.
+
+## 🆕 Examen público rediseñado (sesión 2026-11-01)
+
+Primer punto del análisis crítico de UI/UX. Las tres decisiones de fondo las tomó el usuario: instrucciones textuales, una pregunta por pantalla, y al final ni niveles ni PDF. Archivo: `app/(examen)/examen/[token]/page.tsx`.
+
+- **Instrucciones de la prueba.** Antes no se mostraban nunca, aunque las 15 pruebas activas las tienen cargadas. `GET /educativo/examen/{token}/intake` suma, de forma aditiva, `instrucciones`: el `Prueba.instrucciones` textual, sin adaptar, aunque algunas sigan redactadas para papel ("Encierra con un círculo…"). Se muestran antes de la primera pregunta, también al reanudar. No se envía el nombre de la prueba, porque podría sesgar las respuestas.
+- **Una pregunta por pantalla**, con Anterior/Siguiente, barra de progreso fija y "Ver todas las preguntas", un mapa numerado para saltar a cualquiera (las respondidas aparecen llenas). Se puede avanzar sin responder.
+- **Opciones grandes**: cada opción es una tarjeta tocable de 52 px o más; la elegida va resaltada.
+- **Revisión final.** La última pregunta lleva a "Revisar y finalizar", donde se listan las preguntas sin responder como botones que llevan a cada una. Esta pantalla reemplaza al `window.confirm`.
+- **Pantalla final: agradecimiento, y el resultado solo si la campaña lo permite.** Ver la sección siguiente. Con el interruptor apagado, que es el valor por defecto, el mensaje es el mismo haya o no alerta, así que tampoco deja ver si el informe quedó retenido.
+- El autoguardado por respuesta (cola por pregunta, reintento, rollback) no cambió. Los botones nuevos no tienen variantes `dark:`, porque el examen es siempre claro.
+- **Verificado** en un navegador headless a 390 px contra el backend real, con una inscripción anónima desechable (`ZZEXAMUI`, borrada al terminar), sobre un PHQ-9 de 10 ítems:
+  - aparecen las instrucciones;
+  - Finalizar se bloquea mientras falta una pregunta, y se puede saltar a ella desde la revisión;
+  - al recargar con todo respondido, se va de las instrucciones directo a la revisión;
+  - no se abre ningún diálogo nativo;
+  - al final no hay "Nivel:" ni descarga, en un caso con informe liberado.
+
+  `e2e/examen-publico.spec.ts` está actualizado al flujo nuevo.
+
+### 🆕 "Los estudiantes ven su resultado": interruptor por campaña (sesión 2026-11-01)
+
+El usuario fijó tres decisiones: el interruptor va por campaña; encendido, muestra el resultado **también con alerta clínica y sin revisión previa**; y el alumno ve el PDF más un resumen en pantalla. El psicólogo recibe siempre todos los resultados.
+
+- **Backend.**
+  - Nueva columna `Evaluacion.alumno_ve_informe` (`Boolean NOT NULL DEFAULT false`, migración `b7e3f9a2c4d5`). Todas las campañas existentes quedaron apagadas.
+  - La regla vive en una sola función, `crud.alumno_puede_ver_resultados(evaluacion)`, que se lee en vivo en cada petición. La usan los tres endpoints públicos del alumno:
+    - `POST /examen/{token}/finalizar` devuelve los diagnósticos o `[]`;
+    - `GET /examen/{token}/estado-resultados` suma `alumno_puede_ver_informe` y `resultados` (solo `{dimension, nivel}`);
+    - `GET /examen/{token}/informe-pdf` responde 403 si el interruptor está apagado.
+  - Antes, los tres dependían de `informe_liberado`/`resultado_visible_alumno`. Esos dos campos no cambian y siguen valiendo para el staff y el rol `colegio`. Liberar un informe **ya no** abre el PDF al alumno.
+  - `PATCH /educativo/campanas/{id}` acepta `alumno_ve_informe` **en cualquier estado** de la campaña, también cerrada o cancelada, pero solo si es el único campo enviado. Combinado con otros campos se aplican las reglas de siempre (409 si la campaña está cerrada). Un `null` explícito no cambia nada. `POST /campanas/` lo acepta al crear, y el dashboard de campaña lo expone.
+- **Frontend.**
+  - "Nueva campaña" tiene una casilla con la advertencia de alerta, y el resumen lateral muestra la fila "Estudiantes".
+  - El dashboard de campaña tiene la tarjeta "Resultados para los estudiantes", con un interruptor (`role="switch"`) visible para staff clínico; el cambio aplica al instante, también a quien ya terminó.
+  - La pantalla final del examen muestra "Tus resultados" (dimensión y nivel) y "Descargar mi informe (PDF)" solo si `alumno_puede_ver_informe` es verdadero.
+- **Verificado.**
+  - `tests/verificar_visibilidad_alumno_e2e.py` (prefijo `ZZVISAL`, 25/25): apagado por defecto; apagado + sin alerta da `[]`/403 mientras el psicólogo sí descarga; encendido + con alerta da diagnósticos, resumen y PDF; encender y apagar tiene efecto inmediato; la campaña cerrada admite el cambio del interruptor pero no el del nombre; `colegio` y otro colegio reciben 403; `null` no rompe nada.
+  - En el navegador: el interruptor del dashboard y la pantalla final a 390 px, con PDF real descargado.
+  - Se ajustaron a la regla nueva los e2e que esperaban que el alumno descargara su PDF al no haber alerta o al liberarse: `verificar_fase0`, `fase3`, `informe_phq9`, `informe_pdf`, `flujo_completo` y `edicion_persona`. Encienden el interruptor donde corresponde. **No se pudieron correr**, porque necesitan el superadmin e2e (`seed_superadmin_e2e`).
+
+## 🆕 Casos en riesgo: urgencia, estado y responsable (sesión 2026-11-01)
+
+Punto 2 del análisis de UI/UX. Las cuatro decisiones de fondo las tomó el usuario:
+- **Urgencia:** 3 niveles automáticos.
+- **Estados:** Nuevo → En atención → Derivado → En seguimiento → Cerrado.
+- **Salida de la bandeja:** un caso sale **solo al cerrarlo**.
+- **Responsable:** se asigna automáticamente al creador de la campaña y se puede reasignar.
+
+- **Modelo** (`models.CasoRiesgo` + `CasoRiesgoEvento`, migración `f13ae092ec03`):
+  - Un caso de prueba corresponde a **una inscripción** con al menos un diagnóstico en alerta (`inscripcion_id` único); un caso de antecedentes corresponde a un estudiante con "Sí" en terapia psicológica o atención psiquiátrica externa.
+  - Un índice único parcial impide más de un caso abierto por antecedentes y estudiante.
+  - El historial guarda cada alta, cambio de estado y cambio de responsable. `usuario_id` NULL significa que lo hizo el sistema.
+  - Las FK a inscripción, persona y caso son `ON DELETE CASCADE`. La app no borra filas físicamente; solo lo hacen los `--limpiar` de los tests.
+- **La urgencia no se guarda: se calcula al leer**, así sigue siendo correcta tras un reproceso:
+  - **urgente:** algún diagnóstico en alerta disparado por una `ReglaInterpretacion` de ámbito `item`. Son las reglas de ítem crítico ya cargadas: PHQ-9 ítem 9, Hamilton 15-17, DASS-21 ítem 21, RCADS-47 ítem 37 y Vanderbilt conducta 3/4/5/7/8;
+  - **alerta:** el resto de las alertas de prueba (baremo);
+  - **seguimiento:** antecedentes.
+  - El orden es por urgencia y, dentro de cada nivel, el caso que lleva más tiempo sin seguimiento va primero.
+- **Altas automáticas** (`crud.sincronizar_casos_riesgo`, en cada `GET /casos-riesgo`):
+  - Es idempotente y segura ante dos llamadas simultáneas: `INSERT … ON CONFLICT DO NOTHING` contra las restricciones únicas, y `UPDATE … WHERE estado='nuevo' RETURNING` para no duplicar eventos.
+  - Una sesión de seguimiento posterior pasa un caso de `nuevo` a `en_atencion`, pero nunca lo cierra.
+  - Un caso de antecedentes cerrado no se reabre solo. Si después se editan los antecedentes y siguen en "Sí", nace un caso nuevo.
+- **Endpoints** (staff clínico; `colegio` recibe 403; siempre la institución propia salvo el superadmin):
+  - `GET /educativo/casos-riesgo?incluir_cerrados=` devuelve `{casos, profesionales, yo}`;
+  - `PATCH /educativo/casos-riesgo/{id}` cambia `estado` y/o `responsable_usuario_id` y acepta `nota`. Cerrar exige `motivo_cierre` (422 sin él). Un responsable que no sea psicólogo o admin activo del colegio da 422. Reabrir un caso de antecedentes cuando ya hay otro abierto da 409. La fila se bloquea con `with_for_update`;
+  - `GET /educativo/casos-riesgo/{id}/historial`.
+  - `GET /casos-pendientes` **se conserva intacto** por compatibilidad: su prueba de equivalencia sigue en 9/9.
+- **Frontend:**
+  - `/casos-riesgo` se reescribió con react-query, igual que `lib/padron.ts`:
+    - las tarjetas de conteo (Urgentes, En alerta, Seguimiento) funcionan como filtros;
+    - hay filtros de urgencia, estado (los cerrados solo se piden al elegir "Cerrado") y responsable ("Mis casos", "Sin responsable" o una persona);
+    - cada tarjeta tiene estado y responsable editables en el lugar y muestran lo elegido mientras se guarda; elegir "Cerrado" abre el motivo obligatorio;
+    - el historial se despliega dentro de la tarjeta, y los enlaces llevan a registrar seguimiento y a la ficha.
+  - Colores: urgente en **rojo** (triaje inconfundible), alerta en ámbar (la semántica de riesgo de siempre) y seguimiento en pizarra (`lib/casos-riesgo.ts`).
+  - La tarjeta "Casos en riesgo" del Inicio lee la bandeja nueva y muestra la urgencia de cada alumno.
+- **Verificado:**
+  - `tests/verificar_casos_riesgo_e2e.py` (prefijo `ZZCASOS`, 44/44, con PHQ-9 real): ítem 9 positivo da urgente, "Severo" con ítem 9 en cero da alerta, antecedentes dan seguimiento; idempotencia; una sesión pasa el caso a En atención; responsables inválidos dan 422; cerrar exige motivo y un caso cerrado no se recrea; el ciclo de antecedentes cerrar → editar → caso nuevo, con 409 al reabrir el viejo; candados; historial; `/casos-pendientes` sigue respondiendo.
+  - En el navegador (1366 px): bandeja, historial, cambio de estado optimista, motivo obligatorio, filtro desde la tarjeta de conteo e Inicio.
+  - Nota: en este entorno de desarrollo cada consulta a Postgres tarda ~84 ms (un `select 1`). Por eso la bandeja tarda ~1,3 s, lo mismo que `/instituciones/me` (~1 s). La bandeja hace ~10 consultas en total, nunca una por caso.
+
+## 🆕 Campañas por salón, aplicación individual y reaplicación (sesión 2026-11-01)
+
+El usuario pidió dos cosas: priorizar el salón al crear una campaña y que no se pueda volver a aplicar una prueba antes de tiempo. Sobre la aplicación individual dejó la decisión a criterio técnico.
+
+- **Aplicación individual** (`Evaluacion.tipo = 'grupal' | 'individual'`, migración `84b079db404b`):
+  - `POST /educativo/personas/{id}/aplicacion-individual` crea, por detrás, una campaña `individual` de **un solo inscrito** con la misma `matricular_roster_en_campana` de siempre. Por eso corrección, informe, casos en riesgo, consentimiento, reaplicación e interruptor de resultado funcionan sin cambios.
+  - Si el estudiante no puede rendir la prueba responde 409 con el motivo y **no** deja una campaña vacía.
+  - Desde el perfil: botón "Aplicar prueba" en "Pruebas aplicadas" (`components/educativo/ModalAplicarPrueba.tsx`). Antes de enviar muestra si el estudiante puede rendirla. Al crearla da el enlace para copiar y "Abrir el examen en este equipo", para aplicarla en sesión.
+  - En Campañas: pestañas Grupales/Individuales (`GET /campanas/?tipo=`).
+  - **Criterio técnico (decidido así):** las individuales **no** cuentan en las estadísticas por salón y grado (dashboard académico y su tendencia) ni como "campañas activas" en el Inicio. Se aplican a alumnos puntuales, casi siempre derivados por una preocupación, y sesgarían el promedio del grupo. Las pruebas finalizadas del mes sí las cuentan.
+- **Elegibilidad antes de matricular** (`GET /educativo/pruebas/{id}/elegibilidad?persona_id=`, `crud.elegibilidad_prueba`):
+  - Devuelve quiénes no pueden rendir la prueba y por qué: `sin_consentimiento`, `sin_asentimiento` (si el colegio lo exige), `pendiente`, `reciente` (con `disponible_desde`) y `limite_mensual`.
+  - Son pocas consultas agrupadas, nunca una por alumno. El servidor vuelve a validar todo al matricular.
+- **Reaplicación** (`crud.puede_aplicar_prueba`). Se cerraron dos huecos:
+  - (a) solo contaban las pruebas **terminadas**: un alumno con la misma prueba **pendiente** en otra campaña vigente podía matricularse otra vez y quedar con dos enlaces. Ahora se rechaza;
+  - (b) la verificación de "reciente" no excluía las inscripciones dadas de baja.
+  - El motivo dice desde qué fecha vuelve a estar disponible. Los días siguen siendo los de cada prueba (`Prueba.dias_minimos_entre_aplicaciones`, mismo `or 60`): **no se cambió ningún valor del catálogo**.
+- **Nueva campaña rediseñada** (`/campanas/nueva`):
+  - Todo se arma en una pantalla: 1) prueba; 2) **salones**, lo principal: cada salón marca a todos sus alumnos que pueden rendirla y muestra "N alumnos · M no pueden rendirla"; 3) ajuste alumno por alumno, opcional, donde quien no puede rendirla aparece bloqueado con el motivo y "Disponible desde…"; 4) nombre (sale solo de los salones + la prueba), cierre y resultado para el alumno.
+  - La campaña **se crea al final**, junto con la matrícula ("Crear campaña y generar links"). Antes se creaba en el paso 1 y, si alguien abandonaba, quedaba una campaña activa vacía. Si la matrícula falla después de crearla, el botón reintenta solo la matrícula.
+  - Se quitaron los selectores Nivel → Grado → Sección del paso 1, que solo servían para el nombre y confundían campaña con salón. La relación real campaña↔salón sigue siendo la foto de sección de cada inscripción (`Inscripcion.seccion_id`).
+- **Bug de la lista de campañas cerrado:** al cambiar de pestaña, una respuesta lenta de la pestaña anterior pisaba la lista nueva. Ahora se descarta.
+- **Verificado:**
+  - `tests/verificar_aplicacion_individual_e2e.py` (prefijo `ZZINDIV`, 29/29): crear, separar por tipo, pendiente → 409, reciente → 409 con fecha, sin consentimiento → 409 sin campaña vacía, elegibilidad, el bug de la matrícula grupal con la prueba pendiente en otra campaña, que el salón y el Inicio ignoran las individuales, y candados.
+  - En el navegador: asistente por salón con 3 bloqueados y 1 link, pestaña Individuales, y modal con bloqueo y con éxito.
+  - `e2e/campana-matricula.spec.ts` se reescribió al flujo nuevo. **No se pudo correr**: necesita el superadmin e2e.
+
+## 🆕 Sesión, menú por rol, ficha y detalles generales (sesión 2026-11-01, puntos 3–6 del análisis de UI/UX)
+
+### 3 · Sesión
+- **Captcha adaptativo** (`backend/core/captcha.py`, `test_captcha_adaptativo_unitario.py` 15/15):
+  - Ya no se pide en cada login; solo tras `LOGIN_CAPTCHA_TRAS_FALLOS` (3) contraseñas fallidas en 15 minutos, contando **por IP o por correo**. Así cubre tanto muchas cuentas desde una IP como una cuenta desde muchas IPs. Un login correcto reinicia ambos contadores.
+  - `GET /auth/captcha?email=` devuelve `habilitado` según esa regla, y la pantalla de login lo vuelve a consultar tras cada intento fallido.
+  - `LOGIN_CAPTCHA_OBLIGATORIO=false` lo sigue apagando; `LOGIN_CAPTCHA_SIEMPRE=true` vuelve al comportamiento anterior.
+  - Los contadores viven en la memoria del proceso, igual que el almacén de captchas y el rate limit (mismo aviso de despliegue con varios workers).
+- **Bloqueo por inactividad** (`components/auth/BloqueoInactividad.tsx`, `lib/inactividad.ts`, montado en los layouts de `(educativo)` y del superadmin):
+  - Tras **20 minutos** sin teclado, ratón, toque ni scroll en **ninguna** pestaña, la pantalla se bloquea y pide la contraseña. Un aviso aparece 60 s antes, con el botón "Seguir trabajando".
+  - **No se cierra la sesión**: la página sigue montada debajo (`inert`) y lo que se estaba escribiendo sigue ahí al desbloquear.
+  - Desbloquear es un login real que emite un token nuevo; pide captcha si el servidor lo exige (se consulta al abrir el bloqueo).
+  - El estado se comparte entre pestañas por `localStorage`. Si se cierra la pestaña y se vuelve después del límite, arranca bloqueada.
+  - `login()` y `cerrarSesion()` reinician o borran el estado. El límite está en `MINUTOS_INACTIVIDAD`.
+
+### 4 · Menú por rol
+- El rol `colegio` ya no ve "Casos en riesgo" ni "Consentimiento y asentimiento" (`soloStaff` en `Sidebar.tsx`), dos pantallas donde el backend le responde 403. Si entra por URL directa ve un mensaje claro en lugar de un error.
+- Sus accesos rápidos del Inicio son de consulta: Padrón, Campañas, Documentos y Estructura académica.
+- La barra lateral muestra el **nombre** y el cargo, o un rol legible, en lugar del correo y "psicologo". El Inicio saluda por el nombre. Ambos salen de `GET /auth/me` con una sola consulta cacheada (`lib/usuario.ts`).
+- "Casos en riesgo" lleva un contador **rojo** de casos urgentes. Usa la misma caché que la bandeja, así que se actualiza al trabajarla.
+
+### 5 · Ficha y cambios sin guardar
+- **Índice fijo** en la ficha del alumno (`components/educativo/IndiceFicha.tsx`): Datos del estudiante · Evaluación y seguimiento · Registro clínico · Matrícula y documentos.
+  - Se eligió un índice y no pestañas a propósito: las pestañas desmontan los bloques ocultos, y varios tienen formularios en edición que se perderían.
+  - Marca el grupo actual: el último cuyo título ya pasó el 30 % superior de la ventana, así que también acierta tras un salto directo.
+- **Aviso al salir sin guardar** (`lib/useAvisoSinGuardar.ts`) en el editor de documentos (secciones sin guardar), en "Registrar sesión" y en "Nueva cita".
+  - Al cerrar o recargar la pestaña aparece el aviso nativo del navegador.
+  - En cualquier enlace interno, el clic se intercepta en fase de captura, antes que el `<Link>` de Next, y se pregunta con el diálogo propio.
+  - No cubre el botón "Atrás" del navegador.
+
+### 6 · Detalles generales
+- **Diálogo de confirmación propio** (`components/ui/DialogoConfirmacion.tsx`, `useConfirmar()`, proveedor en `app/layout.tsx`). Reemplaza los **11** `window.confirm` que había: cancelar cita (agenda y ficha), eliminar plantilla, descartar borrador, borrar sección, desactivar o reactivar estudiante, desactivar contacto, revocar autorización y revocar consentimiento.
+  - Cada diálogo explica la consecuencia y su botón nombra la acción.
+  - En las acciones destructivas el foco arranca en "Volver", así un Enter apresurado no borra nada. Escape o clic fuera también vuelven.
+  - `e2e/agenda-citas-seguimiento.spec.ts` se adaptó al diálogo nuevo.
+- **Letra mínima:** 180 usos de 9–11,5 px subieron (9 → 11; 10 y 10,5 → 11,5; 11 y 11,5 → 12 px, el `text-xs` de Tailwind). Se exceptuó el cuadrante de siglas de las pruebas, que vive en una caja fija de 44 px.
+- **Verificado en el navegador:**
+  - captcha ausente sin fallos y presente tras 3;
+  - pantalla bloqueada al volver tras 21 minutos, contenido `inert`, clave mal → error, clave bien → desbloqueo en la misma pantalla;
+  - aviso a 30 s y "Seguir trabajando";
+  - menú y accesos de `colegio`;
+  - índice tras salto y tras clic;
+  - diálogo con foco en "Volver" que se cierra con Escape;
+  - aviso de salir sin guardar al hacer clic en el menú, con "Seguir editando" conservando el texto;
+  - Agenda e Inicio sin desbordes con la letra nueva.

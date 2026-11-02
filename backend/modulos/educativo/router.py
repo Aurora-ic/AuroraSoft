@@ -389,10 +389,14 @@ def finalizar_examen_seguro(
                 reglas_con_error,
             )
 
-    # Se conserva la forma de respuesta histórica (lista) para no romper al
-    # frontend, pero nunca se devuelven diagnósticos si el profesional debe
-    # revisarlos primero.
-    return diagnosticos if inscripcion.resultado_visible_alumno else []
+    # Se conserva la forma de respuesta histórica (lista). 🆕 (sesión
+    # 2026-11-01) Los diagnósticos solo se devuelven si la campaña deja que
+    # el alumno vea su resultado (crud.alumno_puede_ver_resultados) — antes
+    # dependía de resultado_visible_alumno.
+    evaluacion_de_inscripcion = db.query(models.Evaluacion).filter(
+        models.Evaluacion.id == inscripcion.evaluacion_id
+    ).first()
+    return diagnosticos if crud.alumno_puede_ver_resultados(evaluacion_de_inscripcion) else []
 
 
 @router.get(
@@ -404,7 +408,9 @@ def finalizar_examen_seguro(
 def obtener_estado_resultados_alumno(request: Request, token: str, db: Session = Depends(get_db)):
     """Estado seguro para que el portal del alumno informe la revisión clínica.
 
-    Esta ruta no expone puntajes, diagnósticos ni interpretación clínica.
+    Esta ruta no expone puntajes ni interpretación clínica. 🆕 Solo si la
+    campaña tiene `alumno_ve_informe` encendido incluye `resultados`
+    (dimensión y nivel, nada más) para el resumen en pantalla del alumno.
     """
     inscripcion = db.query(models.Inscripcion).filter(models.Inscripcion.token == token).first()
     if not inscripcion:
@@ -417,14 +423,16 @@ def obtener_estado_resultados_alumno(request: Request, token: str, db: Session =
             detail="Este enlace de evaluación ya no está disponible. Contacta a tu colegio.",
         )
 
+    # 🆕 (sesión 2026-11-01) Lo que ve el alumno depende SOLO del
+    # interruptor de la campaña (crud.alumno_puede_ver_resultados), haya o
+    # no alerta. Apagado, el mensaje es el mismo para todos: el alumno no
+    # puede deducir por el texto si fue marcado como caso de riesgo.
+    evaluacion = db.query(models.Evaluacion).filter(models.Evaluacion.id == inscripcion.evaluacion_id).first()
+    puede_ver = inscripcion.estado == "Finalizado" and crud.alumno_puede_ver_resultados(evaluacion)
     if inscripcion.estado != "Finalizado":
         mensaje = "Tu evaluación aún no ha sido finalizada."
-    elif not inscripcion.resultado_visible_alumno:
-        # Mismo mensaje tanto si hay alerta como si faltó baremo: el alumno no
-        # debe poder deducir por el texto que fue marcado como caso de riesgo.
-        mensaje = "Tus resultados están siendo revisados por el equipo de orientación de tu institución."
-    elif not inscripcion.informe_liberado:
-        mensaje = "Tus resultados están disponibles; el informe completo sigue en revisión profesional."
+    elif not puede_ver:
+        mensaje = "Tus resultados serán revisados por el equipo de orientación de tu institución."
     else:
         mensaje = "Tus resultados y tu informe están disponibles."
 
@@ -434,6 +442,8 @@ def obtener_estado_resultados_alumno(request: Request, token: str, db: Session =
         "informe_liberado": inscripcion.informe_liberado,
         "estado_interpretacion": inscripcion.estado_interpretacion,
         "mensaje": mensaje,
+        "alumno_puede_ver_informe": puede_ver,
+        "resultados": crud.resultados_visibles_alumno(db, inscripcion.id) if puede_ver else [],
     }
 
 # ==========================================
@@ -458,7 +468,12 @@ def descargar_informe_pdf_alumno(request: Request, token: str, db: Session = Dep
     if inscripcion.estado != "Finalizado":
         raise HTTPException(status_code=400, detail="El examen todavía no ha sido finalizado.")
 
-    if not inscripcion.informe_liberado:
+    # 🆕 (sesión 2026-11-01) La descarga del alumno depende SOLO del
+    # interruptor de la campaña — antes, de informe_liberado.
+    evaluacion_alumno = db.query(models.Evaluacion).filter(
+        models.Evaluacion.id == inscripcion.evaluacion_id
+    ).first()
+    if not crud.alumno_puede_ver_resultados(evaluacion_alumno):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tu psicólogo del colegio revisará tus resultados contigo antes de entregarte el informe.",
@@ -1126,13 +1141,27 @@ def crear_campana_de_test(
             detail="No puedes crear campañas para un colegio que no es el tuyo."
         )
 
+    _prueba_aplicable(db, evaluacion.prueba_id, evaluacion.institucion_id, usuario_actual)
+    if not db.query(instituciones_models.Institucion.id).filter(
+        instituciones_models.Institucion.id == evaluacion.institucion_id
+    ).first():
+        raise HTTPException(status_code=404, detail="Institución no encontrada.")
+
+    return crud.crear_campana_evaluacion(db=db, evaluacion=evaluacion, creador_id=usuario_actual.id)
+
+
+def _prueba_aplicable(db: Session, prueba_id: int, institucion_id: int, usuario_actual) -> "models.Prueba":
+    """La prueba puede aplicarse en ese colegio: existe, está activa y es
+    pública (y visible para clientes) o propia. Compartida por crear campaña,
+    la aplicación individual y la elegibilidad (sesión 2026-11-01: extraída
+    tal cual de crear_campana_de_test, mismo orden y mismos códigos)."""
     # 🔒 Fase 3 (aislamiento) — Antes solo se validaba la institución, NO la
     # prueba: un psicólogo podía lanzar una campaña con la prueba PRIVADA de
     # otro colegio y, a través del examen, leer sus preguntas. La prueba debe
     # existir, estar activa y ser pública o de la institución de la campaña.
-    prueba = db.query(models.Prueba).filter(models.Prueba.id == evaluacion.prueba_id).first()
+    prueba = db.query(models.Prueba).filter(models.Prueba.id == prueba_id).first()
     if not prueba or (
-        prueba.institucion_id is not None and prueba.institucion_id != evaluacion.institucion_id
+        prueba.institucion_id is not None and prueba.institucion_id != institucion_id
     ):
         # Mismo 404 exista o no: no se confirma la existencia de pruebas ajenas.
         raise HTTPException(status_code=404, detail="Prueba no encontrada.")
@@ -1144,12 +1173,7 @@ def crear_campana_de_test(
     # el mismo motivo (no confirmar su existencia a quien no debería verla).
     if usuario_actual.rol != "superadmin" and not prueba.visible_para_clientes:
         raise HTTPException(status_code=404, detail="Prueba no encontrada.")
-    if not db.query(instituciones_models.Institucion.id).filter(
-        instituciones_models.Institucion.id == evaluacion.institucion_id
-    ).first():
-        raise HTTPException(status_code=404, detail="Institución no encontrada.")
-
-    return crud.crear_campana_evaluacion(db=db, evaluacion=evaluacion, creador_id=usuario_actual.id)
+    return prueba
 
 
 def _obtener_campana_de_mi_institucion(db: Session, evaluacion_id: int, usuario_actual: auth_models.Usuario) -> models.Evaluacion:
@@ -1923,6 +1947,71 @@ def ver_casos_pendientes(
     return crud.obtener_casos_pendientes_de_seguimiento(db=db, institucion_id=institucion_id)
 
 
+# ==========================================
+# 🆕 CASOS EN RIESGO: urgencia, estado y responsable (sesión 2026-11-01)
+# ==========================================
+# La bandeja nueva (ver models.CasoRiesgo). GET /casos-pendientes de arriba
+# se conserva tal cual por compatibilidad. Mismo candado: staff clínico
+# (`colegio` fuera) y siempre la institución propia salvo el superadmin.
+def _institucion_de_bandeja(usuario_actual, institucion_id: Optional[int]) -> int:
+    if usuario_actual.rol == "superadmin":
+        if institucion_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Como superadmin, debes especificar ?institucion_id=",
+            )
+        return institucion_id
+    return usuario_actual.institucion_id
+
+
+def _caso_de_mi_institucion(db: Session, caso_id: int, usuario_actual) -> "models.CasoRiesgo":
+    caso = db.query(models.CasoRiesgo).filter(models.CasoRiesgo.id == caso_id).first()
+    if not caso or (usuario_actual.rol != "superadmin" and caso.institucion_id != usuario_actual.institucion_id):
+        raise HTTPException(status_code=404, detail="Caso no encontrado.")
+    return caso
+
+
+@router.get("/casos-riesgo")
+def ver_casos_riesgo(
+    institucion_id: Optional[int] = None,
+    incluir_cerrados: bool = False,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """Bandeja de casos en riesgo: `casos` (urgentes primero),
+    `profesionales` (posibles responsables) y `yo` (id del usuario actual). Crea al vuelo los casos que
+    falten — ver crud.sincronizar_casos_riesgo."""
+    bandeja = crud.listar_casos_riesgo(
+        db=db, institucion_id=_institucion_de_bandeja(usuario_actual, institucion_id), incluir_cerrados=incluir_cerrados,
+    )
+    # Para el filtro "Mis casos" (la sesión del frontend solo trae el correo).
+    bandeja["yo"] = usuario_actual.id
+    return bandeja
+
+
+@router.patch("/casos-riesgo/{caso_id}")
+def actualizar_caso_riesgo(
+    caso_id: int,
+    datos: schemas.ActualizarCasoRiesgoRequest,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """Cambia el estado (cerrar exige motivo) y/o el responsable de un caso."""
+    caso = _caso_de_mi_institucion(db, caso_id, usuario_actual)
+    return crud.actualizar_caso_riesgo(db=db, caso_id=caso.id, datos=datos, usuario_id=usuario_actual.id)
+
+
+@router.get("/casos-riesgo/{caso_id}/historial")
+def ver_historial_caso_riesgo(
+    caso_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """Quién cambió qué y cuándo en un caso (el sistema aparece sin usuario)."""
+    caso = _caso_de_mi_institucion(db, caso_id, usuario_actual)
+    return crud.historial_caso_riesgo(db=db, caso_id=caso.id)
+
+
 @router.get("/inicio/resumen")
 def ver_resumen_inicio(
     institucion_id: Optional[int] = None,
@@ -2235,11 +2324,13 @@ def listar_campanas(
     institucion_id: Optional[int] = None,
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
+    tipo: Optional[str] = Query(None, pattern="^(grupal|individual)$"),
     db: Session = Depends(get_db),
     usuario_actual: auth_models.Usuario = Depends(obtener_usuario_actual)
 ):
     """🆕 Paginación real (docs/gaps-pendientes.md) — antes devolvía toda
-    campaña creada, sin tope, para siempre."""
+    campaña creada, sin tope, para siempre. 🆕 `tipo` filtra grupales o
+    individuales (sin él, todas)."""
     if usuario_actual.rol == "superadmin":
         if institucion_id is None:
             raise HTTPException(status_code=400, detail="Como superadmin, especifica ?institucion_id=")
@@ -2248,7 +2339,7 @@ def listar_campanas(
         institucion_id = usuario_actual.institucion_id
 
     total, items = crud.listar_campanas_de_institucion(
-        db=db, institucion_id=institucion_id, skip=skip, limit=limit,
+        db=db, institucion_id=institucion_id, skip=skip, limit=limit, tipo=tipo,
     )
     return {"total": total, "items": items}
 
@@ -2429,3 +2520,52 @@ def borrar_baremo(
     if resultado == "desactivado":
         return {"mensaje": "Este baremo ya tenía diagnósticos asociados: se desactivó en vez de borrarse."}
     return {"mensaje": "Baremo eliminado."}
+
+
+# ==========================================
+# 🆕 ELEGIBILIDAD Y APLICACIÓN INDIVIDUAL (sesión 2026-11-01)
+# ==========================================
+@router.get("/pruebas/{prueba_id}/elegibilidad")
+def ver_elegibilidad_prueba(
+    prueba_id: int,
+    institucion_id: Optional[int] = None,
+    persona_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """Quiénes del padrón (o un solo estudiante con `persona_id`) NO pueden
+    rendir esta prueba ahora y por qué — ver crud.elegibilidad_prueba. La
+    matrícula vuelve a validarlo todo; esto es para mostrarlo antes."""
+    if usuario_actual.rol == "superadmin":
+        if institucion_id is None:
+            raise HTTPException(status_code=400, detail="Como superadmin, especifica ?institucion_id=")
+    else:
+        institucion_id = usuario_actual.institucion_id
+    _prueba_aplicable(db, prueba_id, institucion_id, usuario_actual)
+    return crud.elegibilidad_prueba(
+        db=db, prueba_id=prueba_id, institucion_id=institucion_id,
+        persona_ids=[persona_id] if persona_id is not None else None,
+    )
+
+
+@router.post("/personas/{persona_id}/aplicacion-individual", response_model=schemas.AplicacionIndividualResponse)
+def crear_aplicacion_individual(
+    persona_id: int,
+    datos: schemas.AplicacionIndividualCreate,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """Aplica UNA prueba a UN estudiante desde su perfil (una campaña
+    `individual` de un solo inscrito, creada por detrás). 409 con el motivo
+    si no puede rendirla (consentimiento, reaplicación, pendiente...)."""
+    persona = db.query(superadmin_models.Persona).filter(superadmin_models.Persona.id == persona_id).first()
+    if not persona or (usuario_actual.rol != "superadmin" and persona.institucion_id != usuario_actual.institucion_id):
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado.")
+    if persona.activo is False:
+        raise HTTPException(status_code=409, detail="El estudiante está inactivo.")
+    prueba = _prueba_aplicable(db, datos.prueba_id, persona.institucion_id, usuario_actual)
+    resultado = crud.crear_aplicacion_individual(
+        db=db, persona=persona, prueba=prueba, fecha_fin=datos.fecha_fin,
+        alumno_ve_informe=datos.alumno_ve_informe, creador_id=usuario_actual.id,
+    )
+    return {"evaluacion": resultado["evaluacion"], "token": resultado["token"]}

@@ -37,14 +37,24 @@ def registrar_usuario(
     return crud.crear_usuario(db=db, usuario=usuario)
 
 
+def _ip_de(request: Request) -> Optional[str]:
+    # Misma fuente que la clave del rate limit (core/limiter.py).
+    return request.client.host if request.client else None
+
+
 @router.get("/captcha", response_model=schemas.CaptchaResponse)
 @limiter.limit("30/minute")
-def obtener_captcha(request: Request):
+def obtener_captcha(request: Request, email: Optional[str] = None):
     """🆕 Desafío de imagen para el login (ver core/captcha.py). Público a
     propósito: se pide ANTES de tener sesión. Con
     LOGIN_CAPTCHA_OBLIGATORIO=false responde `habilitado=false` y la pantalla
-    de login oculta el campo."""
-    if not captcha.CAPTCHA_OBLIGATORIO:
+    de login oculta el campo.
+
+    🆕 Adaptativo: `habilitado` solo es true si esta IP (o el `email`, si se
+    manda) acumula contraseñas fallidas recientes — ver
+    captcha.captcha_requerido. La pantalla lo vuelve a consultar tras cada
+    intento fallido."""
+    if not captcha.captcha_requerido(_ip_de(request), email):
         return {"habilitado": False, "captcha_id": None, "imagen": None}
     return {"habilitado": True, **captcha.generar_captcha()}
 
@@ -67,7 +77,8 @@ def iniciar_sesion(
     un script podría seguir probando claves y solo "fallar el captcha" sin
     que eso le costara nada. Cada captcha es de un solo uso.
     """
-    if captcha.CAPTCHA_OBLIGATORIO:
+    ip = _ip_de(request)
+    if captcha.captcha_requerido(ip, form_data.username):
         try:
             captcha.verificar_captcha(captcha_id, captcha_respuesta)
         except captcha.CaptchaInvalido as exc:
@@ -76,6 +87,7 @@ def iniciar_sesion(
     usuario = crud.obtener_usuario_por_email(db, email=form_data.username)
 
     if not usuario or not verify_password(form_data.password, usuario.hashed_password):
+        captcha.registrar_fallo(ip, form_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos",
@@ -97,6 +109,7 @@ def iniciar_sesion(
     "tv": usuario.token_version or 0,
     }
     access_token = create_access_token(data=token_data)
+    captcha.limpiar_fallos(ip, form_data.username)
 
     return {"access_token": access_token, "token_type": "bearer"}
 

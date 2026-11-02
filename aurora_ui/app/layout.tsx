@@ -3,6 +3,7 @@ import "./globals.css"; // Solo un punto, porque este layout está al mismo nive
 import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ProveedorConfirmacion } from "@/components/ui/DialogoConfirmacion";
 
 export const metadata: Metadata = {
   title: "AuroraSoft",
@@ -23,7 +24,10 @@ export default function RootLayout({
             auth. */}
         <ThemeProvider>
           <QueryProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+              {/* 🆕 Diálogo de confirmación propio (reemplaza window.confirm). */}
+              <ProveedorConfirmacion>{children}</ProveedorConfirmacion>
+            </AuthProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

@@ -23,6 +23,16 @@
 # LOGIN_CAPTCHA_OBLIGATORIO=false lo apaga (p. ej. el uvicorn de :8010 que
 # usan los verificar_*_e2e y la suite de Playwright, que inician sesión por
 # script). Por defecto está ENCENDIDO.
+#
+# 🆕 (sesión 2026-11-01, punto 3 del análisis de UI/UX) Captcha ADAPTATIVO:
+# encendido ya no significa "en cada login" — solo se exige tras
+# LOGIN_CAPTCHA_TRAS_FALLOS (3) contraseñas fallidas en 15 minutos, contando
+# por IP **o** por correo (cubre tanto muchas cuentas desde una IP como una
+# cuenta desde muchas IPs). Un login correcto reinicia ambos contadores. El
+# profesional que entra todos los días no ve el captcha; un script que prueba
+# claves sí. LOGIN_CAPTCHA_SIEMPRE=true vuelve al comportamiento anterior
+# (captcha en cada login). Mismo aviso de despliegue: los contadores viven en
+# la memoria del proceso, como el almacén de captchas y el rate limit.
 import base64
 import hashlib
 import hmac
@@ -40,6 +50,10 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from core.security import SECRET_KEY
 
 CAPTCHA_OBLIGATORIO = os.getenv("LOGIN_CAPTCHA_OBLIGATORIO", "true").strip().lower() not in ("false", "0", "no")
+CAPTCHA_SIEMPRE = os.getenv("LOGIN_CAPTCHA_SIEMPRE", "false").strip().lower() in ("true", "1", "si", "sí")
+FALLOS_PARA_CAPTCHA = max(1, int(os.getenv("LOGIN_CAPTCHA_TRAS_FALLOS", "3")))
+VENTANA_FALLOS_SEGUNDOS = 15 * 60
+MAX_CLAVES_FALLOS = 20_000
 CAPTCHA_TTL_SEGUNDOS = 300
 CAPTCHA_MAX_PENDIENTES = 10_000
 LONGITUD_CODIGO = 5
@@ -181,3 +195,58 @@ def verificar_captcha(captcha_id: str | None, respuesta: str | None) -> None:
         raise CaptchaInvalido("El código de verificación venció. Usa el nuevo código que aparece en la imagen.")
     if not hmac.compare_digest(huella, _huella(respuesta.strip())):
         raise CaptchaInvalido("El código de verificación no coincide. Inténtalo con el nuevo código.")
+
+
+# ==========================================
+# 🆕 Contadores de contraseñas fallidas (captcha adaptativo)
+# ==========================================
+_fallos: "OrderedDict[str, list[float]]" = OrderedDict()
+_candado_fallos = threading.Lock()
+
+
+def _claves(ip: str | None, email: str | None) -> list[str]:
+    claves = []
+    if ip:
+        claves.append(f"ip:{ip}")
+    if email and email.strip():
+        claves.append(f"email:{email.strip().lower()}")
+    return claves
+
+
+def _recientes(clave: str, ahora: float) -> list[float]:
+    marcas = [t for t in _fallos.get(clave, []) if t > ahora - VENTANA_FALLOS_SEGUNDOS]
+    if marcas:
+        _fallos[clave] = marcas
+    else:
+        _fallos.pop(clave, None)
+    return marcas
+
+
+def registrar_fallo(ip: str | None, email: str | None) -> None:
+    """Una contraseña incorrecta (o un correo inexistente) desde esa IP/correo."""
+    ahora = time.monotonic()
+    with _candado_fallos:
+        for clave in _claves(ip, email):
+            marcas = _recientes(clave, ahora)
+            marcas.append(ahora)
+            _fallos[clave] = marcas[-50:]
+            _fallos.move_to_end(clave)
+        while len(_fallos) > MAX_CLAVES_FALLOS:
+            _fallos.popitem(last=False)
+
+
+def limpiar_fallos(ip: str | None, email: str | None) -> None:
+    """Login correcto: esa IP y ese correo vuelven a entrar sin captcha."""
+    with _candado_fallos:
+        for clave in _claves(ip, email):
+            _fallos.pop(clave, None)
+
+
+def captcha_requerido(ip: str | None, email: str | None = None) -> bool:
+    if not CAPTCHA_OBLIGATORIO:
+        return False
+    if CAPTCHA_SIEMPRE:
+        return True
+    ahora = time.monotonic()
+    with _candado_fallos:
+        return any(len(_recientes(clave, ahora)) >= FALLOS_PARA_CAPTCHA for clave in _claves(ip, email))

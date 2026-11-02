@@ -83,7 +83,7 @@ function Bloque({
           <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
             {titulo}
             {opcional && (
-              <span className="rounded-full bg-border/70 dark:bg-border-dark px-2 py-px text-[10px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
+              <span className="rounded-full bg-border/70 dark:bg-border-dark px-2 py-px text-[11.5px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
                 Opcional
               </span>
             )}
@@ -284,7 +284,7 @@ export default function RegistrarAlumnoPage() {
                 autoComplete="off"
               />
             </CampoEditable>
-            <p className="m-0 sm:col-span-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 sm:col-span-2 text-[12px] text-ink/45 dark:text-ink-dark/45">
               <span className="text-red-600 dark:text-red-300">*</span> Nombres, apellidos y documento son obligatorios. El documento y el
               código no pueden repetirse dentro del colegio.
             </p>
@@ -363,7 +363,7 @@ export default function RegistrarAlumnoPage() {
           <div className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r from-teal-900 via-teal-600 to-teal-400 dark:from-teal-accent-dark/60 dark:to-teal-accent-dark/20" />
             <div className="p-4">
-              <p className="m-0 text-[10.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Vista previa en el padrón</p>
+              <p className="m-0 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Vista previa en el padrón</p>
               <div className="mt-3 flex items-center gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-900 to-teal-600 font-display text-[16px] font-bold text-white dark:from-teal-accent-dark/40 dark:to-teal-accent-dark/10 dark:text-teal-accent-dark">
                   {iniciales || <UserRound size={20} aria-hidden="true" />}
@@ -372,7 +372,7 @@ export default function RegistrarAlumnoPage() {
                   <p className={`m-0 font-display text-[16px] font-bold leading-tight break-words ${form.nombres || form.apellidos ? "text-teal-900 dark:text-ink-dark" : "text-ink/30 dark:text-ink-dark/30"}`}>
                     {form.nombres || form.apellidos ? `${form.nombres} ${form.apellidos}`.trim() : "Nombre del alumno"}
                   </p>
-                  <p className="m-0 mt-0.5 font-mono text-[11.5px] text-ink/50 dark:text-ink-dark/50">{form.documento_identidad || "Sin documento"}</p>
+                  <p className="m-0 mt-0.5 font-mono text-[12px] text-ink/50 dark:text-ink-dark/50">{form.documento_identidad || "Sin documento"}</p>
                 </div>
               </div>
               <p className={`m-0 mt-3 rounded-lg px-2.5 py-1.5 text-[12px] ${ubicacion ? "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark" : "bg-mist dark:bg-surface-raised-dark text-ink/50 dark:text-ink-dark/50"}`}>
@@ -387,7 +387,7 @@ export default function RegistrarAlumnoPage() {
                 <ItemCompleto hecho={completitud.matricula} texto="Matrícula en una sección" />
               </ul>
               {completitud.identidad && (!completitud.fecha || !completitud.genero) && (
-                <p className="m-0 mt-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Aparecerá en el filtro “Datos incompletos” del padrón.</p>
+                <p className="m-0 mt-2 text-[12px] text-ink/45 dark:text-ink-dark/45">Aparecerá en el filtro “Datos incompletos” del padrón.</p>
               )}
             </div>
           </div>

@@ -511,6 +511,46 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
+    "GET /api/educativo/casos-riesgo": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "PATCH /api/educativo/casos-riesgo/{caso_id}": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/casos-riesgo/{caso_id}/historial": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "GET /api/educativo/pruebas/{prueba_id}/elegibilidad": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
+    "POST /api/educativo/personas/{persona_id}/aplicacion-individual": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
     "GET /api/educativo/inicio/resumen": {
       "admin": true,
       "colegio": false,

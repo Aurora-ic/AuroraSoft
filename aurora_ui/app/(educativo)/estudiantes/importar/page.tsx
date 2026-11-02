@@ -409,7 +409,7 @@ export default function ImportarEstudiantesPage() {
                 <>
                   <FileSpreadsheet size={28} aria-hidden="true" className="text-teal-600 dark:text-teal-accent-dark" />
                   <span className="max-w-full truncate text-sm font-semibold text-teal-900 dark:text-ink-dark">{archivo.name}</span>
-                  <span className="text-[11.5px] text-ink/50 dark:text-ink-dark/50">
+                  <span className="text-[12px] text-ink/50 dark:text-ink-dark/50">
                     {tamanoLegible(archivo.size)} · {archivoValidado === archivo ? "validado" : "listo para validar"} · haz clic para cambiarlo
                   </span>
                 </>
@@ -417,7 +417,7 @@ export default function ImportarEstudiantesPage() {
                 <>
                   <UploadCloud size={28} aria-hidden="true" className="text-ink/35 dark:text-ink-dark/35" />
                   <span className="text-sm font-semibold text-ink/75 dark:text-ink-dark/75">Arrastra tu Excel aquí o haz clic para elegirlo</span>
-                  <span className="text-[11.5px] text-ink/45 dark:text-ink-dark/45">Solo archivos .xlsx · hasta 2000 filas</span>
+                  <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">Solo archivos .xlsx · hasta 2000 filas</span>
                 </>
               )}
             </label>

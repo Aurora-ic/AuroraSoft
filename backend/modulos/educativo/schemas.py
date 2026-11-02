@@ -480,6 +480,9 @@ class EvaluacionCreate(BaseModel):
     nombre_grupo: str
     institucion_id: int
     fecha_fin: Optional[datetime] = None
+    # 🆕 Si los estudiantes ven su resultado y su PDF al terminar (ver
+    # models.Evaluacion.alumno_ve_informe). Apagado por defecto.
+    alumno_ve_informe: bool = False
 
     @field_validator("fecha_fin")
     @classmethod
@@ -504,6 +507,9 @@ class EvaluacionResponse(BaseModel):
     estado: str
     fecha_fin: Optional[datetime] = None
     fecha_creacion: datetime
+    alumno_ve_informe: bool = False
+    # 🆕 'grupal' | 'individual' (ver models.Evaluacion.tipo).
+    tipo: str = "grupal"
 
     class Config:
         from_attributes = True
@@ -523,6 +529,10 @@ class EvaluacionUpdate(BaseModel):
     nombre_grupo: Optional[str] = None
     fecha_fin: Optional[datetime] = None
     prueba_id: Optional[int] = None
+    # 🆕 Editable SIEMPRE, también con la campaña cerrada o cancelada (los
+    # enlaces ya emitidos siguen pudiendo consultar su resultado) — ver
+    # crud.actualizar_campana.
+    alumno_ve_informe: Optional[bool] = None
 
     @field_validator("fecha_fin")
     @classmethod
@@ -574,6 +584,9 @@ class IntakeExamenResponse(BaseModel):
     poblacion: Optional[str] = None
     informante_tipo: str
     ya_acepto_asentimiento: bool
+    # 🆕 Prueba.instrucciones textual (None si la prueba no tiene) — se
+    # muestran antes de la primera pregunta.
+    instrucciones: Optional[str] = None
 
 # ==========================================
 # 🆕 TEXTO VERSIONADO DEL ASENTIMIENTO INFORMADO
@@ -739,6 +752,19 @@ class EstadoResultadosAlumnoResponse(BaseModel):
     # que quedó pendiente por falta de baremo aplicable (B-6).
     estado_interpretacion: str = "completa"
     mensaje: str
+    # 🆕 La llave del alumno (Evaluacion.alumno_ve_informe): si es True,
+    # `resultados` trae el resumen por dimensión y el PDF se puede descargar.
+    alumno_puede_ver_informe: bool = False
+    resultados: List["ResultadoVisibleAlumno"] = []
+
+
+class ResultadoVisibleAlumno(BaseModel):
+    """Una línea del resumen en pantalla del alumno: solo dimensión y nivel."""
+    dimension: str
+    nivel: str
+
+
+EstadoResultadosAlumnoResponse.model_rebuild()
 
 # ==========================================
 # ESQUEMAS PARA CARGA MASIVA DE TESTS
@@ -870,6 +896,9 @@ class DashboardCampanaResponse(BaseModel):
     estado: str  # "activa" | "cerrada" | "cancelada"
     fecha_fin: Optional[datetime] = None
     prueba_id: int
+    # 🆕 Interruptor "los estudiantes ven su resultado" (Evaluacion.alumno_ve_informe).
+    alumno_ve_informe: bool = False
+    tipo: str = "grupal"  # 🆕 'grupal' | 'individual'
 
 # 🆕 Dashboard académico — mismo tipo de resumen que DashboardCampanaResponse
 # pero por salón/grado (cruzando todas las campañas en que se aplicó la
@@ -1025,3 +1054,37 @@ class BaremoUpdate(BaseModel):
     # caso, pero SIEMPRE permite desactivar). Ver Baremo.activo en models.py.
     activo: Optional[bool] = None
 
+
+
+# ==========================================
+# 🆕 CASOS EN RIESGO CON ESTADO (sesión 2026-11-01) — ver models.CasoRiesgo
+# ==========================================
+class ActualizarCasoRiesgoRequest(BaseModel):
+    """PATCH parcial de un caso. `responsable_usuario_id: null` lo deja sin
+    asignar; cerrar (`estado: "cerrado"`) exige `motivo_cierre`."""
+    estado: Optional[Literal["nuevo", "en_atencion", "derivado", "en_seguimiento", "cerrado"]] = None
+    responsable_usuario_id: Optional[int] = None
+    motivo_cierre: Optional[str] = Field(default=None, max_length=1000)
+    nota: Optional[str] = Field(default=None, max_length=2000)
+
+
+# ==========================================
+# 🆕 APLICACIÓN INDIVIDUAL (sesión 2026-11-01)
+# ==========================================
+class AplicacionIndividualCreate(BaseModel):
+    prueba_id: int
+    fecha_fin: Optional[datetime] = None
+    alumno_ve_informe: bool = False
+
+    @field_validator("fecha_fin")
+    @classmethod
+    def fecha_fin_a_utc_naive(cls, v: Optional[datetime]) -> Optional[datetime]:
+        """Mismo criterio que EvaluacionCreate.fecha_fin_a_utc_naive."""
+        if v is not None and v.tzinfo is not None:
+            return v.astimezone(timezone.utc).replace(tzinfo=None)
+        return v
+
+
+class AplicacionIndividualResponse(BaseModel):
+    evaluacion: EvaluacionResponse
+    token: str

@@ -1,3 +1,4 @@
+import { reiniciarInactividad } from "@/lib/inactividad";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
 // "ngrok-skip-browser-warning" (presente en los 4 fetch de este archivo):
@@ -191,10 +192,13 @@ export function descargarBlob(blob: Blob, nombreArchivo: string) {
 
 // 🆕 Captcha del login (backend/core/captcha.py). La respuesta trae solo la
 // imagen y un id opaco — el texto correcto nunca llega al navegador.
+// 🆕 (sesión 2026-11-01) Adaptativo: `habilitado` solo es true tras varias
+// contraseñas fallidas recientes desde esta IP o para `email`.
 export type CaptchaLogin = { habilitado: boolean; captcha_id: string | null; imagen: string | null };
 
-export async function obtenerCaptcha(): Promise<CaptchaLogin> {
-  const res = await fetchSeguro("/auth/captcha", {
+export async function obtenerCaptcha(email?: string): Promise<CaptchaLogin> {
+  const consulta = email ? `?email=${encodeURIComponent(email)}` : "";
+  const res = await fetchSeguro(`/auth/captcha${consulta}`, {
     headers: { "ngrok-skip-browser-warning": "true" },
     cache: "no-store",
   });
@@ -274,5 +278,7 @@ export async function login(email: string, password: string, captcha?: Respuesta
   }
   const data: { access_token: string; token_type: string } = await res.json();
   guardarToken(data.access_token);
+  // 🆕 Login correcto (pantalla de login o desbloqueo): sin bloqueo pendiente.
+  reiniciarInactividad();
   return data;
 }

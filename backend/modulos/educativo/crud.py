@@ -1182,6 +1182,7 @@ def crear_campana_evaluacion(db: Session, evaluacion: schemas.EvaluacionCreate, 
         nombre_grupo=evaluacion.nombre_grupo,
         creador_id=creador_id,
         fecha_fin=evaluacion.fecha_fin,
+        alumno_ve_informe=evaluacion.alumno_ve_informe,
     )
     db.add(nueva_evaluacion)
     db.commit()
@@ -1230,13 +1231,49 @@ def bloquear_evaluacion_para_editar(db: Session, evaluacion_id: int):
     ).with_for_update().populate_existing().first()
 
 
+def alumno_puede_ver_resultados(evaluacion) -> bool:
+    """🆕 (sesión 2026-11-01) Única regla de qué ve el ESTUDIANTE de su propio
+    resultado por su enlace: el resumen por dimensión y el PDF, solo si la
+    campaña tiene encendido `alumno_ve_informe` — haya o no alerta, sin
+    revisión previa (decisión del usuario). Antes la regla era
+    `informe_liberado`/`resultado_visible_alumno`, que siguen intactos para
+    el staff y el rol `colegio`. Se lee en vivo en cada petición: encender o
+    apagar el interruptor afecta al instante a toda la campaña.
+    """
+    return bool(evaluacion is not None and evaluacion.alumno_ve_informe)
+
+
+def resultados_visibles_alumno(db: Session, inscripcion_id: int):
+    """Resumen en pantalla del alumno: (dimensión, nivel) por diagnóstico."""
+    filas = (
+        db.query(models.Dimension.nombre, models.DiagnosticoAlumno.nivel)
+        .join(models.Dimension, models.Dimension.id == models.DiagnosticoAlumno.dimension_id)
+        .filter(models.DiagnosticoAlumno.inscripcion_id == inscripcion_id)
+        .order_by(models.DiagnosticoAlumno.id)
+        .all()
+    )
+    return [{"dimension": nombre, "nivel": nivel} for nombre, nivel in filas]
+
+
 def actualizar_campana(db: Session, evaluacion: "models.Evaluacion", datos: schemas.EvaluacionUpdate):
     """PATCH parcial de una campaña.
 
     Solo mientras `estado == 'activa'`: una campaña cerrada o cancelada no se
     "reabre" implícitamente empujando `fecha_fin` hacia el futuro — hoy no
     existe una acción de reapertura, y esto es deliberado.
+
+    🆕 Excepción: `alumno_ve_informe` se puede cambiar en cualquier estado —
+    no reabre nada (los enlaces de una campaña cerrada no admiten respuestas
+    nuevas), solo decide si los estudiantes que ya terminaron ven su
+    resultado.
     """
+    if set(datos.model_dump(exclude_unset=True)) == {"alumno_ve_informe"}:
+        if datos.alumno_ve_informe is not None:
+            evaluacion.alumno_ve_informe = datos.alumno_ve_informe
+            db.commit()
+            db.refresh(evaluacion)
+        return evaluacion
+
     if evaluacion.estado != models.ESTADO_CAMPANA_ACTIVA:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -1270,6 +1307,8 @@ def actualizar_campana(db: Session, evaluacion: "models.Evaluacion", datos: sche
             )
 
     for campo, valor in datos_enviados.items():
+        if campo == "alumno_ve_informe" and valor is None:
+            continue  # columna NOT NULL: un null explícito no cambia nada
         setattr(evaluacion, campo, valor)
 
     db.commit()
@@ -1528,6 +1567,18 @@ def obtener_intake_previo_por_token(db: Session, token: str):
     inscripcion = db.query(models.Inscripcion).filter(models.Inscripcion.token == token).first()
     if not inscripcion:
         return None
+    # 🆕 (sesión 2026-11-01) Las instrucciones de la prueba, TEXTUALES tal
+    # como están cargadas en el catálogo (decisión del usuario: nunca
+    # adaptadas ni resumidas aquí) — antes el examen no las mostraba, y las
+    # instrucciones estandarizadas son parte de la aplicación del
+    # instrumento. Solo el texto: nunca el nombre de la prueba, que podría
+    # sesgar las respuestas del alumno.
+    prueba = (
+        db.query(models.Prueba)
+        .join(models.Evaluacion, models.Evaluacion.prueba_id == models.Prueba.id)
+        .filter(models.Evaluacion.id == inscripcion.evaluacion_id)
+        .first()
+    )
     return schemas.IntakeExamenResponse(
         nombre_completo=inscripcion.nombre_completo,
         nombre_conocido=inscripcion.persona_id is not None and bool(inscripcion.nombre_completo),
@@ -1536,6 +1587,7 @@ def obtener_intake_previo_por_token(db: Session, token: str):
         poblacion=inscripcion.poblacion,
         informante_tipo=inscripcion.informante_tipo,
         ya_acepto_asentimiento=inscripcion.acepto_asentimiento,
+        instrucciones=(prueba.instrucciones or None) if prueba else None,
     )
 
 
@@ -3191,6 +3243,7 @@ def obtener_dashboard_campana(db: Session, evaluacion_id: int):
         # 🆕 Para "Editar campaña" en el dashboard — ver DashboardCampanaResponse.
         "estado": evaluacion.estado,
         "fecha_fin": evaluacion.fecha_fin,
+        "alumno_ve_informe": bool(evaluacion.alumno_ve_informe),
         "prueba_id": evaluacion.prueba_id,
         "institucion_id": evaluacion.institucion_id,  # se usa solo para el candado, no viaja en la respuesta
     }
@@ -3241,6 +3294,9 @@ def obtener_dashboard_academico(
         models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id
     ).filter(
         models.Evaluacion.prueba_id == prueba_id,
+        # 🆕 (sesión 2026-11-01) Las aplicaciones individuales no entran en
+        # las estadísticas por salón/grado (ver models.Evaluacion.tipo).
+        models.Evaluacion.tipo == models.TIPO_CAMPANA_GRUPAL,
         models.Inscripcion.is_deleted == False,  # noqa: E712
     )
 
@@ -3333,6 +3389,7 @@ def obtener_tendencia_seccion(db: Session, prueba_id: int, seccion_id: int):
 
     evaluaciones = db.query(models.Evaluacion).filter(
         models.Evaluacion.prueba_id == prueba_id,
+        models.Evaluacion.tipo == models.TIPO_CAMPANA_GRUPAL,  # 🆕 sin individuales
         models.Evaluacion.id.in_(
             db.query(models.Inscripcion.evaluacion_id).filter(
                 models.Inscripcion.seccion_id == seccion_id,
@@ -3792,6 +3849,7 @@ def obtener_resumen_inicio(db: Session, institucion_id: int) -> dict:
     campanas_activas = db.query(models.Evaluacion).filter(
         models.Evaluacion.institucion_id == institucion_id,
         models.Evaluacion.estado == models.ESTADO_CAMPANA_ACTIVA,
+        models.Evaluacion.tipo == models.TIPO_CAMPANA_GRUPAL,  # 🆕 las individuales no son "campañas activas"
     ).count()
 
     return {
@@ -3908,6 +3966,7 @@ def obtener_series_inicio(db: Session, institucion_id: int, usuario_id: int, mes
     activas = db.query(models.Evaluacion).filter(
         models.Evaluacion.institucion_id == institucion_id,
         models.Evaluacion.estado == models.ESTADO_CAMPANA_ACTIVA,
+        models.Evaluacion.tipo == models.TIPO_CAMPANA_GRUPAL,  # 🆕 las individuales no son "campañas activas"
     ).order_by(models.Evaluacion.fecha_fin.asc().nullslast(), models.Evaluacion.id.desc()).limit(6).all()
     conteos = {}
     if activas:
@@ -4067,12 +4126,379 @@ def _casos_por_antecedentes_clinicos(db: Session, institucion_id: int) -> list:
         })
     return casos
 
+
+# ==========================================
+# 🆕 CASOS EN RIESGO CON URGENCIA, ESTADO Y RESPONSABLE (sesión 2026-11-01)
+# ==========================================
+# Decisiones del usuario — ver models.CasoRiesgo. `obtener_casos_pendientes_
+# de_seguimiento` (arriba) queda intacta para GET /casos-pendientes, que se
+# conserva por compatibilidad; la bandeja y el Inicio usan esto.
+URGENCIA_URGENTE = "urgente"          # alerta disparada por una regla de ÍTEM crítico
+URGENCIA_ALERTA = "alerta"            # tramo de alerta del baremo (u otra regla)
+URGENCIA_SEGUIMIENTO = "seguimiento"  # antecedentes clínicos externos en "Sí"
+_ORDEN_URGENCIA = {URGENCIA_URGENTE: 0, URGENCIA_ALERTA: 1, URGENCIA_SEGUIMIENTO: 2}
+ROLES_RESPONSABLE_CASO = ("psicologo", "admin")
+
+
+def profesionales_de_institucion(db: Session, institucion_id: int) -> list:
+    """Quienes pueden ser responsables de un caso: psicólogos y admins activos del colegio."""
+    U = auth_models.Usuario
+    filas = db.query(U.id, U.nombre_completo, U.email).filter(
+        U.institucion_id == institucion_id,
+        U.rol.in_(ROLES_RESPONSABLE_CASO),
+        U.activo.isnot(False),
+    ).order_by(U.nombre_completo, U.id).all()
+    return [{"id": i, "nombre": nombre or email} for i, nombre, email in filas]
+
+
+def _evento_caso(db: Session, caso_id: int, tipo: str, usuario_id=None, **campos):
+    db.add(models.CasoRiesgoEvento(caso_id=caso_id, tipo=tipo, usuario_id=usuario_id, **campos))
+
+
+def sincronizar_casos_riesgo(db: Session, institucion_id: int, profesionales: Optional[list] = None) -> None:
+    """Materializa los casos que faltan y aplica el paso automático
+    'nuevo' → 'en_atencion'. Idempotente y seguro ante dos llamadas a la vez
+    (INSERT ... ON CONFLICT DO NOTHING contra las restricciones únicas;
+    UPDATE ... WHERE estado = 'nuevo' RETURNING para no duplicar eventos).
+
+    1. Cada inscripción con al menos un diagnóstico en alerta (mismo criterio
+       que la bandeja de siempre: persona del padrón, no eliminada) tiene su
+       caso; responsable = creador de la campaña si sigue siendo un
+       profesional activo del colegio.
+    2. Cada estudiante activo con antecedentes en "Sí" tiene un caso abierto,
+       salvo que el último se haya cerrado DESPUÉS de la última edición de
+       sus antecedentes (cerrarlo no debe reabrirlo solo al instante).
+    3. Un caso 'nuevo' con una sesión de seguimiento posterior (a la
+       evaluación, o a la creación del caso si es por antecedentes) pasa a
+       'en_atencion'. Nunca lo cierra: eso es siempre una acción explícita.
+    """
+    from sqlalchemy import text, update
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    Caso = models.CasoRiesgo
+    ahora = models._ahora_utc_naive()
+    profesionales = {p["id"] for p in (profesionales if profesionales is not None else profesionales_de_institucion(db, institucion_id))}
+    cambios = False
+
+    # 1) Alertas de prueba sin caso.
+    con_alerta = db.query(models.DiagnosticoAlumno.id).filter(
+        models.DiagnosticoAlumno.inscripcion_id == models.Inscripcion.id,
+        models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
+    ).exists()
+    ya_tiene_caso = db.query(Caso.id).filter(Caso.inscripcion_id == models.Inscripcion.id).exists()
+    nuevas = db.query(models.Inscripcion.id, models.Inscripcion.persona_id, models.Evaluacion.creador_id).join(
+        models.Evaluacion, models.Evaluacion.id == models.Inscripcion.evaluacion_id,
+    ).filter(
+        models.Evaluacion.institucion_id == institucion_id,
+        models.Inscripcion.persona_id.isnot(None),
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+        con_alerta,
+        ~ya_tiene_caso,
+    ).all()
+    for inscripcion_id, persona_id, creador_id in nuevas:
+        responsable = creador_id if creador_id in profesionales else None
+        caso_id = db.execute(
+            pg_insert(Caso).values(
+                institucion_id=institucion_id, persona_id=persona_id, origen=models.ORIGEN_CASO_PRUEBA,
+                inscripcion_id=inscripcion_id, estado=models.ESTADO_CASO_NUEVO,
+                responsable_usuario_id=responsable, creado_en=ahora, actualizado_en=ahora,
+            ).on_conflict_do_nothing(index_elements=["inscripcion_id"]).returning(Caso.id)
+        ).scalar()
+        if caso_id:
+            _evento_caso(db, caso_id, "creado", estado_nuevo=models.ESTADO_CASO_NUEVO,
+                         responsable_nuevo_id=responsable, nota="Alerta en una evaluación.")
+            cambios = True
+
+    # 2) Antecedentes en "Sí" sin caso abierto.
+    Antecedentes = superadmin_models.PersonaAntecedentesClinicos
+    Persona = superadmin_models.Persona
+    caso_abierto = db.query(Caso.id).filter(
+        Caso.persona_id == Persona.id, Caso.origen == models.ORIGEN_CASO_ANTECEDENTES,
+        Caso.estado != models.ESTADO_CASO_CERRADO,
+    ).exists()
+    # actualizado_en es timestamptz; cerrado_en es UTC sin zona.
+    cerrado_despues = db.query(Caso.id).filter(
+        Caso.persona_id == Persona.id, Caso.origen == models.ORIGEN_CASO_ANTECEDENTES,
+        Caso.estado == models.ESTADO_CASO_CERRADO,
+        Caso.cerrado_en >= func.timezone("UTC", Antecedentes.actualizado_en),
+    ).exists()
+    faltantes = db.query(Persona.id).join(Antecedentes, Antecedentes.persona_id == Persona.id).filter(
+        Persona.institucion_id == institucion_id,
+        Persona.activo.isnot(False),
+        superadmin_crud._condicion_con_diagnostico(),
+        ~caso_abierto,
+        ~cerrado_despues,
+    ).all()
+    for (persona_id,) in faltantes:
+        caso_id = db.execute(
+            pg_insert(Caso).values(
+                institucion_id=institucion_id, persona_id=persona_id, origen=models.ORIGEN_CASO_ANTECEDENTES,
+                estado=models.ESTADO_CASO_NUEVO, creado_en=ahora, actualizado_en=ahora,
+            ).on_conflict_do_nothing(
+                index_elements=["persona_id"],
+                index_where=text("origen = 'antecedentes' AND estado <> 'cerrado'"),
+            ).returning(Caso.id)
+        ).scalar()
+        if caso_id:
+            _evento_caso(db, caso_id, "creado", estado_nuevo=models.ESTADO_CASO_NUEVO,
+                         nota="Antecedentes clínicos externos en «Sí».")
+            cambios = True
+
+    # 3) 'nuevo' con una sesión de seguimiento posterior → 'en_atencion'.
+    desde = func.coalesce(
+        db.query(models.Inscripcion.fecha_resolucion)
+        .filter(models.Inscripcion.id == Caso.inscripcion_id)
+        .correlate(Caso).scalar_subquery(),
+        Caso.creado_en,
+    )
+    sesion_posterior = db.query(models.SesionSeguimiento.id).filter(
+        models.SesionSeguimiento.persona_id == Caso.persona_id,
+        models.SesionSeguimiento.fecha >= desde,
+    ).correlate(Caso).exists()
+    promovidos = db.execute(
+        update(Caso)
+        .where(Caso.institucion_id == institucion_id, Caso.estado == models.ESTADO_CASO_NUEVO, sesion_posterior)
+        .values(estado=models.ESTADO_CASO_EN_ATENCION, actualizado_en=ahora)
+        .returning(Caso.id)
+        .execution_options(synchronize_session=False)
+    ).scalars().all()
+    for caso_id in promovidos:
+        _evento_caso(db, caso_id, "estado", estado_anterior=models.ESTADO_CASO_NUEVO,
+                     estado_nuevo=models.ESTADO_CASO_EN_ATENCION, nota="Se registró una sesión de seguimiento.")
+        cambios = True
+
+    if cambios:
+        db.commit()
+
+
+def _armar_casos_riesgo(db: Session, institucion_id: int, incluir_cerrados: bool = False, caso_ids=None) -> list:
+    """Filas de la bandeja, con la urgencia calculada. Pocas consultas en
+    total (casos, inscripciones, alertas, antecedentes, última sesión,
+    nombres), nunca una por caso."""
+    Caso = models.CasoRiesgo
+    Persona = superadmin_models.Persona
+    q = db.query(Caso, Persona).join(Persona, Persona.id == Caso.persona_id).filter(Caso.institucion_id == institucion_id)
+    if caso_ids is not None:
+        q = q.filter(Caso.id.in_(caso_ids))
+    elif not incluir_cerrados:
+        q = q.filter(Caso.estado != models.ESTADO_CASO_CERRADO)
+    filas = q.all()
+    if not filas:
+        return []
+
+    insc_ids = [c.inscripcion_id for c, _ in filas if c.inscripcion_id]
+    persona_ids = list({c.persona_id for c, _ in filas})
+
+    datos_insc = {}
+    alertas_por_insc = {}
+    if insc_ids:
+        for insc_id, fecha_res, ev_id, grupo, nombre_corto, nombre_tecnico in db.query(
+            models.Inscripcion.id, models.Inscripcion.fecha_resolucion, models.Evaluacion.id,
+            models.Evaluacion.nombre_grupo, models.Prueba.nombre_corto, models.Prueba.nombre_tecnico,
+        ).join(models.Evaluacion, models.Evaluacion.id == models.Inscripcion.evaluacion_id).outerjoin(
+            models.Prueba, models.Prueba.id == models.Evaluacion.prueba_id,
+        ).filter(models.Inscripcion.id.in_(insc_ids)).all():
+            datos_insc[insc_id] = {
+                "fecha_evaluacion": fecha_res, "evaluacion_id": ev_id, "campana": grupo,
+                "prueba": nombre_corto or nombre_tecnico,
+            }
+        Regla = models.ReglaInterpretacion
+        for insc_id, dimension, nivel, ambito, descripcion in db.query(
+            models.DiagnosticoAlumno.inscripcion_id, models.Dimension.nombre, models.DiagnosticoAlumno.nivel,
+            Regla.ambito, Regla.descripcion,
+        ).outerjoin(models.Dimension, models.Dimension.id == models.DiagnosticoAlumno.dimension_id).outerjoin(
+            Regla, Regla.id == models.DiagnosticoAlumno.regla_activada_id,
+        ).filter(
+            models.DiagnosticoAlumno.inscripcion_id.in_(insc_ids),
+            models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
+        ).order_by(models.DiagnosticoAlumno.id).all():
+            item_critico = ambito == "item"
+            alertas_por_insc.setdefault(insc_id, []).append({
+                "dimension": dimension, "nivel": nivel, "item_critico": item_critico,
+                "motivo": descripcion if item_critico else None,
+            })
+
+    Antecedentes = superadmin_models.PersonaAntecedentesClinicos
+    antecedentes = {a.persona_id: a for a in db.query(Antecedentes).filter(Antecedentes.persona_id.in_(persona_ids)).all()}
+    ultima_sesion = dict(
+        db.query(models.SesionSeguimiento.persona_id, func.max(models.SesionSeguimiento.fecha))
+        .filter(models.SesionSeguimiento.persona_id.in_(persona_ids))
+        .group_by(models.SesionSeguimiento.persona_id).all()
+    )
+    usuario_ids = {c.responsable_usuario_id for c, _ in filas if c.responsable_usuario_id}
+    nombres = {
+        i: (n or e) for i, n, e in db.query(auth_models.Usuario.id, auth_models.Usuario.nombre_completo, auth_models.Usuario.email)
+        .filter(auth_models.Usuario.id.in_(usuario_ids)).all()
+    } if usuario_ids else {}
+
+    casos = []
+    for caso, persona in filas:
+        ultimo = ultima_sesion.get(caso.persona_id)
+        fila = {
+            "id": caso.id,
+            "origen": caso.origen,
+            "estado": caso.estado,
+            "persona_id": caso.persona_id,
+            "nombre_completo": f"{persona.nombres} {persona.apellidos}",
+            "responsable": (
+                {"id": caso.responsable_usuario_id, "nombre": nombres.get(caso.responsable_usuario_id)}
+                if caso.responsable_usuario_id else None
+            ),
+            "creado_en": caso.creado_en,
+            "actualizado_en": caso.actualizado_en,
+            "cerrado_en": caso.cerrado_en,
+            "motivo_cierre": caso.motivo_cierre,
+            "ultimo_seguimiento": ultimo,
+        }
+        if caso.origen == models.ORIGEN_CASO_PRUEBA:
+            alertas = alertas_por_insc.get(caso.inscripcion_id, [])
+            info = datos_insc.get(caso.inscripcion_id, {})
+            fila.update({
+                "urgencia": URGENCIA_URGENTE if any(a["item_critico"] for a in alertas) else URGENCIA_ALERTA,
+                "inscripcion_id": caso.inscripcion_id,
+                "alertas": alertas,
+                **info,
+            })
+            referencia = ultimo or info.get("fecha_evaluacion") or caso.creado_en
+        else:
+            ant = antecedentes.get(caso.persona_id)
+            motivos = []
+            if ant and ant.recibe_terapia_psicologica_externa:
+                motivos.append("Terapia psicológica externa")
+            if ant and ant.recibe_atencion_psiquiatrica_externa:
+                motivos.append("Atención psiquiátrica externa")
+            fila.update({
+                "urgencia": URGENCIA_SEGUIMIENTO,
+                "motivos": motivos,
+                "diagnostico_reportado": ant.diagnostico_reportado if ant else None,
+            })
+            referencia = ultimo or caso.creado_en
+        fila["fecha_referencia"] = referencia
+        casos.append(fila)
+
+    # Urgentes primero; dentro de cada nivel, el que lleva más tiempo sin seguimiento.
+    casos.sort(key=lambda c: (_ORDEN_URGENCIA[c["urgencia"]], c["fecha_referencia"] or datetime.max))
+    return casos
+
+
+def listar_casos_riesgo(db: Session, institucion_id: int, incluir_cerrados: bool = False) -> dict:
+    profesionales = profesionales_de_institucion(db, institucion_id)
+    sincronizar_casos_riesgo(db, institucion_id, profesionales=profesionales)
+    return {
+        "casos": _armar_casos_riesgo(db, institucion_id, incluir_cerrados=incluir_cerrados),
+        "profesionales": profesionales,
+    }
+
+
+def actualizar_caso_riesgo(db: Session, caso_id: int, datos: schemas.ActualizarCasoRiesgoRequest, usuario_id: int) -> dict:
+    """Cambia estado y/o responsable de un caso, dejando un evento por cada
+    cambio. Cerrar exige motivo. Reabrir un caso cerrado está permitido (un
+    cierre por error), salvo que ya exista otro caso abierto por los mismos
+    antecedentes (409). Bloquea la fila para serializar cambios simultáneos."""
+    caso = db.query(models.CasoRiesgo).filter(models.CasoRiesgo.id == caso_id).with_for_update().populate_existing().first()
+    enviados = datos.model_dump(exclude_unset=True)
+    ahora = models._ahora_utc_naive()
+    nota = (datos.nota or "").strip() or None
+    cambios = False
+
+    if "responsable_usuario_id" in enviados and datos.responsable_usuario_id != caso.responsable_usuario_id:
+        if datos.responsable_usuario_id is not None and datos.responsable_usuario_id not in {
+            p["id"] for p in profesionales_de_institucion(db, caso.institucion_id)
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="El responsable debe ser un psicólogo o administrador activo de este colegio.",
+            )
+        _evento_caso(db, caso.id, "responsable", usuario_id=usuario_id,
+                     responsable_anterior_id=caso.responsable_usuario_id,
+                     responsable_nuevo_id=datos.responsable_usuario_id, nota=nota)
+        caso.responsable_usuario_id = datos.responsable_usuario_id
+        cambios = True
+
+    if datos.estado is not None and datos.estado != caso.estado:
+        if datos.estado == models.ESTADO_CASO_CERRADO:
+            motivo = (datos.motivo_cierre or "").strip()
+            if len(motivo) < 3:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Para cerrar un caso indica el motivo del cierre.",
+                )
+            caso.motivo_cierre = motivo
+            caso.cerrado_en = ahora
+            caso.cerrado_por_usuario_id = usuario_id
+        elif caso.estado == models.ESTADO_CASO_CERRADO:
+            caso.motivo_cierre = None
+            caso.cerrado_en = None
+            caso.cerrado_por_usuario_id = None
+        _evento_caso(db, caso.id, "estado", usuario_id=usuario_id, estado_anterior=caso.estado,
+                     estado_nuevo=datos.estado, nota=(caso.motivo_cierre if datos.estado == models.ESTADO_CASO_CERRADO else nota))
+        caso.estado = datos.estado
+        cambios = True
+
+    if cambios:
+        caso.actualizado_en = ahora
+        commit_o_conflicto(db, "Este estudiante ya tiene otro caso abierto por sus antecedentes clínicos.")
+    else:
+        db.rollback()  # suelta el bloqueo de la fila
+    return _armar_casos_riesgo(db, caso.institucion_id, caso_ids=[caso_id])[0]
+
+
+def historial_caso_riesgo(db: Session, caso_id: int) -> list:
+    E = models.CasoRiesgoEvento
+    U = auth_models.Usuario
+    eventos = db.query(E, U.nombre_completo, U.email).outerjoin(U, U.id == E.usuario_id).filter(
+        E.caso_id == caso_id,
+    ).order_by(E.creado_en, E.id).all()
+    ids = {i for e, _, _ in eventos for i in (e.responsable_anterior_id, e.responsable_nuevo_id) if i}
+    nombres = {
+        i: (n or m) for i, n, m in db.query(U.id, U.nombre_completo, U.email).filter(U.id.in_(ids)).all()
+    } if ids else {}
+    return [{
+        "id": e.id,
+        "tipo": e.tipo,
+        "creado_en": e.creado_en,
+        "usuario": (n or m) if e.usuario_id else None,
+        "estado_anterior": e.estado_anterior,
+        "estado_nuevo": e.estado_nuevo,
+        "responsable_anterior": nombres.get(e.responsable_anterior_id),
+        "responsable_nuevo": nombres.get(e.responsable_nuevo_id),
+        "nota": e.nota,
+    } for e, n, m in eventos]
+
+def _dias_minimos_de_prueba(prueba) -> int:
+    # Mismo criterio de siempre (`or 60`): NULL o 0 caen en 60 días.
+    return (prueba.dias_minimos_entre_aplicaciones if prueba else None) or 60
+
+
+def _condicion_pendiente_vigente():
+    """Inscripción todavía sin terminar en una campaña que sigue aceptando
+    respuestas (activa y sin vencer), y no dada de baja."""
+    ahora = datetime.utcnow()
+    return and_(
+        models.Inscripcion.estado != "Finalizado",
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+        models.Evaluacion.estado == models.ESTADO_CAMPANA_ACTIVA,
+        or_(models.Evaluacion.fecha_fin.is_(None), models.Evaluacion.fecha_fin > ahora),
+    )
+
+
 def puede_aplicar_prueba(db: Session, persona_id: int, prueba_id: int, institucion_id: int):
     """
-    Dos candados de buena práctica clínica, no de rendimiento del servidor:
+    Candados de buena práctica clínica, no de rendimiento del servidor:
     1) Límite mensual de pruebas totales para ese alumno (fatiga de evaluación).
-    2) Tiempo mínimo antes de reaplicar la MISMA prueba (efecto de práctica).
+    2) La MISMA prueba ya pendiente en otra campaña vigente.
+    3) Tiempo mínimo antes de reaplicar la MISMA prueba (efecto de práctica),
+       según `Prueba.dias_minimos_entre_aplicaciones`.
     Devuelve (True, "") si puede aplicarse, o (False, "motivo") si no.
+
+    🔧 (sesión 2026-11-01) Dos huecos cerrados: (a) solo contaban las
+    pruebas YA TERMINADAS, así que un alumno con la misma prueba pendiente en
+    otra campaña podía matricularse otra vez y quedar con dos enlaces de la
+    misma prueba (candado 2, nuevo); (b) el candado 3 no excluía las
+    inscripciones dadas de baja, a diferencia del 1 (C-8). El motivo dice
+    además desde qué fecha vuelve a estar disponible. La misma regla, en
+    bloque, está en `elegibilidad_prueba` (lo que ve la pantalla antes de
+    matricular).
     """
     institucion = db.query(inst_models.Institucion).filter(inst_models.Institucion.id == institucion_id).first()
     limite_mensual = institucion.limite_pruebas_mensual_por_alumno if institucion else 5
@@ -4094,24 +4520,170 @@ def puede_aplicar_prueba(db: Session, persona_id: int, prueba_id: int, instituci
     if aplicadas_ultimo_mes >= limite_mensual:
         return False, f"Este alumno ya alcanzó el límite de {limite_mensual} pruebas en los últimos 30 días."
 
+    pendiente = db.query(models.Evaluacion.nombre_grupo).join(
+        models.Inscripcion, models.Inscripcion.evaluacion_id == models.Evaluacion.id
+    ).filter(
+        models.Inscripcion.persona_id == persona_id,
+        models.Evaluacion.prueba_id == prueba_id,
+        _condicion_pendiente_vigente(),
+    ).first()
+    if pendiente:
+        return False, f"Ya tiene esta prueba pendiente en la campaña «{pendiente[0]}»."
+
     prueba = db.query(models.Prueba).filter(models.Prueba.id == prueba_id).first()
-    dias_minimos = prueba.dias_minimos_entre_aplicaciones or 60
+    dias_minimos = _dias_minimos_de_prueba(prueba)
     # 🆕 Cierre de gap — mismo motivo que hace_30_dias más arriba: filtro
     # SQLAlchemy contra una columna DateTime sin zona horaria.
     limite_fecha = datetime.utcnow() - timedelta(days=dias_minimos)
 
-    ya_la_rindio_reciente = db.query(models.Inscripcion).join(
+    ultima = db.query(func.max(models.Inscripcion.fecha_resolucion)).join(
         models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id
     ).filter(
         models.Inscripcion.persona_id == persona_id,
         models.Evaluacion.prueba_id == prueba_id,
         models.Inscripcion.fecha_resolucion >= limite_fecha,
-    ).first()
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+    ).scalar()
 
-    if ya_la_rindio_reciente:
-        return False, f"Esta prueba ya se le aplicó a este alumno hace menos de {dias_minimos} días."
+    if ultima:
+        disponible = (ultima + timedelta(days=dias_minimos)).strftime("%d/%m/%Y")
+        return False, (
+            f"Esta prueba ya se le aplicó a este alumno hace menos de {dias_minimos} días; "
+            f"podrá volver a rendirla desde el {disponible}."
+        )
 
     return True, ""
+
+
+def elegibilidad_prueba(db: Session, prueba_id: int, institucion_id: int, persona_ids: Optional[List[int]] = None) -> dict:
+    """🆕 (sesión 2026-11-01) Quiénes NO pueden rendir esta prueba ahora, y
+    por qué — para que "Nueva campaña" y "Aplicar prueba" del perfil lo
+    muestren ANTES de matricular, en vez de enterarse en la lista de
+    rechazados. Mismos criterios que `matricular_roster_en_campana` +
+    `puede_aplicar_prueba`, en bloque (unas pocas consultas agrupadas, nunca
+    una por alumno). Motivos, del más al menos importante (se informa uno por
+    alumno): sin_consentimiento, sin_asentimiento, pendiente, reciente,
+    limite_mensual. El servidor vuelve a validar todo al matricular."""
+    Persona = superadmin_models.Persona
+    Consentimiento = superadmin_models.ConsentimientoInformado
+    prueba = db.query(models.Prueba).filter(models.Prueba.id == prueba_id).first()
+    institucion = db.query(inst_models.Institucion).filter(inst_models.Institucion.id == institucion_id).first()
+    dias_minimos = _dias_minimos_de_prueba(prueba)
+    limite_mensual = institucion.limite_pruebas_mensual_por_alumno if institucion else 5
+    ahora = datetime.utcnow()
+
+    base = db.query(Persona.id).filter(Persona.institucion_id == institucion_id, Persona.activo.isnot(False))
+    if persona_ids is not None:
+        base = base.filter(Persona.id.in_(persona_ids))
+    base_ids = base.subquery()
+    en_base = db.query(base_ids.c.id)
+
+    def con_consentimiento(tipo):
+        return {pid for (pid,) in db.query(Consentimiento.persona_id).filter(
+            Consentimiento.persona_id.in_(en_base),
+            Consentimiento.institucion_id == institucion_id,
+            Consentimiento.tipo_consentimiento == tipo,
+            Consentimiento.revocado == False,  # noqa: E712
+        ).distinct().all()}
+
+    todos = [pid for (pid,) in en_base.all()]
+    motivos = {}
+
+    con_apoderado = con_consentimiento(superadmin_models.TIPO_CONSENTIMIENTO_APODERADO)
+    for pid in todos:
+        if pid not in con_apoderado:
+            motivos[pid] = {"motivo": "sin_consentimiento", "detalle": "Sin consentimiento vigente del apoderado.",
+                            "disponible_desde": None}
+    if institucion and institucion.exigir_asentimiento_estudiante:
+        con_asentimiento = con_consentimiento(superadmin_models.TIPO_CONSENTIMIENTO_ASENTIMIENTO)
+        for pid in todos:
+            if pid not in motivos and pid not in con_asentimiento:
+                motivos[pid] = {"motivo": "sin_asentimiento", "detalle": "Sin asentimiento vigente del propio estudiante.",
+                                "disponible_desde": None}
+
+    for pid, grupo in db.query(models.Inscripcion.persona_id, func.min(models.Evaluacion.nombre_grupo)).join(
+        models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id
+    ).filter(
+        models.Inscripcion.persona_id.in_(en_base),
+        models.Evaluacion.prueba_id == prueba_id,
+        _condicion_pendiente_vigente(),
+    ).group_by(models.Inscripcion.persona_id).all():
+        motivos.setdefault(pid, {"motivo": "pendiente", "detalle": f"Ya tiene esta prueba pendiente en «{grupo}».",
+                                 "disponible_desde": None})
+
+    for pid, ultima in db.query(models.Inscripcion.persona_id, func.max(models.Inscripcion.fecha_resolucion)).join(
+        models.Evaluacion, models.Inscripcion.evaluacion_id == models.Evaluacion.id
+    ).filter(
+        models.Inscripcion.persona_id.in_(en_base),
+        models.Evaluacion.prueba_id == prueba_id,
+        models.Inscripcion.fecha_resolucion >= ahora - timedelta(days=dias_minimos),
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+    ).group_by(models.Inscripcion.persona_id).all():
+        motivos.setdefault(pid, {
+            "motivo": "reciente",
+            "detalle": f"La rindió el {ultima.strftime('%d/%m/%Y')} (se reaplica cada {dias_minimos} días).",
+            "disponible_desde": ultima + timedelta(days=dias_minimos),
+        })
+
+    for pid, cantidad, primera in db.query(
+        models.Inscripcion.persona_id, func.count(models.Inscripcion.id), func.min(models.Inscripcion.fecha_resolucion),
+    ).filter(
+        models.Inscripcion.persona_id.in_(en_base),
+        models.Inscripcion.fecha_resolucion >= ahora - timedelta(days=30),
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+    ).group_by(models.Inscripcion.persona_id).having(func.count(models.Inscripcion.id) >= limite_mensual).all():
+        motivos.setdefault(pid, {
+            "motivo": "limite_mensual",
+            "detalle": f"Ya rindió {cantidad} pruebas en los últimos 30 días (límite {limite_mensual}).",
+            "disponible_desde": primera + timedelta(days=30),
+        })
+
+    return {
+        "dias_minimos_entre_aplicaciones": dias_minimos,
+        "limite_mensual": limite_mensual,
+        "no_elegibles": [{"persona_id": pid, **datos} for pid, datos in motivos.items()],
+    }
+
+
+def crear_aplicacion_individual(db: Session, persona, prueba, fecha_fin, alumno_ve_informe: bool, creador_id: int) -> dict:
+    """🆕 (sesión 2026-11-01) Aplicación de UNA prueba a UN estudiante desde
+    su perfil, sin armar una campaña a mano. Por debajo es una Evaluacion
+    `tipo='individual'` con un solo inscrito, creada por la misma
+    `matricular_roster_en_campana` de siempre (consentimiento, reaplicación,
+    snapshot de sección, informante...), así que todo lo posterior funciona
+    sin cambios. Si el estudiante no puede rendirla, responde 409 con el
+    motivo SIN dejar una campaña vacía creada."""
+    validar_fecha_fin_futura(fecha_fin)
+    motivo = next(
+        (m["detalle"] for m in elegibilidad_prueba(db, prueba.id, persona.institucion_id, [persona.id])["no_elegibles"]),
+        None,
+    )
+    if motivo:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=motivo)
+
+    evaluacion = models.Evaluacion(
+        institucion_id=persona.institucion_id,
+        prueba_id=prueba.id,
+        nombre_grupo=f"Individual · {persona.nombres} {persona.apellidos} · {prueba.nombre_corto or prueba.nombre_tecnico}",
+        creador_id=creador_id,
+        fecha_fin=fecha_fin,
+        alumno_ve_informe=alumno_ve_informe,
+        tipo=models.TIPO_CAMPANA_INDIVIDUAL,
+    )
+    db.add(evaluacion)
+    db.commit()
+    db.refresh(evaluacion)
+
+    resultado = matricular_roster_en_campana(db=db, evaluacion_id=evaluacion.id, persona_ids=[persona.id])
+    if not resultado.get("generados"):
+        # Carrera rara (alguien la matriculó en otra campaña entre la
+        # validación y ahora): no se deja la campaña vacía.
+        motivo = (resultado.get("rechazados") or [{}])[0].get("motivo") or resultado.get("error") or "No se pudo aplicar la prueba."
+        db.delete(evaluacion)
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=motivo)
+    return {"evaluacion": evaluacion, "token": resultado["generados"][0].token}
+
 
 def soft_delete_alumno(
     db: Session, inscripcion_id: int, institucion_id: int, es_superadmin: bool = False,
@@ -4305,13 +4877,16 @@ def guardar_respuestas_socio(db: Session, token: str, respuestas: List[schemas.R
     
     return {"mensaje": f"Se guardaron {len(nuevas)} respuestas sociodemográficas."}
 
-def listar_campanas_de_institucion(db: Session, institucion_id: int, skip: int = 0, limit: int = 50):
+def listar_campanas_de_institucion(db: Session, institucion_id: int, skip: int = 0, limit: int = 50, tipo: Optional[str] = None):
     """🆕 Paginación real (docs/gaps-pendientes.md) — antes devolvía TODA
     campaña creada, sin tope, para siempre. `total` se cuenta antes de
-    aplicar `offset/limit`."""
+    aplicar `offset/limit`. 🆕 `tipo` ('grupal'/'individual') opcional:
+    sin él, todas, como siempre."""
     query = db.query(models.Evaluacion).filter(
         models.Evaluacion.institucion_id == institucion_id
     )
+    if tipo is not None:
+        query = query.filter(models.Evaluacion.tipo == tipo)
     total = query.count()
     items = query.order_by(models.Evaluacion.fecha_creacion.desc()).offset(skip).limit(limit).all()
     return total, items
