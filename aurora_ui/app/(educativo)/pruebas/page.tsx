@@ -18,7 +18,7 @@ import {
   ArrowRight,
   Layers,
 } from "lucide-react";
-import { apiClient, descargarBlob } from "@/lib/api-client";
+import { apiClient, descargarBlob, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton } from "@/components/ui/Boton";
 import { Select } from "@/components/ui/Select";
@@ -161,26 +161,25 @@ export default function PruebasPage() {
       .catch(() => setNiveles([]));
   }, [sesion?.institucionId]);
 
+  // 🆕 (sesión 2026-11-02) Los efectos solo CARGAN. Vaciar el grado/sección
+  // al quitar el nivel/grado lo hace el onChange de cada select, y la lista
+  // visible se deriva (antes el efecto hacía setState directo: lint
+  // react-hooks/set-state-in-effect).
   useEffect(() => {
-    if (!dashNivelId) {
-      setGrados([]);
-      setDashGradoId("");
-      return;
-    }
+    if (!dashNivelId) return;
     apiClient.get<Grado[]>(`/admin/personas/academico/grados/${dashNivelId}`).then(setGrados).catch(() => setGrados([]));
   }, [dashNivelId]);
 
   useEffect(() => {
-    if (!dashGradoId) {
-      setSecciones([]);
-      setDashSeccionId("");
-      return;
-    }
+    if (!dashGradoId) return;
     apiClient
       .get<Seccion[]>(`/admin/personas/academico/secciones/${dashGradoId}`)
       .then(setSecciones)
       .catch(() => setSecciones([]));
   }, [dashGradoId]);
+
+  const gradosVisibles = dashNivelId ? grados : [];
+  const seccionesVisibles = dashGradoId ? secciones : [];
 
   function paramsDashboardAcademico(): URLSearchParams | null {
     if (!dashPruebaId) return null;
@@ -216,8 +215,8 @@ export default function PruebasPage() {
     try {
       const datos = await apiClient.get<DashboardAcademico>(`/educativo/dashboard/academico?${params.toString()}`);
       setDashboard(datos);
-    } catch (err: any) {
-      setErrorDashboard(err.message || "No se pudo cargar el dashboard.");
+    } catch (err) {
+      setErrorDashboard(mensajeDe(err) || "No se pudo cargar el dashboard.");
     } finally {
       setCargandoDashboard(false);
     }
@@ -232,8 +231,8 @@ export default function PruebasPage() {
         `/educativo/dashboard/academico/tendencia?prueba_id=${dashPruebaId}&seccion_id=${dashSeccionId}`,
       );
       setTendencia(datos);
-    } catch (err: any) {
-      setErrorTendencia(err.message || "No se pudo cargar la tendencia.");
+    } catch (err) {
+      setErrorTendencia(mensajeDe(err) || "No se pudo cargar la tendencia.");
     } finally {
       setCargandoTendencia(false);
     }
@@ -248,8 +247,8 @@ export default function PruebasPage() {
         `/educativo/dashboard/academico?prueba_id=${dashPruebaId}&seccion_id=${compararConSeccionId}`,
       );
       setDashboardComparado(datos);
-    } catch (err: any) {
-      setErrorComparacion(err.message || "No se pudo cargar la sección a comparar.");
+    } catch (err) {
+      setErrorComparacion(mensajeDe(err) || "No se pudo cargar la sección a comparar.");
     } finally {
       setCargandoComparacion(false);
     }
@@ -262,8 +261,8 @@ export default function PruebasPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/dashboard/academico/exportar-excel?${params.toString()}`);
       descargarBlob(blob, `resultados_${dashPruebaId}_${dashboard?.ambito.nombre ?? "salon"}.xlsx`);
-    } catch (err: any) {
-      setErrorDashboard(err.message || "No se pudo exportar el Excel.");
+    } catch (err) {
+      setErrorDashboard(mensajeDe(err) || "No se pudo exportar el Excel.");
     } finally {
       setExportandoDashboard(false);
     }
@@ -282,8 +281,8 @@ export default function PruebasPage() {
     try {
       const datos = await apiClient.get<PruebaDetalle>(`/educativo/pruebas/${prueba.id}/completa`);
       setDetalle(datos);
-    } catch (err: any) {
-      setErrorDetalle(err.message || "No se pudo cargar el detalle de esta prueba.");
+    } catch (err) {
+      setErrorDetalle(mensajeDe(err) || "No se pudo cargar el detalle de esta prueba.");
     } finally {
       setCargandoDetalle(false);
     }
@@ -551,7 +550,7 @@ export default function PruebasPage() {
                 <>
                   <label className={etiquetaCampo}>
                     <span className={textoEtiqueta}>Nivel</span>
-                    <Select required value={dashNivelId} onChange={(e) => setDashNivelId(e.target.value)}>
+                    <Select required value={dashNivelId} onChange={(e) => { setDashNivelId(e.target.value); if (!e.target.value) { setDashGradoId(""); setDashSeccionId(""); } }}>
                       <option value="">Elige un nivel...</option>
                       {niveles.map((n) => (
                         <option key={n.id} value={n.id}>
@@ -563,9 +562,9 @@ export default function PruebasPage() {
 
                   <label className={etiquetaCampo}>
                     <span className={textoEtiqueta}>Grado</span>
-                    <Select required value={dashGradoId} onChange={(e) => setDashGradoId(e.target.value)} disabled={!dashNivelId}>
+                    <Select required value={dashGradoId} onChange={(e) => { setDashGradoId(e.target.value); if (!e.target.value) setDashSeccionId(""); }} disabled={!dashNivelId}>
                       <option value="">Elige un grado...</option>
-                      {grados.map((g) => (
+                      {gradosVisibles.map((g) => (
                         <option key={g.id} value={g.id}>
                           {g.nombre}
                         </option>
@@ -578,7 +577,7 @@ export default function PruebasPage() {
                       <span className={textoEtiqueta}>Sección</span>
                       <Select required value={dashSeccionId} onChange={(e) => setDashSeccionId(e.target.value)} disabled={!dashGradoId}>
                         <option value="">Elige una sección...</option>
-                        {secciones.map((s) => (
+                        {seccionesVisibles.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.nombre} ({s.anio_escolar})
                           </option>
@@ -688,7 +687,7 @@ export default function PruebasPage() {
 
               {/* --- Análisis: tendencia + comparación (solo un salón puntual) --- */}
               {dashboard.ambito.tipo === "seccion" && (
-                <div className={`grid gap-4 ${secciones.length > 1 ? "lg:grid-cols-2" : ""}`}>
+                <div className={`grid gap-4 ${seccionesVisibles.length > 1 ? "lg:grid-cols-2" : ""}`}>
                   {/* Tendencia en el tiempo — solo tiene sentido para UN salón puntual
                       (ver docstring de crud.obtener_tendencia_seccion: un grado mezclaría
                       cohortes de campañas distintas en una sola línea). */}
@@ -738,7 +737,7 @@ export default function PruebasPage() {
 
                   {/* Comparar con otra sección del mismo grado, lado a lado — dos
                       llamadas al mismo /dashboard/academico, sin endpoint nuevo. */}
-                  {secciones.length > 1 && (
+                  {seccionesVisibles.length > 1 && (
                     <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 space-y-2.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <GitCompare size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
@@ -746,7 +745,7 @@ export default function PruebasPage() {
                         <div className="flex items-center gap-2 w-full">
                           <Select value={compararConSeccionId} onChange={(e) => setCompararConSeccionId(e.target.value)} className="flex-1 min-w-0">
                             <option value="">Elige una sección...</option>
-                            {secciones
+                            {seccionesVisibles
                               .filter((s) => String(s.id) !== dashSeccionId)
                               .map((s) => (
                                 <option key={s.id} value={s.id}>

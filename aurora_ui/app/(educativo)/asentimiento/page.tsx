@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ShieldCheck, FileSignature, Baby, Building2, Layers, History, Info, Lock, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { Textarea } from "@/components/ui/Textarea";
@@ -14,6 +14,7 @@ import type {
   NivelEducativo,
   TipoTextoConsentimiento,
 } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 // Modelos de CONSENTIMIENTO (lo firma el apoderado) y ASENTIMIENTO (lo
 // acepta el propio alumno) de cada colegio — versionados, nunca editados.
@@ -82,7 +83,7 @@ function ConsentimientoYAsentimientoPageContenido() {
     apiClient
       .get<AsentimientoInformadoTexto[]>(`/educativo/asentimiento-textos?institucion_id=${sesion.institucionId}`)
       .then(setVersiones)
-      .catch((err: any) => setError(err.message || "No se pudo cargar el historial de versiones."))
+      .catch((err: unknown) => setError(mensajeDe(err) || "No se pudo cargar el historial de versiones."))
       .finally(() => setCargando(false));
   }
 
@@ -91,7 +92,7 @@ function ConsentimientoYAsentimientoPageContenido() {
   // editar, ni siquiera se intenta pedir el historial (antes recibía siempre
   // un 403); se le muestra directamente el mensaje de "contacta a tu
   // administrador".
-  useEffect(() => {
+  useCargaDiferida(() => {
     if (!puedeEditar) {
       setCargando(false);
       return;
@@ -103,7 +104,6 @@ function ConsentimientoYAsentimientoPageContenido() {
         .then(setNiveles)
         .catch(() => setNiveles([]));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sesion?.institucionId, puedeEditar]);
 
   const nivelDe = (a: Ambito) => (a === "general" ? null : a);
@@ -153,8 +153,8 @@ function ConsentimientoYAsentimientoPageContenido() {
       };
       await apiClient.post("/educativo/asentimiento-textos", payload);
       cargar();
-    } catch (err: any) {
-      setErrorGuardar(err.message || "No se pudo guardar la nueva versión.");
+    } catch (err) {
+      setErrorGuardar(mensajeDe(err) || "No se pudo guardar la nueva versión.");
     } finally {
       setGuardando(false);
     }

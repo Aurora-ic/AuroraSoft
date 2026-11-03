@@ -444,3 +444,23 @@ El usuario pidió dos cosas: priorizar el salón al crear una campaña y que no 
   - Un valor corto cuesta poco aquí: solo bloquea, sin perder lo escrito, y teclear, desplazarse o mover el ratón cuentan como actividad.
   - Si el psicólogo abre el examen en su equipo para que lo rinda el alumno, la pestaña de AuroraSoft se bloquea sola, porque el examen no cuenta como actividad del staff.
   - Verificado en el navegador: 14 min sin actividad → abierta; 16 min → bloqueada.
+
+## 🆕 Calidad del frontend: lint en cero, modo oscuro de la ficha y Playwright para lo nuevo (sesión 2026-11-02)
+
+- **Lint en cero** (`npx eslint .`). Venía de 1713 avisos:
+  - 1577 eran de `public/pdf.worker.min.mjs` (pdf.js minificado, de terceros). `public/**` queda ignorado en `eslint.config.mjs`.
+  - Los 115 `any`: 96 eran `catch (err: any)`, ahora `catch (err)` con `mensajeDe(err)` y `estadoHttpDe(err)` de `lib/api-client.ts`. `mensajeDe` devuelve `""` si lo lanzado no es un `Error`, así que el `|| "texto por defecto"` de cada pantalla sigue funcionando igual. El resto se tipó: `ConfigSeccion` y `ContenidoImagenAnexo` en `documentos/[id]`, `PruebaCompletaApi` en `e2e/helpers.ts` y `extraerMensajeError(cuerpo: unknown)`.
+  - Los 18 `react-hooks/set-state-in-effect`:
+    - 12 cargas de datos al montar o al cambiar un filtro pasan por `lib/useCargaDiferida.ts`, que aplaza la carga fuera del cuerpo síncrono del efecto (mismo criterio que `AuthContext` y `BloqueoInactividad`; acepta la limpieza del flag `vigente`). Las pantallas nuevas deberían usar react-query, como `lib/padron.ts`.
+    - Los selects dependientes nivel → grado → sección de `documentos/nuevo` y `pruebas`: los efectos solo cargan; vaciar el hijo lo hace el `onChange` del padre y la lista visible se deriva (`gradosVisibles`/`seccionesVisibles`).
+    - `EditorResultadosMultiplesVinculables` ajusta su estado durante el render cuando cambia lo guardado, en lugar de usar un efecto.
+    - Quedan 2 excepciones explícitas, con su motivo escrito al lado: `VisorArchivo`, donde la URL del blob nace y se revoca en el mismo efecto, y `ThemeContext`, que no se puede aplazar porque el efecto que guarda el tema escribiría "claro" antes de leer la preferencia.
+  - 2 avisos `incompatible-library` de `useVirtualizer` (TanStack Virtual) silenciados con su motivo: el compilador de React solo avisa que no memoiza ese componente.
+- **Modo oscuro de la ficha del alumno**: 125 clases de color sin variante `dark:` en la ficha y en `ModalAplicarPrueba`, más 4 ternarios de insignias de estado. Se aplicó la misma pareja que ya usa el resto de la app, medida sobre el propio código: `text-ink/N` → `dark:text-ink-dark/N`, `text-teal-900` → `dark:text-ink-dark`, `text-teal-600/700` → `dark:text-teal-accent-dark`, `border-border` → `dark:border-border-dark`, `bg-mist` → `dark:bg-surface-raised-dark`, etc. Los fondos y bordes translúcidos de ámbar (`bg-amber/15`…) y el velo `bg-ink/45` quedan igual a propósito, porque ámbar es un solo token pensado para los dos temas.
+- **Playwright cubre lo nuevo** (13 specs):
+  - `casos-riesgo.spec.ts`: una alerta crea el caso, cambia de estado en el lugar, cerrar exige motivo y el caso sale de la bandeja. También cubre el interruptor de resultados **apagado**: el alumno solo ve el agradecimiento.
+  - `aplicacion-individual.spec.ts`: desde el perfil, "Puede rendirla", enlace y la regla de reaplicación (con la prueba pendiente ya no puede rendirla). También el interruptor **encendido**: el alumno ve "Tus resultados" y el PDF.
+  - `campana-por-salon.spec.ts`: un salón con un alumno sin consentimiento avisa "1 no pueden rendirla" y genera solo los otros 2 enlaces.
+  - `sesion.spec.ts` (paso anterior): cookies httpOnly, renovación, bloqueo por inactividad en el servidor y cierre.
+  - `revision-informe.spec.ts` fallaba desde antes: el informe lo genera el worker de Celery y la ficha solo lista informes ya generados. Ahora espera con `esperarInformeGenerado`, y `finalizarExamenCompleto` comprueba cada paso en vez de fallar en silencio.
+- **Bug encontrado por los specs nuevos**: un alumno que volvía a abrir su enlace después de terminar veía otra vez "Antes de comenzar". `GET /examen/{token}/intake` ya respondía 409 (finalizado) o 410 (vencido), pero la página lo ignoraba. Ahora va directo al agradecimiento, y a su resultado si la campaña lo permite, o al error terminal.

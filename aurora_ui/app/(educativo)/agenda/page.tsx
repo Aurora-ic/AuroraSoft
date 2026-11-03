@@ -1,7 +1,7 @@
 "use client";
 
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -21,13 +21,14 @@ import {
   CalendarPlus,
   type LucideIcon,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { Cita, CitaUpdate } from "@/types/api";
 import { usePadronPaginado, useValorDiferido } from "@/lib/padron";
 import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { ModalNuevaActividad, type InicialActividad } from "@/components/educativo/ModalNuevaActividad";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 const TIPOS_ACTIVIDAD = ["Taller", "Charla", "Reunión", "Otro"];
 
@@ -194,7 +195,7 @@ export default function AgendaPage() {
       .finally(() => setCargando(false));
   }
 
-  useEffect(cargar, []);
+  useCargaDiferida(cargar, []);
 
   const inicioSemanaVisible = useMemo(() => {
     const hoy = inicioDeSemana(new Date());
@@ -273,8 +274,8 @@ export default function AgendaPage() {
     try {
       await apiClient.delete(`/admin/personas/citas/${citaId}`);
       cargar();
-    } catch (err: any) {
-      setError(err.message || "No se pudo cancelar la cita.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo cancelar la cita.");
     }
   }
 
@@ -325,8 +326,8 @@ export default function AgendaPage() {
       await apiClient.patch(`/admin/personas/citas/${cita.id}`, payload);
       setReprogramandoId(null);
       cargar();
-    } catch (err: any) {
-      setError(err.message || "No se pudo guardar los cambios.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo guardar los cambios.");
     } finally {
       setGuardando(false);
     }

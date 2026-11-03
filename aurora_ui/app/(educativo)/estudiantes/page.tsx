@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users, UserCheck, UserX, FileWarning, School, Search, Upload, Plus, ChevronLeft, ChevronRight, Stethoscope } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Persona, RespuestaPaginada, ResumenPadron, SeccionActual } from "@/types/api";
 import { TextoError } from "@/components/ui/TextoError";
@@ -13,6 +13,7 @@ import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { EsqueletoFilasTabla } from "@/components/ui/Esqueleto";
 import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 // 🆕 (sesión 2026-10-31) "con-dx" = activos con diagnóstico — derivado en
 // el backend (Persona.con_diagnostico) de los antecedentes clínicos externos
@@ -114,7 +115,7 @@ export default function PadronPage() {
     return () => clearTimeout(t);
   }, [busqueda]);
 
-  useEffect(() => {
+  useCargaDiferida(() => {
     if (!sesion?.institucionId) return;
     let vigente = true;
     const params = new URLSearchParams({
@@ -195,8 +196,8 @@ export default function PadronPage() {
       setPersonas((prev) => prev.map((p) => (p.id === persona.id ? { ...p, ...actualizado } : p)));
       // Tarjetas y filtro (p. ej. "Activos") cambian: se vuelven a pedir.
       setRecarga((n) => n + 1);
-    } catch (err: any) {
-      setErrorAccion(err.message || "No se pudo cambiar el estado del alumno.");
+    } catch (err) {
+      setErrorAccion(mensajeDe(err) || "No se pudo cambiar el estado del alumno.");
     } finally {
       setActualizandoId(null);
     }

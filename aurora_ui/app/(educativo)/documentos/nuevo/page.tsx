@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FilePlus2, LayoutTemplate, Users, School, Search, X, ClipboardList, Info, ArrowRight } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ACENTOS } from "@/lib/acentos";
 import { Boton } from "@/components/ui/Boton";
@@ -131,23 +131,22 @@ export default function NuevoDocumentoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sesion?.institucionId]);
 
+  // 🆕 (sesión 2026-11-02) Los efectos solo CARGAN. Vaciar el grado/sección
+  // al quitar el nivel/grado lo hace el onChange de cada select, y la lista
+  // visible se deriva (antes el efecto hacía setState directo: lint
+  // react-hooks/set-state-in-effect).
   useEffect(() => {
-    if (!nivelId) {
-      setGrados([]);
-      setGradoId("");
-      return;
-    }
+    if (!nivelId) return;
     apiClient.get<Grado[]>(`/admin/personas/academico/grados/${nivelId}`).then(setGrados).catch(() => setGrados([]));
   }, [nivelId]);
 
   useEffect(() => {
-    if (!gradoId) {
-      setSecciones([]);
-      setSeccionId("");
-      return;
-    }
+    if (!gradoId) return;
     apiClient.get<Seccion[]>(`/admin/personas/academico/secciones/${gradoId}`).then(setSecciones).catch(() => setSecciones([]));
   }, [gradoId]);
+
+  const gradosVisibles = nivelId ? grados : [];
+  const seccionesVisibles = gradoId ? secciones : [];
 
   // Búsqueda en el servidor, 250 ms después de dejar de escribir. Sin texto
   // muestra los primeros 20 por apellido.
@@ -250,8 +249,8 @@ export default function NuevoDocumentoPage() {
     }
     if (!nivelId) return "Sin elegir";
     const nivel = niveles.find((n) => n.id === Number(nivelId))?.nombre;
-    const grado = grados.find((g) => g.id === Number(gradoId))?.nombre;
-    const seccion = secciones.find((s) => s.id === Number(seccionId))?.nombre;
+    const grado = gradosVisibles.find((g) => g.id === Number(gradoId))?.nombre;
+    const seccion = seccionesVisibles.find((s) => s.id === Number(seccionId))?.nombre;
     return [nivel, grado, seccion && `Sección ${seccion}`].filter(Boolean).join(" · ");
   }
 
@@ -275,13 +274,13 @@ export default function NuevoDocumentoPage() {
         else if (granularidad === "grado" && gradoId) nodo.grado_id = Number(gradoId);
         else if (granularidad === "nivel" && nivelId) nodo.nivel_educativo_id = Number(nivelId);
         payload.estructura = [nodo];
-        const seccionElegida = secciones.find((s) => s.id === Number(seccionId));
+        const seccionElegida = seccionesVisibles.find((s) => s.id === Number(seccionId));
         if (seccionElegida) payload.anio_escolar = seccionElegida.anio_escolar;
       }
       const nuevo = await apiClient.post<DocumentoInstitucional>("/documentos/", payload);
       router.push(`/documentos/${nuevo.id}`);
-    } catch (err: any) {
-      setErrorCrear(err.message || "No se pudo crear el documento.");
+    } catch (err) {
+      setErrorCrear(mensajeDe(err) || "No se pudo crear el documento.");
     } finally {
       setCreando(false);
     }
@@ -435,7 +434,7 @@ export default function NuevoDocumentoPage() {
               <div className="space-y-2.5">
                 <div className="grid sm:grid-cols-3 gap-3">
                   <CampoFormulario etiqueta="Nivel">
-                    <Select value={nivelId} onChange={(e) => { setNivelId(e.target.value); setGranularidad("nivel"); }}>
+                    <Select value={nivelId} onChange={(e) => { setNivelId(e.target.value); setGranularidad("nivel"); if (!e.target.value) { setGradoId(""); setSeccionId(""); } }}>
                       <option value="">Elige...</option>
                       {niveles.map((n) => (
                         <option key={n.id} value={n.id}>
@@ -445,9 +444,9 @@ export default function NuevoDocumentoPage() {
                     </Select>
                   </CampoFormulario>
                   <CampoFormulario etiqueta="Grado">
-                    <Select value={gradoId} onChange={(e) => { setGradoId(e.target.value); setGranularidad("grado"); }} disabled={!nivelId}>
+                    <Select value={gradoId} onChange={(e) => { setGradoId(e.target.value); setGranularidad("grado"); if (!e.target.value) setSeccionId(""); }} disabled={!nivelId}>
                       <option value="">Todo el nivel</option>
-                      {grados.map((g) => (
+                      {gradosVisibles.map((g) => (
                         <option key={g.id} value={g.id}>
                           {g.nombre}
                         </option>
@@ -457,7 +456,7 @@ export default function NuevoDocumentoPage() {
                   <CampoFormulario etiqueta="Sección">
                     <Select value={seccionId} onChange={(e) => { setSeccionId(e.target.value); setGranularidad("seccion"); }} disabled={!gradoId}>
                       <option value="">Todo el grado</option>
-                      {secciones.map((s) => (
+                      {seccionesVisibles.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.nombre} {s.anio_escolar}
                         </option>

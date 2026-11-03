@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search, X, ChevronRight, Mail } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { Badge } from "@/components/ui/Badge";
 import { TextoError } from "@/components/ui/TextoError";
@@ -14,6 +14,7 @@ import { Migas } from "@/components/ui/Migas";
 import { Iniciales } from "@/components/superadmin/Iniciales";
 import { diasParaVencer, estadoLicencia, formatearFecha } from "@/components/superadmin/estadoLicencia";
 import type { Institucion, InstitucionCreate } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 type Filtro = "todas" | "activas" | "inactivas" | "vencidas";
 
@@ -72,7 +73,7 @@ function ClientesContenido() {
       .finally(() => setCargando(false));
   }
 
-  useEffect(cargar, []);
+  useCargaDiferida(cargar, []);
 
   async function crearInstitucion(e: React.FormEvent) {
     e.preventDefault();
@@ -91,8 +92,8 @@ function ClientesContenido() {
       setMostrarForm(false);
       setForm(FORM_VACIO);
       cargar();
-    } catch (err: any) {
-      setErrorCrear(err.message || "No se pudo crear la institución.");
+    } catch (err) {
+      setErrorCrear(mensajeDe(err) || "No se pudo crear la institución.");
     } finally {
       setCreando(false);
     }

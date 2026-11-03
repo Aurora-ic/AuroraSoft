@@ -32,6 +32,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const guardado = localStorage.getItem(CLAVE_STORAGE);
+    // localStorage no existe en el servidor (no puede ir en el valor inicial
+    // de useState) y esto NO se puede diferir con setTimeout: el efecto de
+    // abajo escribiría "claro" antes de leer la preferencia y la perdería.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (guardado === "oscuro" || guardado === "claro") setTema(guardado);
   }, []);
 

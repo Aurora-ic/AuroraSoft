@@ -1,7 +1,7 @@
 "use client";
 
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,7 +19,7 @@ import {
   CheckCircle2,
   Info,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { ACENTOS } from "@/lib/acentos";
 import { Boton, claseBoton } from "@/components/ui/Boton";
@@ -45,6 +45,7 @@ import type {
   TipoDocumento,
   Institucion,
 } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 const FUENTES = ["Arial", "Helvetica", "Times New Roman"];
 const VIOLETA = ACENTOS.violeta;
@@ -123,10 +124,7 @@ export default function ConstructorPlantillaPage() {
       .finally(() => setCargando(false));
   }
 
-  useEffect(() => {
-    cargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plantillaId]);
+  useCargaDiferida(cargar, [plantillaId]);
 
   // Activar/desactivar — acción propia (no mezclada con "Guardar formato").
   // 🆕 (sesión 2026-11-01) Ya no hay exclusividad por tipo: activar esta
@@ -142,8 +140,8 @@ export default function ConstructorPlantillaPage() {
         activa: !plantilla?.activa,
       });
       setPlantilla(actualizada);
-    } catch (err: any) {
-      setErrorActiva(err.message || "No se pudo cambiar el estado.");
+    } catch (err) {
+      setErrorActiva(mensajeDe(err) || "No se pudo cambiar el estado.");
     } finally {
       setAlternandoActiva(false);
     }
@@ -167,8 +165,8 @@ export default function ConstructorPlantillaPage() {
     try {
       await apiClient.delete(`/documentos/plantillas/${plantillaId}`);
       router.push("/documentos");
-    } catch (err: any) {
-      setErrorActiva(err.message || "No se pudo eliminar la plantilla.");
+    } catch (err) {
+      setErrorActiva(mensajeDe(err) || "No se pudo eliminar la plantilla.");
       setEliminando(false);
     }
   }
@@ -183,8 +181,8 @@ export default function ConstructorPlantillaPage() {
       const actualizada = await apiClient.patch<PlantillaDocumento>(`/documentos/plantillas/${plantillaId}`, form);
       setPlantilla(actualizada);
       setFormGuardado(true);
-    } catch (err: any) {
-      setErrorForm(err.message || "No se pudo guardar.");
+    } catch (err) {
+      setErrorForm(mensajeDe(err) || "No se pudo guardar.");
     } finally {
       setGuardandoForm(false);
     }
@@ -205,8 +203,8 @@ export default function ConstructorPlantillaPage() {
       fd.append("archivo", archivo);
       const inst = await apiClient.postForm<Institucion>(`/instituciones/${sesion.institucionId}/branding/${tipo}`, fd);
       setInstitucion(inst);
-    } catch (err: any) {
-      setErrorBranding(err.message || "No se pudo subir la imagen. Si el backend corre en localhost, esto está bloqueado a propósito (protección anti-SSRF) hasta tener un dominio público real.");
+    } catch (err) {
+      setErrorBranding(mensajeDe(err) || "No se pudo subir la imagen. Si el backend corre en localhost, esto está bloqueado a propósito (protección anti-SSRF) hasta tener un dominio público real.");
     } finally {
       setSubiendoBranding(null);
     }
@@ -224,8 +222,8 @@ export default function ConstructorPlantillaPage() {
       const creada = await apiClient.post<PlantillaSeccion>(`/documentos/plantillas/${plantillaId}/secciones`, payload);
       setSecciones([...secciones, creada]);
       setNuevoTitulo("");
-    } catch (err: any) {
-      setErrorAgregar(err.message || "No se pudo agregar la sección.");
+    } catch (err) {
+      setErrorAgregar(mensajeDe(err) || "No se pudo agregar la sección.");
     } finally {
       setAgregando(false);
     }
@@ -244,8 +242,8 @@ export default function ConstructorPlantillaPage() {
       copia[idx] = b;
       copia[idx + direccion] = a;
       setSecciones(copia.sort((x, y) => x.orden - y.orden));
-    } catch (err: any) {
-      setError(err.message || "No se pudo reordenar.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo reordenar.");
     }
   }
 
@@ -262,8 +260,8 @@ export default function ConstructorPlantillaPage() {
     try {
       await apiClient.delete(`/documentos/secciones/${seccion.id}`);
       setSecciones(secciones.filter((s) => s.id !== seccion.id));
-    } catch (err: any) {
-      setError(err.message || "No se pudo borrar — puede que ya tenga contenido o un resultado vinculado en algún documento.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo borrar — puede que ya tenga contenido o un resultado vinculado en algún documento.");
     }
   }
 
@@ -278,8 +276,8 @@ export default function ConstructorPlantillaPage() {
     try {
       const actualizada = await apiClient.patch<PlantillaSeccion>(`/documentos/secciones/${seccion.id}`, { titulo: titulo || null });
       setSecciones(secciones.map((s) => (s.id === seccion.id ? actualizada : s)));
-    } catch (err: any) {
-      setError(err.message || "No se pudo guardar el título.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo guardar el título.");
     }
   }
 
@@ -289,9 +287,9 @@ export default function ConstructorPlantillaPage() {
       const config = JSON.parse(configTexto[seccion.id] || "{}");
       const actualizada = await apiClient.patch<PlantillaSeccion>(`/documentos/secciones/${seccion.id}`, { config });
       setSecciones(secciones.map((s) => (s.id === seccion.id ? actualizada : s)));
-    } catch (err: any) {
+    } catch (err) {
       setErrorSeccionId(seccion.id);
-      setError(err instanceof SyntaxError ? "El JSON de configuración no es válido." : err.message || "No se pudo guardar.");
+      setError(err instanceof SyntaxError ? "El JSON de configuración no es válido." : mensajeDe(err) || "No se pudo guardar.");
     }
   }
 
@@ -302,8 +300,8 @@ export default function ConstructorPlantillaPage() {
       const actualizada = await apiClient.patch<PlantillaSeccion>(`/documentos/secciones/${seccion.id}`, { config });
       setSecciones(secciones.map((s) => (s.id === seccion.id ? actualizada : s)));
       setConfigTexto({ ...configTexto, [seccion.id]: JSON.stringify(config, null, 2) });
-    } catch (err: any) {
-      setError(err.message || "No se pudo guardar.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo guardar.");
     }
   }
 

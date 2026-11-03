@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Pencil, Check, X, Trash2, Plus, ChevronRight, Info, Layers, GraduationCap, DoorOpen, Network, Users, type LucideIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import { CampoEditable } from "@/components/ui/CampoEditable";
@@ -21,6 +21,7 @@ import type {
   SeccionUpdate,
   ConteosEstructuraAcademica,
 } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 function FilaSeleccionable({
   activo,
@@ -429,8 +430,8 @@ export default function EstructuraAcademicaPage() {
         setSecciones((prev) => prev.filter((s) => s.id !== id));
       }
       setEliminandoItem(null);
-    } catch (err: any) {
-      setErrorEliminar(err.message || "No se pudo eliminar.");
+    } catch (err) {
+      setErrorEliminar(mensajeDe(err) || "No se pudo eliminar.");
     } finally {
       setBorrando(false);
     }
@@ -491,8 +492,8 @@ export default function EstructuraAcademicaPage() {
         setSecciones((prev) => prev.map((s) => (s.id === seccion.id ? seccion : s)));
       }
       setEditando(null);
-    } catch (err: any) {
-      setErrorEdicion(err.message || "No se pudieron guardar los cambios.");
+    } catch (err) {
+      setErrorEdicion(mensajeDe(err) || "No se pudieron guardar los cambios.");
     } finally {
       setGuardandoEdicion(false);
     }
@@ -514,14 +515,14 @@ export default function EstructuraAcademicaPage() {
     );
   }
 
-  useEffect(() => {
+  useCargaDiferida(() => {
     if (!sesion?.institucionId) return;
     setCargandoNiveles(true);
     setErrorNiveles(null);
     apiClient
       .get<NivelEducativo[]>(`/admin/personas/academico/niveles/${sesion.institucionId}`)
       .then(setNiveles)
-      .catch((err: any) => setErrorNiveles(err.message || "No se pudieron cargar los niveles educativos."))
+      .catch((err: unknown) => setErrorNiveles(mensajeDe(err) || "No se pudieron cargar los niveles educativos."))
       .finally(() => setCargandoNiveles(false));
     apiClient
       .get<ConteosEstructuraAcademica>(`/admin/personas/academico/conteos/${sesion.institucionId}`)
@@ -541,8 +542,8 @@ export default function EstructuraAcademicaPage() {
     try {
       const datos = await apiClient.get<Grado[]>(`/admin/personas/academico/grados/${nivel.id}`);
       setGrados(datos);
-    } catch (err: any) {
-      setErrorGrados(err.message || "No se pudieron cargar los grados.");
+    } catch (err) {
+      setErrorGrados(mensajeDe(err) || "No se pudieron cargar los grados.");
     } finally {
       setCargandoGrados(false);
     }
@@ -556,8 +557,8 @@ export default function EstructuraAcademicaPage() {
     try {
       const datos = await apiClient.get<Seccion[]>(`/admin/personas/academico/secciones/${grado.id}`);
       setSecciones(datos);
-    } catch (err: any) {
-      setErrorSecciones(err.message || "No se pudieron cargar las secciones.");
+    } catch (err) {
+      setErrorSecciones(mensajeDe(err) || "No se pudieron cargar las secciones.");
     } finally {
       setCargandoSecciones(false);
     }
@@ -580,8 +581,8 @@ export default function EstructuraAcademicaPage() {
       );
       setNiveles(datos);
       setFormNivel({ nombre: "", orden: "" });
-    } catch (err: any) {
-      setErrorFormNivel(err.message || "No se pudo crear el nivel educativo.");
+    } catch (err) {
+      setErrorFormNivel(mensajeDe(err) || "No se pudo crear el nivel educativo.");
     } finally {
       setGuardandoNivel(false);
     }
@@ -602,8 +603,8 @@ export default function EstructuraAcademicaPage() {
       const datos = await apiClient.get<Grado[]>(`/admin/personas/academico/grados/${nivelSeleccionado.id}`);
       setGrados(datos);
       setFormGrado({ nombre: "", orden: "" });
-    } catch (err: any) {
-      setErrorFormGrado(err.message || "No se pudo crear el grado.");
+    } catch (err) {
+      setErrorFormGrado(mensajeDe(err) || "No se pudo crear el grado.");
     } finally {
       setGuardandoGrado(false);
     }
@@ -630,8 +631,8 @@ export default function EstructuraAcademicaPage() {
       const datos = await apiClient.get<Seccion[]>(`/admin/personas/academico/secciones/${gradoSeleccionado.id}`);
       setSecciones(datos);
       setFormSeccion({ nombre: "", turno: "", anio_escolar: "" });
-    } catch (err: any) {
-      setErrorFormSeccion(err.message || "No se pudo crear la sección.");
+    } catch (err) {
+      setErrorFormSeccion(mensajeDe(err) || "No se pudo crear la sección.");
     } finally {
       setGuardandoSeccion(false);
     }

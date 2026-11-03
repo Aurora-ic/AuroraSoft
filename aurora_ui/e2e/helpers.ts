@@ -48,6 +48,11 @@ export async function login(_ctx: APIRequestContext, email: string, password: st
   }
 }
 
+// Lo que estos helpers leen de GET /educativo/pruebas/{id}/completa.
+type PruebaCompletaApi = {
+  dimensiones: { id: number; preguntas: { id: number; orden: number; opciones: { id: number; valor_puntuacion: number }[] }[] }[];
+};
+
 function auth(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
@@ -118,14 +123,14 @@ export async function crearFixturesBase(ctx: APIRequestContext, sello: string): 
     data: { prueba_id: prueba.id, dimensiones: [{ nombre: "D" }], preguntas: preguntasCarga },
   });
 
-  const detalle = await (await ctx.get(`${API}/educativo/pruebas/${prueba.id}/completa`, { headers: hPsi })).json();
+  const detalle: PruebaCompletaApi = await (await ctx.get(`${API}/educativo/pruebas/${prueba.id}/completa`, { headers: hPsi })).json();
   const dim = detalle.dimensiones[0];
   await ctx.post(`${API}/educativo/baremos/`, {
     headers: hPsi,
     data: { dimension_id: dim.id, puntaje_minimo: 0, puntaje_maximo: 3, nivel: "Bajo", es_alerta: false },
   });
 
-  const preguntasOrdenadas = [...dim.preguntas].sort((a: any, b: any) => a.orden - b.orden);
+  const preguntasOrdenadas = [...dim.preguntas].sort((a, b) => a.orden - b.orden);
   return {
     sello,
     institucionId: institucion.id,
@@ -135,8 +140,8 @@ export async function crearFixturesBase(ctx: APIRequestContext, sello: string): 
     superadminToken: tokenSuper,
     pruebaId: prueba.id,
     dimensionId: dim.id,
-    preguntaIds: preguntasOrdenadas.map((p: any) => p.id),
-    opcionCorrectaIds: preguntasOrdenadas.map((p: any) => p.opciones.find((o: any) => o.valor_puntuacion === 1).id),
+    preguntaIds: preguntasOrdenadas.map((p) => p.id),
+    opcionCorrectaIds: preguntasOrdenadas.map((p) => p.opciones.find((o) => o.valor_puntuacion === 1)!.id),
   };
 }
 
@@ -195,18 +200,18 @@ export async function crearPruebaConBaremo(
     headers: h, data: { prueba_id: prueba.id, dimensiones: [{ nombre: "D" }], preguntas: preguntasCarga },
   });
 
-  const detalle = await (await ctx.get(`${API}/educativo/pruebas/${prueba.id}/completa`, { headers: h })).json();
+  const detalle: PruebaCompletaApi = await (await ctx.get(`${API}/educativo/pruebas/${prueba.id}/completa`, { headers: h })).json();
   const dim = detalle.dimensiones[0];
   await ctx.post(`${API}/educativo/baremos/`, {
     headers: h,
     data: { dimension_id: dim.id, puntaje_minimo: 0, puntaje_maximo: 3, nivel: esAlerta ? "Alto" : "Bajo", es_alerta: esAlerta },
   });
 
-  const preguntasOrdenadas = [...dim.preguntas].sort((a: any, b: any) => a.orden - b.orden);
+  const preguntasOrdenadas = [...dim.preguntas].sort((a, b) => a.orden - b.orden);
   return {
     pruebaId: prueba.id,
-    preguntaIds: preguntasOrdenadas.map((p: any) => p.id),
-    opcionCorrectaIds: preguntasOrdenadas.map((p: any) => p.opciones.find((o: any) => o.valor_puntuacion === 1).id),
+    preguntaIds: preguntasOrdenadas.map((p) => p.id),
+    opcionCorrectaIds: preguntasOrdenadas.map((p) => p.opciones.find((o) => o.valor_puntuacion === 1)!.id),
   };
 }
 
@@ -216,12 +221,35 @@ export async function crearPruebaConBaremo(
 export async function finalizarExamenCompleto(
   ctx: APIRequestContext, tokenExamen: string, preguntaIds: number[], opcionIds: number[],
 ): Promise<void> {
-  await ctx.post(`${API}/educativo/comenzar-test/${tokenExamen}`, {
+  // 🆕 (sesión 2026-11-02) Cada paso comprueba su respuesta: antes un fallo
+  // (p. ej. un campo nuevo exigido por comenzar-test) se perdía en silencio
+  // y el spec fallaba mucho después, buscando un informe que nunca existió.
+  async function paso(nombre: string, res: Awaited<ReturnType<APIRequestContext["post"]>>) {
+    if (!res.ok()) throw new Error(`Examen ${tokenExamen}: ${nombre} falló (${res.status()}): ${await res.text()}`);
+  }
+  await paso("comenzar-test", await ctx.post(`${API}/educativo/comenzar-test/${tokenExamen}`, {
     data: { nombre_completo: "ZZPLAYWRIGHT Alumno", edad: 15, sexo: "Femenino", poblacion: "Secundaria", acepta_terminos: true },
-  });
+  }));
   const respuestas = preguntaIds.map((pid, i) => ({ pregunta_id: pid, opcion_id: opcionIds[i] }));
-  await ctx.post(`${API}/educativo/examen/${tokenExamen}/guardar`, { data: { respuestas } });
-  await ctx.post(`${API}/educativo/examen/${tokenExamen}/finalizar`);
+  await paso("guardar", await ctx.post(`${API}/educativo/examen/${tokenExamen}/guardar`, { data: { respuestas } }));
+  await paso("finalizar", await ctx.post(`${API}/educativo/examen/${tokenExamen}/finalizar`));
+}
+
+/** El informe de un examen finalizado lo genera el worker de Celery, en
+ * segundo plano, y la ficha del alumno solo lista informes YA generados.
+ * Sin esperar, un spec que abre la ficha justo después de finalizar puede
+ * no ver nada (depende de cuánta cola tenga el worker). Requiere un worker
+ * corriendo -- ver e2e/README.md. */
+export async function esperarInformeGenerado(
+  ctx: APIRequestContext, token: string, personaId: number, minimo = 1, timeoutMs = 60_000,
+): Promise<void> {
+  const limite = Date.now() + timeoutMs;
+  while (Date.now() < limite) {
+    const res = await ctx.get(`${API}/educativo/personas/${personaId}/informes`, { headers: auth(token) });
+    if (res.ok() && (await res.json()).length >= minimo) return;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error(`El informe de la persona ${personaId} no se generó en ${timeoutMs / 1000} s. ¿Está corriendo el worker de Celery?`);
 }
 
 /** Crea un alumno en el padrón + consentimiento del apoderado vía API --

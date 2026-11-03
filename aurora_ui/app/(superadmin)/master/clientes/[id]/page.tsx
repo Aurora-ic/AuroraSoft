@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Plus, X, Eye, EyeOff, CircleCheck, Users } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { Badge } from "@/components/ui/Badge";
 import { TextoError } from "@/components/ui/TextoError";
@@ -14,6 +14,7 @@ import { Migas } from "@/components/ui/Migas";
 import { Iniciales } from "@/components/superadmin/Iniciales";
 import { diasParaVencer, estadoLicencia, formatearFecha } from "@/components/superadmin/estadoLicencia";
 import type { Institucion, InstitucionUpdate, Usuario, UsuarioCreate, Rol } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 const ROLES_ASIGNABLES: Rol[] = ["admin", "psicologo", "colegio"];
 
@@ -102,8 +103,8 @@ export default function DetalleInstitucionPage() {
       .finally(() => setCargandoUsuarios(false));
   }
 
-  useEffect(cargarInstitucion, [institucionId]);
-  useEffect(cargarUsuarios, [institucionId]);
+  useCargaDiferida(cargarInstitucion, [institucionId]);
+  useCargaDiferida(cargarUsuarios, [institucionId]);
 
   // El aviso "Cambios guardados" se apaga solo a los pocos segundos.
   useEffect(() => {
@@ -133,8 +134,8 @@ export default function DetalleInstitucionPage() {
       const actualizada = await apiClient.patch<Institucion>(`/instituciones/${institucionId}`, payload);
       setInstitucion(actualizada);
       setGuardadoOk(true);
-    } catch (err: any) {
-      setErrorGuardar(err.message || "No se pudo guardar la institución.");
+    } catch (err) {
+      setErrorGuardar(mensajeDe(err) || "No se pudo guardar la institución.");
     } finally {
       setGuardando(false);
     }
@@ -157,8 +158,8 @@ export default function DetalleInstitucionPage() {
       setVerPassword(false);
       setFormUsuario({ email: "", password: "", nombre_completo: "", rol: "psicologo" });
       cargarUsuarios();
-    } catch (err: any) {
-      setErrorCrearUsuario(err.message || "No se pudo crear el usuario.");
+    } catch (err) {
+      setErrorCrearUsuario(mensajeDe(err) || "No se pudo crear el usuario.");
     } finally {
       setCreandoUsuario(false);
     }
@@ -168,8 +169,8 @@ export default function DetalleInstitucionPage() {
     try {
       const actualizado = await apiClient.patch<Usuario>(`/auth/usuarios/${usuario.id}`, { activo: !usuario.activo });
       setUsuarios((prev) => prev.map((u) => (u.id === usuario.id ? actualizado : u)));
-    } catch (err: any) {
-      setErrorUsuarios(err.message || "No se pudo cambiar el estado del usuario.");
+    } catch (err) {
+      setErrorUsuarios(mensajeDe(err) || "No se pudo cambiar el estado del usuario.");
     }
   }
 

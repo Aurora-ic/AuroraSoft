@@ -193,6 +193,9 @@ export default function ImportarEstudiantesPage() {
   // hooks de React) aunque `resultado` todavía sea null al montar — por
   // eso cuenta sobre `filasVisibles.length` (vacía hasta validar).
   const filasPreviewRef = useRef<HTMLDivElement>(null);
+  // TanStack Virtual devuelve funciones que el React Compiler no puede
+  // memoizar: solo AVISA que se salta este componente (no es un error).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizadorFilas = useVirtualizer({
     count: filasVisibles.length,
     getScrollElement: () => filasPreviewRef.current,

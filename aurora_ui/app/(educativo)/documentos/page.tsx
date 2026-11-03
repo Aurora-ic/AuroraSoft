@@ -1,7 +1,7 @@
 "use client";
 
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { EncabezadoPagina, claseBotonBanner, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { BloqueFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { ACENTOS } from "@/lib/acentos";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton, claseBoton } from "@/components/ui/Boton";
@@ -41,6 +41,7 @@ import type {
   PlantillaDocumentoClonarRequest,
   RespuestaPaginada,
 } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 const TAMANO_PAGINA = 50;
 const VIOLETA = ACENTOS.violeta;
@@ -137,7 +138,7 @@ export default function DocumentosPage() {
   }, [searchDocumentos]);
 
   // Documentos: paginados y filtrados en el servidor (docs/gaps-pendientes.md).
-  useEffect(() => {
+  useCargaDiferida(() => {
     if (!sesion?.institucionId) return;
     let vigente = true;
     const params = new URLSearchParams({
@@ -193,8 +194,8 @@ export default function DocumentosPage() {
     try {
       await apiClient.delete(`/documentos/plantillas/${p.id}`);
       setPlantillas((prev) => prev.filter((x) => x.id !== p.id));
-    } catch (err: any) {
-      setErrorPlantilla(err.message || "No se pudo eliminar la plantilla.");
+    } catch (err) {
+      setErrorPlantilla(mensajeDe(err) || "No se pudo eliminar la plantilla.");
     } finally {
       setEliminandoId(null);
     }
@@ -208,8 +209,8 @@ export default function DocumentosPage() {
       // 🆕 (sesión 2026-11-01) Sin exclusividad por tipo: activar esta no
       // apaga ninguna otra, solo cambia ella.
       setPlantillas((prev) => prev.map((x) => (x.id === actualizada.id ? actualizada : x)));
-    } catch (err: any) {
-      setErrorPlantilla(err.message || "No se pudo activar la plantilla.");
+    } catch (err) {
+      setErrorPlantilla(mensajeDe(err) || "No se pudo activar la plantilla.");
     } finally {
       setActivandoId(null);
     }
@@ -232,8 +233,8 @@ export default function DocumentosPage() {
       };
       const nueva = await apiClient.post<PlantillaDocumento>("/documentos/plantillas", payload);
       router.push(`/documentos/plantillas/${nueva.id}`);
-    } catch (err: any) {
-      setErrorPlantilla(err.message || "No se pudo crear la plantilla.");
+    } catch (err) {
+      setErrorPlantilla(mensajeDe(err) || "No se pudo crear la plantilla.");
     } finally {
       setCreandoPlantilla(false);
     }
@@ -249,8 +250,8 @@ export default function DocumentosPage() {
       const payload: PlantillaDocumentoClonarRequest = { institucion_destino_id: sesion.institucionId, activar: true };
       const clon = await apiClient.post<PlantillaDocumento>(`/documentos/plantillas/${predeterminada.id}/clonar`, payload);
       router.push(`/documentos/plantillas/${clon.id}`);
-    } catch (err: any) {
-      setErrorClonar(err.message || "No se pudo clonar la plantilla.");
+    } catch (err) {
+      setErrorClonar(mensajeDe(err) || "No se pudo clonar la plantilla.");
     } finally {
       setClonandoId(null);
     }
@@ -277,16 +278,17 @@ export default function DocumentosPage() {
       // Si era el último de la página, retrocede una para no quedar en blanco.
       if (documentos.length === 1 && paginaDocumentos > 0) setPaginaDocumentos((p) => p - 1);
       else setRecarga((n) => n + 1);
-    } catch (err: any) {
-      setErrorDocumentos(err.message || "No se pudo descartar el borrador.");
+    } catch (err) {
+      setErrorDocumentos(mensajeDe(err) || "No se pudo descartar el borrador.");
     } finally {
       setDescartandoId(null);
     }
   }
 
-  function nombreTipo(tipoId: number) {
-    return tipos.find((t) => t.id === tipoId)?.nombre ?? `Tipo #${tipoId}`;
-  }
+  const nombreTipo = useCallback(
+    (tipoId: number) => tipos.find((t) => t.id === tipoId)?.nombre ?? `Tipo #${tipoId}`,
+    [tipos],
+  );
 
   const plantillasFiltradas = useMemo(() => {
     const q = searchPlantillas.trim().toLowerCase();
@@ -301,7 +303,7 @@ export default function DocumentosPage() {
       if (a.activa !== b.activa) return a.activa ? -1 : 1;
       return a.nombre.localeCompare(b.nombre, "es");
     });
-  }, [plantillas, searchPlantillas, tipos]);
+  }, [plantillas, searchPlantillas, nombreTipo]);
 
   // Predeterminadas agrupadas por tipo, todas visibles (antes era un
   // acordeón con un solo grupo abierto: había que adivinar dónde estaba

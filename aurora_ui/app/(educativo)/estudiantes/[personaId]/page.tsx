@@ -4,7 +4,7 @@ import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiClient, descargarBlob } from "@/lib/api-client";
+import { apiClient, descargarBlob, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton, claseBoton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
@@ -512,8 +512,8 @@ export default function FichaAlumnoPage() {
           )
           .then((res) => setDocumentos(res.items))
           .catch((err) => setErrorDocumentos(err.message || "No se pudieron cargar los documentos institucionales."));
-      } catch (err: any) {
-        setError(err.message || "Error al cargar la información del alumno.");
+      } catch (err) {
+        setError(mensajeDe(err) || "Error al cargar la información del alumno.");
       } finally {
         setLoading(false);
       }
@@ -552,8 +552,8 @@ export default function FichaAlumnoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/inscripciones/${inscripcionId}/informe-pdf`);
       setPdfPreviewArchivo({ blob, contentType: "application/pdf", nombreArchivo: `informe_${inscripcionId}.pdf` });
-    } catch (err: any) {
-      setErrorPreviewPdf(err.message || "No se pudo cargar la vista previa del informe.");
+    } catch (err) {
+      setErrorPreviewPdf(mensajeDe(err) || "No se pudo cargar la vista previa del informe.");
     } finally {
       setCargandoPreviewPdf(false);
     }
@@ -574,8 +574,8 @@ export default function FichaAlumnoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/inscripciones/${inscripcionId}/informe-pdf`);
       setVisorModalArchivo({ blob, contentType: "application/pdf", nombreArchivo: `informe_${inscripcionId}.pdf` });
-    } catch (err: any) {
-      setVisorModalError(err.message || "No se pudo cargar el informe.");
+    } catch (err) {
+      setVisorModalError(mensajeDe(err) || "No se pudo cargar el informe.");
     } finally {
       setVisorModalCargando(false);
     }
@@ -594,8 +594,8 @@ export default function FichaAlumnoPage() {
         contentType: entrada.content_type,
         nombreArchivo: entrada.nombre_archivo_original || `evidencia-${entrada.id}`,
       });
-    } catch (err: any) {
-      setVisorModalError(err.message || "No se pudo cargar la evidencia.");
+    } catch (err) {
+      setVisorModalError(mensajeDe(err) || "No se pudo cargar la evidencia.");
     } finally {
       setVisorModalCargando(false);
     }
@@ -633,8 +633,8 @@ export default function FichaAlumnoPage() {
       if (detalle.existe) {
         await cargarPreviewPdf(inscripcionId);
       }
-    } catch (err: any) {
-      setErrorRevision(err.message || "No se pudo cargar el detalle del informe.");
+    } catch (err) {
+      setErrorRevision(mensajeDe(err) || "No se pudo cargar el detalle del informe.");
     } finally {
       setCargandoDetalleInforme(false);
     }
@@ -648,8 +648,8 @@ export default function FichaAlumnoPage() {
       const detalle = await apiClient.get<DetalleInforme>(`/educativo/inscripciones/${inscripcionId}/informe`);
       setDetalleInforme(detalle);
       await recargarPruebasAplicadas();
-    } catch (err: any) {
-      setErrorRevision(err.message || "No se pudo guardar la revisión.");
+    } catch (err) {
+      setErrorRevision(mensajeDe(err) || "No se pudo guardar la revisión.");
     } finally {
       setGuardandoRevision(false);
     }
@@ -671,8 +671,8 @@ export default function FichaAlumnoPage() {
       setDetalleInforme(detalle);
       await recargarPruebasAplicadas();
       await cargarPreviewPdf(inscripcionId); // la reemisión SÍ cambia el PDF — refrescar la vista previa
-    } catch (err: any) {
-      setErrorReemitir(err.message || "No se pudo reemitir el informe.");
+    } catch (err) {
+      setErrorReemitir(mensajeDe(err) || "No se pudo reemitir el informe.");
     } finally {
       setReemitiendo(false);
     }
@@ -683,8 +683,8 @@ export default function FichaAlumnoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/inscripciones/${inscripcionId}/informe-pdf`);
       descargarBlob(blob, `informe_${inscripcionId}.pdf`);
-    } catch (err: any) {
-      setErrorPruebas(err.message || "No se pudo descargar el informe.");
+    } catch (err) {
+      setErrorPruebas(mensajeDe(err) || "No se pudo descargar el informe.");
     } finally {
       setDescargandoInformeId(null);
     }
@@ -718,8 +718,8 @@ export default function FichaAlumnoPage() {
       const actualizado = await apiClient.patch<Persona>(`/admin/personas/${personaId}`, payload);
       setAlumno((prev) => (prev ? { ...prev, ...actualizado } : actualizado));
       setEditando(false);
-    } catch (err: any) {
-      setErrorEdicion(err.message || "No se pudo guardar los cambios.");
+    } catch (err) {
+      setErrorEdicion(mensajeDe(err) || "No se pudo guardar los cambios.");
     } finally {
       setGuardando(false);
     }
@@ -737,8 +737,8 @@ export default function FichaAlumnoPage() {
     try {
       const datos = await apiClient.get<RegistroCambioPersona[]>(`/admin/personas/${personaId}/historial-cambios`);
       setHistorial(datos);
-    } catch (err: any) {
-      setErrorHistorial(err.message || "No se pudo cargar el historial de cambios.");
+    } catch (err) {
+      setErrorHistorial(mensajeDe(err) || "No se pudo cargar el historial de cambios.");
     } finally {
       setCargandoHistorial(false);
     }
@@ -772,8 +772,8 @@ export default function FichaAlumnoPage() {
       );
       setDatosFamiliares(actualizado);
       setEditandoDatosFamiliares(false);
-    } catch (err: any) {
-      setErrorFormularioDatosFamiliares(err.message || "No se pudieron guardar los datos familiares.");
+    } catch (err) {
+      setErrorFormularioDatosFamiliares(mensajeDe(err) || "No se pudieron guardar los datos familiares.");
     } finally {
       setGuardandoDatosFamiliares(false);
     }
@@ -809,8 +809,8 @@ export default function FichaAlumnoPage() {
       );
       setAntecedentesClinicos(actualizado);
       setEditandoAntecedentesClinicos(false);
-    } catch (err: any) {
-      setErrorFormularioAntecedentesClinicos(err.message || "No se pudieron guardar los antecedentes clínicos.");
+    } catch (err) {
+      setErrorFormularioAntecedentesClinicos(mensajeDe(err) || "No se pudieron guardar los antecedentes clínicos.");
     } finally {
       setGuardandoAntecedentesClinicos(false);
     }
@@ -829,8 +829,8 @@ export default function FichaAlumnoPage() {
     try {
       const datos = await apiClient.get<NivelEducativo[]>(`/admin/personas/academico/niveles/${alumno.institucion_id}`);
       setNiveles(datos);
-    } catch (err: any) {
-      setErrorFormularioMatricula(err.message || "No se pudieron cargar los niveles educativos.");
+    } catch (err) {
+      setErrorFormularioMatricula(mensajeDe(err) || "No se pudieron cargar los niveles educativos.");
     } finally {
       setCargandoNiveles(false);
     }
@@ -848,8 +848,8 @@ export default function FichaAlumnoPage() {
     try {
       const datos = await apiClient.get<Grado[]>(`/admin/personas/academico/grados/${nivelId}`);
       setGrados(datos);
-    } catch (err: any) {
-      setErrorFormularioMatricula(err.message || "No se pudieron cargar los grados.");
+    } catch (err) {
+      setErrorFormularioMatricula(mensajeDe(err) || "No se pudieron cargar los grados.");
     } finally {
       setCargandoGrados(false);
     }
@@ -867,8 +867,8 @@ export default function FichaAlumnoPage() {
       // Una sección existe por (grado, año) — se muestran todos los años
       // disponibles de ese grado, el más reciente primero.
       setSecciones([...datos].sort((a, b) => b.anio_escolar - a.anio_escolar || a.nombre.localeCompare(b.nombre)));
-    } catch (err: any) {
-      setErrorFormularioMatricula(err.message || "No se pudieron cargar las secciones.");
+    } catch (err) {
+      setErrorFormularioMatricula(mensajeDe(err) || "No se pudieron cargar las secciones.");
     } finally {
       setCargandoSecciones(false);
     }
@@ -887,8 +887,8 @@ export default function FichaAlumnoPage() {
       const datos = await apiClient.get<SeccionActual[]>(`/admin/personas/${personaId}/historial-academico`);
       setHistorialAcademico(datos);
       setEditandoMatricula(false);
-    } catch (err: any) {
-      setErrorFormularioMatricula(err.message || "No se pudo actualizar la matrícula.");
+    } catch (err) {
+      setErrorFormularioMatricula(mensajeDe(err) || "No se pudo actualizar la matrícula.");
     } finally {
       setGuardandoMatricula(false);
     }
@@ -939,8 +939,8 @@ export default function FichaAlumnoPage() {
         setContactos((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
       }
       setFormularioContacto(null);
-    } catch (err: any) {
-      setErrorFormularioContacto(err.message || "No se pudo guardar el contacto.");
+    } catch (err) {
+      setErrorFormularioContacto(mensajeDe(err) || "No se pudo guardar el contacto.");
     } finally {
       setGuardandoContacto(false);
     }
@@ -962,8 +962,8 @@ export default function FichaAlumnoPage() {
     try {
       const actualizado = await apiClient.delete<ContactoFamiliar>(`/admin/personas/contactos/${id}`);
       setContactos((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
-    } catch (err: any) {
-      setErrorContactos(err.message || "No se pudo desactivar el contacto.");
+    } catch (err) {
+      setErrorContactos(mensajeDe(err) || "No se pudo desactivar el contacto.");
     } finally {
       setDesactivandoContactoId(null);
     }
@@ -987,8 +987,8 @@ export default function FichaAlumnoPage() {
       // fila — se actualiza localmente en vez de volver a pedir la lista
       // completa (mismo criterio que agenda/page.tsx tras cancelar).
       setCitas((prev) => prev.map((c) => (c.id === id ? { ...c, estado: "Cancelada" } : c)));
-    } catch (err: any) {
-      setErrorCitas(err.message || "No se pudo cancelar la cita.");
+    } catch (err) {
+      setErrorCitas(mensajeDe(err) || "No se pudo cancelar la cita.");
     } finally {
       setCancelandoCitaId(null);
     }
@@ -1024,8 +1024,8 @@ export default function FichaAlumnoPage() {
       });
       setCitas((prev) => prev.map((c) => (c.id === citaId ? actualizada : c)));
       setReprogramandoCitaId(null);
-    } catch (err: any) {
-      setErrorCitas(err.message || "No se pudo reprogramar la cita.");
+    } catch (err) {
+      setErrorCitas(mensajeDe(err) || "No se pudo reprogramar la cita.");
     } finally {
       setGuardandoReprogramacion(false);
     }
@@ -1064,8 +1064,8 @@ export default function FichaAlumnoPage() {
       });
       setSeguimientos((prev) => prev.map((s) => (s.id === sesionId ? actualizada : s)));
       setEditandoSesionId(null);
-    } catch (err: any) {
-      setErrorSesiones(err.message || "No se pudo guardar la edición de la sesión.");
+    } catch (err) {
+      setErrorSesiones(mensajeDe(err) || "No se pudo guardar la edición de la sesión.");
     } finally {
       setGuardandoSesion(false);
     }
@@ -1087,8 +1087,8 @@ export default function FichaAlumnoPage() {
       const detalle = await apiClient.get<EntradaExpedienteDetalle>(`/admin/personas/expediente/${entrada.id}`);
       setDetalleEntrada(detalle);
       setVersionSeleccionada(detalle.version?.numero_version ?? detalle.version_actual);
-    } catch (err: any) {
-      setErrorDetalle(err.message || "No se pudo cargar el contenido de esta entrada.");
+    } catch (err) {
+      setErrorDetalle(mensajeDe(err) || "No se pudo cargar el contenido de esta entrada.");
     } finally {
       setCargandoDetalle(false);
     }
@@ -1104,8 +1104,8 @@ export default function FichaAlumnoPage() {
       );
       setDetalleEntrada(detalle);
       setVersionSeleccionada(numero);
-    } catch (err: any) {
-      setErrorDetalle(err.message || "No se pudo cargar esa versión.");
+    } catch (err) {
+      setErrorDetalle(mensajeDe(err) || "No se pudo cargar esa versión.");
     } finally {
       setCargandoDetalle(false);
     }
@@ -1147,8 +1147,8 @@ export default function FichaAlumnoPage() {
         [nueva, ...prev].sort((a, b) => new Date(b.fecha_entrada).getTime() - new Date(a.fecha_entrada).getTime()),
       );
       setFormEntrada(null);
-    } catch (err: any) {
-      setErrorFormularioEntrada(err.message || "No se pudo crear la entrada.");
+    } catch (err) {
+      setErrorFormularioEntrada(mensajeDe(err) || "No se pudo crear la entrada.");
     } finally {
       setGuardandoEntrada(false);
     }
@@ -1188,8 +1188,8 @@ export default function FichaAlumnoPage() {
         [nueva, ...prev].sort((a, b) => new Date(b.fecha_entrada).getTime() - new Date(a.fecha_entrada).getTime()),
       );
       setFormEvidencia(null);
-    } catch (err: any) {
-      setErrorFormularioEvidencia(err.message || "No se pudo subir la evidencia.");
+    } catch (err) {
+      setErrorFormularioEvidencia(mensajeDe(err) || "No se pudo subir la evidencia.");
     } finally {
       setSubiendoEvidencia(false);
     }
@@ -1202,8 +1202,8 @@ export default function FichaAlumnoPage() {
         incluir_en_pdf_informe: valor,
       });
       setEntradas((prev) => prev.map((en) => (en.id === entrada.id ? actualizada : en)));
-    } catch (err: any) {
-      setErrorEntradas(err.message || "No se pudo actualizar la evidencia.");
+    } catch (err) {
+      setErrorEntradas(mensajeDe(err) || "No se pudo actualizar la evidencia.");
     } finally {
       setActualizandoIncluirPdfId(null);
     }
@@ -1214,8 +1214,8 @@ export default function FichaAlumnoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/admin/personas/expediente/evidencia/${entrada.id}/archivo`);
       descargarBlob(blob, entrada.nombre_archivo_original || `evidencia-${entrada.id}`);
-    } catch (err: any) {
-      setErrorEntradas(err.message || "No se pudo descargar la evidencia.");
+    } catch (err) {
+      setErrorEntradas(mensajeDe(err) || "No se pudo descargar la evidencia.");
     } finally {
       setDescargandoEvidenciaExpedienteId(null);
     }
@@ -1252,8 +1252,8 @@ export default function FichaAlumnoPage() {
       );
       setVersionSeleccionada(nuevaVersion.numero_version);
       setMostrarFormularioVersion(false);
-    } catch (err: any) {
-      setErrorFormularioVersion(err.message || "No se pudo agregar la versión.");
+    } catch (err) {
+      setErrorFormularioVersion(mensajeDe(err) || "No se pudo agregar la versión.");
     } finally {
       setGuardandoVersion(false);
     }
@@ -1277,8 +1277,8 @@ export default function FichaAlumnoPage() {
       );
       setAutorizacionVigente(nueva);
       setFormularioAutorizacion(null);
-    } catch (err: any) {
-      setErrorFormularioAutorizacion(err.message || "No se pudo otorgar la autorización.");
+    } catch (err) {
+      setErrorFormularioAutorizacion(mensajeDe(err) || "No se pudo otorgar la autorización.");
     } finally {
       setGuardandoAutorizacion(false);
     }
@@ -1303,8 +1303,8 @@ export default function FichaAlumnoPage() {
         `/admin/personas/autorizacion-colegio/${autorizacionVigente.id}/revocar`,
       );
       setAutorizacionVigente(actualizada.vigente ? actualizada : null);
-    } catch (err: any) {
-      setErrorAutorizacion(err.message || "No se pudo revocar la autorización.");
+    } catch (err) {
+      setErrorAutorizacion(mensajeDe(err) || "No se pudo revocar la autorización.");
     } finally {
       setRevocandoAutorizacion(false);
     }
@@ -1358,8 +1358,8 @@ export default function FichaAlumnoPage() {
         };
       });
       setFormularioConsentimiento(null);
-    } catch (err: any) {
-      setErrorFormularioConsentimiento(err.message || "No se pudo registrar el consentimiento.");
+    } catch (err) {
+      setErrorFormularioConsentimiento(mensajeDe(err) || "No se pudo registrar el consentimiento.");
     } finally {
       setGuardandoConsentimiento(false);
     }
@@ -1395,8 +1395,8 @@ export default function FichaAlumnoPage() {
           },
         };
       });
-    } catch (err: any) {
-      setErrorConsentimientos(err.message || "No se pudo revocar el consentimiento.");
+    } catch (err) {
+      setErrorConsentimientos(mensajeDe(err) || "No se pudo revocar el consentimiento.");
     } finally {
       setRevocandoConsentimientoId(null);
     }
@@ -1425,8 +1425,8 @@ export default function FichaAlumnoPage() {
           },
         };
       });
-    } catch (err: any) {
-      setErrorConsentimientos(err.message || "No se pudo subir la evidencia.");
+    } catch (err) {
+      setErrorConsentimientos(mensajeDe(err) || "No se pudo subir la evidencia.");
     } finally {
       setSubiendoEvidenciaId(null);
     }
@@ -1438,8 +1438,8 @@ export default function FichaAlumnoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/admin/personas/consentimiento/${consentimiento.id}/evidencia`);
       descargarBlob(blob, consentimiento.evidencia_nombre_archivo || `consentimiento-${consentimiento.id}`);
-    } catch (err: any) {
-      setErrorConsentimientos(err.message || "No se pudo descargar la evidencia.");
+    } catch (err) {
+      setErrorConsentimientos(mensajeDe(err) || "No se pudo descargar la evidencia.");
     } finally {
       setDescargandoEvidenciaId(null);
     }
@@ -1469,7 +1469,7 @@ export default function FichaAlumnoPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-teal-900 font-medium">
+      <div className="p-8 text-center text-teal-900 dark:text-ink-dark font-medium">
         Cargando expediente clínico del alumno...
       </div>
     );
@@ -1479,7 +1479,7 @@ export default function FichaAlumnoPage() {
     return (
       <div className="p-8 max-w-xl mx-auto text-center">
         <TextoError className="mb-4">{error || "Estudiante no encontrado."}</TextoError>
-        <Link href="/estudiantes" className="text-teal-600 underline font-medium">
+        <Link href="/estudiantes" className="text-teal-600 dark:text-teal-accent-dark underline font-medium">
           ← Volver al padrón
         </Link>
       </div>
@@ -1604,7 +1604,7 @@ export default function FichaAlumnoPage() {
                   <button
                     type="button"
                     onClick={() => setEditando(false)}
-                    className="text-sm text-ink/60 hover:underline"
+                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                   >
                     Cancelar
                   </button>
@@ -1615,21 +1615,21 @@ export default function FichaAlumnoPage() {
             {mostrarHistorial && (
               <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
                 <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
-                {cargandoHistorial && <p className="text-sm text-ink/60">Cargando historial...</p>}
+                {cargandoHistorial && <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando historial...</p>}
                 <TextoError>{errorHistorial}</TextoError>
                 {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
-                  <p className="text-sm text-ink/60 italic">Sin cambios registrados todavía.</p>
+                  <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin cambios registrados todavía.</p>
                 )}
                 {!cargandoHistorial && historial && historial.length > 0 && (
                   <div className="space-y-2">
                     {historial.map((registro) => (
-                      <div key={registro.id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
-                        <span className="font-semibold text-teal-900">{registro.campo}</span>
+                      <div key={registro.id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
+                        <span className="font-semibold text-teal-900 dark:text-ink-dark">{registro.campo}</span>
                         {": "}
-                        <span className="text-ink/70">{registro.valor_anterior ?? "(vacío)"}</span>
+                        <span className="text-ink/70 dark:text-ink-dark/70">{registro.valor_anterior ?? "(vacío)"}</span>
                         {" → "}
-                        <span className="text-ink/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
-                        <div className="text-ink/50 mt-0.5">
+                        <span className="text-ink/90 dark:text-ink-dark/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
+                        <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
                           {new Date(registro.fecha).toLocaleString()} · rol: {registro.rol_modificador ?? "—"}
                         </div>
                       </div>
@@ -1702,7 +1702,7 @@ export default function FichaAlumnoPage() {
                   <button
                     type="button"
                     onClick={() => setEditandoDatosFamiliares(false)}
-                    className="text-sm text-ink/60 hover:underline"
+                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                   >
                     Cancelar
                   </button>
@@ -1804,7 +1804,7 @@ export default function FichaAlumnoPage() {
                   <button
                     type="button"
                     onClick={() => setEditandoAntecedentesClinicos(false)}
-                    className="text-sm text-ink/60 hover:underline"
+                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                   >
                     Cancelar
                   </button>
@@ -1829,7 +1829,7 @@ export default function FichaAlumnoPage() {
             <TextoError className="mb-3">{errorContactos}</TextoError>
 
             {formularioContacto && (
-              <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4 mb-4">
+              <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border dark:border-border-dark pb-4 mb-4">
                 <CampoEditable etiqueta="Nombre">
                   <Input
                     required
@@ -1867,7 +1867,7 @@ export default function FichaAlumnoPage() {
                   <button
                     type="button"
                     onClick={() => setFormularioContacto(null)}
-                    className="text-sm text-ink/60 hover:underline"
+                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                   >
                     Cancelar
                   </button>
@@ -1904,7 +1904,7 @@ export default function FichaAlumnoPage() {
                         <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
                           {contacto.telefono ? (
                             <span className="inline-flex items-center gap-1.5">
-                              <Phone size={12} className="text-ink/35" aria-hidden="true" />
+                              <Phone size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
                               {contacto.telefono}
                             </span>
                           ) : (
@@ -1914,7 +1914,7 @@ export default function FichaAlumnoPage() {
                         <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
                           {contacto.email ? (
                             <span className="inline-flex items-center gap-1.5">
-                              <Mail size={12} className="text-ink/35" aria-hidden="true" />
+                              <Mail size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
                               {contacto.email}
                             </span>
                           ) : (
@@ -1924,7 +1924,7 @@ export default function FichaAlumnoPage() {
                         <td className="px-3.5 py-2.5">
                           <span
                             className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                              contacto.activo ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/50"
+                              contacto.activo ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/20 dark:text-ink-dark" : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
                             }`}
                           >
                             {contacto.activo ? "Activo" : "Inactivo"}
@@ -1933,7 +1933,7 @@ export default function FichaAlumnoPage() {
                         <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
                           <button
                             onClick={() => abrirEdicionContacto(contacto)}
-                            className="text-teal-600 hover:underline font-medium mr-3"
+                            className="text-teal-600 dark:text-teal-accent-dark hover:underline font-medium mr-3"
                           >
                             Editar
                           </button>
@@ -1941,7 +1941,7 @@ export default function FichaAlumnoPage() {
                             <button
                               onClick={() => desactivarContacto(contacto.id)}
                               disabled={desactivandoContactoId === contacto.id}
-                              className="text-ink/70 hover:text-ink hover:underline font-medium disabled:opacity-50"
+                              className="text-ink/70 dark:text-ink-dark/70 hover:text-ink hover:underline font-medium disabled:opacity-50"
                             >
                               {desactivandoContactoId === contacto.id ? "Desactivando..." : "Desactivar"}
                             </button>
@@ -2002,7 +2002,7 @@ export default function FichaAlumnoPage() {
         )}
 
         {pruebasAplicadas === null ? (
-          <p className="text-sm text-ink/60">Cargando...</p>
+          <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</p>
         ) : pruebasAplicadas.length === 0 ? (
           <VacioFicha icono={ClipboardList} texto="Este estudiante todavía no tiene pruebas aplicadas." />
         ) : (
@@ -2011,8 +2011,8 @@ export default function FichaAlumnoPage() {
               <div key={fila.inscripcion_id} className="border border-border dark:border-border-dark rounded-lg hover:border-teal-400/60 transition-colors">
                 <div className="flex items-center justify-between gap-3 p-3 flex-wrap">
                   <div className="text-sm">
-                    <p className="font-medium text-ink">{fila.prueba_nombre_publico}</p>
-                    <p className="text-ink/60">
+                    <p className="font-medium text-ink dark:text-ink-dark">{fila.prueba_nombre_publico}</p>
+                    <p className="text-ink/60 dark:text-ink-dark/60">
                       {fila.nombre_grupo}
                       {fila.fecha_aplicacion ? ` · ${formatearFecha(fila.fecha_aplicacion.slice(0, 10))}` : ""} · v
                       {fila.version_actual}
@@ -2029,27 +2029,29 @@ export default function FichaAlumnoPage() {
                     )}
                     <span
                       className={`text-xs font-medium px-2 py-1 rounded-full ${
-                        fila.informe_liberado ? "bg-teal-100 text-teal-700" : "bg-ink/10 text-ink/60"
+                        fila.informe_liberado
+                          ? "bg-teal-100 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                          : "bg-ink/10 text-ink/60 dark:bg-ink-dark/10 dark:text-ink-dark/60"
                       }`}
                     >
                       {fila.informe_liberado ? "Liberado" : "Retenido"}
                     </span>
                     <button
                       onClick={() => verInformeDesdeFicha(fila.inscripcion_id)}
-                      className="text-sm text-teal-600 hover:underline font-medium"
+                      className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                     >
                       Ver
                     </button>
                     <button
                       onClick={() => descargarInformeDesdeFicha(fila.inscripcion_id)}
                       disabled={descargandoInformeId === fila.inscripcion_id}
-                      className="text-sm text-teal-600 hover:underline font-medium"
+                      className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                     >
                       {descargandoInformeId === fila.inscripcion_id ? "Descargando..." : "Descargar PDF"}
                     </button>
                     <button
                       onClick={() => alternarRevision(fila.inscripcion_id)}
-                      className="text-sm text-teal-600 hover:underline font-medium"
+                      className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                     >
                       {inscripcionExpandida === fila.inscripcion_id ? "Ocultar" : "Revisar informe"}
                     </button>
@@ -2057,9 +2059,9 @@ export default function FichaAlumnoPage() {
                 </div>
 
                 {inscripcionExpandida === fila.inscripcion_id && (
-                  <div className="border-t border-border p-4 space-y-4 bg-mist/30">
+                  <div className="border-t border-border dark:border-border-dark p-4 space-y-4 bg-mist/30 dark:bg-surface-raised-dark/40">
                     {cargandoDetalleInforme ? (
-                      <p className="text-sm text-ink/60">Cargando...</p>
+                      <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</p>
                     ) : detalleInforme ? (
                       <div className="lg:flex lg:gap-6 lg:items-start">
                         {/* 🆕 Vista previa del PDF embebida (react-pdf, ver
@@ -2070,11 +2072,11 @@ export default function FichaAlumnoPage() {
                             automático tras reemitir. */}
                         <div className="lg:w-[46%] lg:sticky lg:top-4 mb-4 lg:mb-0 space-y-2">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-ink/70">Vista previa del PDF</p>
+                            <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Vista previa del PDF</p>
                             <button
                               onClick={() => cargarPreviewPdf(fila.inscripcion_id)}
                               disabled={cargandoPreviewPdf}
-                              className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-50"
+                              className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium disabled:opacity-50"
                             >
                               {cargandoPreviewPdf ? "Cargando..." : "Actualizar vista previa"}
                             </button>
@@ -2088,13 +2090,13 @@ export default function FichaAlumnoPage() {
                         </div>
 
                         <div className="flex-1 min-w-0 space-y-4">
-                        <p className="text-xs text-ink/60">
+                        <p className="text-xs text-ink/60 dark:text-ink-dark/60">
                           Lo que se guarda aquí NO cambia el PDF ya emitido — hace falta reemitir (abajo) para que
                           una nueva versión lo refleje.
                         </p>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">Motivo de consulta</span>
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Motivo de consulta</span>
                           <Textarea
                             rows={2}
                             value={formRevision.motivo_consulta ?? ""}
@@ -2103,7 +2105,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">Observación conductual</span>
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Observación conductual</span>
                           <Textarea
                             rows={2}
                             value={formRevision.observacion_conductual ?? ""}
@@ -2114,7 +2116,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">
                             Técnicas adicionales (reemplaza las predeterminadas; separadas por coma — ej. &quot;Entrevista,
                             Observación&quot;. El instrumento mismo siempre se imprime aparte, no hace falta repetirlo aquí)
                           </span>
@@ -2126,7 +2128,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">Conclusión (reemplaza la sugerida)</span>
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Conclusión (reemplaza la sugerida)</span>
                           <Textarea
                             rows={3}
                             value={formRevision.conclusion_override ?? ""}
@@ -2135,7 +2137,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">Recomendaciones (reemplaza la sugerida)</span>
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Recomendaciones (reemplaza la sugerida)</span>
                           <Textarea
                             rows={3}
                             value={formRevision.recomendaciones_override ?? ""}
@@ -2146,7 +2148,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">Cargo/especialidad en la firma</span>
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Cargo/especialidad en la firma</span>
                           <Input
                             placeholder="Ej. Psicóloga Clínica — COP 12345"
                             value={formRevision.firma_cargo_override ?? ""}
@@ -2155,7 +2157,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">
                             Nombre en la firma (reemplaza al que revisó el informe)
                           </span>
                           <Input
@@ -2166,7 +2168,7 @@ export default function FichaAlumnoPage() {
                         </label>
 
                         <label className="flex flex-col gap-1 text-sm">
-                          <span className="text-ink/70 font-medium">DNI del profesional en la firma</span>
+                          <span className="text-ink/70 dark:text-ink-dark/70 font-medium">DNI del profesional en la firma</span>
                           <Input
                             placeholder="Por defecto queda en blanco, para llenar a mano"
                             value={formRevision.firma_dni_override ?? ""}
@@ -2200,8 +2202,8 @@ export default function FichaAlumnoPage() {
                           {guardandoRevision ? "Guardando..." : "Guardar revisión"}
                         </Boton>
 
-                        <div className="border-t border-border pt-4 space-y-2">
-                          <p className="text-sm font-medium text-ink/70">Reemitir PDF con estos cambios</p>
+                        <div className="border-t border-border dark:border-border-dark pt-4 space-y-2">
+                          <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70">Reemitir PDF con estos cambios</p>
                           <div className="flex items-center gap-2 flex-wrap">
                             <Input
                               placeholder="Motivo de la reemisión (obligatorio)"
@@ -2220,15 +2222,15 @@ export default function FichaAlumnoPage() {
                         </div>
 
                         {detalleInforme.versiones && detalleInforme.versiones.length > 0 && (
-                          <div className="border-t border-border pt-4">
-                            <p className="text-sm font-medium text-ink/70 mb-1">Historial de versiones</p>
-                            <ul className="text-sm text-ink/60 space-y-1">
+                          <div className="border-t border-border dark:border-border-dark pt-4">
+                            <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70 mb-1">Historial de versiones</p>
+                            <ul className="text-sm text-ink/60 dark:text-ink-dark/60 space-y-1">
                               {detalleInforme.versiones.map((v) => (
                                 <li key={v.numero_version}>
                                   v{v.numero_version} — {new Date(v.generado_en).toLocaleString()}
                                   {v.motivo_version ? ` — ${v.motivo_version}` : ""} ({v.origen})
                                   {v.retracta_version_previa_liberada && (
-                                    <span className="text-amber-700">
+                                    <span className="text-amber-700 dark:text-amber">
                                       {" "}· retracta la v{v.numero_version - 1}, que ya estaba liberada y visible
                                       para el alumno (si ya fue descargada, esa copia sigue en su poder)
                                     </span>
@@ -2283,14 +2285,14 @@ export default function FichaAlumnoPage() {
                 <div className="flex justify-between items-start">
                   <div>
                     {esGrupal && (
-                      <span className="inline-block rounded-full px-2 py-0.5 text-[12px] font-medium bg-teal-600/10 text-teal-900 mb-1">
+                      <span className="inline-block rounded-full px-2 py-0.5 text-[12px] font-medium bg-teal-600/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-ink-dark mb-1">
                         Actividad grupal{cita.tipo_actividad ? `: ${cita.tipo_actividad}` : ""}
                       </span>
                     )}
-                    <p className="text-sm font-semibold text-teal-900">
+                    <p className="text-sm font-semibold text-teal-900 dark:text-ink-dark">
                       {esGrupal ? cita.titulo : `Motivo: ${cita.motivo}`}
                     </p>
-                    <p className="text-xs text-ink/70 mt-1">
+                    <p className="text-xs text-ink/70 dark:text-ink-dark/70 mt-1">
                       Fecha: {new Date(cita.fecha_hora).toLocaleString("es-PE")}
                       {esGrupal && cita.lugar && ` · ${cita.lugar}`}
                     </p>
@@ -2303,14 +2305,14 @@ export default function FichaAlumnoPage() {
                       <>
                         <button
                           onClick={() => abrirReprogramar(cita)}
-                          className="text-xs text-teal-700 hover:underline"
+                          className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline"
                         >
                           Reprogramar
                         </button>
                         <button
                           onClick={() => cancelarCita(cita.id)}
                           disabled={cancelandoCitaId === cita.id}
-                          className="text-xs text-ink/60 hover:text-ink hover:underline disabled:opacity-50"
+                          className="text-xs text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline disabled:opacity-50"
                         >
                           Cancelar
                         </button>
@@ -2322,7 +2324,7 @@ export default function FichaAlumnoPage() {
                 {!esGrupal && reprogramandoCitaId === cita.id && (
                   <form
                     onSubmit={(e) => guardarReprogramacion(e, cita.id)}
-                    className="flex flex-wrap items-end gap-3 border-t border-border/60 pt-3"
+                    className="flex flex-wrap items-end gap-3 border-t border-border/60 dark:border-border-dark pt-3"
                   >
                     <CampoEditable etiqueta="Nueva fecha">
                       <Input
@@ -2346,7 +2348,7 @@ export default function FichaAlumnoPage() {
                     <button
                       type="button"
                       onClick={() => setReprogramandoCitaId(null)}
-                      className="text-xs text-ink/60 hover:text-ink hover:underline"
+                      className="text-xs text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline"
                     >
                       Cancelar edición
                     </button>
@@ -2378,18 +2380,18 @@ export default function FichaAlumnoPage() {
           <div className="space-y-3">
             {seguimientos.map((sesion) => (
               <div key={sesion.id} className="p-4 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark space-y-3">
-                <div className="flex justify-between items-center border-b border-border/60 pb-2">
-                  <span className="text-xs font-semibold text-ink/70">
+                <div className="flex justify-between items-center border-b border-border/60 dark:border-border-dark pb-2">
+                  <span className="text-xs font-semibold text-ink/70 dark:text-ink-dark/70">
                     Fecha de Sesión: {new Date(sesion.fecha).toLocaleDateString()}
                   </span>
                   <div className="flex items-center gap-3">
-                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-teal-400/20 text-teal-900">
+                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-teal-400/20 dark:bg-teal-accent-dark/20 text-teal-900 dark:text-ink-dark">
                       {sesion.estado}
                     </span>
                     {editandoSesionId !== sesion.id && (
                       <button
                         onClick={() => abrirEditarSesion(sesion)}
-                        className="text-xs text-teal-700 hover:underline"
+                        className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline"
                       >
                         Editar
                       </button>
@@ -2454,7 +2456,7 @@ export default function FichaAlumnoPage() {
                       <button
                         type="button"
                         onClick={() => setEditandoSesionId(null)}
-                        className="text-xs text-ink/60 hover:text-ink hover:underline"
+                        className="text-xs text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline"
                       >
                         Cancelar edición
                       </button>
@@ -2464,15 +2466,15 @@ export default function FichaAlumnoPage() {
                   <>
                     <div className="grid md:grid-cols-2 gap-4 text-sm">
                       <div>
-                        <span className="block font-medium text-teal-900">Observaciones:</span>
-                        <p className="text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50 text-xs leading-relaxed">
+                        <span className="block font-medium text-teal-900 dark:text-ink-dark">Observaciones:</span>
+                        <p className="text-ink/80 dark:text-ink-dark/80 mt-0.5 bg-mist dark:bg-surface-raised-dark p-2.5 rounded border border-border/50 dark:border-border-dark text-xs leading-relaxed">
                           {sesion.observaciones || "Sin observaciones registradas."}
                         </p>
                       </div>
 
                       <div>
-                        <span className="block font-medium text-teal-900">Acción Tomada:</span>
-                        <p className="text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50 text-xs leading-relaxed">
+                        <span className="block font-medium text-teal-900 dark:text-ink-dark">Acción Tomada:</span>
+                        <p className="text-ink/80 dark:text-ink-dark/80 mt-0.5 bg-mist dark:bg-surface-raised-dark p-2.5 rounded border border-border/50 dark:border-border-dark text-xs leading-relaxed">
                           {sesion.accion_tomada || "Ninguna especificada."}
                         </p>
                       </div>
@@ -2480,15 +2482,15 @@ export default function FichaAlumnoPage() {
 
                     {sesion.acuerdos_compromisos && (
                       <div>
-                        <span className="block text-sm font-medium text-teal-900">Acuerdos y Compromisos:</span>
-                        <p className="text-xs text-ink/80 mt-0.5 bg-mist p-2.5 rounded border border-border/50">
+                        <span className="block text-sm font-medium text-teal-900 dark:text-ink-dark">Acuerdos y Compromisos:</span>
+                        <p className="text-xs text-ink/80 dark:text-ink-dark/80 mt-0.5 bg-mist dark:bg-surface-raised-dark p-2.5 rounded border border-border/50 dark:border-border-dark">
                           {sesion.acuerdos_compromisos}
                         </p>
                       </div>
                     )}
 
                     {sesion.proxima_cita && (
-                      <p className="text-xs text-ink/70">
+                      <p className="text-xs text-ink/70 dark:text-ink-dark/70">
                         Próxima cita: {new Date(sesion.proxima_cita).toLocaleString("es-PE")}
                       </p>
                     )}
@@ -2526,14 +2528,14 @@ export default function FichaAlumnoPage() {
         <TextoError>{errorEntradas}</TextoError>
 
         {formEvidencia && (
-          <form onSubmit={subirEvidencia} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4">
+          <form onSubmit={subirEvidencia} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border dark:border-border-dark pb-4">
             <CampoEditable etiqueta="Archivo (PDF/JPG/PNG, máx. 10 MB)" className="sm:col-span-2">
               <input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
                 required
                 onChange={(e) => setFormEvidencia({ ...formEvidencia, archivo: e.target.files?.[0] ?? null })}
-                className="block w-full text-sm text-ink/70 file:mr-3 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-teal-700 hover:file:bg-teal-100"
+                className="block w-full text-sm text-ink/70 dark:text-ink-dark/70 file:mr-3 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-teal-700 hover:file:bg-teal-100"
               />
             </CampoEditable>
             <CampoEditable etiqueta="Título (obligatorio)" className="sm:col-span-2">
@@ -2575,7 +2577,7 @@ export default function FichaAlumnoPage() {
             </CampoEditable>
 
             {formEvidencia.informe_id && (
-              <label className="sm:col-span-2 flex items-center gap-2 text-sm text-ink/70">
+              <label className="sm:col-span-2 flex items-center gap-2 text-sm text-ink/70 dark:text-ink-dark/70">
                 <input
                   type="checkbox"
                   checked={formEvidencia.incluir_en_pdf_informe}
@@ -2595,7 +2597,7 @@ export default function FichaAlumnoPage() {
               <button
                 type="button"
                 onClick={() => setFormEvidencia(null)}
-                className="text-sm text-ink/60 hover:underline"
+                className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
               >
                 Cancelar
               </button>
@@ -2604,7 +2606,7 @@ export default function FichaAlumnoPage() {
         )}
 
         {formEntrada && (
-          <form onSubmit={crearEntrada} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border pb-4">
+          <form onSubmit={crearEntrada} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border dark:border-border-dark pb-4">
             <CampoEditable etiqueta="Tipo de entrada">
               <Select
                 value={formEntrada.tipo_entrada}
@@ -2682,7 +2684,7 @@ export default function FichaAlumnoPage() {
               <button
                 type="button"
                 onClick={() => setFormEntrada(null)}
-                className="text-sm text-ink/60 hover:underline"
+                className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
               >
                 Cancelar
               </button>
@@ -2702,40 +2704,40 @@ export default function FichaAlumnoPage() {
               // la propia descarga del archivo es lo que se audita.
               if (entrada.tipo_entrada === "evidencia") {
                 return (
-                  <div key={entrada.id} className="rounded-card border border-border p-4 space-y-2">
+                  <div key={entrada.id} className="rounded-card border border-border dark:border-border-dark p-4 space-y-2">
                     <div className="flex items-center justify-between gap-3 flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-semibold text-teal-900">{entrada.titulo || "Evidencia"}</span>
-                        <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-teal-900/10 text-teal-900">
+                        <span className="text-sm font-semibold text-teal-900 dark:text-ink-dark">{entrada.titulo || "Evidencia"}</span>
+                        <span className="text-xs rounded-full px-2 py-0.5 font-medium bg-teal-900/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-ink-dark">
                           Evidencia
                         </span>
                         {entrada.informe_id && (
-                          <span className="text-xs text-ink/50">vinculada a informe #{entrada.informe_id}</span>
+                          <span className="text-xs text-ink/50 dark:text-ink-dark/50">vinculada a informe #{entrada.informe_id}</span>
                         )}
                       </div>
-                      <span className="text-xs text-ink/60 whitespace-nowrap">
+                      <span className="text-xs text-ink/60 dark:text-ink-dark/60 whitespace-nowrap">
                         {new Date(entrada.fecha_entrada).toLocaleString()}
                       </span>
                     </div>
-                    {entrada.descripcion && <p className="text-sm text-ink/70">{entrada.descripcion}</p>}
+                    {entrada.descripcion && <p className="text-sm text-ink/70 dark:text-ink-dark/70">{entrada.descripcion}</p>}
                     <div className="flex items-center gap-4 flex-wrap pt-1">
                       <button
                         onClick={() => verEvidenciaExpediente(entrada)}
-                        className="text-xs text-teal-600 hover:underline font-medium"
+                        className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                       >
                         Ver
                       </button>
                       <button
                         onClick={() => descargarEvidenciaExpediente(entrada)}
                         disabled={descargandoEvidenciaExpedienteId === entrada.id}
-                        className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-50"
+                        className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium disabled:opacity-50"
                       >
                         {descargandoEvidenciaExpedienteId === entrada.id
                           ? "Descargando..."
                           : `Descargar (${entrada.nombre_archivo_original || "archivo"})`}
                       </button>
                       {entrada.informe_id && puedeEscribirExpediente && (
-                        <label className="flex items-center gap-2 text-xs text-ink/70">
+                        <label className="flex items-center gap-2 text-xs text-ink/70 dark:text-ink-dark/70">
                           <input
                             type="checkbox"
                             checked={entrada.incluir_en_pdf_informe}
@@ -2753,34 +2755,34 @@ export default function FichaAlumnoPage() {
               const narrativa = esTipoEntradaNarrativo(entrada.tipo_entrada);
               const expandida = entradaExpandidaId === entrada.id;
               return (
-                <div key={entrada.id} className="rounded-card border border-border overflow-hidden">
+                <div key={entrada.id} className="rounded-card border border-border dark:border-border-dark overflow-hidden">
                   <button
                     onClick={() => toggleEntrada(entrada)}
                     className="w-full flex items-center justify-between gap-3 p-4 text-left hover:bg-mist/40 transition-colors"
                   >
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-teal-900">
+                      <span className="text-sm font-semibold text-teal-900 dark:text-ink-dark">
                         {ETIQUETAS_TIPO_ENTRADA[entrada.tipo_entrada]}
                       </span>
                       <span
                         className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                          narrativa ? "bg-teal-400/20 text-teal-900" : "bg-border text-ink/60"
+                          narrativa ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/20 dark:text-ink-dark" : "bg-border text-ink/60 dark:bg-border-dark dark:text-ink-dark/60"
                         }`}
                       >
                         {narrativa ? "Narrativa" : "Puente"}
                       </span>
                       {entrada.version_actual !== null && (
-                        <span className="text-xs text-ink/50">v{entrada.version_actual}</span>
+                        <span className="text-xs text-ink/50 dark:text-ink-dark/50">v{entrada.version_actual}</span>
                       )}
                     </div>
-                    <span className="text-xs text-ink/60 whitespace-nowrap">
+                    <span className="text-xs text-ink/60 dark:text-ink-dark/60 whitespace-nowrap">
                       {new Date(entrada.fecha_entrada).toLocaleString()}
                     </span>
                   </button>
 
                   {expandida && (
-                    <div className="border-t border-border p-4 space-y-3">
-                      {cargandoDetalle && <p className="text-sm text-ink/60">Cargando contenido...</p>}
+                    <div className="border-t border-border dark:border-border-dark p-4 space-y-3">
+                      {cargandoDetalle && <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando contenido...</p>}
                       <TextoError>{errorDetalle}</TextoError>
 
                       {!cargandoDetalle && detalleEntrada && detalleEntrada.id === entrada.id && (
@@ -2788,12 +2790,12 @@ export default function FichaAlumnoPage() {
                           {narrativa ? (
                             <>
                               {detalleEntrada.version_actual !== null && detalleEntrada.version_actual > 1 && (
-                                <label className="flex items-center gap-2 text-xs text-ink/70">
+                                <label className="flex items-center gap-2 text-xs text-ink/70 dark:text-ink-dark/70">
                                   Versión:
                                   <select
                                     value={versionSeleccionada ?? detalleEntrada.version_actual}
                                     onChange={(e) => cambiarVersionMostrada(Number(e.target.value))}
-                                    className="rounded border border-border px-2 py-1"
+                                    className="rounded border border-border dark:border-border-dark px-2 py-1"
                                   >
                                     {Array.from({ length: detalleEntrada.version_actual }, (_, i) => i + 1).map(
                                       (n) => (
@@ -2830,25 +2832,25 @@ export default function FichaAlumnoPage() {
                                       valor={detalleEntrada.version.motivo_version}
                                     />
                                   )}
-                                  <p className="text-xs text-ink/50">
+                                  <p className="text-xs text-ink/50 dark:text-ink-dark/50">
                                     Registrado el {new Date(detalleEntrada.version.creado_en).toLocaleString()}
                                   </p>
                                 </div>
                               ) : (
-                                <p className="text-sm text-ink/60 italic">Esta versión no tiene contenido.</p>
+                                <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Esta versión no tiene contenido.</p>
                               )}
 
                               {puedeEscribirExpediente && !mostrarFormularioVersion && (
                                 <button
                                   onClick={abrirFormularioVersion}
-                                  className="text-sm text-teal-600 hover:underline font-medium"
+                                  className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                                 >
                                   + Agregar versión
                                 </button>
                               )}
 
                               {mostrarFormularioVersion && (
-                                <form onSubmit={agregarVersion} className="space-y-3 border-t border-border pt-3">
+                                <form onSubmit={agregarVersion} className="space-y-3 border-t border-border dark:border-border-dark pt-3">
                                   <CampoEditable etiqueta="Motivo">
                                     <Input
                                       value={formVersion.motivo}
@@ -2899,7 +2901,7 @@ export default function FichaAlumnoPage() {
                                     <button
                                       type="button"
                                       onClick={() => setMostrarFormularioVersion(false)}
-                                      className="text-sm text-ink/60 hover:underline"
+                                      className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                                     >
                                       Cancelar
                                     </button>
@@ -2908,7 +2910,7 @@ export default function FichaAlumnoPage() {
                               )}
                             </>
                           ) : (
-                            <p className="text-sm text-ink/70">
+                            <p className="text-sm text-ink/70 dark:text-ink-dark/70">
                               Esta entrada enlaza a{" "}
                               {detalleEntrada.tipo_entrada === "sesion"
                                 ? "una sesión de seguimiento"
@@ -2996,7 +2998,7 @@ export default function FichaAlumnoPage() {
                 <button
                   type="button"
                   onClick={() => setFormularioAutorizacion(null)}
-                  className="text-sm text-ink/60 hover:underline"
+                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                 >
                   Cancelar
                 </button>
@@ -3115,7 +3117,7 @@ export default function FichaAlumnoPage() {
               <button
                 type="button"
                 onClick={() => setEditandoMatricula(false)}
-                className="text-sm text-ink/60 hover:underline"
+                className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
               >
                 Cancelar
               </button>
@@ -3127,16 +3129,16 @@ export default function FichaAlumnoPage() {
           <div className="border-t border-border dark:border-border-dark pt-4">
             <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial académico</h3>
             {historialAcademico.length === 0 ? (
-              <p className="text-sm text-ink/60 italic">Sin matrículas registradas todavía.</p>
+              <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin matrículas registradas todavía.</p>
             ) : (
               <div className="space-y-2">
                 {[...historialAcademico].reverse().map((h) => {
                   const f = formatearSeccion(h);
                   return (
-                    <div key={h.matricula_id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
-                      <span className="font-semibold text-teal-900">{f.linea}</span>
-                      {f.detalle && <span className="text-ink/60"> — {f.detalle}</span>}
-                      <div className="text-ink/50 mt-0.5">
+                    <div key={h.matricula_id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
+                      <span className="font-semibold text-teal-900 dark:text-ink-dark">{f.linea}</span>
+                      {f.detalle && <span className="text-ink/60 dark:text-ink-dark/60"> — {f.detalle}</span>}
+                      <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
                         {formatearFecha(h.fecha_inicio.slice(0, 10))} →{" "}
                         {h.fecha_fin ? formatearFecha(h.fecha_fin.slice(0, 10)) : "vigente"}
                       </div>
@@ -3235,16 +3237,16 @@ export default function FichaAlumnoPage() {
                         <button
                           onClick={() => descargarEvidenciaConsentimiento(vigente)}
                           disabled={descargandoEvidenciaId === vigente.id}
-                          className="text-xs text-teal-600 hover:underline font-medium disabled:opacity-50"
+                          className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium disabled:opacity-50"
                         >
                           {descargandoEvidenciaId === vigente.id ? "Descargando..." : "Descargar"}
                         </button>
                       </>
                     ) : (
-                      <span className="text-xs text-ink/50 italic">Sin evidencia adjunta todavía.</span>
+                      <span className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Sin evidencia adjunta todavía.</span>
                     )}
                     {puedeEscribirDatosPrincipales && (
-                      <label className="text-xs text-teal-600 hover:underline font-medium cursor-pointer">
+                      <label className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium cursor-pointer">
                         {subiendoEvidenciaId === vigente.id
                           ? "Subiendo..."
                           : vigente.evidencia_nombre_archivo
@@ -3352,7 +3354,7 @@ export default function FichaAlumnoPage() {
                     <button
                       type="button"
                       onClick={() => setFormularioConsentimiento(null)}
-                      className="text-sm text-ink/60 hover:underline"
+                      className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
                     >
                       Cancelar
                     </button>
@@ -3373,7 +3375,7 @@ export default function FichaAlumnoPage() {
                   onClick={() =>
                     setMostrarHistorialConsentimiento((prev) => ({ ...prev, [tipo]: !prev[tipo] }))
                   }
-                  className="text-xs text-teal-600 hover:underline font-medium"
+                  className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"
                 >
                   {mostrarHistorialConsentimiento[tipo] ? "Ocultar historial" : `Ver historial (${bloque.historial.length})`}
                 </button>
@@ -3381,17 +3383,17 @@ export default function FichaAlumnoPage() {
               {bloque && mostrarHistorialConsentimiento[tipo] && (
                 <div className="space-y-2">
                   {[...bloque.historial].reverse().map((c) => (
-                    <div key={c.id} className="text-xs bg-mist border border-border/50 rounded p-2.5">
-                      <span className={`font-semibold ${c.estado === "vigente" ? "text-teal-900" : "text-ink/50"}`}>
+                    <div key={c.id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
+                      <span className={`font-semibold ${c.estado === "vigente" ? "text-teal-900 dark:text-ink-dark" : "text-ink/50 dark:text-ink-dark/50"}`}>
                         {c.estado === "vigente" ? "Vigente" : "Revocado"}
                       </span>
                       {tipo === "apoderado" && (
-                        <span className="text-ink/70">
+                        <span className="text-ink/70 dark:text-ink-dark/70">
                           {" "}
                           — {c.otorgado_por_nombre} {c.otorgante_apellidos}
                         </span>
                       )}
-                      <div className="text-ink/50 mt-0.5">
+                      <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
                         Otorgado el {new Date(c.fecha_otorgamiento).toLocaleString()}
                         {c.fecha_revocacion && ` · revocado el ${new Date(c.fecha_revocacion).toLocaleString()}`}
                       </div>

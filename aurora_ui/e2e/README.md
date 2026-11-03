@@ -33,7 +33,16 @@ académico/tendencias.
    no distinguen puertos, pero `localhost` y `127.0.0.1` no son el mismo
    sitio.
 
-3. La contraseña del superadmin (la misma del `.env` del backend) como variable
+3. 🆕 (sesión 2026-11-02) Un worker de Celery (y Redis) corriendo contra la
+   misma base: el informe de un examen finalizado lo genera el worker, y los
+   specs que abren la ficha del alumno lo esperan (`esperarInformeGenerado`).
+
+   ```bash
+   cd backend
+   EMAIL_USUARIO= EMAIL_PASSWORD= celery -A core.cola_tareas worker --pool=solo --loglevel=info
+   ```
+
+4. La contraseña del superadmin (la misma del `.env` del backend) como variable
    de entorno — `aurora_ui/` y `backend/` son proyectos independientes (ver
    CLAUDE.md), así que esto nunca lee el `.env` del backend directamente:
 
@@ -46,7 +55,7 @@ académico/tendencias.
    #                                para cualquier origen que no sea "localhost")
    ```
 
-4. Primera vez: `npx playwright install chromium` (descarga el binario del
+5. Primera vez: `npx playwright install chromium` (descarga el binario del
    navegador, no queda instalado por `npm install`).
 
 ## Correr

@@ -7,7 +7,7 @@
 // teléfono/email/licencia/plan) sigue siendo exclusivo de superadmin —
 // eso ya tiene su propia UI en /master/clientes/[id], no se duplica acá.
 import { useEffect, useState } from "react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
@@ -96,8 +96,8 @@ export default function ConfiguracionPage() {
         { anio_escolar: anio },
       );
       setInstitucion(actualizada);
-    } catch (err: any) {
-      setErrorAnio(err.message || "No se pudo activar el año escolar.");
+    } catch (err) {
+      setErrorAnio(mensajeDe(err) || "No se pudo activar el año escolar.");
     } finally {
       setGuardandoAnio(false);
     }
@@ -113,8 +113,8 @@ export default function ConfiguracionPage() {
         { exigir_asentimiento_estudiante: valor },
       );
       setInstitucion(actualizada);
-    } catch (err: any) {
-      setErrorPolitica(err.message || "No se pudo actualizar la política.");
+    } catch (err) {
+      setErrorPolitica(mensajeDe(err) || "No se pudo actualizar la política.");
     } finally {
       setGuardandoPolitica(false);
     }
@@ -132,8 +132,8 @@ export default function ConfiguracionPage() {
         fd,
       );
       setInstitucion(actualizada);
-    } catch (err: any) {
-      setErrorBranding(err.message || "No se pudo subir la imagen.");
+    } catch (err) {
+      setErrorBranding(mensajeDe(err) || "No se pudo subir la imagen.");
     } finally {
       setSubiendoBranding(null);
     }

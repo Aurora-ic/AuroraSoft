@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 🆕 (sesión 2026-11-02) Archivos estáticos de terceros (p. ej. el worker
+    // minificado de pdf.js): no son código del proyecto y sumaban ~1.600 avisos.
+    "public/**",
   ]),
 ]);
 

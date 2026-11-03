@@ -2,7 +2,7 @@
 
 import { useAvisoSinGuardar } from "@/lib/useAvisoSinGuardar";
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   FileText,
@@ -23,7 +23,7 @@ import {
   ImagePlus,
   Info,
 } from "lucide-react";
-import { apiClient, descargarBlob } from "@/lib/api-client";
+import { apiClient, descargarBlob, mensajeDe } from "@/lib/api-client";
 import { ACENTOS } from "@/lib/acentos";
 import { Boton, claseBoton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
@@ -45,6 +45,17 @@ import type {
   ResultadosPruebaMultipleRequest,
   TipoDocumento,
 } from "@/types/api";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
+// 🆕 (sesión 2026-11-02) Los campos de `config`/`contenido` que esta página
+// lee (antes `as any`). El backend guarda una forma libre por tipo_seccion
+// (ver PlantillaSeccion.config en types/api.ts); aquí solo se describe lo usado.
+type ConfigSeccion = {
+  filas_desde_lista_estudiantes?: boolean;
+  campos?: { etiqueta: string }[];
+  columnas?: { titulo: string }[];
+};
+type ContenidoImagenAnexo = { storage_key?: string; nombre_archivo?: string };
+
 
 const VIOLETA = ACENTOS.violeta;
 
@@ -165,7 +176,7 @@ export default function DetalleDocumentoPage() {
               fecha_elaboracion: (c.fecha_elaboracion as string) ?? "",
               periodo_propuesto: (c.periodo_propuesto as string) ?? "",
             };
-          } else if (s.tipo_seccion === "tabla_dinamica" && !(defsPorId[s.plantilla_seccion_id]?.config as any)?.filas_desde_lista_estudiantes) {
+          } else if (s.tipo_seccion === "tabla_dinamica" && !(defsPorId[s.plantilla_seccion_id]?.config as ConfigSeccion | null | undefined)?.filas_desde_lista_estudiantes) {
             tablas[s.plantilla_seccion_id] = (s.contenido?.filas as Record<string, string>[]) ?? [];
           } else if (s.tipo_seccion === "grafico_barras") {
             const datos = (s.contenido?.datos as { etiqueta: string; valor: number }[]) ?? [];
@@ -194,13 +205,10 @@ export default function DetalleDocumentoPage() {
       .finally(() => setCargando(false));
   }
 
-  useEffect(() => {
-    cargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documentoId]);
+  useCargaDiferida(cargar, [documentoId]);
 
   function esTablaAutomatica(seccion: DocumentoInstitucionalSeccionContenido): boolean {
-    return seccion.tipo_seccion === "tabla_dinamica" && !!(definiciones[seccion.plantilla_seccion_id]?.config as any)?.filas_desde_lista_estudiantes;
+    return seccion.tipo_seccion === "tabla_dinamica" && !!(definiciones[seccion.plantilla_seccion_id]?.config as ConfigSeccion | null | undefined)?.filas_desde_lista_estudiantes;
   }
 
   function esAutomatica(seccion: DocumentoInstitucionalSeccionContenido): boolean {
@@ -288,8 +296,8 @@ export default function DetalleDocumentoPage() {
           s.plantilla_seccion_id === seccion.plantilla_seccion_id ? { ...actualizado, inscripciones_vinculadas: s.inscripciones_vinculadas } : s,
         ),
       );
-    } catch (err: any) {
-      setError(err.message || "No se pudo guardar esta sección.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo guardar esta sección.");
     } finally {
       setGuardandoSeccionId(null);
     }
@@ -305,8 +313,8 @@ export default function DetalleDocumentoPage() {
         inscripcion_id: inscripcionId,
       });
       cargar();
-    } catch (err: any) {
-      setError(err.message || "No se pudo vincular la aplicación.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo vincular la aplicación.");
     } finally {
       setVinculandoSeccionId(null);
     }
@@ -320,8 +328,8 @@ export default function DetalleDocumentoPage() {
         `/documentos/${documentoId}/secciones/${seccion.plantilla_seccion_id}/resultados-prueba/${documento.estudiantes[0].persona_id}`,
       );
       cargar();
-    } catch (err: any) {
-      setError(err.message || "No se pudo desvincular.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo desvincular.");
     } finally {
       setVinculandoSeccionId(null);
     }
@@ -340,8 +348,8 @@ export default function DetalleDocumentoPage() {
       };
       await apiClient.put(`/documentos/${documentoId}/secciones/${seccion.plantilla_seccion_id}/resultados-prueba-multiple`, payload);
       setEdicionesResultadosMultiples({ ...edicionesResultadosMultiples, [seccion.plantilla_seccion_id]: inscripcionIds });
-    } catch (err: any) {
-      setError(err.message || "No se pudo guardar la selección de resultados.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo guardar la selección de resultados.");
     } finally {
       setGuardandoSeccionId(null);
     }
@@ -358,8 +366,8 @@ export default function DetalleDocumentoPage() {
         fd,
       );
       setSecciones((prev) => prev.map((s) => (s.plantilla_seccion_id === seccion.plantilla_seccion_id ? actualizado : s)));
-    } catch (err: any) {
-      setError(err.message || "No se pudo subir la imagen.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo subir la imagen.");
     } finally {
       setSubiendoImagenId(null);
     }
@@ -383,8 +391,8 @@ export default function DetalleDocumentoPage() {
     try {
       await apiClient.delete(`/documentos/${documentoId}`);
       router.push("/documentos");
-    } catch (err: any) {
-      setError(err.message || "No se pudo descartar el borrador.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo descartar el borrador.");
       setDescartando(false);
     }
   }
@@ -404,8 +412,8 @@ export default function DetalleDocumentoPage() {
       setVersiones((prev) => [...prev, nuevaVersion]);
       setMostrarReemision(false);
       setMotivoReemision("");
-    } catch (err: any) {
-      setError(err.message || "No se pudo generar la versión.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo generar la versión.");
     } finally {
       setGenerando(false);
     }
@@ -416,8 +424,8 @@ export default function DetalleDocumentoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/documentos/${documentoId}/versiones/${version.numero_version}/descargar`);
       descargarBlob(blob, version.nombre_archivo);
-    } catch (err: any) {
-      setError(err.message || "No se pudo descargar el PDF.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo descargar el PDF.");
     } finally {
       setDescargandoVersionId(null);
     }
@@ -433,8 +441,8 @@ export default function DetalleDocumentoPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/documentos/${documentoId}/versiones/${version.numero_version}/descargar`);
       setVisorArchivo({ blob, contentType: "application/pdf", nombreArchivo: version.nombre_archivo });
-    } catch (err: any) {
-      setVisorError(err.message || "No se pudo cargar el PDF.");
+    } catch (err) {
+      setVisorError(mensajeDe(err) || "No se pudo cargar el PDF.");
     } finally {
       setVisorCargando(false);
     }
@@ -581,7 +589,7 @@ export default function DetalleDocumentoPage() {
                     {seccion.tipo_seccion === "grupo_campos" && (
                       <>
                         <div className="grid sm:grid-cols-2 gap-3">
-                          {((definiciones[id]?.config as any)?.campos ?? []).map((c: { etiqueta: string }) => (
+                          {((definiciones[id]?.config as ConfigSeccion | null | undefined)?.campos ?? []).map((c: { etiqueta: string }) => (
                             <CampoFormulario key={c.etiqueta} etiqueta={c.etiqueta}>
                               <Input
                                 value={edicionesCampos[id]?.[c.etiqueta] ?? ""}
@@ -606,7 +614,7 @@ export default function DetalleDocumentoPage() {
 
                     {seccion.tipo_seccion === "tabla_dinamica" && (
                       <EditorTablaLibre
-                        columnas={((definiciones[id]?.config as any)?.columnas ?? []).map((c: any) => c.titulo)}
+                        columnas={((definiciones[id]?.config as ConfigSeccion | null | undefined)?.columnas ?? []).map((c) => c.titulo)}
                         filas={edicionesTablas[id] ?? []}
                         onCambiar={(filas) => setEdicionesTablas({ ...edicionesTablas, [id]: filas })}
                         onGuardar={() => guardarSeccion(seccion)}
@@ -645,8 +653,8 @@ export default function DetalleDocumentoPage() {
                     {seccion.tipo_seccion === "imagen_anexo" && (
                       <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg border border-dashed border-border dark:border-border-dark px-3.5 py-3">
                         <div className="min-w-0 text-sm">
-                          {(seccion.contenido as any)?.storage_key ? (
-                            <p className={`m-0 font-medium ${VIOLETA.texto}`}>{(seccion.contenido as any)?.nombre_archivo ?? "Imagen cargada"}</p>
+                          {(seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? (
+                            <p className={`m-0 font-medium ${VIOLETA.texto}`}>{(seccion.contenido as ContenidoImagenAnexo | null)?.nombre_archivo ?? "Imagen cargada"}</p>
                           ) : (
                             <p className="m-0 text-ink/50 dark:text-ink-dark/50">Sin imagen todavía.</p>
                           )}
@@ -661,7 +669,7 @@ export default function DetalleDocumentoPage() {
                           tabIndex={0}
                         >
                           <ImagePlus size={14} aria-hidden="true" />
-                          {subiendoImagenId === id ? "Subiendo..." : (seccion.contenido as any)?.storage_key ? "Cambiar imagen" : "Subir imagen"}
+                          {subiendoImagenId === id ? "Subiendo..." : (seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? "Cambiar imagen" : "Subir imagen"}
                           <input
                             type="file"
                             accept="image/jpeg,image/png"
@@ -1111,11 +1119,15 @@ function EditorResultadosMultiplesVinculables({
 
   // El historial puede llegar después del primer render — sincroniza
   // cuando cambia lo ya guardado en el servidor, sin pisar una selección
-  // que el usuario esté armando a mano.
-  useEffect(() => {
+  // que el usuario esté armando a mano. 🆕 (sesión 2026-11-02) Ajuste durante
+  // el render ("storing information from previous renders", react.dev) en
+  // vez de un efecto con setState (lint react-hooks/set-state-in-effect).
+  const claveSeleccionados = seleccionados.join(",");
+  const [claveAnterior, setClaveAnterior] = useState(claveSeleccionados);
+  if (claveSeleccionados !== claveAnterior) {
+    setClaveAnterior(claveSeleccionados);
     setMarcados(seleccionados);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seleccionados.join(",")]);
+  }
 
   if (!puedeVincular) {
     return <p className="m-0 text-xs italic text-ink/50 dark:text-ink-dark/50">Solo se puede usar cuando el documento es de un único alumno.</p>;

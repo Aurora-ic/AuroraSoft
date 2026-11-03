@@ -23,7 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { apiClient, descargarBlob } from "@/lib/api-client";
+import { apiClient, descargarBlob, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
@@ -156,6 +156,9 @@ export default function DashboardCampanaPage() {
   // Hook incondicional (regla de hooks) aunque `dashboard` todavía sea null
   // al montar — cuenta sobre `dashboard?.alumnos.length ?? 0`.
   const filasAlumnosRef = useRef<HTMLDivElement>(null);
+  // TanStack Virtual devuelve funciones que el React Compiler no puede
+  // memoizar: solo AVISA que se salta este componente (no es un error).
+  // eslint-disable-next-line react-hooks/incompatible-library
   const virtualizadorAlumnos = useVirtualizer({
     count: alumnosVisibles.length,
     getScrollElement: () => filasAlumnosRef.current,
@@ -222,8 +225,8 @@ export default function DashboardCampanaPage() {
       const actualizado = await apiClient.get<DashboardCampana>(`/educativo/campanas/${campanaId}/dashboard`);
       setDashboard(actualizado);
       setMostrarEditar(false);
-    } catch (err: any) {
-      setErrorEdicion(err.message || "No se pudo guardar la edición de la campaña.");
+    } catch (err) {
+      setErrorEdicion(mensajeDe(err) || "No se pudo guardar la edición de la campaña.");
     } finally {
       setGuardandoEdicion(false);
     }
@@ -256,8 +259,8 @@ export default function DashboardCampanaPage() {
       setDashboard(actualizado);
       setMostrarReprocesarId(null);
       setMotivoReprocesar("");
-    } catch (err: any) {
-      setErrorReprocesar(err.message || "No se pudo reprocesar esta inscripción.");
+    } catch (err) {
+      setErrorReprocesar(mensajeDe(err) || "No se pudo reprocesar esta inscripción.");
     } finally {
       setReprocesandoId(null);
     }
@@ -274,8 +277,8 @@ export default function DashboardCampanaPage() {
     try {
       const datos = await apiClient.get<InscripcionCampana[]>(`/educativo/campanas/${campanaId}/links`);
       setLinks(datos);
-    } catch (err: any) {
-      setErrorLinks(err.message || "No se pudieron cargar los links de esta campaña.");
+    } catch (err) {
+      setErrorLinks(mensajeDe(err) || "No se pudieron cargar los links de esta campaña.");
     }
   }
 
@@ -284,8 +287,8 @@ export default function DashboardCampanaPage() {
     try {
       const blob = await apiClient.descargarArchivo(`/educativo/campanas/${campanaId}/exportar-excel`);
       descargarBlob(blob, `resultados_${campanaId}.xlsx`);
-    } catch (err: any) {
-      setError(err.message || "No se pudo exportar el Excel.");
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo exportar el Excel.");
     } finally {
       setExportando(false);
     }
@@ -381,8 +384,8 @@ export default function DashboardCampanaPage() {
       await apiClient.post(`/educativo/campanas/${campanaId}/cerrar`, {});
       const actualizado = await apiClient.get<DashboardCampana>(`/educativo/campanas/${campanaId}/dashboard`);
       setDashboard(actualizado);
-    } catch (err: any) {
-      setErrorAccion(err.message || "No se pudo cerrar la campaña.");
+    } catch (err) {
+      setErrorAccion(mensajeDe(err) || "No se pudo cerrar la campaña.");
     } finally {
       setAccionando(false);
     }
@@ -397,8 +400,8 @@ export default function DashboardCampanaPage() {
       const actualizado = await apiClient.get<DashboardCampana>(`/educativo/campanas/${campanaId}/dashboard`);
       setDashboard(actualizado);
       setMostrarCancelar(false);
-    } catch (err: any) {
-      setErrorAccion(err.message || "No se pudo cancelar la campaña.");
+    } catch (err) {
+      setErrorAccion(mensajeDe(err) || "No se pudo cancelar la campaña.");
     } finally {
       setAccionando(false);
     }

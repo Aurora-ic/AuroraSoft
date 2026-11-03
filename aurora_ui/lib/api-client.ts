@@ -64,6 +64,20 @@ export class ApiError extends Error {
   }
 }
 
+// 🆕 (sesión 2026-11-02) Para los `catch` de las pantallas, que antes
+// tipaban el error como `any` (115 avisos de lint). Lo que se lanza puede
+// no ser un Error (un `throw "texto"`), así que esto devuelve "" en ese caso
+// y el `mensajeDe(err) || "Texto por defecto"` de cada pantalla sigue
+// comportándose igual que el `err.message || ...` de antes.
+export function mensajeDe(err: unknown): string {
+  return err instanceof Error ? err.message : "";
+}
+
+/** Código HTTP si el error vino del backend (ApiError); si no, undefined. */
+export function estadoHttpDe(err: unknown): number | undefined {
+  return err instanceof ApiError ? err.status : undefined;
+}
+
 // 🆕 Un 401 (token expirado, o revocado por un cambio de contraseña — ver
 // la verificación de versión de credencial en docs/multi-tenancy-y-permisos.md)
 // antes se propagaba como un ApiError más: cada page.tsx decidía (o, varias
@@ -92,11 +106,13 @@ function avisarNoAutorizado() {
 // CUALQUIER POST/PATCH/PUT de la app que dispare una validación de Pydantic,
 // no solo a un formulario puntual — por eso se arregla acá, en el único
 // lugar que construye el mensaje, no en cada página que lo muestra.
-function extraerMensajeError(cuerpo: any): string {
-  const detail = cuerpo?.detail;
+function extraerMensajeError(cuerpo: unknown): string {
+  const detail = (cuerpo as { detail?: unknown } | null)?.detail;
   if (typeof detail === "string" && detail.trim()) return detail;
   if (Array.isArray(detail)) {
-    const mensajes = detail.map((d) => (typeof d?.msg === "string" ? d.msg : null)).filter(Boolean);
+    const mensajes = detail
+      .map((d: { msg?: unknown } | null) => (typeof d?.msg === "string" ? d.msg : null))
+      .filter(Boolean);
     if (mensajes.length > 0) return mensajes.join(" — ");
   }
   return "Error inesperado del servidor.";

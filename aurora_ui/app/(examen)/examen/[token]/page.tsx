@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, CheckCircle2, Download, ListChecks } from "lucide-react";
-import { apiClient, ApiError, descargarBlob } from "@/lib/api-client";
+import { apiClient, ApiError, descargarBlob, estadoHttpDe, mensajeDe } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import type {
@@ -92,12 +92,19 @@ export default function ExamenPage() {
     apiClient
       .get<AsentimientoInformadoTextoPublico>(`/educativo/examen/${token}/asentimiento-texto`)
       .then(setAsentimientoTexto)
-      .catch((err: any) =>
+      .catch((err: unknown) =>
         setErrorAsentimientoTexto(
-          err.message || "No se pudo cargar el texto de asentimiento informado. Contacta a tu colegio."
+          mensajeDe(err) || "No se pudo cargar el texto de asentimiento informado. Contacta a tu colegio."
         )
       );
   }, [token]);
+
+  // --- Fase 4: finalizado ---
+  // 🆕 Solo se usa si la campaña deja que el alumno vea su resultado
+  // (alumno_puede_ver_informe) — si no, la pantalla final es solo un
+  // agradecimiento. Declarado aquí porque el efecto de /intake (abajo) lo
+  // usa cuando el enlace ya está finalizado.
+  const [estadoResultados, setEstadoResultados] = useState<EstadoResultadosAlumno | null>(null);
 
   // 🆕 Antes de mostrar el formulario, averiguamos qué datos ya tiene esta
   // inscripción (nombre/edad/sexo/nivel, cuando viene de una matrícula por
@@ -118,9 +125,27 @@ export default function ExamenPage() {
           poblacion: (datos.poblacion as RegistroAlumnoDemograficos["poblacion"]) ?? prev.poblacion,
         }));
       })
-      .catch(() => {
-        // Silencioso a propósito: el formulario simplemente se ve como
-        // siempre (todo editable) y comenzar-test informará el error real.
+      .catch((err: unknown) => {
+        // 🆕 (sesión 2026-11-02) El backend ya avisa aquí si la evaluación
+        // terminó (409) o el enlace venció (410). Antes se ignoraba y un
+        // alumno que volvía a abrir su enlace después de terminar veía otra
+        // vez "Antes de comenzar": recién al reenviar el formulario llegaba
+        // al agradecimiento (y a su resultado, si la campaña lo permite).
+        const estado = estadoHttpDe(err);
+        if (estado === 409) {
+          // Lo mismo que irAFinalizado() (más abajo), escrito aquí para no
+          // depender de una función declarada después del efecto.
+          apiClient
+            .get<EstadoResultadosAlumno>(`/educativo/examen/${token}/estado-resultados`)
+            .then(setEstadoResultados)
+            .catch(() => setEstadoResultados(null))
+            .finally(() => setFase("finalizado"));
+        } else if (estado === 410) {
+          setFase("error_terminal");
+          setErrorTerminal(mensajeDe(err));
+        }
+        // Cualquier otro fallo: silencioso a propósito, el formulario se ve
+        // como siempre (todo editable) y comenzar-test informará el error real.
       })
       .finally(() => setCargandoIntakePrevio(false));
   }, [token]);
@@ -179,11 +204,8 @@ export default function ExamenPage() {
   const [vista, setVista] = useState<VistaPreguntas>("pregunta");
   const refTituloVista = useRef<HTMLHeadingElement>(null);
 
-  // --- Fase 4: finalizado ---
-  // 🆕 Solo se usa si la campaña deja que el alumno vea su resultado
-  // (alumno_puede_ver_informe) — si no, la pantalla final es solo un
-  // agradecimiento.
-  const [estadoResultados, setEstadoResultados] = useState<EstadoResultadosAlumno | null>(null);
+  // --- Fase 4: finalizado --- (estadoResultados se declara más arriba,
+  // antes del efecto de /intake, que también lo usa)
   const [descargando, setDescargando] = useState(false);
   const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
 
@@ -206,15 +228,15 @@ export default function ExamenPage() {
     try {
       await apiClient.post(`/educativo/comenzar-test/${token}`, intake);
       await cargarSiguientePaso();
-    } catch (err: any) {
-      if (err.status === 409) {
+    } catch (err) {
+      if (estadoHttpDe(err) === 409) {
         // Ya estaba Finalizado -- no es un error, vamos directo al estado.
         await irAFinalizado();
-      } else if (err.status === 410) {
+      } else if (estadoHttpDe(err) === 410) {
         setFase("error_terminal");
-        setErrorTerminal(err.message);
+        setErrorTerminal(mensajeDe(err));
       } else {
-        setErrorIntake(err.message || "No se pudo comenzar la evaluación.");
+        setErrorIntake(mensajeDe(err) || "No se pudo comenzar la evaluación.");
       }
     } finally {
       setEnviandoIntake(false);
@@ -244,8 +266,8 @@ export default function ExamenPage() {
         respuestas: Object.entries(valoresSocio).map(([campo_id, valor]) => ({ campo_id: Number(campo_id), valor })),
       });
       await cargarPreguntas();
-    } catch (err: any) {
-      setErrorSocio(err.message || "No se pudieron guardar tus datos.");
+    } catch (err) {
+      setErrorSocio(mensajeDe(err) || "No se pudieron guardar tus datos.");
     } finally {
       setEnviandoSocio(false);
     }
@@ -285,8 +307,8 @@ export default function ExamenPage() {
       setIndiceActual(primeraSinResponder === -1 ? Math.max(0, listaPreguntas.length - 1) : primeraSinResponder);
       setVista(intakePrevio?.instrucciones ? "instrucciones" : todasRespondidas ? "revision" : "pregunta");
       setFase("preguntas");
-    } catch (err: any) {
-      setErrorPreguntas(err.message || "No se pudieron cargar las preguntas.");
+    } catch (err) {
+      setErrorPreguntas(mensajeDe(err) || "No se pudieron cargar las preguntas.");
     }
   }
 
@@ -367,7 +389,7 @@ export default function ExamenPage() {
         : { pregunta_id: preguntaId, opcion_id: valor };
       await apiClient.post(`/educativo/examen/${token}/guardar`, { respuestas: [cuerpo] });
       confirmadoRef.current[preguntaId] = valor;
-    } catch (err: any) {
+    } catch (err) {
       // Un ApiError es una respuesta HTTP real de error (4xx/5xx) — repetir
       // el mismo cuerpo fallaría otra vez. Cualquier otra excepción (el
       // fetch nunca llegó a completarse: red caída, DNS, etc.) sí vale la
@@ -380,7 +402,7 @@ export default function ExamenPage() {
       // esta misma pregunta — si lo hay, es ese el que debe decidir el
       // estado visible final, no este, que ya quedó obsoleto.
       if (intentoVigentePorPreguntaRef.current[preguntaId] === miIntento) {
-        setErrorGuardar(err.message || "No se pudo guardar esta respuesta. Vuelve a intentarlo.");
+        setErrorGuardar(mensajeDe(err) || "No se pudo guardar esta respuesta. Vuelve a intentarlo.");
         const valorConfirmado = confirmadoRef.current[preguntaId];
         setRespuestas((prev) => {
           const copia = { ...prev };
@@ -472,8 +494,8 @@ export default function ExamenPage() {
       // niveles — ver el comentario al inicio del archivo.
       await apiClient.post(`/educativo/examen/${token}/finalizar`);
       await irAFinalizado();
-    } catch (err: any) {
-      setErrorFinalizar(err.message || "No se pudo finalizar la evaluación.");
+    } catch (err) {
+      setErrorFinalizar(mensajeDe(err) || "No se pudo finalizar la evaluación.");
     } finally {
       setFinalizando(false);
     }

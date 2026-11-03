@@ -85,6 +85,9 @@ export function ContenidoVisorArchivo({
   useEffect(() => {
     if (!archivo || tipo !== "imagen") return;
     const url = URL.createObjectURL(archivo.blob);
+    // La URL nace y se revoca con este efecto, así que el setState no se
+    // puede sacar de aquí (sí se revisó: es el caso que la regla admite).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUrlImagen(url);
     return () => URL.revokeObjectURL(url);
   }, [archivo, tipo]);

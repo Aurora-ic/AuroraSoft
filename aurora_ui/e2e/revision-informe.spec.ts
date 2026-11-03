@@ -2,7 +2,7 @@ import { test, expect, request } from "@playwright/test";
 import { leerFixtures } from "./global-setup";
 import {
   crearAlumnoConConsentimiento, crearCampanaYMatricular,
-  crearPruebaConBaremo, finalizarExamenCompleto, autenticarEnNavegador,
+  crearPruebaConBaremo, finalizarExamenCompleto, autenticarEnNavegador, esperarInformeGenerado,
 } from "./helpers";
 
 test.describe("Revisar y liberar un informe retenido", () => {
@@ -24,6 +24,7 @@ test.describe("Revisar y liberar un informe retenido", () => {
       ctx, token, fixtures.institucionId, pruebaAlerta.pruebaId, `ZZPLAYWRIGHT Campaña Alerta ${fixtures.sello}`, personaId,
     );
     await finalizarExamenCompleto(ctx, tokenExamen, pruebaAlerta.preguntaIds, pruebaAlerta.opcionCorrectaIds);
+    await esperarInformeGenerado(ctx, token, personaId);
     await ctx.dispose();
 
     // Login en sí NO es lo que este spec prueba -- sesión inyectada

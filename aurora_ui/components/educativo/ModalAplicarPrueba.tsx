@@ -215,7 +215,7 @@ export function ModalAplicarPrueba({
               <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">
                 Fecha de cierre (opcional)
                 <Input type="datetime-local" min={ahoraParaInputLocal()} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} aria-invalid={fechaPasada} />
-                {fechaPasada && <span className="font-medium text-red-700">{MENSAJE_FECHA_CIERRE_PASADA}</span>}
+                {fechaPasada && <span className="font-medium text-red-700 dark:text-red-300">{MENSAJE_FECHA_CIERRE_PASADA}</span>}
               </label>
               <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border dark:border-border-dark p-3">
                 <input type="checkbox" checked={alumnoVe} onChange={(e) => setAlumnoVe(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#0F5A4F]" />

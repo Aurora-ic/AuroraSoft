@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Flag, Plus, UserRound } from "lucide-react";
 import { EncabezadoPagina, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
@@ -10,6 +10,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 import type { RespuestaPaginada } from "@/types/api";
 import { estadoVisibleCampana, etiquetaEstadoCampana, claseBadgeEstadoCampana } from "@/lib/campanas";
+import { useCargaDiferida } from "@/lib/useCargaDiferida";
 
 // Refleja schemas.EvaluacionResponse tal cual está en el backend —
 // no tiene "nombre_grupo" separado de nombre de prueba, ni conteo de
@@ -51,7 +52,7 @@ export default function CampanasPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  useCargaDiferida(() => {
     if (!sesion) return;
     let vigente = true;
     setCargando(true);
