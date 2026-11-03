@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Lock, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { ApiError, login, obtenerCaptcha, type CaptchaLogin } from "@/lib/api-client";
+import { ApiError, bloquearSesionEnServidor, login, obtenerCaptcha, type CaptchaLogin } from "@/lib/api-client";
 import { CampoCaptcha, LONGITUD_CAPTCHA } from "@/components/auth/CampoCaptcha";
 import {
   CLAVES_INACTIVIDAD,
@@ -51,6 +51,11 @@ export function BloqueoInactividad({ children }: { children: React.ReactNode }) 
     const restante = LIMITE_MS - (Date.now() - ultima);
     if (restante <= 0) {
       bloquear();
+      // 🆕 (sesión 2026-11-02) El bloqueo también vale en el SERVIDOR: la
+      // sesión queda bloqueada y ningún acceso de ella sirve hasta
+      // desbloquear con la contraseña. Antes era solo esta capa, que se
+      // podía quitar con las herramientas del navegador.
+      void bloquearSesionEnServidor();
       setBloqueado(true);
       setSegundosRestantes(null);
     } else {

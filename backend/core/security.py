@@ -19,7 +19,10 @@ if not SECRET_KEY:
     )
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 días
+# 🆕 (sesión 2026-11-02) Antes 7 días. Ahora el token de ACCESO es corto y
+# se renueva con el de renovación (ver core/sesiones.py). Configurable para
+# entornos de prueba con scripts largos que solo inician sesión una vez.
+ACCESS_TOKEN_EXPIRE_MINUTES = float(os.getenv("ACCESS_TOKEN_MINUTOS", "15"))
 
 # Motor de encriptación de contraseñas (bcrypt)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

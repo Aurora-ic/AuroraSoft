@@ -1,4 +1,4 @@
-import type { APIRequestContext } from "@playwright/test";
+import { request, type APIRequestContext } from "@playwright/test";
 
 // Helpers de setup vía API directa (nunca vía UI) — mismo criterio que los
 // scripts verificar_*_e2e.py del backend: arman el estado previo con
@@ -30,11 +30,22 @@ export function requerirPasswordSuperadmin(): string {
   return clave;
 }
 
-export async function login(ctx: APIRequestContext, email: string, password: string): Promise<string> {
-  const res = await ctx.post(`${API}/auth/login`, { form: { username: email, password } });
-  if (!res.ok()) throw new Error(`Login falló para ${email}: ${res.status()} ${await res.text()}`);
-  const body = await res.json();
-  return body.access_token as string;
+export async function login(_ctx: APIRequestContext, email: string, password: string): Promise<string> {
+  // 🆕 (sesión 2026-11-02) Cada login en su PROPIO contexto: un
+  // APIRequestContext guarda cookies como un navegador, y el backend revoca
+  // la sesión cuya cookie de renovación llega a un login nuevo (el caso real
+  // es desbloquear la pantalla — ver backend/core/sesiones.py). Con un solo
+  // contexto, el login del psicólogo revocaba la sesión del superadmin del
+  // mismo setup y su token cacheado moría.
+  const aislado = await request.newContext();
+  try {
+    const res = await aislado.post(`${API}/auth/login`, { form: { username: email, password } });
+    if (!res.ok()) throw new Error(`Login falló para ${email}: ${res.status()} ${await res.text()}`);
+    const body = await res.json();
+    return body.access_token as string;
+  } finally {
+    await aislado.dispose();
+  }
 }
 
 function auth(token: string) {
@@ -129,16 +140,28 @@ export async function crearFixturesBase(ctx: APIRequestContext, sello: string): 
   };
 }
 
-/** Inyecta la sesión directamente en localStorage (mismo criterio que
- * AuthContext -- ver contexts/AuthContext.tsx: decodifica el JWT en el
- * cliente, sin ningún round-trip) ANTES de navegar, para que los specs
- * que no están probando el login en sí mismos no tengan que repetir el
- * formulario (y, sobre todo, no vuelvan a golpear /auth/login, que tiene
- * rate limit). Solo login.spec.ts debe loguearse por la UI de verdad. */
+/** Deja la sesión puesta en el navegador ANTES de navegar, para que los
+ * specs que no están probando el login en sí mismos no tengan que repetir
+ * el formulario (y, sobre todo, no vuelvan a golpear /auth/login, que tiene
+ * rate limit). Solo login.spec.ts debe loguearse por la UI de verdad.
+ *
+ * 🆕 (sesión 2026-11-02) El token ya no vive en localStorage: va en la
+ * cookie httpOnly `aurora_sesion` (backend/core/sesiones.py). Se pone esa
+ * cookie (en localhost Y 127.0.0.1: las cookies no distinguen puerto, y el
+ * frontend puede apuntar a cualquiera de los dos) más la sesión pública que
+ * AuthContext lee para pintar la interfaz. No hay cookie de renovación: el
+ * acceso dura 15 min, de sobra para un spec. */
 export async function autenticarEnNavegador(page: import("@playwright/test").Page, token: string) {
-  await page.addInitScript((t) => {
-    window.localStorage.setItem("aurora_token", t);
-  }, token);
+  const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+  await page.context().addCookies(
+    ["localhost", "127.0.0.1"].map((domain) => ({
+      name: "aurora_sesion", value: token, domain, path: "/api", httpOnly: true, sameSite: "Lax" as const,
+    })),
+  );
+  const sesion = { email: payload.sub, rol: payload.rol, institucionId: payload.institucion_id ?? null };
+  await page.addInitScript((s) => {
+    window.localStorage.setItem("aurora_sesion", s);
+  }, JSON.stringify(sesion));
 }
 
 export type PruebaConBaremo = {

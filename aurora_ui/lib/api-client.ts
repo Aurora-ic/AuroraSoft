@@ -1,4 +1,5 @@
-import { reiniciarInactividad } from "@/lib/inactividad";
+import { estaBloqueado, reiniciarInactividad } from "@/lib/inactividad";
+import type { Rol } from "@/types/api";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
 // "ngrok-skip-browser-warning" (presente en los 4 fetch de este archivo):
@@ -7,17 +8,52 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 // advertencia en vez de reenviar la request al backend real, y el fetch
 // recibe HTML donde esperaba JSON. No-op contra cualquier otro backend.
 
-function obtenerToken(): string | null {
+// 🆕 (sesión 2026-11-02) El token ya NO vive en localStorage (cualquier
+// script inyectado en la página podía leerlo). El backend lo pone en dos
+// cookies httpOnly (backend/core/sesiones.py) que JavaScript no puede leer:
+// un acceso de ~15 min y una renovación que solo viaja a /api/auth. Aquí:
+//   · todo fetch va con `credentials: "include"` para que el navegador las
+//     mande (y guarde las que llegan);
+//   · toda petición lleva la cabecera anti-CSRF `X-Aurora-Cliente` (el
+//     backend la exige en las que cambian algo);
+//   · ante un 401, se intenta UNA renovación (POST /auth/renovar) y se
+//     repite la petición; si no se puede renovar, recién ahí se avisa que la
+//     sesión terminó.
+// En localStorage solo queda la sesión PÚBLICA (email, rol, colegio) para
+// pintar la interfaz al cargar sin esperar al servidor; no da acceso a nada.
+const CABECERAS_BASE = {
+  "ngrok-skip-browser-warning": "true",
+  "X-Aurora-Cliente": "web",
+};
+const CLAVE_SESION_PUBLICA = "aurora_sesion";
+const CLAVE_TOKEN_ANTIGUO = "aurora_token";
+
+export type SesionPublica = { email: string; rol: Rol; institucionId: number | null };
+type SesionPublicaApi = { email: string; rol: Rol; institucion_id: number | null };
+
+function aSesionPublica(s: SesionPublicaApi): SesionPublica {
+  return { email: s.email, rol: s.rol, institucionId: s.institucion_id };
+}
+
+export function leerSesionPublica(): SesionPublica | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("aurora_token");
+  // El token de antes de las cookies ya no sirve: se descarta.
+  localStorage.removeItem(CLAVE_TOKEN_ANTIGUO);
+  try {
+    const datos = JSON.parse(localStorage.getItem(CLAVE_SESION_PUBLICA) || "null");
+    return datos && typeof datos.email === "string" && typeof datos.rol === "string" ? datos : null;
+  } catch {
+    return null;
+  }
 }
 
-export function guardarToken(token: string) {
-  localStorage.setItem("aurora_token", token);
+export function guardarSesionPublica(sesion: SesionPublica) {
+  localStorage.setItem(CLAVE_SESION_PUBLICA, JSON.stringify(sesion));
 }
 
-export function borrarToken() {
-  localStorage.removeItem("aurora_token");
+export function borrarSesionPublica() {
+  localStorage.removeItem(CLAVE_SESION_PUBLICA);
+  localStorage.removeItem(CLAVE_TOKEN_ANTIGUO);
 }
 
 export class ApiError extends Error {
@@ -68,7 +104,10 @@ function extraerMensajeError(cuerpo: any): string {
 
 async function lanzarSiError(res: Response): Promise<void> {
   if (res.ok) return;
-  if (res.status === 401) avisarNoAutorizado();
+  // 🆕 Con la pantalla bloqueada por inactividad, la sesión está bloqueada en
+  // el servidor y todo da 401 — pero NO hay que cerrar sesión: lo escrito
+  // sigue en la página y se recupera al desbloquear con la contraseña.
+  if (res.status === 401 && !estaBloqueado()) avisarNoAutorizado();
   const cuerpo = await res.json().catch(() => ({}));
   throw new ApiError(res.status, extraerMensajeError(cuerpo));
 }
@@ -84,20 +123,54 @@ async function lanzarSiError(res: Response): Promise<void> {
 // un ApiError de negocio.
 async function fetchSeguro(path: string, init: RequestInit): Promise<Response> {
   try {
-    return await fetch(`${API_URL}${path}`, init);
+    return await fetch(`${API_URL}${path}`, { credentials: "include", ...init });
   } catch {
     throw new ApiError(0, "No se pudo conectar con el servidor. Verifica tu conexión e inténtalo de nuevo.");
   }
 }
 
+// Una sola renovación en vuelo a la vez: si diez peticiones reciben 401
+// juntas (el acceso venció), todas esperan la misma.
+let renovacionEnCurso: Promise<boolean> | null = null;
+
+/** Pide un acceso nuevo con la cookie de renovación. true si lo consiguió. */
+export function renovarSesion(): Promise<boolean> {
+  if (!renovacionEnCurso) {
+    renovacionEnCurso = (async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/renovar`, {
+          method: "POST",
+          credentials: "include",
+          headers: CABECERAS_BASE,
+        });
+        if (!res.ok) return false;
+        const datos: { sesion: SesionPublicaApi } = await res.json();
+        guardarSesionPublica(aSesionPublica(datos.sesion));
+        return true;
+      } catch {
+        return false;
+      } finally {
+        renovacionEnCurso = null;
+      }
+    })();
+  }
+  return renovacionEnCurso;
+}
+
+/** fetch autenticado: ante un 401 intenta renovar una vez y repite. */
+async function fetchAutenticado(path: string, init: RequestInit): Promise<Response> {
+  const res = await fetchSeguro(path, init);
+  if (res.status !== 401 || estaBloqueado()) return res;
+  if (!(await renovarSesion())) return res;
+  return fetchSeguro(path, init);
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = obtenerToken();
-  const res = await fetchSeguro(path, {
+  const res = await fetchAutenticado(path, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "ngrok-skip-browser-warning": "true",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...CABECERAS_BASE,
       ...options.headers,
     },
   });
@@ -111,13 +184,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 // fuerza Content-Type: application/json; el navegador debe poner su propio
 // boundary, así que aquí no se fija Content-Type en absoluto.
 async function requestForm<T>(path: string, formData: FormData, method: "POST" | "PATCH" = "POST"): Promise<T> {
-  const token = obtenerToken();
-  const res = await fetchSeguro(path, {
+  const res = await fetchAutenticado(path, {
     method,
-    headers: {
-      "ngrok-skip-browser-warning": "true",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: CABECERAS_BASE,
     body: formData,
   });
   await lanzarSiError(res);
@@ -126,13 +195,7 @@ async function requestForm<T>(path: string, formData: FormData, method: "POST" |
 
 // Descarga binaria (ej. la plantilla .xlsx) — la respuesta nunca es JSON.
 async function requestBlob(path: string): Promise<Blob> {
-  const token = obtenerToken();
-  const res = await fetchSeguro(path, {
-    headers: {
-      "ngrok-skip-browser-warning": "true",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  const res = await fetchAutenticado(path, { headers: CABECERAS_BASE });
   await lanzarSiError(res);
   return res.blob();
 }
@@ -258,7 +321,7 @@ export async function login(email: string, password: string, captcha?: Respuesta
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "ngrok-skip-browser-warning": "true",
+      ...CABECERAS_BASE,
     },
     body,
   });
@@ -276,9 +339,33 @@ export async function login(email: string, password: string, captcha?: Respuesta
         : (typeof cuerpo.detail === "string" && cuerpo.detail.trim() ? cuerpo.detail : "Email o contraseña incorrectos.");
     throw new ApiError(res.status, mensaje);
   }
-  const data: { access_token: string; token_type: string } = await res.json();
-  guardarToken(data.access_token);
+  // 🆕 (sesión 2026-11-02) El backend ya dejó las cookies httpOnly; el
+  // `access_token` del cuerpo (para Swagger/scripts) se ignora a propósito.
+  const data: { sesion: SesionPublicaApi } = await res.json();
+  const sesion = aSesionPublica(data.sesion);
+  guardarSesionPublica(sesion);
   // 🆕 Login correcto (pantalla de login o desbloqueo): sin bloqueo pendiente.
   reiniciarInactividad();
-  return data;
+  return sesion;
+}
+
+// 🆕 (sesión 2026-11-02) Avisos al servidor que no deben trabar la
+// interfaz: si fallan (sin red), el bloqueo/cierre local sigue igual.
+async function avisarAlServidor(path: string): Promise<void> {
+  try {
+    await fetch(`${API_URL}${path}`, { method: "POST", credentials: "include", headers: CABECERAS_BASE, keepalive: true });
+  } catch {
+    // sin red: el servidor igual la dará por inactiva (SESION_INACTIVIDAD_MINUTOS)
+  }
+}
+
+/** Revoca la sesión en el servidor y borra las cookies. */
+export function cerrarSesionEnServidor(): Promise<void> {
+  return avisarAlServidor("/auth/cerrar-sesion");
+}
+
+/** La pantalla se bloqueó por inactividad: la sesión queda bloqueada en el
+ * servidor hasta desbloquear con la contraseña. */
+export function bloquearSesionEnServidor(): Promise<void> {
+  return avisarAlServidor("/auth/bloquear");
 }

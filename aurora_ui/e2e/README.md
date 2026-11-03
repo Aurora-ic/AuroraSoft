@@ -24,8 +24,14 @@ académico/tendencias.
 
    ```bash
    cd aurora_ui
-   npm run dev
+   NEXT_PUBLIC_API_URL=http://localhost:8010/api npm run dev
    ```
+
+   🆕 (sesión 2026-11-02) La sesión viaja en cookies httpOnly
+   (`backend/core/sesiones.py`): el frontend debe hablar con el mismo
+   backend que usa la suite y por `localhost`, no `127.0.0.1`. Las cookies
+   no distinguen puertos, pero `localhost` y `127.0.0.1` no son el mismo
+   sitio.
 
 3. La contraseña del superadmin (la misma del `.env` del backend) como variable
    de entorno — `aurora_ui/` y `backend/` son proyectos independientes (ver

@@ -45,9 +45,31 @@ class UsuarioResponse(BaseModel):
         from_attributes = True
 
 
+class SesionPublica(BaseModel):
+    """🆕 (sesión 2026-11-02) Lo que el navegador necesita para decidir qué
+    mostrar, sin tener que leer el token (que ahora vive en una cookie
+    httpOnly que JavaScript no puede leer)."""
+    email: str
+    rol: str
+    institucion_id: Optional[int] = None
+
+
 class Token(BaseModel):
+    # Se sigue devolviendo para Swagger, los e2e y scripts (Bearer). El
+    # frontend ya no lo guarda: usa las cookies httpOnly.
     access_token: str
     token_type: str
+    sesion: Optional[SesionPublica] = None
+    # Segundos de vida del token de acceso.
+    expira_en: Optional[int] = None
+
+
+class RenovacionResponse(BaseModel):
+    """Sin token en el cuerpo a propósito: si un script inyectado pudiera
+    llamar a /auth/renovar y leer el resultado, la cookie httpOnly no
+    serviría de nada."""
+    sesion: SesionPublica
+    expira_en: int
 
 
 class CaptchaResponse(BaseModel):

@@ -73,3 +73,46 @@ class TokenRecuperacion(Base):
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
     fecha_expiracion = Column(DateTime(timezone=True), nullable=False)
     usado = Column(Boolean, default=False)
+
+class SesionUsuario(Base):
+    """🆕 (sesión 2026-11-02) Una fila por inicio de sesión. Antes el JWT
+    duraba 7 días, vivía en localStorage y "cerrar sesión" solo lo borraba
+    del navegador: el token seguía valiendo en el servidor.
+
+    Ahora el login emite DOS tokens, ambos en cookies httpOnly (ver
+    core/sesiones.py):
+      · acceso (JWT, ~15 min) con el claim `sid` = `id` de esta fila; cada
+        petición comprueba en la MISMA consulta que ya trae al usuario que
+        la sesión no esté revocada, bloqueada ni vencida;
+      · renovación (aleatorio, solo se guarda su SHA-256 en
+        `hash_renovacion`), enviado únicamente a /api/auth, que emite
+        accesos nuevos mientras la sesión siga viva.
+
+    Sin rotación del token de renovación a propósito: con varias pestañas
+    abiertas, dos renovaciones simultáneas con rotación se invalidarían
+    entre sí (y la detección de reutilización cerraría la sesión de todas).
+    La cookie es httpOnly y solo viaja a /api/auth, así que el riesgo que
+    cubre la rotación (robo del token) ya está acotado; revocar la fila lo
+    corta en el acto."""
+    __tablename__ = "auth_sesiones"
+
+    id = Column(String(43), primary_key=True)  # secrets.token_urlsafe(32)
+    usuario_id = Column(Integer, ForeignKey("auth_usuarios.id", ondelete="CASCADE"), nullable=False, index=True)
+    hash_renovacion = Column(String(64), nullable=False, unique=True)
+    # Copia de Usuario.token_version al crearla: un cambio de contraseña la
+    # invalida igual que a los JWT (C-4).
+    token_version = Column(Integer, nullable=False, default=0)
+    creada_en = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    # Vida máxima absoluta (SESION_HORAS) — no se extiende al renovar.
+    expira_en = Column(DateTime(timezone=True), nullable=False)
+    # Última renovación: una sesión sin renovarse más de
+    # SESION_INACTIVIDAD_MINUTOS ya no se puede renovar.
+    ultimo_uso = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    # Bloqueo por inactividad del lado del servidor: el navegador lo marca al
+    # bloquear la pantalla; desbloquear exige la contraseña (= sesión nueva).
+    bloqueada_en = Column(DateTime(timezone=True), nullable=True)
+    revocada_en = Column(DateTime(timezone=True), nullable=True)
+    # 'cierre_sesion', 'reemplazada' (login desde la pantalla de bloqueo), ...
+    motivo_revocacion = Column(String(40), nullable=True)
+    ip = Column(String(64), nullable=True)
+    agente = Column(String(300), nullable=True)

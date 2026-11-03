@@ -10,7 +10,12 @@ from core.subida_archivos import leer_archivo_con_limite
 from core.branding import TAMANO_MAXIMO_IMAGEN_BYTES
 from modulos.instituciones import models as instituciones_models
 from core.database import get_db
-from core.security import verify_password, create_access_token
+from datetime import timedelta
+
+from fastapi.responses import JSONResponse
+
+from core import sesiones
+from core.security import ACCESS_TOKEN_EXPIRE_MINUTES, verify_password, create_access_token
 from core.limiter import limiter  # 👈 Evita importación circular
 from core import captcha
 from . import models, schemas, crud
@@ -63,6 +68,7 @@ def obtener_captcha(request: Request, email: Optional[str] = None):
 @limiter.limit("5/minute")
 def iniciar_sesion(
     request: Request,
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(), 
     captcha_id: Optional[str] = Form(None),
     captcha_respuesta: Optional[str] = Form(None),
@@ -100,18 +106,143 @@ def iniciar_sesion(
             detail="Esta cuenta está desactivada.",
         )
 
-    token_data = {
-    "sub": usuario.email,
-    "rol": usuario.rol,
-    "institucion_id": usuario.institucion_id,  # None para superadmin
-    # 🔑 C-4 — versión de credenciales: cambia al resetear la contraseña y
-    # deja sin efecto todos los tokens emitidos antes.
-    "tv": usuario.token_version or 0,
-    }
-    access_token = create_access_token(data=token_data)
+    # 🆕 (sesión 2026-11-02) Sesión de servidor + cookies httpOnly (ver
+    # core/sesiones.py). Si el navegador ya traía una sesión (p. ej. se
+    # desbloquea la pantalla por inactividad), esa se revoca: la nueva la
+    # reemplaza.
+    _revocar_sesion_de_cookie(db, request, "reemplazada")
+    token_renovacion = sesiones.nuevo_token_renovacion()
+    ahora = sesiones.ahora_utc()
+    sesion = models.SesionUsuario(
+        id=sesiones.nuevo_id_sesion(),
+        usuario_id=usuario.id,
+        hash_renovacion=sesiones.hash_renovacion(token_renovacion),
+        token_version=usuario.token_version or 0,
+        creada_en=ahora,
+        ultimo_uso=ahora,
+        expira_en=ahora + timedelta(hours=sesiones.SESION_HORAS),
+        ip=ip,
+        agente=(request.headers.get("user-agent") or "")[:300] or None,
+    )
+    db.add(sesion)
+    db.commit()
+
+    access_token = _emitir_acceso(usuario, sesion.id)
+    sesiones.fijar_cookies(response, access_token, token_renovacion, ACCESS_TOKEN_EXPIRE_MINUTES)
     captcha.limpiar_fallos(ip, form_data.username)
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "sesion": _sesion_publica(usuario),
+        "expira_en": int(ACCESS_TOKEN_EXPIRE_MINUTES * 60),
+    }
+
+
+def _sesion_publica(usuario: models.Usuario) -> dict:
+    return {"email": usuario.email, "rol": usuario.rol, "institucion_id": usuario.institucion_id}
+
+
+def _emitir_acceso(usuario: models.Usuario, sid: str) -> str:
+    return create_access_token(data={
+        "sub": usuario.email,
+        "rol": usuario.rol,
+        "institucion_id": usuario.institucion_id,  # None para superadmin
+        # 🔑 C-4 — versión de credenciales: cambia al resetear la contraseña y
+        # deja sin efecto todos los tokens emitidos antes.
+        "tv": usuario.token_version or 0,
+        # 🆕 (sesión 2026-11-02) sesión de servidor (models.SesionUsuario).
+        "sid": sid,
+    })
+
+
+def _sesion_de_cookie(db: Session, request: Request, bloquear_fila: bool = False):
+    token = request.cookies.get(sesiones.COOKIE_RENOVACION)
+    if not token:
+        return None
+    q = db.query(models.SesionUsuario).filter(
+        models.SesionUsuario.hash_renovacion == sesiones.hash_renovacion(token)
+    )
+    if bloquear_fila:
+        q = q.with_for_update().populate_existing()
+    return q.first()
+
+
+def _revocar_sesion_de_cookie(db: Session, request: Request, motivo: str) -> bool:
+    sesion = _sesion_de_cookie(db, request, bloquear_fila=True)
+    if sesion is None or sesion.revocada_en is not None:
+        db.rollback()
+        return False
+    sesion.revocada_en = sesiones.ahora_utc()
+    sesion.motivo_revocacion = motivo
+    db.commit()
+    return True
+
+
+def _exigir_csrf(request: Request) -> None:
+    # Estos tres endpoints se autentican SOLO por cookie: el navegador la
+    # adjunta sola, así que sin esta cabecera un sitio ajeno podría
+    # dispararlos (core/sesiones.py).
+    if not sesiones.peticion_csrf_valida(request):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Falta la cabecera de seguridad de la aplicación.")
+
+
+def _respuesta_401_sin_cookies(detalle: str) -> JSONResponse:
+    # Una HTTPException perdería las cabeceras Set-Cookie de `response`:
+    # se arma la respuesta a mano para que el navegador borre las cookies.
+    respuesta = JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": detalle})
+    sesiones.borrar_cookies(respuesta)
+    return respuesta
+
+
+@router.post("/renovar", response_model=schemas.RenovacionResponse)
+@limiter.limit("60/minute")
+def renovar_sesion(request: Request, response: Response, db: Session = Depends(get_db)):
+    """🆕 (sesión 2026-11-02) Emite un token de acceso nuevo con la cookie de
+    renovación. Falla (401, y borra las cookies) si la sesión se cerró, se
+    bloqueó por inactividad, venció, lleva SESION_INACTIVIDAD_MINUTOS sin
+    renovarse, o la contraseña cambió. Público por `Depends` a propósito:
+    el acceso pudo haber vencido — lo que autentica es la cookie."""
+    _exigir_csrf(request)
+    sesion = _sesion_de_cookie(db, request, bloquear_fila=True)
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == sesion.usuario_id).first() if sesion else None
+    if sesiones.motivo_renovacion_invalida(sesion, usuario) is not None:
+        db.rollback()
+        return _respuesta_401_sin_cookies("Tu sesión terminó. Vuelve a iniciar sesión.")
+    sesion.ultimo_uso = sesiones.ahora_utc()
+    db.commit()
+    sesiones.fijar_cookies(response, _emitir_acceso(usuario, sesion.id), None, ACCESS_TOKEN_EXPIRE_MINUTES)
+    return {"sesion": _sesion_publica(usuario), "expira_en": int(ACCESS_TOKEN_EXPIRE_MINUTES * 60)}
+
+
+@router.post("/bloquear", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
+def bloquear_sesion(request: Request, db: Session = Depends(get_db)):
+    """🆕 (sesión 2026-11-02) La pantalla se bloqueó por inactividad: la
+    sesión queda bloqueada EN EL SERVIDOR. Ningún acceso de esta sesión vale
+    hasta desbloquear con la contraseña (un login nuevo, que la reemplaza).
+    Antes el bloqueo era solo una capa en el navegador. Idempotente."""
+    _exigir_csrf(request)
+    sesion = _sesion_de_cookie(db, request, bloquear_fila=True)
+    if sesion is not None and sesion.bloqueada_en is None and sesion.revocada_en is None:
+        sesion.bloqueada_en = sesiones.ahora_utc()
+        db.commit()
+    else:
+        db.rollback()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/cerrar-sesion", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
+def cerrar_sesion(request: Request, db: Session = Depends(get_db)):
+    """🆕 (sesión 2026-11-02) Revoca la sesión en el servidor y borra las
+    cookies. Antes cerrar sesión solo borraba el token del navegador, que
+    seguía valiendo 7 días. Idempotente: sin sesión, igual borra las cookies."""
+    _exigir_csrf(request)
+    _revocar_sesion_de_cookie(db, request, "cierre_sesion")
+    respuesta = Response(status_code=status.HTTP_204_NO_CONTENT)
+    sesiones.borrar_cookies(respuesta)
+    return respuesta
 
 
 @router.get("/me", response_model=schemas.UsuarioResponse)

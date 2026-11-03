@@ -6,12 +6,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
 
+from core import sesiones
 from core.database import get_db
 from core.security import SECRET_KEY, ALGORITHM
 from modulos.auth import models
 
-# Esquema Bearer Token para Swagger UI
-seguridad = HTTPBearer()
+# Esquema Bearer Token para Swagger UI. 🆕 (sesión 2026-11-02) auto_error=
+# False: el token también puede venir en la cookie httpOnly (core/sesiones.py).
+seguridad = HTTPBearer(auto_error=False)
 
 
 def ip_del_cliente(request: Request) -> Optional[str]:
@@ -29,17 +31,34 @@ def ip_del_cliente(request: Request) -> Optional[str]:
 
 
 def obtener_usuario_actual(
-    credenciales: HTTPAuthorizationCredentials = Depends(seguridad), 
+    request: Request,
+    credenciales: Optional[HTTPAuthorizationCredentials] = Depends(seguridad),
     db: Session = Depends(get_db)
 ):
-    """El Guardia: Verifica el token JWT y devuelve los datos del usuario logueado"""
-    token = credenciales.credentials  # Extrae el token enviado en el header Authorization
+    """El Guardia: Verifica el token JWT y devuelve los datos del usuario logueado.
 
+    🆕 (sesión 2026-11-02) El token llega por `Authorization: Bearer` (Swagger,
+    scripts, e2e) o por la cookie httpOnly del navegador (core/sesiones.py).
+    Por cookie, toda petición que cambia algo exige la cabecera anti-CSRF. Si
+    el token trae `sid`, la sesión se valida en la MISMA consulta que trae al
+    usuario: revocada (cerrar sesión), bloqueada (inactividad) o vencida → 401.
+    """
     excepcion_credenciales = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No tienes permiso para acceder. Token inválido o expirado.",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if credenciales is not None:
+        token = credenciales.credentials  # header Authorization
+    else:
+        token = request.cookies.get(sesiones.COOKIE_ACCESO)
+        if not token:
+            raise excepcion_credenciales
+        if not sesiones.peticion_csrf_valida(request):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Falta la cabecera de seguridad de la aplicación.",
+            )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
@@ -48,7 +67,19 @@ def obtener_usuario_actual(
     except JWTError:
         raise excepcion_credenciales
 
-    usuario = db.query(models.Usuario).filter(models.Usuario.email == email).first()
+    sid = payload.get("sid")
+    if sid:
+        fila = db.query(models.Usuario, models.SesionUsuario).outerjoin(
+            models.SesionUsuario,
+            (models.SesionUsuario.id == sid) & (models.SesionUsuario.usuario_id == models.Usuario.id),
+        ).filter(models.Usuario.email == email).first()
+        usuario, sesion = fila if fila else (None, None)
+        if sesiones.motivo_sesion_invalida(sesion, usuario) is not None:
+            raise excepcion_credenciales
+    else:
+        # Tokens sin `sid` (emitidos antes de las sesiones de servidor): se
+        # siguen aceptando hasta que venzan, con las validaciones de siempre.
+        usuario = db.query(models.Usuario).filter(models.Usuario.email == email).first()
     if usuario is None or not usuario.activo:
         raise excepcion_credenciales
 

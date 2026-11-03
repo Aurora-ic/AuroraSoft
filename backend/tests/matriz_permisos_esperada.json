@@ -1526,6 +1526,30 @@
       "superadmin": true,
       "sin_autenticar": false,
       "verifica_institucion": false
+    },
+    "POST /api/auth/renovar": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/bloquear": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
+    },
+    "POST /api/auth/cerrar-sesion": {
+      "admin": false,
+      "colegio": false,
+      "psicologo": false,
+      "superadmin": false,
+      "sin_autenticar": true,
+      "verifica_institucion": false
     }
   }
 }

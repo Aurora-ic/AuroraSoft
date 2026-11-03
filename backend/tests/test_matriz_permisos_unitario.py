@@ -159,6 +159,14 @@ _PUBLICO_PERMITIDO_PATRONES = [
     re.compile(r"^/api/auth/login$"),
     # Captcha del login (core/captcha.py): se pide antes de tener sesión.
     re.compile(r"^/api/auth/captcha$"),
+    # 🆕 (sesión 2026-11-02) Sesiones de servidor (core/sesiones.py): estos
+    # tres se autentican con la cookie httpOnly de RENOVACIÓN, no con el
+    # token de acceso (que pudo haber vencido justo antes: renovar existe
+    # para eso, y el bloqueo por inactividad salta ~cuando vence). No hay
+    # nada que hacer sin una cookie válida, y exigen la cabecera anti-CSRF.
+    re.compile(r"^/api/auth/renovar$"),
+    re.compile(r"^/api/auth/bloquear$"),
+    re.compile(r"^/api/auth/cerrar-sesion$"),
     re.compile(r"^/api/auth/solicitar-recuperacion$"),
     re.compile(r"^/api/auth/resetear-password$"),
     re.compile(r"^/api/educativo/comenzar-test/\{token\}$"),

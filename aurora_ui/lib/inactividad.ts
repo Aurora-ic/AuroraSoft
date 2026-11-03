@@ -2,10 +2,12 @@
 // inactividad — estado compartido entre pestañas vía localStorage. Ver
 // components/auth/BloqueoInactividad.tsx.
 //
-// Por qué: el token dura 7 días (backend/core/security.py) y en un colegio
-// la computadora de la sala de profesores es compartida; sin esto,
-// cualquiera que se sentara frente a una sesión abierta veía expedientes
-// clínicos. Se BLOQUEA (la pantalla queda cubierta y hay que reingresar la
+// Por qué: en un colegio la computadora de la sala de profesores es
+// compartida; sin esto, cualquiera que se sentara frente a una sesión
+// abierta veía expedientes clínicos. 🆕 (sesión 2026-11-02) Al bloquearse,
+// la sesión también queda bloqueada en el servidor (POST /auth/bloquear,
+// backend/core/sesiones.py), así que quitar esta capa con las herramientas
+// del navegador ya no sirve de nada. Se BLOQUEA (la pantalla queda cubierta y hay que reingresar la
 // contraseña), no se cierra la sesión: lo que se estaba escribiendo sigue en
 // la página al desbloquear.
 

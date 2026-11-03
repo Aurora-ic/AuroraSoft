@@ -18,6 +18,27 @@ Answering a public exam endpoint (no login, just a magic-link token) goes throug
 `Usuario.token_version` (int, defaults to 0) is embedded in every login JWT as the `"tv"` claim. `obtener_usuario_actual` rejects a token whose `tv` doesn't match the user's current `token_version` — a token issued before this feature existed has no `tv` claim and is treated as `0`, so no one gets logged out by the upgrade itself. Changing a password (via `/auth/resetear-password` or `seed_superadmin.py`) increments `token_version`, which invalidates every JWT issued before that moment (previously a stolen token stayed valid for its full 7-day life even after the account holder changed their password) and marks every other pending password-recovery token for that user as used.
 
 
+### Sesiones de servidor: token corto, renovación, cookies httpOnly (`core/sesiones.py`)
+
+🆕 (sesión 2026-11-02) Antes, el JWT duraba 7 días y vivía en `localStorage`, donde cualquier script inyectado podía leerlo. "Cerrar sesión" solo lo borraba del navegador, así que seguía valiendo, y el bloqueo por inactividad existía solo en la pantalla. Ahora cada login crea una fila en `auth_sesiones` (`models.SesionUsuario`, migración `4ffd2710409b`) y emite dos cookies httpOnly:
+
+- **Acceso** (`aurora_sesion`, path `/api`): JWT de `ACCESS_TOKEN_MINUTOS` (15) con el claim `sid`. `obtener_usuario_actual` valida la sesión **en la misma consulta** que ya traía al usuario (un outer join, sin consulta extra) y responde 401 si está revocada, bloqueada, vencida o es de otra versión de credenciales.
+- **Renovación** (`aurora_renovacion`, path `/api/auth`, así que solo viaja a login, renovar, bloquear y cerrar): valor aleatorio del que la BD guarda solo el SHA-256. Vida máxima `SESION_HORAS` (12, no se extiende) y caduca si pasa `SESION_INACTIVIDAD_MINUTOS` (60) sin renovarse. **Sin rotación** a propósito: con varias pestañas, dos renovaciones simultáneas se invalidarían entre sí. La cookie solo viaja a `/api/auth`, y revocar la fila corta la sesión en el acto.
+- **Endpoints nuevos**, públicos por `Depends` porque los autentica la cookie de renovación (el acceso pudo haber vencido):
+  - `POST /auth/renovar` devuelve un acceso nuevo, sin token en el cuerpo: si un script inyectado pudiera leerlo, la cookie httpOnly no serviría de nada;
+  - `POST /auth/bloquear` bloquea la sesión en el servidor (lo llama la pantalla de inactividad);
+  - `POST /auth/cerrar-sesion` la revoca y borra las cookies.
+  - Un login que trae la cookie de una sesión anterior la revoca como `reemplazada`: es el caso de desbloquear la pantalla.
+- **CSRF:** con cookies, el navegador las adjunta solo. Toda petición que cambia algo y se autentica por cookie exige la cabecera `X-Aurora-Cliente`, que un formulario de otro sitio no puede poner; un `fetch` de otro origen con ella dispara un preflight que el CORS rechaza. Además, `SameSite=Lax`.
+- **Compatibilidad:** `Authorization: Bearer` se sigue aceptando (Swagger, los `verificar_*_e2e.py`, scripts) y no exige la cabecera anti-CSRF, porque ningún navegador la adjunta solo. El login sigue devolviendo `access_token` en el cuerpo, aunque el frontend lo ignora. Los tokens sin `sid`, emitidos antes de esto, valen hasta que vencen.
+- **Configuración:**
+  - `SESION_COOKIE_SECURE`: por defecto `true` fuera de `ENTORNO=development`;
+  - `SESION_COOKIE_SAMESITE`: `lax` sirve mientras frontend y API compartan sitio (`app.x.pe`/`api.x.pe`, o `localhost:3000`/`localhost:8000`, porque el puerto no cuenta). ⚠️ `127.0.0.1:3000` contra `localhost:8000` **no** son el mismo sitio y las cookies no viajan. Con la API en otro sitio (un túnel ngrok) hace falta `none`, y entonces Secure.
+- **Tests:**
+  - `tests/verificar_sesiones_e2e.py` (prefijo `ZZSES`, :8010, 42/42): cookies y sus atributos; CSRF por cookie frente a Bearer; renovar; bloquear (cookie y Bearer de esa sesión dan 401, renovar da 401 y borra las cookies); desbloquear reemplaza; cerrar revoca un acceso copiado antes; cambio de contraseña; inactividad y vida máxima; tokens sin `sid`;
+  - `aurora_ui/e2e/sesion.spec.ts` lo cubre en el navegador real.
+- **Pendiente:** las filas vencidas de `auth_sesiones` no se purgan todavía. Es una tarea periódica simple para cuando el volumen lo pida.
+
 ### SSRF protection on `Institucion.logo_url`
 
 [core/url_segura.py](../backend/core/url_segura.py) validates any URL before it's stored (`PATCH /instituciones/{id}`) and again before it's fetched (PDF generation): only `https`, only port 443, no userinfo in the URL, and — the part a plain scheme/port check misses — the hostname is resolved and **every** IP it returns must be public (`ipaddress.is_global`, with IPv4-mapped IPv6 addresses unwrapped first); the actual HTTP connection is then pinned to that already-validated IP (TLS SNI still targets the hostname), so a DNS record that changes between validation and fetch can't be used to reach an internal address. No redirects are followed, the response must be `image/*`, and it's capped at 2 MiB with a 5s timeout. `descargar_logo_seguro()` never raises — a bad or unreachable logo just means no logo on the PDF, not a broken report.
