@@ -68,6 +68,22 @@ app.conf.update(
     broker_connection_timeout=3,
 )
 
+def encolar_sin_bloquear(tarea, *args) -> None:
+    """🆕 (sesión 2026-11-02) Igual que `_encolar_sin_bloquear` de
+    modulos/educativo/router.py (ver su docstring), para los demás routers:
+    un Redis caído se registra en el log y nunca tumba una respuesta HTTP
+    que ya terminó bien."""
+    import logging
+
+    try:
+        tarea.delay(*args)
+    except Exception:  # noqa: BLE001
+        logging.getLogger(__name__).error(
+            "No se pudo encolar %s (broker de Celery no disponible). Revisar Redis/el worker.",
+            getattr(tarea, "name", tarea), exc_info=True,
+        )
+
+
 # ==========================================
 # 🆕 (sesión 2026-11-02) Calendario de Celery beat
 # ==========================================
@@ -82,6 +98,13 @@ app.conf.beat_schedule = {
     "reconciliar-tareas-colgadas": {
         "task": "tareas.reconciliar_tareas_colgadas",
         "schedule": crontab(minute="*/15"),
+    },
+    # Red de seguridad de la bandeja de casos en riesgo: cada evento ya
+    # encola su propia sincronización (ver crud.tarea_sincronizar_casos_
+    # riesgo); esta pasada cubre los que se pierdan (Redis caído, etc.).
+    "sincronizar-casos-riesgo": {
+        "task": "educativo.sincronizar_casos_riesgo",
+        "schedule": crontab(minute="*/10"),
     },
     "notificar-agenda-diaria": {
         "task": "tareas.notificar_agenda_diaria",

@@ -1542,7 +1542,13 @@ def actualizar_antecedentes_clinicos_endpoint(
 ):
     persona = _obtener_persona_o_404(db, persona_id)
     _verificar_misma_institucion_o_403(usuario_actual, persona.institucion_id, "No puedes editar los antecedentes clínicos de otro colegio.")
-    return crud.actualizar_antecedentes_clinicos(db=db, persona_id=persona_id, usuario_id=usuario_actual.id, datos=datos)
+    resultado = crud.actualizar_antecedentes_clinicos(db=db, persona_id=persona_id, usuario_id=usuario_actual.id, datos=datos)
+    # 🆕 (sesión 2026-11-02) Antecedentes en "Sí" abren un caso en riesgo:
+    # se sincroniza aquí, no al abrir la bandeja.
+    from core.cola_tareas import encolar_sin_bloquear
+    from modulos.educativo import crud as educativo_crud
+    encolar_sin_bloquear(educativo_crud.tarea_sincronizar_casos_riesgo, persona.institucion_id)
+    return resultado
 
 
 # ------------------------------------------

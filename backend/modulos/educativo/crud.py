@@ -4155,6 +4155,81 @@ def _evento_caso(db: Session, caso_id: int, tipo: str, usuario_id=None, **campos
     db.add(models.CasoRiesgoEvento(caso_id=caso_id, tipo=tipo, usuario_id=usuario_id, **campos))
 
 
+def _consultas_casos_por_sincronizar(db: Session, institucion_id: int):
+    """🆕 (sesión 2026-11-02) Las TRES condiciones de `sincronizar_casos_
+    riesgo`, en un solo lugar para que `hay_casos_por_sincronizar` (la
+    comprobación barata de la bandeja) y la sincronización real no puedan
+    desalinearse. Devuelve (alertas_sin_caso, antecedentes_sin_caso,
+    condicion_promocion) — las dos primeras son Query sin ejecutar; la
+    tercera, la condición WHERE (correlacionada con CasoRiesgo) de los casos
+    'nuevo' que deben pasar a 'en_atencion'."""
+    Caso = models.CasoRiesgo
+
+    # 1) Alertas de prueba sin caso.
+    con_alerta = db.query(models.DiagnosticoAlumno.id).filter(
+        models.DiagnosticoAlumno.inscripcion_id == models.Inscripcion.id,
+        models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
+    ).exists()
+    ya_tiene_caso = db.query(Caso.id).filter(Caso.inscripcion_id == models.Inscripcion.id).exists()
+    alertas_sin_caso = db.query(models.Inscripcion.id, models.Inscripcion.persona_id, models.Evaluacion.creador_id).join(
+        models.Evaluacion, models.Evaluacion.id == models.Inscripcion.evaluacion_id,
+    ).filter(
+        models.Evaluacion.institucion_id == institucion_id,
+        models.Inscripcion.persona_id.isnot(None),
+        models.Inscripcion.is_deleted == False,  # noqa: E712
+        con_alerta,
+        ~ya_tiene_caso,
+    )
+
+    # 2) Antecedentes en "Sí" sin caso abierto.
+    Antecedentes = superadmin_models.PersonaAntecedentesClinicos
+    Persona = superadmin_models.Persona
+    caso_abierto = db.query(Caso.id).filter(
+        Caso.persona_id == Persona.id, Caso.origen == models.ORIGEN_CASO_ANTECEDENTES,
+        Caso.estado != models.ESTADO_CASO_CERRADO,
+    ).exists()
+    # actualizado_en es timestamptz; cerrado_en es UTC sin zona.
+    cerrado_despues = db.query(Caso.id).filter(
+        Caso.persona_id == Persona.id, Caso.origen == models.ORIGEN_CASO_ANTECEDENTES,
+        Caso.estado == models.ESTADO_CASO_CERRADO,
+        Caso.cerrado_en >= func.timezone("UTC", Antecedentes.actualizado_en),
+    ).exists()
+    antecedentes_sin_caso = db.query(Persona.id).join(Antecedentes, Antecedentes.persona_id == Persona.id).filter(
+        Persona.institucion_id == institucion_id,
+        Persona.activo.isnot(False),
+        superadmin_crud._condicion_con_diagnostico(),
+        ~caso_abierto,
+        ~cerrado_despues,
+    )
+
+    # 3) 'nuevo' con una sesión de seguimiento posterior.
+    desde = func.coalesce(
+        db.query(models.Inscripcion.fecha_resolucion)
+        .filter(models.Inscripcion.id == Caso.inscripcion_id)
+        .correlate(Caso).scalar_subquery(),
+        Caso.creado_en,
+    )
+    sesion_posterior = db.query(models.SesionSeguimiento.id).filter(
+        models.SesionSeguimiento.persona_id == Caso.persona_id,
+        models.SesionSeguimiento.fecha >= desde,
+    ).correlate(Caso).exists()
+    condicion_promocion = and_(
+        Caso.institucion_id == institucion_id, Caso.estado == models.ESTADO_CASO_NUEVO, sesion_posterior,
+    )
+    return alertas_sin_caso, antecedentes_sin_caso, condicion_promocion
+
+
+def hay_casos_por_sincronizar(db: Session, institucion_id: int) -> bool:
+    """🆕 (sesión 2026-11-02) Una sola consulta de SOLO LECTURA: ¿falta
+    materializar algún caso o promover alguno? La bandeja la usa antes de
+    sincronizar, así que en el caso normal (ya sincronizado por la tarea de
+    Celery al finalizar el examen / registrar la sesión / editar los
+    antecedentes, o por la tarea periódica) abrirla no escribe nada."""
+    alertas_sin_caso, antecedentes_sin_caso, condicion_promocion = _consultas_casos_por_sincronizar(db, institucion_id)
+    promocion = db.query(models.CasoRiesgo.id).filter(condicion_promocion).exists()
+    return bool(db.query(or_(alertas_sin_caso.exists(), antecedentes_sin_caso.exists(), promocion)).scalar())
+
+
 def sincronizar_casos_riesgo(db: Session, institucion_id: int, profesionales: Optional[list] = None) -> None:
     """Materializa los casos que faltan y aplica el paso automático
     'nuevo' → 'en_atencion'. Idempotente y seguro ante dos llamadas a la vez
@@ -4180,21 +4255,10 @@ def sincronizar_casos_riesgo(db: Session, institucion_id: int, profesionales: Op
     profesionales = {p["id"] for p in (profesionales if profesionales is not None else profesionales_de_institucion(db, institucion_id))}
     cambios = False
 
+    alertas_sin_caso, antecedentes_sin_caso, condicion_promocion = _consultas_casos_por_sincronizar(db, institucion_id)
+
     # 1) Alertas de prueba sin caso.
-    con_alerta = db.query(models.DiagnosticoAlumno.id).filter(
-        models.DiagnosticoAlumno.inscripcion_id == models.Inscripcion.id,
-        models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
-    ).exists()
-    ya_tiene_caso = db.query(Caso.id).filter(Caso.inscripcion_id == models.Inscripcion.id).exists()
-    nuevas = db.query(models.Inscripcion.id, models.Inscripcion.persona_id, models.Evaluacion.creador_id).join(
-        models.Evaluacion, models.Evaluacion.id == models.Inscripcion.evaluacion_id,
-    ).filter(
-        models.Evaluacion.institucion_id == institucion_id,
-        models.Inscripcion.persona_id.isnot(None),
-        models.Inscripcion.is_deleted == False,  # noqa: E712
-        con_alerta,
-        ~ya_tiene_caso,
-    ).all()
+    nuevas = alertas_sin_caso.all()
     for inscripcion_id, persona_id, creador_id in nuevas:
         responsable = creador_id if creador_id in profesionales else None
         caso_id = db.execute(
@@ -4210,25 +4274,7 @@ def sincronizar_casos_riesgo(db: Session, institucion_id: int, profesionales: Op
             cambios = True
 
     # 2) Antecedentes en "Sí" sin caso abierto.
-    Antecedentes = superadmin_models.PersonaAntecedentesClinicos
-    Persona = superadmin_models.Persona
-    caso_abierto = db.query(Caso.id).filter(
-        Caso.persona_id == Persona.id, Caso.origen == models.ORIGEN_CASO_ANTECEDENTES,
-        Caso.estado != models.ESTADO_CASO_CERRADO,
-    ).exists()
-    # actualizado_en es timestamptz; cerrado_en es UTC sin zona.
-    cerrado_despues = db.query(Caso.id).filter(
-        Caso.persona_id == Persona.id, Caso.origen == models.ORIGEN_CASO_ANTECEDENTES,
-        Caso.estado == models.ESTADO_CASO_CERRADO,
-        Caso.cerrado_en >= func.timezone("UTC", Antecedentes.actualizado_en),
-    ).exists()
-    faltantes = db.query(Persona.id).join(Antecedentes, Antecedentes.persona_id == Persona.id).filter(
-        Persona.institucion_id == institucion_id,
-        Persona.activo.isnot(False),
-        superadmin_crud._condicion_con_diagnostico(),
-        ~caso_abierto,
-        ~cerrado_despues,
-    ).all()
+    faltantes = antecedentes_sin_caso.all()
     for (persona_id,) in faltantes:
         caso_id = db.execute(
             pg_insert(Caso).values(
@@ -4245,19 +4291,9 @@ def sincronizar_casos_riesgo(db: Session, institucion_id: int, profesionales: Op
             cambios = True
 
     # 3) 'nuevo' con una sesión de seguimiento posterior → 'en_atencion'.
-    desde = func.coalesce(
-        db.query(models.Inscripcion.fecha_resolucion)
-        .filter(models.Inscripcion.id == Caso.inscripcion_id)
-        .correlate(Caso).scalar_subquery(),
-        Caso.creado_en,
-    )
-    sesion_posterior = db.query(models.SesionSeguimiento.id).filter(
-        models.SesionSeguimiento.persona_id == Caso.persona_id,
-        models.SesionSeguimiento.fecha >= desde,
-    ).correlate(Caso).exists()
     promovidos = db.execute(
         update(Caso)
-        .where(Caso.institucion_id == institucion_id, Caso.estado == models.ESTADO_CASO_NUEVO, sesion_posterior)
+        .where(condicion_promocion)
         .values(estado=models.ESTADO_CASO_EN_ATENCION, actualizado_en=ahora)
         .returning(Caso.id)
         .execution_options(synchronize_session=False)
@@ -4381,9 +4417,49 @@ def _armar_casos_riesgo(db: Session, institucion_id: int, incluir_cerrados: bool
     return casos
 
 
+@celery_app.task(name="educativo.sincronizar_casos_riesgo", bind=True, max_retries=3, default_retry_delay=30)
+def tarea_sincronizar_casos_riesgo(self, institucion_id: Optional[int] = None) -> int:
+    """🆕 (sesión 2026-11-02) Sincroniza la bandeja de casos en riesgo FUERA
+    de la lectura. Se encola al finalizar un examen, al reprocesar un
+    informe, al registrar una sesión de seguimiento y al editar antecedentes
+    clínicos (con `institucion_id`), y la corre Celery beat cada 10 min sobre
+    todas las instituciones (`institucion_id=None`) como red de seguridad.
+    `sincronizar_casos_riesgo` ya es idempotente y segura en paralelo, así
+    que una ejecución de más no duplica nada. Devuelve cuántas instituciones
+    tenían algo pendiente."""
+    from core.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        if institucion_id is None:
+            ids = [i for (i,) in db.query(inst_models.Institucion.id).all()]
+        else:
+            ids = [institucion_id]
+        sincronizadas = 0
+        for iid in ids:
+            if hay_casos_por_sincronizar(db, iid):
+                sincronizar_casos_riesgo(db, iid)
+                sincronizadas += 1
+            db.rollback()  # cierra la transacción de lectura entre instituciones
+        return sincronizadas
+    except Exception as exc:  # noqa: BLE001
+        db.rollback()
+        raise self.retry(exc=exc)
+    finally:
+        db.close()
+
+
 def listar_casos_riesgo(db: Session, institucion_id: int, incluir_cerrados: bool = False) -> dict:
     profesionales = profesionales_de_institucion(db, institucion_id)
-    sincronizar_casos_riesgo(db, institucion_id, profesionales=profesionales)
+    # 🆕 (sesión 2026-11-02) Antes sincronizaba SIEMPRE (3 consultas + un
+    # UPDATE en cada apertura). La sincronización ahora la hace una tarea de
+    # Celery en cada evento que puede crear o promover un caso, más una
+    # pasada periódica (ver tarea_sincronizar_casos_riesgo). Aquí queda solo
+    # una consulta de lectura como red de seguridad: si la tarea todavía no
+    # corrió (worker atrasado o caído), se sincroniza en el acto y la
+    # bandeja nunca muestra datos viejos.
+    if hay_casos_por_sincronizar(db, institucion_id):
+        sincronizar_casos_riesgo(db, institucion_id, profesionales=profesionales)
     return {
         "casos": _armar_casos_riesgo(db, institucion_id, incluir_cerrados=incluir_cerrados),
         "profesionales": profesionales,

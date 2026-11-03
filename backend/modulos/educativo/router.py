@@ -371,6 +371,9 @@ def finalizar_examen_seguro(
     # segundo_plano importa SessionLocal adentro de sí misma.
     from modulos.documentos import crud as documentos_crud
     _encolar_sin_bloquear(documentos_crud.tarea_generar_documentos_automaticos_en_segundo_plano, inscripcion.id)
+    # 🆕 (sesión 2026-11-02) La bandeja de casos en riesgo se sincroniza aquí,
+    # al finalizar, y no al abrirla (ver crud.tarea_sincronizar_casos_riesgo).
+    _encolar_sin_bloquear(crud.tarea_sincronizar_casos_riesgo, evaluacion.institucion_id)
 
     if requiere_revision:
         destinatarios, motivos = crud.obtener_destinatarios_alerta(db=db, evaluacion=evaluacion)
@@ -826,6 +829,8 @@ def reprocesar_informe_de_inscripcion(
         db, inscripcion_id=inscripcion.id, usuario_id=usuario_actual.id,
         motivo=f"Reproceso de examen: {datos.motivo}",
     )
+    # 🆕 (sesión 2026-11-02) Un reproceso puede crear una alerta nueva.
+    _encolar_sin_bloquear(crud.tarea_sincronizar_casos_riesgo, evaluacion.institucion_id)
     if documentos_reemitidos:
         logger.info(
             "Reproceso de la inscripción %s reemitió %s documento(s) institucional(es) vinculado(s): %s",
@@ -2152,7 +2157,10 @@ def registrar_seguimiento(
     if usuario_actual.rol != "superadmin" and persona.institucion_id != usuario_actual.institucion_id:
         raise HTTPException(status_code=403, detail="No autorizado.")
         
-    return crud.crear_sesion_seguimiento(db, datos, usuario_actual.id, persona.institucion_id)
+    sesion = crud.crear_sesion_seguimiento(db, datos, usuario_actual.id, persona.institucion_id)
+    # 🆕 (sesión 2026-11-02) Una sesión pasa el caso de 'nuevo' a 'en_atencion'.
+    _encolar_sin_bloquear(crud.tarea_sincronizar_casos_riesgo, persona.institucion_id)
+    return sesion
 
 @router.get("/seguimiento/{persona_id}", response_model=List[schemas.SesionSeguimientoResponse])
 def listar_seguimiento_de_persona(

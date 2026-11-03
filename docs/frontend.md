@@ -317,7 +317,13 @@ Punto 2 del análisis de UI/UX. Las cuatro decisiones de fondo las tomó el usua
   - **alerta:** el resto de las alertas de prueba (baremo);
   - **seguimiento:** antecedentes.
   - El orden es por urgencia y, dentro de cada nivel, el caso que lleva más tiempo sin seguimiento va primero.
-- **Altas automáticas** (`crud.sincronizar_casos_riesgo`, en cada `GET /casos-riesgo`):
+- **🆕 Sincronización fuera de la lectura (sesión 2026-11-02).** Antes `GET /casos-riesgo` sincronizaba siempre: 3 consultas y un `UPDATE` cada vez que alguien abría la bandeja. Ahora:
+  - **En cada evento** que puede crear o promover un caso se encola la tarea de Celery `crud.tarea_sincronizar_casos_riesgo(institucion_id)`: al finalizar el examen, al reprocesar un informe, al registrar una sesión de seguimiento y al editar los antecedentes clínicos.
+  - **Celery beat** la corre cada 10 minutos sobre todas las instituciones como red de seguridad (`beat_schedule` en `core/cola_tareas.py`).
+  - **La bandeja** solo hace una consulta de lectura, `crud.hay_casos_por_sincronizar`, y sincroniza en el acto únicamente si falta algo (por ejemplo, el worker está atrasado o caído). En el caso normal, abrirla no escribe nada y nunca muestra datos viejos.
+  - Las tres condiciones viven en un solo lugar (`_consultas_casos_por_sincronizar`), compartido por la detección y la sincronización, para que no se puedan desalinear.
+  - Test: `tests/verificar_casos_riesgo_sincronizacion.py` (BD real, transacción revertida, 12/12): la detección coincide con lo que la sincronización cambia sobre los datos reales con pendientes forzados de cada tipo; abrir una bandeja sincronizada ejecuta cero `INSERT/UPDATE/DELETE`; un caso borrado se recrea al abrirla; y la tarea está registrada, en beat y encolada en los cuatro eventos. `verificar_casos_riesgo_e2e.py` siguió en 44/44 **sin** worker, es decir, con la bandeja como única vía de sincronización. Con un worker real, un caso borrado lo recreó la tarea.
+- **Altas automáticas** (`crud.sincronizar_casos_riesgo`):
   - Es idempotente y segura ante dos llamadas simultáneas: `INSERT … ON CONFLICT DO NOTHING` contra las restricciones únicas, y `UPDATE … WHERE estado='nuevo' RETURNING` para no duplicar eventos.
   - Una sesión de seguimiento posterior pasa un caso de `nuevo` a `en_atencion`, pero nunca lo cierra.
   - Un caso de antecedentes cerrado no se reabre solo. Si después se editan los antecedentes y siguen en "Sí", nace un caso nuevo.
