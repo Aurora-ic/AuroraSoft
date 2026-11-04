@@ -1550,6 +1550,14 @@
       "superadmin": false,
       "sin_autenticar": true,
       "verifica_institucion": false
+    },
+    "GET /api/educativo/casos-riesgo/avisos": {
+      "admin": true,
+      "colegio": false,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
     }
   }
 }

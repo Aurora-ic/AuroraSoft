@@ -63,7 +63,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .then((u) => {
           const confirmada = { email: u.email, rol: u.rol, institucionId: u.institucion_id };
           guardarSesionPublica(confirmada);
-          setSesion(confirmada);
+          // 🔧 (sesión 2026-11-02) Solo se reemplaza si CAMBIÓ algo. Antes se
+          // creaba siempre un objeto nuevo: cada pantalla con `sesion` en las
+          // dependencias de su efecto de carga (p. ej. la ficha del alumno)
+          // volvía a pedir todo, y esa segunda carga, lenta, podía terminar
+          // DESPUÉS de que el usuario guardara un cambio y pisarlo en pantalla
+          // con datos viejos (lo encontró agenda-citas-seguimiento.spec.ts).
+          setSesion((previa) =>
+            previa &&
+            previa.email === confirmada.email &&
+            previa.rol === confirmada.rol &&
+            previa.institucionId === confirmada.institucionId
+              ? previa
+              : confirmada,
+          );
         })
         .catch(() => {
           // 401: ya lo maneja el evento global. Sin red: se sigue con la guardada.

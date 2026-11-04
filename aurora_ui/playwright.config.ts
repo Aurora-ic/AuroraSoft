@@ -23,6 +23,11 @@ export default defineConfig({
   // flujos largos (agenda, documentos, master) encadenan muchos pasos contra
   // el backend y la BD reales, y en desarrollo cada consulta cuesta ~80 ms.
   timeout: 90_000,
+  // 🆕 (sesión 2026-11-02) 15 s por espera (antes los 5 s por defecto). La base
+  // de desarrollo es Neon en AWS São Paulo y cada consulta viaja ~85-90 ms ida y
+  // vuelta: la ficha completa del alumno tarda 2,5-5 s sola, y con la carga de
+  // la suite las esperas de 5 s fallaban sin que nada estuviera roto.
+  expect: { timeout: 15_000 },
   reporter: "list",
   use: {
     // 🔒 "localhost", nunca "127.0.0.1" -- `next dev` (Next.js 16) bloquea

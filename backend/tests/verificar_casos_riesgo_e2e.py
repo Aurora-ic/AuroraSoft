@@ -201,10 +201,27 @@ def main(url_base):
               str(beto_caso)[:200])
 
     # ------------------------------------------------------------------
+    print("\n3b · Avisos de casos urgentes (campana de la app, sesión 2026-11-02)")
+    def avisos(h):
+        return requests.get(f"{url}/avisos", headers=h, timeout=60)
+    av = avisos(h_p1)
+    ids_av = [c["persona_id"] for c in av.json().get("casos", [])] if av.status_code == 200 else []
+    comprobar("psi1 (responsable) recibe el aviso de Ana (urgente, nueva)", av.status_code == 200 and ana in ids_av, av.text[:200])
+    comprobar("…y no el de Beto (alerta de baremo, no urgente)", beto not in ids_av, str(ids_av))
+    comprobar("El aviso de Ana viene marcado como asignado a mí",
+              any(c["persona_id"] == ana and c["asignado_a_mi"] for c in av.json().get("casos", [])), av.text[:200])
+    av2 = avisos(h_p2)
+    comprobar("psi2 no recibe el de Ana (es de otro responsable)",
+              av2.status_code == 200 and ana not in [c["persona_id"] for c in av2.json()["casos"]], av2.text[:200])
+    comprobar("colegio -> 403", avisos(h_col).status_code == 403)
+    av_b = avisos(h_pb)
+    comprobar("Otro colegio no ve los avisos de A", av_b.status_code == 200 and av_b.json()["total"] == 0, av_b.text[:200])
+
     print("\n4 · Estado y responsable")
     id_ana, id_beto, id_caro = casos[ana]["id"], casos[beto]["id"], casos[caro]["id"]
     r = requests.patch(f"{url}/{id_ana}", json={"estado": "derivado", "nota": "Derivada a psiquiatría"}, headers=h_p1, timeout=30)
     comprobar("Ana -> derivado (200)", r.status_code == 200 and r.json()["estado"] == "derivado", r.text[:200])
+    comprobar("Atender el caso (sale de 'nuevo') apaga su aviso", ana not in [c["persona_id"] for c in avisos(h_p1).json()["casos"]])
     r = requests.patch(f"{url}/{id_ana}", json={"responsable_usuario_id": p2_id}, headers=h_p1, timeout=30)
     comprobar("Reasignar a psi2 (200)", r.status_code == 200 and r.json()["responsable"]["id"] == p2_id, r.text[:200])
     r = requests.patch(f"{url}/{id_ana}", json={"responsable_usuario_id": col_id}, headers=h_p1, timeout=30)

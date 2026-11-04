@@ -6,6 +6,7 @@ import { HelpCircle, Sun, Moon, Menu } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { BusquedaGlobal } from "@/components/educativo/BusquedaGlobal";
 import { CentroAyuda } from "@/components/educativo/CentroAyuda";
+import { AvisosUrgentes } from "@/components/educativo/AvisosUrgentes";
 
 // 🆕 Barra superior (sesión 2026-10-25, rediseño UI/UX) — antes no existía:
 // el buscador global vivía dentro del sidebar, mezclado con la navegación
@@ -35,6 +36,9 @@ export function Topbar({ onAbrirMenu }: { onAbrirMenu?: () => void }) {
         </div>
 
         <div className="hidden sm:block flex-1" />
+
+        {/* 🆕 (sesión 2026-11-02) Casos urgentes sin atender (solo equipo clínico). */}
+        <AvisosUrgentes />
 
         <button
           type="button"

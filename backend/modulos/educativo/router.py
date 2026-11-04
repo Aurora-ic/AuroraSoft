@@ -1994,6 +1994,20 @@ def ver_casos_riesgo(
     return bandeja
 
 
+@router.get("/casos-riesgo/avisos")
+def ver_avisos_casos_urgentes(
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
+):
+    """🆕 (sesión 2026-11-02) Casos URGENTES sin atender (en 'nuevo') que son
+    de este usuario o no tienen responsable — la campana de la barra superior
+    lo consulta cada minuto. Ver crud.avisos_casos_urgentes. El superadmin no
+    tiene un colegio propio: no recibe avisos."""
+    if usuario_actual.institucion_id is None:
+        return {"total": 0, "casos": []}
+    return crud.avisos_casos_urgentes(db=db, institucion_id=usuario_actual.institucion_id, usuario_id=usuario_actual.id)
+
+
 @router.patch("/casos-riesgo/{caso_id}")
 def actualizar_caso_riesgo(
     caso_id: int,

@@ -4475,6 +4475,51 @@ def listar_casos_riesgo(db: Session, institucion_id: int, incluir_cerrados: bool
     }
 
 
+def avisos_casos_urgentes(db: Session, institucion_id: int, usuario_id: int) -> dict:
+    """🆕 (sesión 2026-11-02) Aviso dentro de la app al responsable cuando
+    entra un caso URGENTE (decisión del usuario: por la misma app, no por
+    correo). Son los casos urgentes (alerta disparada por una regla de ítem
+    crítico, mismo criterio que la bandeja) que siguen en 'nuevo' y están
+    asignados a este usuario o a nadie. Sin tabla de "visto": el aviso se
+    apaga solo cuando alguien atiende el caso (lo saca de 'nuevo'), que es
+    justamente lo que el aviso pide.
+
+    Solo lectura en el caso normal: sincroniza únicamente si falta materializar
+    algo (misma red de seguridad que la bandeja, ver hay_casos_por_sincronizar),
+    así que consultarlo cada minuto no escribe nada."""
+    if hay_casos_por_sincronizar(db, institucion_id):
+        sincronizar_casos_riesgo(db, institucion_id)
+    Caso = models.CasoRiesgo
+    Persona = superadmin_models.Persona
+    Regla = models.ReglaInterpretacion
+    item_critico = db.query(models.DiagnosticoAlumno.id).join(
+        Regla, Regla.id == models.DiagnosticoAlumno.regla_activada_id,
+    ).filter(
+        models.DiagnosticoAlumno.inscripcion_id == Caso.inscripcion_id,
+        models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
+        Regla.ambito == "item",
+    ).correlate(Caso).exists()
+    filas = db.query(Caso.id, Caso.persona_id, Caso.creado_en, Caso.responsable_usuario_id, Persona.nombres, Persona.apellidos).join(
+        Persona, Persona.id == Caso.persona_id,
+    ).filter(
+        Caso.institucion_id == institucion_id,
+        Caso.origen == models.ORIGEN_CASO_PRUEBA,
+        Caso.estado == models.ESTADO_CASO_NUEVO,
+        or_(Caso.responsable_usuario_id == usuario_id, Caso.responsable_usuario_id.is_(None)),
+        item_critico,
+    ).order_by(Caso.creado_en.desc()).limit(20).all()
+    return {
+        "total": len(filas),
+        "casos": [
+            {
+                "id": c_id, "persona_id": p_id, "nombre_completo": f"{nombres} {apellidos}",
+                "creado_en": creado, "asignado_a_mi": responsable == usuario_id,
+            }
+            for c_id, p_id, creado, responsable, nombres, apellidos in filas
+        ],
+    }
+
+
 def actualizar_caso_riesgo(db: Session, caso_id: int, datos: schemas.ActualizarCasoRiesgoRequest, usuario_id: int) -> dict:
     """Cambia estado y/o responsable de un caso, dejando un evento por cada
     cambio. Cerrar exige motivo. Reabrir un caso cerrado está permitido (un

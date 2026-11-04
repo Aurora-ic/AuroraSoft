@@ -31,6 +31,7 @@ import {
 } from "@/lib/casos-riesgo";
 import type { BandejaCasosRiesgo, CasoRiesgo, EstadoCaso, EventoCasoRiesgo, UrgenciaCaso } from "@/types/api";
 import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
+import { CLAVE_AVISOS_URGENTES } from "@/components/educativo/AvisosUrgentes";
 
 // 🆕 (sesión 2026-11-01, decisiones del usuario) Bandeja de casos con
 // urgencia, estado y responsable — GET/PATCH /educativo/casos-riesgo (ver
@@ -123,6 +124,8 @@ function CasosRiesgoPageContenido() {
     );
     // La otra vista (con/sin cerrados) queda vieja: se vuelve a pedir al abrirla.
     queryClient.invalidateQueries({ queryKey: ["casos-riesgo", !incluirCerrados] });
+    // 🆕 (sesión 2026-11-02) La campana de avisos baja en el acto.
+    queryClient.invalidateQueries({ queryKey: CLAVE_AVISOS_URGENTES });
     queryClient.invalidateQueries({ queryKey: ["caso-historial", actualizado.id] });
   }
 

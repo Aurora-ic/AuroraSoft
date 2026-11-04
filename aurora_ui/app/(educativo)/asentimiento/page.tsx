@@ -15,6 +15,7 @@ import type {
   TipoTextoConsentimiento,
 } from "@/types/api";
 import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { PautasLecturaFacil } from "@/components/educativo/PautasLecturaFacil";
 
 // Modelos de CONSENTIMIENTO (lo firma el apoderado) y ASENTIMIENTO (lo
 // acepta el propio alumno) de cada colegio — versionados, nunca editados.
@@ -178,6 +179,11 @@ function ConsentimientoYAsentimientoPageContenido() {
   }
 
   const nombreAmbito = ambito === "general" ? "General del colegio" : niveles.find((n) => n.id === ambito)?.nombre ?? "Nivel";
+  // 🆕 (sesión 2026-11-02) Inicial y Primaria: donde más conviene un
+  // asentimiento en lectura fácil.
+  const esPequeno = (nombre: string) => /inicial|primaria/i.test(nombre);
+  const esNivelPequeno = ambito !== "general" && esPequeno(nombreAmbito);
+  const nivelesPequenosSinModelo = niveles.filter((n) => esPequeno(n.nombre) && !activaDe(n.id));
   const sinCambios = (activaAmbito?.contenido ?? null) === contenido;
 
   // ------------------------------------------------------------------
@@ -224,6 +230,19 @@ function ConsentimientoYAsentimientoPageContenido() {
         <Info size={13} className="mt-px shrink-0" aria-hidden="true" />
         {INFO_TIPO[tipo].uso}
       </p>
+
+      {/* 🆕 (sesión 2026-11-02) Un asentimiento más sencillo para los más
+          pequeños: el colegio lo redacta (decisión del usuario); aquí solo se
+          avisa qué niveles todavía usan el texto general. */}
+      {tipo === "asentimiento" && nivelesPequenosSinModelo.length > 0 && (
+        <p className="m-0 flex items-start gap-1.5 rounded-xl border border-acento-violeta/25 bg-acento-violeta/[0.06] px-3 py-2.5 text-[12.5px] text-ink/70 dark:border-acento-violeta-dark/30 dark:bg-acento-violeta-dark/10 dark:text-ink-dark/75">
+          <Baby size={14} className="mt-px shrink-0 text-acento-violeta dark:text-acento-violeta-dark" aria-hidden="true" />
+          <span>
+            {nivelesPequenosSinModelo.map((n) => n.nombre).join(" y ")} usa{nivelesPequenosSinModelo.length === 1 ? "" : "n"} hoy el
+            texto general. Puedes crear uno más sencillo, en lectura fácil, eligiendo el nivel en la lista de la izquierda.
+          </span>
+        </p>
+      )}
 
       <TextoError>{error}</TextoError>
 
@@ -334,6 +353,7 @@ function ConsentimientoYAsentimientoPageContenido() {
                 versión NUEVA de este ámbito y desactiva la anterior — nunca se edita una versión ya existente, para que quede
                 registro de qué texto se usó en cada caso.
               </p>
+              {tipo === "asentimiento" && <PautasLecturaFacil contenido={contenido} destacado={esNivelPequeno} />}
               <TextoError>{errorGuardar}</TextoError>
               <div className="flex items-center gap-3 flex-wrap">
                 <Boton type="submit" disabled={guardando || contenido.trim().length < 10 || sinCambios}>
