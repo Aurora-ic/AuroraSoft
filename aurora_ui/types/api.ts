@@ -668,8 +668,12 @@ export type Usuario = {
 export type RegistroAlumnoDemograficos = {
   nombre_completo: string;
   edad: number;
-  sexo: "Masculino" | "Femenino";
-  poblacion: "Primaria" | "Secundaria" | "Universitario";
+  // 🆕 (sesión 2026-11-02) Ya no se pregunta en el examen (sale del padrón);
+  // el backend lo acepta opcional por compatibilidad.
+  sexo?: "Masculino" | "Femenino";
+  // 🆕 (sesión 2026-11-02) Sin "Universitario": AuroraSoft es solo para
+  // inicial, primaria y secundaria.
+  poblacion: "Inicial" | "Primaria" | "Secundaria";
   acepta_terminos: boolean;
   // Solo exigidos por el backend cuando la Prueba de esta inscripción tiene
   // informante_tipo != 'estudiante' (un padre/madre o docente respondiendo
@@ -691,6 +695,9 @@ export type IntakeExamen = {
   ya_acepto_asentimiento: boolean;
   // 🆕 Prueba.instrucciones, textual — se muestran antes de la 1.ª pregunta.
   instrucciones?: string | null;
+  // 🆕 (sesión 2026-11-02) El colegio de esta evaluación, para mostrarlo en el examen.
+  institucion_nombre?: string | null;
+  institucion_logo_url?: string | null;
 };
 
 // 🆕 Texto versionado del asentimiento informado (reemplaza la constante

@@ -308,7 +308,7 @@ def main(url_base):
 
     # El alumno recarga la página: vuelve a pasar por comenzar-test
     r = requests.post(f"{API}/educativo/comenzar-test/{token_p}",
-                      json={**formulario, "edad": 99, "poblacion": "Universitario"}, timeout=30)
+                      json={**formulario, "edad": 99, "poblacion": "Primaria"}, timeout=30)
     comprobar("EN PROGRESO: recargar el enlace REANUDA (200, antes 400)", r.status_code == 200,
               f"status {r.status_code}")
     datos = sql_uno("select estado, edad, poblacion from edu_inscripciones where token=:t", t=token_p)

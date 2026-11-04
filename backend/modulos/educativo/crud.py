@@ -1579,15 +1579,24 @@ def obtener_intake_previo_por_token(db: Session, token: str):
         .filter(models.Evaluacion.id == inscripcion.evaluacion_id)
         .first()
     )
+    institucion = (
+        db.query(inst_models.Institucion.nombre, inst_models.Institucion.logo_url)
+        .join(models.Evaluacion, models.Evaluacion.institucion_id == inst_models.Institucion.id)
+        .filter(models.Evaluacion.id == inscripcion.evaluacion_id)
+        .first()
+    )
     return schemas.IntakeExamenResponse(
         nombre_completo=inscripcion.nombre_completo,
         nombre_conocido=inscripcion.persona_id is not None and bool(inscripcion.nombre_completo),
         edad=inscripcion.edad,
-        sexo=inscripcion.sexo,
+        # 🆕 (sesión 2026-11-02) Nunca se devuelve: ver el schema.
+        sexo=None,
         poblacion=inscripcion.poblacion,
         informante_tipo=inscripcion.informante_tipo,
         ya_acepto_asentimiento=inscripcion.acepto_asentimiento,
         instrucciones=(prueba.instrucciones or None) if prueba else None,
+        institucion_nombre=institucion.nombre if institucion else None,
+        institucion_logo_url=institucion.logo_url if institucion else None,
     )
 
 
@@ -3588,7 +3597,7 @@ def matricular_roster_en_campana(db: Session, evaluacion_id: int, persona_ids: L
         # ahora también se deriva `poblacion` de su nivel educativo VIGENTE
         # (no de lo que el alumno tipeé) cuando el nombre del nivel coincide
         # con una de las poblaciones que entiende el motor de baremos
-        # (Primaria/Secundaria/Universitario). Si no coincide o el alumno no
+        # (Inicial/Primaria/Secundaria). Si no coincide o el alumno no
         # tiene matrícula académica activa, queda en None — el formulario del
         # examen sigue pidiéndola, como hasta ahora, sin romper nada.
         #

@@ -68,7 +68,6 @@ export default function ExamenPage() {
   const [intake, setIntake] = useState<RegistroAlumnoDemograficos>({
     nombre_completo: "",
     edad: 0,
-    sexo: "Masculino",
     poblacion: "Secundaria",
     acepta_terminos: false,
     informante_nombre: "",
@@ -107,7 +106,7 @@ export default function ExamenPage() {
   const [estadoResultados, setEstadoResultados] = useState<EstadoResultadosAlumno | null>(null);
 
   // 🆕 Antes de mostrar el formulario, averiguamos qué datos ya tiene esta
-  // inscripción (nombre/edad/sexo/nivel, cuando viene de una matrícula por
+  // inscripción (nombre/edad/nivel, cuando viene de una matrícula por
   // padrón) para no volver a pedirlos — ver GET .../intake. Si falla (link
   // inválido, expirado, etc.) no bloqueamos nada aquí: el intento real de
   // comenzar-test ya da el error correcto cuando el alumno envíe el form.
@@ -121,7 +120,6 @@ export default function ExamenPage() {
           ...prev,
           nombre_completo: datos.nombre_completo ?? prev.nombre_completo,
           edad: datos.edad ?? prev.edad,
-          sexo: (datos.sexo as RegistroAlumnoDemograficos["sexo"]) ?? prev.sexo,
           poblacion: (datos.poblacion as RegistroAlumnoDemograficos["poblacion"]) ?? prev.poblacion,
         }));
       })
@@ -548,11 +546,23 @@ export default function ExamenPage() {
 
     const nombreConocido = intakePrevio?.nombre_conocido ?? false;
     const edadConocida = intakePrevio?.edad != null;
-    const sexoConocido = intakePrevio?.sexo != null;
     const poblacionConocida = intakePrevio?.poblacion != null;
 
     return (
       <form onSubmit={enviarIntake} className="bg-white rounded-card border border-border p-8 space-y-4">
+        {/* 🆕 (sesión 2026-11-02) De qué colegio es esta evaluación: antes el
+            alumno no veía ninguna marca de su institución. */}
+        {(intakePrevio?.institucion_logo_url || intakePrevio?.institucion_nombre) && (
+          <div className="flex items-center gap-3 border-b border-border pb-4">
+            {intakePrevio.institucion_logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element -- URL externa del colegio (validada al guardarla), igual que el menú lateral
+              <img src={intakePrevio.institucion_logo_url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-contain" />
+            )}
+            {intakePrevio.institucion_nombre && (
+              <p className="m-0 text-sm font-semibold text-teal-900">{intakePrevio.institucion_nombre}</p>
+            )}
+          </div>
+        )}
         <h1 className="font-display text-xl text-teal-900 mb-2">Antes de comenzar</h1>
 
         {nombreConocido ? (
@@ -592,25 +602,8 @@ export default function ExamenPage() {
           </label>
         )}
 
-        {sexoConocido ? (
-          <div className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 font-medium">Sexo</span>
-            <p className="px-3 py-2">{intake.sexo}</p>
-          </div>
-        ) : (
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-ink/70 font-medium">Sexo</span>
-            <select
-              value={intake.sexo}
-              onChange={(e) => setIntake({ ...intake, sexo: e.target.value as RegistroAlumnoDemograficos["sexo"] })}
-              className="rounded-card border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
-            >
-              <option value="Masculino">Masculino</option>
-              <option value="Femenino">Femenino</option>
-            </select>
-          </label>
-        )}
-
+        {/* 🆕 (sesión 2026-11-02) Sin campo Sexo: el alumno no lo ve (decisión
+            del usuario). Sale del padrón al matricular; ver RegistroAlumnoDemograficos. */}
         {poblacionConocida ? (
           <div className="flex flex-col gap-1 text-sm">
             <span className="text-ink/70 font-medium">Nivel</span>
@@ -624,9 +617,9 @@ export default function ExamenPage() {
               onChange={(e) => setIntake({ ...intake, poblacion: e.target.value as RegistroAlumnoDemograficos["poblacion"] })}
               className="rounded-card border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
             >
+              <option value="Inicial">Inicial</option>
               <option value="Primaria">Primaria</option>
               <option value="Secundaria">Secundaria</option>
-              <option value="Universitario">Universitario</option>
             </select>
           </label>
         )}

@@ -175,7 +175,9 @@ def main(url_base):
     # pueda pasar inadvertido.
     padron = exigir(requests.get(f"{API}/admin/personas/{inst_a}", headers=h_a, timeout=30),
                     200, "Padrón institución A")
-    fila = next((p for p in padron if p["id"] == persona["id"]), None)
+    # El padrón está paginado ({total, items}) desde la sesión 2026-10-17.
+    filas_padron = padron["items"] if isinstance(padron, dict) else padron
+    fila = next((p for p in filas_padron if p["id"] == persona["id"]), None)
     comprobar("El alumno matriculado aparece en el padrón con seccion_actual resuelta",
               fila is not None and fila.get("seccion_actual") is not None,
               str(fila.get("seccion_actual")) if fila else "no encontrado")
@@ -239,13 +241,13 @@ def main(url_base):
     # único dato de este paso que la Persona no puede responder por él.
     exigir(requests.post(f"{API}/educativo/comenzar-test/{token}", json={
         "nombre_completo": "valor ignorado — ya viene de la ficha", "edad": 1, "sexo": "Femenino",
-        "poblacion": "Universitario", "acepta_terminos": True}, timeout=30), 200, "Comenzar examen")
+        "poblacion": "Primaria", "acepta_terminos": True}, timeout=30), 200, "Comenzar examen")
     edad_tras_comenzar, poblacion_tras_comenzar = sql_uno(
         "select edad, poblacion from edu_inscripciones where token=:t", t=token,
     )
     comprobar("El formulario NO pudo sobrescribir la edad ya conocida (sigue siendo la real, no 1)",
               edad_tras_comenzar == edad_snap, f"edad={edad_tras_comenzar}")
-    comprobar("El formulario NO pudo sobrescribir la población ya derivada (sigue 'Secundaria', no 'Universitario')",
+    comprobar("El formulario NO pudo sobrescribir la población ya derivada (sigue 'Secundaria', no 'Primaria')",
               poblacion_tras_comenzar == "Secundaria", f"poblacion={poblacion_tras_comenzar}")
 
     def opcion_de(valor):

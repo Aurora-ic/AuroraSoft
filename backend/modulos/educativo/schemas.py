@@ -9,9 +9,16 @@ class SexoEnum(str, Enum):
     FEMENINO = "Femenino"
 
 class PoblacionEnum(str, Enum):
+    # 🆕 (sesión 2026-11-02) AuroraSoft es solo para instituciones de nivel
+    # inicial, primaria y secundaria (decisión del usuario): sale
+    # "Universitario" y entra "Inicial". Ningún baremo cargado distinguía por
+    # población (los 216 tenían poblacion=None) ni ninguna inscripción real
+    # tenía "Universitario", así que no cambia ningún resultado. "Inicial"
+    # además permite derivar la población de un alumno matriculado en el
+    # nivel "Inicial" (crud.matricular_roster_en_campana compara por nombre).
+    INICIAL = "Inicial"
     PRIMARIA = "Primaria"
     SECUNDARIA = "Secundaria"
-    UNIVERSITARIO = "Universitario"
 
 # ==========================================
 # ESQUEMAS PARA INSCRIPCIONES (LINKS MÁGICOS DE ALUMNOS)
@@ -566,7 +573,12 @@ class CancelarCampanaRequest(BaseModel):
 class RegistroAlumnoDemograficos(BaseModel):
     nombre_completo: str
     edad: int
-    sexo: SexoEnum
+    # 🆕 (sesión 2026-11-02) Opcional: el examen ya no se lo pregunta al
+    # alumno (decisión del usuario). Sale del padrón al matricular
+    # (Persona.genero → Inscripcion.sexo); en un enlace sin padrón queda
+    # vacío y solo se aplican baremos unisex (hoy lo son todos). Se sigue
+    # aceptando si un cliente viejo lo manda.
+    sexo: Optional[SexoEnum] = None
     poblacion: PoblacionEnum
     acepta_terminos: bool = Field(
         ...,
@@ -590,10 +602,19 @@ class IntakeExamenResponse(BaseModel):
     nombre_completo: Optional[str] = None
     nombre_conocido: bool  # True si nombre_completo viene de una Persona del padrón, no editable
     edad: Optional[int] = None
+    # 🆕 (sesión 2026-11-02) Siempre None: el alumno ya no ve su sexo en el
+    # examen (decisión del usuario) y este endpoint es público (basta el
+    # enlace). Se conserva el campo para no romper a un cliente viejo.
     sexo: Optional[str] = None
     poblacion: Optional[str] = None
     informante_tipo: str
     ya_acepto_asentimiento: bool
+    # 🆕 (sesión 2026-11-02) Para que el examen muestre de qué colegio es
+    # (antes el alumno no veía ninguna marca de su institución). El logo es
+    # Institucion.logo_url: una URL https ya validada contra SSRF al
+    # guardarla, la misma que muestra el menú lateral del personal.
+    institucion_nombre: Optional[str] = None
+    institucion_logo_url: Optional[str] = None
     # 🆕 Prueba.instrucciones textual (None si la prueba no tiene) — se
     # muestran antes de la primera pregunta.
     instrucciones: Optional[str] = None

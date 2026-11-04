@@ -212,7 +212,7 @@ def montar_institucion(h_super, letra, sello):
     # CLAUDE.md "Exam resumption" / "solo llena lo que sigue vacío").
     r_comenzar = requests.post(f"{API}/educativo/comenzar-test/{ctx.token}", json={
         "nombre_completo": "NOMBRE QUE NO DEBE USARSE (ya viene de padrón)", "edad": 99,
-        "sexo": "Masculino", "poblacion": "Universitario", "acepta_terminos": True}, timeout=30)
+        "sexo": "Masculino", "poblacion": "Primaria", "acepta_terminos": True}, timeout=30)
     comprobar(f"[{letra}] comenzar-test (SIN JWT, solo el token público) -> 200",
               r_comenzar.status_code == 200, "POST /api/educativo/comenzar-test/{token}", r_comenzar.text[:200])
     comprobar(f"[{letra}] Los datos demográficos falsos enviados fueron IGNORADOS (ya venían de padrón)",

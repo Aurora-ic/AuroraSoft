@@ -30,6 +30,7 @@ import {
   ETIQUETA_URGENCIA,
 } from "@/lib/casos-riesgo";
 import type { BandejaCasosRiesgo, CasoRiesgo, EstadoCaso, EventoCasoRiesgo, UrgenciaCaso } from "@/types/api";
+import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
 
 // 🆕 (sesión 2026-11-01, decisiones del usuario) Bandeja de casos con
 // urgencia, estado y responsable — GET/PATCH /educativo/casos-riesgo (ver
@@ -311,6 +312,10 @@ function TarjetaCaso({
           {caso.urgencia === "urgente" && <Siren size={12} aria-hidden="true" />}
           {ETIQUETA_URGENCIA[caso.urgencia]}
         </span>
+        {/* 🆕 (sesión 2026-11-02) Qué significa cada nivel, sin salir de la bandeja. */}
+        {caso.urgencia !== "seguimiento" && (
+          <TerminoAyuda termino={caso.urgencia === "urgente" ? "urgente" : "en_alerta"} />
+        )}
         <div className="min-w-0 flex-1">
           <Link
             href={`/estudiantes/${caso.persona_id}`}

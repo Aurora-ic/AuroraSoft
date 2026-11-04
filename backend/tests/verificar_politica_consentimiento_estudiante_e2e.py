@@ -132,7 +132,7 @@ def crear_campana(h, institucion_id, prueba_id, sello, tag):
 
 def comenzar_test(token):
     return requests.post(f"{API}/educativo/comenzar-test/{token}", json={
-        "nombre_completo": "x", "edad": 1, "sexo": "Masculino", "poblacion": "Universitario",
+        "nombre_completo": "x", "edad": 1, "sexo": "Masculino", "poblacion": "Primaria",
         "acepta_terminos": True}, timeout=30)
 
 

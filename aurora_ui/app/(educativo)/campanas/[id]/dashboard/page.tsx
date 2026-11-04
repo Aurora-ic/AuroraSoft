@@ -44,6 +44,7 @@ import {
   fechaCierreEsPasada,
   MENSAJE_FECHA_CIERRE_PASADA,
 } from "@/lib/campanas";
+import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
 
 // Convierte el datetime que manda el backend al formato que acepta
 // <input type="datetime-local"> — mismo criterio inverso que `campanas/
@@ -578,7 +579,13 @@ export default function DashboardCampanaPage() {
             tono={conAlerta > 0 ? "riesgo" : "neutro"}
             valor={conAlerta}
             etiqueta="Con alerta clínica"
-            detalle={conAlerta > 0 ? "Informe retenido hasta revisión" : undefined}
+            detalle={
+              conAlerta > 0 ? (
+                <span className="inline-flex items-center gap-1">
+                  Informe retenido hasta revisión <TerminoAyuda termino="retenido" />
+                </span>
+              ) : undefined
+            }
           />
         ) : (
           <TarjetaKpi icono={BarChart3} tono="azul" valor={`${avance}%`} etiqueta="Avance" />
@@ -602,7 +609,13 @@ export default function DashboardCampanaPage() {
               titulo="Alumnos"
               descripcion={`${dashboard.alumnos.length} matriculado${dashboard.alumnos.length === 1 ? "" : "s"}`}
               acciones={
-                puedeAdministrar &&
+                // 🆕 (sesión 2026-11-02) La dirección ve la participación pero
+                // no los resultados: se le explica por qué, aquí mismo.
+                !veResultadosClinicos ? (
+                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-ink/55 dark:text-ink-dark/55">
+                    Resultados confidenciales <TerminoAyuda termino="resultados_confidenciales" />
+                  </span>
+                ) : puedeAdministrar &&
                 seleccionados.size > 0 && (
                   <Boton
                     variante="secundario"

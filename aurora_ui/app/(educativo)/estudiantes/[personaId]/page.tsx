@@ -81,6 +81,7 @@ import type {
   SesionSeguimiento,
   RespuestaPaginada,
 } from "@/types/api";
+import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
 
 // Debe coincidir con crud.TIPOS_ENTRADA_CON_CONTENIDO_PROPIO del backend:
 // los otros 2 tipos son puente (enlazan a SesionSeguimiento/Informe, sin
@@ -2020,11 +2021,17 @@ export default function FichaAlumnoPage() {
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
                     {fila.es_alerta && (
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber/15 text-amber-800 dark:text-amber">Alerta</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber/15 text-amber-800 dark:text-amber">Alerta</span>
+                        <TerminoAyuda termino="en_alerta" />
+                      </span>
                     )}
                     {fila.estado_interpretacion === "incompleta" && (
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/65">
-                        Interpretación incompleta
+                      <span className="inline-flex items-center gap-0.5">
+                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/65">
+                          Interpretación incompleta
+                        </span>
+                        <TerminoAyuda termino="interpretacion_incompleta" />
                       </span>
                     )}
                     <span
@@ -2036,6 +2043,7 @@ export default function FichaAlumnoPage() {
                     >
                       {fila.informe_liberado ? "Liberado" : "Retenido"}
                     </span>
+                    <TerminoAyuda termino={fila.informe_liberado ? "liberado" : "retenido"} />
                     <button
                       onClick={() => verInformeDesdeFicha(fila.inscripcion_id)}
                       className="text-sm text-teal-600 dark:text-teal-accent-dark hover:underline font-medium"

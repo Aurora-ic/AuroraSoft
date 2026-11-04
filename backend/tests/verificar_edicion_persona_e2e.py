@@ -145,7 +145,7 @@ def main(url_base):
     token = matricula["generados"][0]["token"]
 
     exigir(requests.post(f"{API}/educativo/comenzar-test/{token}", json={
-        "nombre_completo": "x", "edad": 1, "sexo": "Masculino", "poblacion": "Universitario",
+        "nombre_completo": "x", "edad": 1, "sexo": "Masculino", "poblacion": "Primaria",
         "acepta_terminos": True}, timeout=30), 200, "Comenzar")
 
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_a, timeout=30), 200, "Detalle PHQ-9")

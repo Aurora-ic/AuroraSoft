@@ -137,16 +137,21 @@ def main(url_base):
     token = matricula["generados"][0]["token"]
 
     exigir(requests.post(f"{API}/educativo/comenzar-test/{token}", json={
-        "nombre_completo": "x", "edad": 20, "sexo": "Masculino", "poblacion": "Universitario",
+        "nombre_completo": "x", "edad": 20, "sexo": "Masculino", "poblacion": "Primaria",
         "acepta_terminos": True}, timeout=30), 200, "Comenzar")
 
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_admin_a, timeout=30), 200, "Detalle PHQ-9")
-    preg_phq9 = {p["orden"]: p for p in detalle_phq9["dimensiones"][0]["preguntas"]}
+    # Todas las dimensiones: el PHQ-9 del catálogo reparte sus ítems en más de una.
+    preg_phq9 = {p["orden"]: p for d in detalle_phq9["dimensiones"] for p in d["preguntas"]}
 
     def opcion_id(orden, valor):
         return next(o["id"] for o in preg_phq9[orden]["opciones"] if o["valor_puntuacion"] == valor)
 
-    respuestas = [{"pregunta_id": preg_phq9[i + 1]["id"], "opcion_id": opcion_id(i + 1, 0)} for i in range(9)]
+    # Las preguntas que el examen pide de verdad (el catálogo puede tener más
+    # de 9 o repetir el orden entre dimensiones); siempre la opción de valor 0.
+    preguntas_examen = exigir(requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30), 200, "Preguntas")
+    respuestas = [{"pregunta_id": p["id"], "opcion_id": next((o["id"] for o in p["opciones"] if o.get("valor_puntuacion") == 0), p["opciones"][0]["id"])}
+                  for p in preguntas_examen]
     exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": respuestas}, timeout=30), 200, "Guardar")
     exigir(requests.post(f"{API}/educativo/examen/{token}/finalizar", timeout=60), 200, "Finalizar")
 
