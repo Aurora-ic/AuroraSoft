@@ -503,14 +503,6 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
-    "GET /api/educativo/casos-pendientes": {
-      "admin": true,
-      "colegio": false,
-      "psicologo": true,
-      "superadmin": true,
-      "sin_autenticar": false,
-      "verifica_institucion": false
-    },
     "GET /api/educativo/casos-riesgo": {
       "admin": true,
       "colegio": false,

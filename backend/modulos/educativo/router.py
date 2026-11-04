@@ -1906,8 +1906,8 @@ def exportar_dashboard_excel(
 # ==========================================
 # 📝 Fase 4 — esta sección se llamaba "ENDPOINTS DESACTIVADOS TEMPORALMENTE
 # (se reactivarán cuando definamos ProcesoEvaluativo y SesionSeguimiento)".
-# Ambos endpoints llevan tiempo activos y en uso (ver obtener_dashboard_proceso
-# y obtener_casos_pendientes_de_seguimiento en crud.py); el comentario había
+# El endpoint lleva tiempo activo y en uso (ver obtener_dashboard_proceso en
+# crud.py; el de casos pendientes se retiró el 2026-11-02); el comentario había
 # quedado desactualizado y podía llevar a alguien a creer que no funcionaban.
 
 @router.get("/procesos/dashboard")
@@ -1927,36 +1927,17 @@ def ver_dashboard_proceso(
         dashboard = crud.redactar_resultados_dashboard_institucional(dashboard)
     return dashboard
 
-@router.get("/casos-pendientes")
-def ver_casos_pendientes(
-    institucion_id: Optional[int] = None,
-    db: Session = Depends(get_db),
-    usuario_actual: auth_models.Usuario = Depends(requerir_staff_clinico),
-):
-    """
-    Retorna la lista de alertas/casos que requieren seguimiento.
-
-    🔒 Es el worklist clínico del psicólogo (alumnos en riesgo pendientes de
-    revisión) — mismo nivel de sensibilidad que `es_alerta`/`informe_liberado`
-    en el resto del sistema, `colegio` no debe verlo.
-    """
-    if usuario_actual.rol == "superadmin":
-        if institucion_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="Como superadmin, debes especificar ?institucion_id="
-            )
-    else:
-        institucion_id = usuario_actual.institucion_id
-
-    return crud.obtener_casos_pendientes_de_seguimiento(db=db, institucion_id=institucion_id)
+# 🆕 (sesión 2026-11-02) GET /casos-pendientes se retiró: la regla del proyecto
+# es agregar primero y retirar después, y desde el 2026-11-01 la bandeja nueva
+# (/casos-riesgo, más abajo) lo reemplaza en todas las pantallas. Ninguna lo
+# usaba ya. Sus garantías (filtrar por es_alerta y no por el texto del nivel,
+# cerrado a `colegio`) las cubren ahora los tests contra /casos-riesgo.
 
 
 # ==========================================
 # 🆕 CASOS EN RIESGO: urgencia, estado y responsable (sesión 2026-11-01)
 # ==========================================
-# La bandeja nueva (ver models.CasoRiesgo). GET /casos-pendientes de arriba
-# se conserva tal cual por compatibilidad. Mismo candado: staff clínico
+# La bandeja de casos en riesgo (ver models.CasoRiesgo). Candado: staff clínico
 # (`colegio` fuera) y siempre la institución propia salvo el superadmin.
 def _institucion_de_bandeja(usuario_actual, institucion_id: Optional[int]) -> int:
     if usuario_actual.rol == "superadmin":

@@ -120,7 +120,7 @@ _ENDPOINTS_STAFF_CLINICO_PASO2 = [
     ("POST", "/educativo/campanas/", {}),
     ("POST", "/educativo/campanas/9999999/matricular-roster", []),
     ("GET", "/educativo/campanas/9999999/links", None),
-    ("GET", "/educativo/casos-pendientes", None),
+    ("GET", "/educativo/casos-riesgo", None),  # 🆕 antes /casos-pendientes (retirado 2026-11-02)
     ("POST", "/educativo/seguimiento/", {}),
     ("GET", "/educativo/seguimiento/9999999", None),
     ("PATCH", "/educativo/seguimiento/9999999", {}),
@@ -132,7 +132,7 @@ _ENDPOINTS_STAFF_CLINICO_PASO2 = [
 # con el 403 de rol) — regresión negativa.
 _MUESTRA_PARA_ADMIN_PSICOLOGO = [
     ("PATCH", "/educativo/baremos/9999999", {}),
-    ("GET", "/educativo/casos-pendientes", None),
+    ("GET", "/educativo/casos-riesgo", None),  # 🆕 antes /casos-pendientes (retirado 2026-11-02)
     ("GET", "/educativo/seguimiento/9999999", None),
     ("GET", "/educativo/campanas/9999999/links", None),
 ]
@@ -233,11 +233,20 @@ def main(url_base):
     preguntas = exigir(requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30), 200, "Preguntas")
     detalle_staff = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_admin, timeout=30),
                            200, "Detalle staff PHQ-9")
-    preg_por_orden = {p["orden"]: p for p in detalle_staff["dimensiones"][0]["preguntas"]}
+    # Todas las dimensiones, por id: el PHQ-9 del catálogo reparte sus ítems en
+    # más de una y el orden se repite entre ellas.
+    preg_por_id = {p["id"]: p for d in detalle_staff["dimensiones"] for p in d["preguntas"]}
 
     def _opcion_id_publica(pregunta_publica_id, valor_deseado):
-        orden = next(o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id)
-        return next(o["id"] for o in preg_por_orden[orden]["opciones"] if o["valor_puntuacion"] == valor_deseado)
+        if pregunta_publica_id not in preg_por_id:
+            # Ítem sin dimensión (el 10 del PHQ-9, dificultad funcional): no está en
+            # /completa; el examen no expone valores, se usa su última opción (la más alta).
+            publica = next(q for q in preguntas if q["id"] == pregunta_publica_id)
+            return publica["opciones"][-1]["id"]
+        opciones = preg_por_id[pregunta_publica_id]["opciones"]
+        exacta = next((o["id"] for o in opciones if o["valor_puntuacion"] == valor_deseado), None)
+        # Un ítem sin ese valor (p. ej. el de dificultad funcional): su opción más alta.
+        return exacta if exacta is not None else max(opciones, key=lambda o: o["valor_puntuacion"])["id"]
 
     # Puntaje alto (3 en cada uno de los 9 ítems) -> dispara alerta por baremo
     # -> requiere_revision -> informe_liberado queda False al finalizar.

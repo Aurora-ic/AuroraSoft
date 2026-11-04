@@ -146,14 +146,17 @@ def test_casos_pendientes_usa_es_alerta():
     import inspect
     from modulos.educativo import crud as edu_crud
 
-    fuente = inspect.getsource(edu_crud.obtener_casos_pendientes_de_seguimiento)
+    # 🆕 (sesión 2026-11-02) GET /casos-pendientes y su función se retiraron; la
+    # misma garantía la cumple ahora la bandeja de casos en riesgo, que decide
+    # qué inscripción tiene caso en _consultas_casos_por_sincronizar.
+    fuente = inspect.getsource(edu_crud._consultas_casos_por_sincronizar)
     comprobar(
         "Ya no compara diag.nivel contra el set de texto NIVELES_DE_ALERTA",
-        "not in models.NIVELES_DE_ALERTA" not in fuente,
+        "NIVELES_DE_ALERTA" not in fuente,
     )
     comprobar(
-        "Filtra por el indicador explícito diag.es_alerta",
-        "diag.es_alerta" in fuente,
+        "Filtra por el indicador explícito DiagnosticoAlumno.es_alerta",
+        "DiagnosticoAlumno.es_alerta == True" in fuente,
     )
 
 

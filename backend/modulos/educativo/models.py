@@ -1034,7 +1034,8 @@ class DiagnosticoAlumno(Base):
     """Almacena el resultado clínico interpretado para cada escala"""
     __tablename__ = "edu_diagnosticos_alumno"
     # 🆕 (sesión 2026-11-01) Parcial: solo las filas en alerta, que es lo
-    # único que lee obtener_casos_pendientes_de_seguimiento.
+    # que leen la sincronización de casos en riesgo y sus avisos (antes, el
+    # retirado obtener_casos_pendientes_de_seguimiento).
     __table_args__ = (
         Index("ix_edu_diagnosticos_alumno_alerta", "inscripcion_id", postgresql_where=text("es_alerta = true")),
     )

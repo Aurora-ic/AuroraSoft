@@ -219,12 +219,14 @@ def main(url_base):
     _, persona_seg = montar_y_finalizar(
         h_psi, inst_id, prueba_r_id, pregs_r, sello, "SEG", f"{sello}SEG", (0, 0),
     )
-    pendientes = exigir(requests.get(f"{API}/educativo/casos-pendientes?institucion_id={inst_id}",
-                                     headers=h_psi, timeout=30), 200, "Casos pendientes")
+    # 🆕 (sesión 2026-11-02) /casos-pendientes se retiró: la misma garantía,
+    # contra la bandeja de casos en riesgo que lo reemplaza.
+    pendientes = exigir(requests.get(f"{API}/educativo/casos-riesgo",
+                                     headers=h_psi, timeout=60), 200, "Casos en riesgo")["casos"]
     comprobar(
-        "El caso con nivel inocuo pero es_alerta=True SÍ aparece en casos pendientes de seguimiento",
+        "El caso con nivel inocuo pero es_alerta=True SÍ aparece en la bandeja de casos en riesgo",
         any(p["persona_id"] == persona_seg for p in pendientes),
-        str(pendientes),
+        str(pendientes)[:500],
     )
 
     total = len(_resultados)

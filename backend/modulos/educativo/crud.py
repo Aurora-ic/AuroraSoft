@@ -1088,7 +1088,7 @@ def aplicar_reglas_a_diagnosticos(db: Session, inscripcion_id: int, diagnosticos
     dimensión que no tenía diagnóstico (porque no había baremo aplicable),
     se crea un DiagnosticoAlumno nuevo para esa dimensión en vez de perder la
     alerta — así reutiliza exactamente el mismo mecanismo que ya consumen
-    detectar_niveles_de_alerta() y obtener_casos_pendientes_de_seguimiento(),
+    detectar_niveles_de_alerta() y la bandeja de casos en riesgo,
     sin duplicar lógica.
 
     Devuelve la lista de diagnósticos (la original + los que se hayan creado).
@@ -4005,143 +4005,16 @@ def obtener_series_inicio(db: Session, institucion_id: int, usuario_id: int, mes
     return {"meses": serie, "campanas": campanas}
 
 
-def obtener_casos_pendientes_de_seguimiento(db: Session, institucion_id: int):
-    # 🆕 Rediseño de /casos-riesgo (sesión 2026-10-30): la pantalla leía
-    # `prueba`/`nivel`/`fecha`, claves que este listado nunca devolvió — se
-    # veía el nombre del alumno con todo lo demás vacío. Se suman (solo
-    # ADITIVO, ningún consumidor existente cambia) prueba/dimensión/campaña
-    # e ids, resueltos en el mismo SELECT — Evaluacion ya estaba en el join,
-    # Prueba/Dimension son 1:1 por fila, sin N+1 nuevo.
-    #
-    # 🆕 Escalabilidad (sesión 2026-11-01): antes traía TODOS los
-    # diagnósticos de la institución (con y sin alerta), filtraba es_alerta
-    # en Python y lanzaba UNA consulta de SesionSeguimiento por cada alerta
-    # (N+1). Ahora las dos condiciones van en el mismo SELECT: es_alerta en
-    # el WHERE (índice parcial ix_edu_diagnosticos_alumno_alerta) y "sin
-    # seguimiento posterior" como NOT EXISTS (índice compuesto
-    # ix_edu_sesiones_seguimiento_persona_fecha). Mismo criterio exacto que
-    # antes: misma persona, sesión con fecha >= fecha_resolucion (si
-    # fecha_resolucion es NULL la comparación nunca es verdadera y el caso
-    # queda pendiente, igual que la consulta por fila de antes). Equivalencia
-    # comprobada contra la versión anterior sobre la BD real. Sin paginar a
-    # propósito: es el worklist clínico y ocultar casos tras una página es
-    # peor; su tamaño ya es solo el de los casos pendientes reales.
-    tiene_seguimiento_posterior = db.query(models.SesionSeguimiento.id).filter(
-        models.SesionSeguimiento.persona_id == models.Inscripcion.persona_id,
-        models.SesionSeguimiento.fecha >= models.Inscripcion.fecha_resolucion,
-    ).exists()
-    alertas = db.query(
-        models.DiagnosticoAlumno, models.Inscripcion, models.Evaluacion, models.Prueba, models.Dimension
-    ).join(
-        models.Inscripcion,
-        models.DiagnosticoAlumno.inscripcion_id == models.Inscripcion.id
-    ).join(
-        models.Evaluacion,
-        models.Inscripcion.evaluacion_id == models.Evaluacion.id
-    ).outerjoin(
-        models.Prueba,
-        models.Evaluacion.prueba_id == models.Prueba.id
-    ).outerjoin(
-        models.Dimension,
-        models.DiagnosticoAlumno.dimension_id == models.Dimension.id
-    ).filter(
-    models.Evaluacion.institucion_id == institucion_id,
-    models.Inscripcion.persona_id.isnot(None),
-    models.Inscripcion.is_deleted == False,   # 🔒 FIX
-    models.DiagnosticoAlumno.es_alerta == True,  # noqa: E712
-    ~tiene_seguimiento_posterior,
-    ).all()
-
-    # 🚨 Fase 4 — HALLAZGO CRÍTICO: este listado seguía filtrando por el texto
-    # legacy de NIVELES_DE_ALERTA, el mismo criterio cerrado en toda la Fase 1
-    # (C-13/B-6) a favor del indicador explícito `es_alerta`. Un baremo
-    # marcado es_alerta=True con un nivel NO incluido en ese set de palabras
-    # — exactamente el caso de prueba "Sin indicadores aparentes" de la Fase 1
-    # — sí retenía el informe y sí disparaba el correo, pero jamás aparecía
-    # aquí: el caso quedaba huérfano en el worklist de seguimiento del
-    # psicólogo, invisible para quien tiene que darle continuidad clínica.
-    pendientes = []
-    for diag, insc, evaluacion, prueba, dimension in alertas:
-        if diag.es_alerta:
-            pendientes.append({
-                "origen": "prueba",
-                "persona_id": insc.persona_id,
-                "nombre_completo": insc.nombre_completo,
-                "nivel_alerta": diag.nivel,
-                "fecha_evaluacion": insc.fecha_resolucion,
-                "fecha_referencia": insc.fecha_resolucion,
-                "inscripcion_id": insc.id,
-                "evaluacion_id": evaluacion.id,
-                "campana": evaluacion.nombre_grupo,
-                "prueba": (prueba.nombre_corto or prueba.nombre_tecnico) if prueba else None,
-                "dimension": dimension.nombre if dimension else None,
-            })
-
-    pendientes.extend(_casos_por_antecedentes_clinicos(db, institucion_id))
-    return pendientes
-
-
-def _casos_por_antecedentes_clinicos(db: Session, institucion_id: int) -> list:
-    """🆕 (sesión 2026-11-01) Casos en riesgo que NO salen de una prueba: el
-    estudiante tiene "Sí" en terapia psicológica externa o en atención
-    psiquiátrica externa (mismo criterio único "con Dx" del padrón y la
-    estructura académica — superadmin_crud._condicion_con_diagnostico, no
-    una copia). A diferencia de una alerta de prueba (un evento puntual que
-    se da por atendido con una sesión posterior), esto es una CONDICIÓN
-    vigente: el caso sigue en la lista mientras los antecedentes digan Sí,
-    aunque ya tenga sesiones — `fecha_referencia` es la última sesión de
-    seguimiento (o, si nunca tuvo, la última edición de los antecedentes),
-    para que la pantalla muestre cuánto lleva sin seguimiento.
-
-    Dos consultas en total (antecedentes + última sesión por persona), sin
-    N+1."""
-    Antecedentes = superadmin_models.PersonaAntecedentesClinicos
-    Persona = superadmin_models.Persona
-    filas = db.query(Antecedentes, Persona).join(
-        Persona, Persona.id == Antecedentes.persona_id,
-    ).filter(
-        Persona.institucion_id == institucion_id,
-        Persona.activo.isnot(False),
-        superadmin_crud._condicion_con_diagnostico(),
-    ).all()
-    if not filas:
-        return []
-
-    ultima_sesion = dict(
-        db.query(models.SesionSeguimiento.persona_id, func.max(models.SesionSeguimiento.fecha))
-        .filter(models.SesionSeguimiento.persona_id.in_([p.id for _, p in filas]))
-        .group_by(models.SesionSeguimiento.persona_id)
-        .all()
-    )
-
-    casos = []
-    for ant, persona in filas:
-        motivos = []
-        if ant.recibe_terapia_psicologica_externa:
-            motivos.append("Terapia psicológica externa")
-        if ant.recibe_atencion_psiquiatrica_externa:
-            motivos.append("Atención psiquiátrica externa")
-        ultimo = ultima_sesion.get(persona.id)
-        casos.append({
-            "origen": "antecedentes",
-            "persona_id": persona.id,
-            "nombre_completo": f"{persona.nombres} {persona.apellidos}",
-            "nivel_alerta": "Con Dx",
-            "fecha_evaluacion": None,
-            "fecha_referencia": ultimo or ant.actualizado_en,
-            "ultimo_seguimiento": ultimo,
-            "motivos": motivos,
-            "diagnostico_reportado": ant.diagnostico_reportado,
-        })
-    return casos
+# 🆕 (sesión 2026-11-02) obtener_casos_pendientes_de_seguimiento y
+# _casos_por_antecedentes_clinicos se retiraron junto con GET /casos-pendientes:
+# la bandeja (sincronizar_casos_riesgo / _armar_casos_riesgo, abajo) cubre los
+# dos orígenes (alerta de prueba por es_alerta y antecedentes en «Sí»).
 
 
 # ==========================================
 # 🆕 CASOS EN RIESGO CON URGENCIA, ESTADO Y RESPONSABLE (sesión 2026-11-01)
 # ==========================================
-# Decisiones del usuario — ver models.CasoRiesgo. `obtener_casos_pendientes_
-# de_seguimiento` (arriba) queda intacta para GET /casos-pendientes, que se
-# conserva por compatibilidad; la bandeja y el Inicio usan esto.
+# Decisiones del usuario — ver models.CasoRiesgo. La bandeja y el Inicio usan esto.
 URGENCIA_URGENTE = "urgente"          # alerta disparada por una regla de ÍTEM crítico
 URGENCIA_ALERTA = "alerta"            # tramo de alerta del baremo (u otra regla)
 URGENCIA_SEGUIMIENTO = "seguimiento"  # antecedentes clínicos externos en "Sí"

@@ -297,8 +297,9 @@ def main(url_base):
 
     # ------------------------------------------------------------------
     print("\n10 · Compatibilidad")
+    # 🆕 (sesión 2026-11-02) Se retiró: la bandeja lo reemplaza en todas las pantallas.
     r = requests.get(f"{API}/educativo/casos-pendientes", headers=h_p1, timeout=30)
-    comprobar("GET /casos-pendientes sigue respondiendo (200, lista)", r.status_code == 200 and isinstance(r.json(), list))
+    comprobar("GET /casos-pendientes ya no existe (404)", r.status_code == 404)
 
     total, pasan = len(_resultados), sum(_resultados)
     print(f"\n{pasan}/{total} comprobaciones pasan.")

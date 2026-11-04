@@ -336,7 +336,7 @@ Punto 2 del análisis de UI/UX. Las cuatro decisiones de fondo las tomó el usua
   - `GET /educativo/casos-riesgo?incluir_cerrados=` devuelve `{casos, profesionales, yo}`;
   - `PATCH /educativo/casos-riesgo/{id}` cambia `estado` y/o `responsable_usuario_id` y acepta `nota`. Cerrar exige `motivo_cierre` (422 sin él). Un responsable que no sea psicólogo o admin activo del colegio da 422. Reabrir un caso de antecedentes cuando ya hay otro abierto da 409. La fila se bloquea con `with_for_update`;
   - `GET /educativo/casos-riesgo/{id}/historial`.
-  - `GET /casos-pendientes` **se conserva intacto** por compatibilidad: su prueba de equivalencia sigue en 9/9.
+  - ~~`GET /casos-pendientes` **se conserva intacto** por compatibilidad~~ — **🆕 retirado (sesión 2026-11-02)**, junto con `obtener_casos_pendientes_de_seguimiento` y su prueba de equivalencia: ninguna pantalla lo usaba. Sus garantías (`es_alerta`, no el texto del nivel; cerrado a `colegio`) se prueban ahora contra `/casos-riesgo` en `verificar_fase4_e2e.py`, `verificar_permisos_colegio_e2e.py` y `verificar_documentos_descarte_e2e.py`, y `verificar_casos_riesgo_e2e.py` comprueba que el endpoint viejo da 404.
 - **Frontend:**
   - `/casos-riesgo` se reescribió con react-query, igual que `lib/padron.ts`:
     - las tarjetas de conteo (Urgentes, En alerta, Seguimiento) funcionan como filtros;

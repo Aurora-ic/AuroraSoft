@@ -340,10 +340,11 @@ def main(url_base):
     r = requests.get(f"{API}/admin/personas/{inst_a}", params={"limit": 200}, headers=h_psi_a, timeout=30)
     comprobar("[9] El padrón paginado sigue trayendo seccion_actual/con_diagnostico en cada fila",
               r.status_code == 200 and all("seccion_actual" in x and "con_diagnostico" in x for x in r.json()["items"]))
-    r = requests.get(f"{API}/educativo/casos-pendientes", params={"institucion_id": inst_a}, headers=h_psi_a, timeout=30)
-    comprobar("[9] casos-pendientes responde una lista (misma forma)", r.status_code == 200 and isinstance(r.json(), list), str(r.status_code))
-    r = requests.get(f"{API}/educativo/casos-pendientes", params={"institucion_id": inst_a}, headers=h_colegio_a, timeout=30)
-    comprobar("[9] casos-pendientes sigue cerrado a 'colegio' (403)", r.status_code == 403, str(r.status_code))
+    # 🆕 (sesión 2026-11-02) /casos-pendientes se retiró; su reemplazo, la bandeja.
+    r = requests.get(f"{API}/educativo/casos-riesgo", headers=h_psi_a, timeout=60)
+    comprobar("[9] casos-riesgo responde la bandeja (casos en lista)", r.status_code == 200 and isinstance(r.json().get("casos"), list), str(r.status_code))
+    r = requests.get(f"{API}/educativo/casos-riesgo", headers=h_colegio_a, timeout=30)
+    comprobar("[9] casos-riesgo sigue cerrado a 'colegio' (403)", r.status_code == 403, str(r.status_code))
 
     total = len(_resultados)
     fallos = [n for n, ok, _ in _resultados if not ok]

@@ -85,7 +85,9 @@ _ENDPOINTS_STAFF_CLINICO_PASO2 = [
     "POST /api/educativo/pruebas/{prueba_id}/reglas", "PATCH /api/educativo/reglas/{regla_id}",
     "POST /api/educativo/campanas/", "POST /api/educativo/campanas/{evaluacion_id}/matricular-roster",
     "GET /api/educativo/campanas/{evaluacion_id}/links",
-    "GET /api/educativo/casos-pendientes",
+    # 🆕 (sesión 2026-11-02) antes GET /casos-pendientes, retirado: la bandeja
+    # que lo reemplaza tiene el mismo candado.
+    "GET /api/educativo/casos-riesgo",
     "POST /api/educativo/seguimiento/", "GET /api/educativo/seguimiento/{persona_id}",
     "PATCH /api/educativo/seguimiento/{sesion_id}", "DELETE /api/educativo/seguimiento/{sesion_id}",
 ]
