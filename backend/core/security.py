@@ -1,6 +1,8 @@
 import os
 from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
+# 🆕 (revisión de seguridad 2026-11-07) PyJWT en vez de python-jose: este
+# último dejó de mantenerse y arrastraba ecdsa/rsa/pyasn1 con CVEs abiertos.
+import jwt
 from passlib.context import CryptContext
 
 # ==========================================
@@ -38,15 +40,30 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
 
+_HASH_FICTICIO = None
+
+
+def verificar_password_sin_delatar(plain_password: str, hashed_password: str | None) -> bool:
+    """🆕 (revisión de seguridad 2026-11-07) Como verify_password, pero si la
+    cuenta no existe (`hashed_password=None`) igual hace el trabajo de bcrypt
+    contra un hash ficticio y devuelve False. Antes el login se saltaba
+    bcrypt para un correo inexistente y respondía ~700 ms antes: midiendo el
+    tiempo se podía averiguar qué correos están registrados."""
+    global _HASH_FICTICIO
+    if hashed_password is None:
+        if _HASH_FICTICIO is None:
+            _HASH_FICTICIO = pwd_context.hash("aurorasoft-hash-ficticio")
+        pwd_context.verify(plain_password, _HASH_FICTICIO)
+        return False
+    return pwd_context.verify(plain_password, hashed_password)
+
+
 def create_access_token(data: dict) -> str:
     """Genera el token JWT para que el usuario navegue autenticado"""
     to_encode = data.copy()
-    # 🆕 Cierre de gap (docs/gaps-pendientes.md) — python-jose calcula el
-    # claim "exp" con `.utctimetuple()`, que da el mismo resultado para un
-    # datetime naive-UTC o uno aware-UTC (para el naive asume que ya está en
-    # UTC, exactamente lo que `datetime.utcnow()` garantizaba; para el aware
-    # lo convierte). Cero cambio de comportamiento, solo deja de depender de
-    # una API marcada para remoción.
+    # 🆕 Cierre de gap (docs/gaps-pendientes.md) — "exp" como datetime aware
+    # en UTC (antes `datetime.utcnow()`, API marcada para remoción). PyJWT lo
+    # convierte a timestamp igual que lo hacía python-jose.
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

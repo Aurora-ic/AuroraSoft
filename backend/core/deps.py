@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from jose import jwt, JWTError
+import jwt
 
 from core import sesiones
 from core.database import get_db
@@ -67,7 +67,7 @@ def obtener_usuario_actual(
         email: str = payload.get("sub")
         if email is None:
             raise excepcion_credenciales
-    except JWTError:
+    except jwt.PyJWTError:  # firma inválida, vencido, mal formado...
         raise excepcion_credenciales
 
     sid = payload.get("sid")

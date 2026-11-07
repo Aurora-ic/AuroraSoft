@@ -1877,10 +1877,7 @@ export default function FichaAlumnoPage() {
             )}
 
             {contactos.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border dark:border-border-dark py-6 text-center">
-                <Phone size={18} className="mx-auto text-ink/25 dark:text-ink-dark/25" aria-hidden="true" />
-                <p className="mt-1.5 text-sm text-ink/50 dark:text-ink-dark/50">No hay contactos familiares registrados.</p>
-              </div>
+              <VacioFicha icono={Phone} texto="No hay contactos familiares registrados." />
             ) : (
               <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
                 <table className="w-full min-w-[36rem] text-sm">

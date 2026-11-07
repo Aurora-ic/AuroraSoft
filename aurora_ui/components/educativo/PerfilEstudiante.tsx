@@ -432,7 +432,7 @@ export function TituloGrupoFicha({
   id?: string;
 }) {
   return (
-    <div id={id} className="flex scroll-mt-16 items-center gap-3 pt-2">
+    <div id={id} className="flex scroll-mt-24 items-center gap-3 pt-2">
       <span aria-hidden="true" className={`h-6 w-1 rounded-full ${ACENTOS[acento].solido}`} />
       <div className="min-w-0">
         <h2 className="m-0 font-display text-[18px] font-bold text-teal-900 dark:text-ink-dark">{titulo}</h2>

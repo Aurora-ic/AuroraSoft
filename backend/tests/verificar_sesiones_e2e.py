@@ -128,9 +128,9 @@ def tocar_bd(sid=None, usuario_id=None, **campos):
 
 
 def sid_de(token):
-    from jose import jwt
+    import jwt
 
-    return jwt.get_unverified_claims(token).get("sid")
+    return jwt.decode(token, options={"verify_signature": False}).get("sid")
 
 
 def cookie(cliente, nombre):

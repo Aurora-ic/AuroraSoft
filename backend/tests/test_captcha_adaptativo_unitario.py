@@ -86,7 +86,10 @@ def main():
     print("\nRouter del login")
     from modulos.auth import router as auth_router
     fuente = inspect.getsource(auth_router.iniciar_sesion)
-    comprobar("Mira el captcha ANTES de la contraseña", fuente.index("captcha_requerido") < fuente.index("verify_password"))
+    comprobar("Mira el captcha ANTES de la contraseña", fuente.index("captcha_requerido") < fuente.index("verificar_password_sin_delatar("))
+    # 🆕 (revisión de seguridad 2026-11-07) mismo coste de bcrypt exista o no la cuenta.
+    comprobar("Verifica contra hash ficticio si el correo no existe",
+              "verificar_password_sin_delatar(form_data.password, usuario.hashed_password if usuario else None)" in fuente)
     comprobar("Registra el fallo de contraseña", "captcha.registrar_fallo(ip, form_data.username)" in fuente)
     comprobar("Limpia los contadores al acertar", "captcha.limpiar_fallos(ip, form_data.username)" in fuente)
     comprobar("GET /captcha usa la misma regla", "captcha_requerido" in inspect.getsource(auth_router.obtener_captcha))

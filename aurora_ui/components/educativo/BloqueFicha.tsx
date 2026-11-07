@@ -42,7 +42,7 @@ export function BloqueFicha({
 }) {
   const a = ACENTOS[acento];
   return (
-    <section id={id} className={`scroll-mt-6 rounded-xl border shadow-sm overflow-hidden ${a.fondoSuave} ${className}`}>
+    <section id={id} className={`scroll-mt-24 rounded-xl border shadow-sm overflow-hidden ${a.fondoSuave} ${className}`}>
       <header className={`flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b ${a.cabecera}`}>
         <div className="flex items-center gap-2.5 min-w-0">
           <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${a.chipSolido}`}>
@@ -62,11 +62,16 @@ export function BloqueFicha({
 
 // Estado vacío uniforme de un bloque ("No hay citas registradas..."): antes
 // era un párrafo en cursiva suelto; ahora un recuadro punteado con icono.
+// 🆕 (sesión 2026-11-07) En una sola línea (icono al lado del texto) y con
+// menos alto: en un alumno recién creado casi todos los bloques están
+// vacíos y la ficha se volvía una columna larguísima de recuadros.
 export function VacioFicha({ icono: Icono, texto, children }: { icono: LucideIcon; texto: string; children?: ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-border dark:border-border-dark py-6 px-4 text-center">
-      <Icono size={18} className="mx-auto text-ink/25 dark:text-ink-dark/25" aria-hidden="true" />
-      <p className="mt-1.5 text-sm text-ink/50 dark:text-ink-dark/50">{texto}</p>
+    <div className="rounded-lg border border-dashed border-border dark:border-border-dark bg-surface/50 dark:bg-surface-dark/40 px-4 py-3.5 text-center">
+      <p className="m-0 inline-flex items-center justify-center gap-2 text-sm text-ink/50 dark:text-ink-dark/50">
+        <Icono size={16} className="shrink-0 text-ink/30 dark:text-ink-dark/30" aria-hidden="true" />
+        {texto}
+      </p>
       {children}
     </div>
   );

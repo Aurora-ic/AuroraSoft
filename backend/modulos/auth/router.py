@@ -15,7 +15,7 @@ from datetime import timedelta
 from fastapi.responses import JSONResponse
 
 from core import sesiones
-from core.security import ACCESS_TOKEN_EXPIRE_MINUTES, verify_password, create_access_token
+from core.security import ACCESS_TOKEN_EXPIRE_MINUTES, verificar_password_sin_delatar, create_access_token
 from core.limiter import limiter  # 👈 Evita importación circular
 from core import captcha
 from . import models, schemas, crud
@@ -95,7 +95,8 @@ def iniciar_sesion(
 
     usuario = crud.obtener_usuario_por_email(db, email=form_data.username)
 
-    if not usuario or not verify_password(form_data.password, usuario.hashed_password):
+    # Mismo coste de bcrypt exista o no la cuenta (ver verificar_password_sin_delatar).
+    if not verificar_password_sin_delatar(form_data.password, usuario.hashed_password if usuario else None):
         captcha.registrar_fallo(ip, form_data.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
