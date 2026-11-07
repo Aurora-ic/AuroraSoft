@@ -72,7 +72,7 @@ r = {
     "docs": llamar("GET", "/docs"),
     "no_existe": llamar("GET", "/api/no-existe"),
     "preflight": llamar("OPTIONS", "/api/auth/login", [
-        ("origin", "http://localhost:3000"), ("access-control-request-method", "POST")]),
+        ("origin", "https://app.zz-prueba.pe"), ("access-control-request-method", "POST")]),
     "cuerpo_grande": llamar("POST", "/api/auth/login", [
         ("content-length", str(LIMITE_CUERPO_POR_DEFECTO_BYTES + 1))]),
     "cache_propio": llamar("GET", "/zz-prueba-cache"),
@@ -87,7 +87,7 @@ def correr(entorno):
     env.update({
         "DATABASE_URL": "postgresql://usuario:clave@localhost:1/zz_no_existe",
         "SECRET_KEY": "x" * 64,
-        "CORS_ALLOWED_ORIGINS": "http://localhost:3000",
+        "CORS_ALLOWED_ORIGINS": "https://app.zz-prueba.pe",  # fuera de desarrollo solo https (core/cors.py)
         "PYTHONIOENCODING": "utf-8",
     })
     env.pop("SENTRY_DSN", None)
@@ -161,7 +161,7 @@ def test_produccion(r):
     comprobar_cabeceras_base("404 de ruta inexistente", r["no_existe"], con_hsts=True)
     comprobar("preflight CORS → 200", r["preflight"]["status"] == 200, r["preflight"]["status"])
     comprobar("preflight CORS conserva Access-Control-Allow-Origin",
-              h(r["preflight"], "access-control-allow-origin") == "http://localhost:3000")
+              h(r["preflight"], "access-control-allow-origin") == "https://app.zz-prueba.pe")
     comprobar_cabeceras_base("preflight CORS", r["preflight"], con_hsts=True)
     comprobar("cuerpo demasiado grande → 413", r["cuerpo_grande"]["status"] == 413, r["cuerpo_grande"]["status"])
     comprobar_cabeceras_base("413 del tope de cuerpo", r["cuerpo_grande"], con_hsts=True)

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from . import models, schemas
 from core.security import get_password_hash
+import hashlib
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -58,11 +59,25 @@ def crear_usuario(db: Session, usuario: schemas.UsuarioCreate):
     db.refresh(nuevo_usuario)
     return nuevo_usuario
 
-def crear_token_recuperacion(db: Session, usuario_id: int):
+def hash_token_recuperacion(token: str) -> str:
+    """🆕 (sesión 2026-11-07, revisión de seguridad) En la BD se guarda solo
+    el SHA-256 del token, nunca el token: quien lea la tabla (un respaldo
+    filtrado, un acceso de solo lectura) no puede usar un enlace vigente para
+    cambiar la contraseña del superadmin. El token tiene 256 bits de azar, así
+    que un hash rápido sin sal basta (no hay diccionario que probar) y sigue
+    permitiendo buscarlo por índice. Sin migración: la columna `token`
+    (String, única, con índice) guarda ahora los 64 caracteres hex del hash.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def crear_token_recuperacion(db: Session, usuario_id: int) -> str:
+    """Crea el enlace y devuelve el token EN CLARO — la única copia, que va
+    directo al correo. La fila solo conserva su hash."""
     token = secrets.token_urlsafe(32)
     nuevo = models.TokenRecuperacion(
         usuario_id=usuario_id,
-        token=token,
+        token=hash_token_recuperacion(token),
         # UTC CON zona: la columna es timestamptz. Un utcnow() naive se guardaba
         # como hora local del servidor (Perú, UTC-5) y el enlace de "1 hora"
         # caducaba en realidad a las 6 horas.
@@ -70,13 +85,14 @@ def crear_token_recuperacion(db: Session, usuario_id: int):
     )
     db.add(nuevo)
     db.commit()
-    db.refresh(nuevo)
-    return nuevo
+    return token
 
 
 def validar_token_recuperacion(db: Session, token: str):
+    if not isinstance(token, str) or not token:
+        return None
     registro = db.query(models.TokenRecuperacion).filter(
-        models.TokenRecuperacion.token == token,
+        models.TokenRecuperacion.token == hash_token_recuperacion(token),
         models.TokenRecuperacion.usado == False,
     ).first()
     # 🔑 Fase 3 — Antes: fecha_expiracion (aware, timestamptz) < utcnow() (naive)

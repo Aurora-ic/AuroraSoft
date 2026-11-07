@@ -6,12 +6,24 @@
 # siguen leyendo del `.env` de siempre (`env_file`), nada nuevo ahí —
 # `CELERY_BROKER_URL`/`CELERY_RESULT_BACKEND` ya traen un default a
 # `redis` (el nombre de este mismo servicio) para no tener que repetirlos.
+#
+# 🆕 (sesión 2026-11-07, revisión de seguridad previa al piloto)
+# - Los tres procesos corren como el usuario sin privilegios del Dockerfile.
+# - `web` se publica SOLO en 127.0.0.1: en el servidor entra por Caddy
+#   (HTTPS), nunca directo desde internet.
+# - `redis` ya no publica su puerto: no tiene contraseña y solo lo usan
+#   web/worker/beat por la red interna de compose. Antes quedaba abierto en
+#   el 6379 del servidor.
+# - `beat` agregado: UNO solo (agenda diaria, reconciliación, casos en riesgo
+#   — ver tareas/tareas_programadas.py). Su archivo de calendario va a /tmp
+#   porque /app es de solo lectura para el usuario del contenedor.
 services:
   web:
     build: .
-    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --no-server-header
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
     env_file: .env
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
@@ -33,8 +45,20 @@ services:
       CELERY_RESULT_BACKEND: redis://redis:6379/1
     depends_on:
       - redis
+    restart: unless-stopped
+
+  beat:
+    build: .
+    command: celery -A core.cola_tareas beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    env_file: .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # Sin `ports:` a propósito — solo accesible dentro de la red de compose.
+    restart: unless-stopped

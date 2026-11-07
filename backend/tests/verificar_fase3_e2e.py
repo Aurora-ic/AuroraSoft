@@ -192,10 +192,17 @@ def main(url_base):
     comprobar("Un psicólogo NO recibe enlace de recuperación (solo superadmin)", token_reset is None)
     # Lo que sigue prueba la invalidación de JWT al resetear (C-4), que vale
     # para cualquier rol: el token se emite directo en la BD.
+    # 🆕 (sesión 2026-11-07) La BD guarda solo el SHA-256 del token: se
+    # inserta el hash, y el enlace se usa con el token en claro.
+    import hashlib
     token_directo = uuid.uuid4().hex + uuid.uuid4().hex
     ejecutar("insert into auth_tokens_recuperacion (usuario_id, token, fecha_expiracion, usado) "
              "select id, :t, now() + interval '1 hour', false from auth_usuarios where email=:e",
-             t=token_directo, e=correo_psi)
+             t=hashlib.sha256(token_directo.encode()).hexdigest(), e=correo_psi)
+    comprobar("Lo que está guardado en la BD (el hash) NO sirve como enlace",
+              requests.post(f"{API}/auth/resetear-password", json={
+                  "token": hashlib.sha256(token_directo.encode()).hexdigest(),
+                  "nueva_password": "NoDebeEntrar999"}, timeout=30).status_code == 400)
     token_reset = (token_directo,)
     exigir(requests.post(f"{API}/auth/resetear-password",
                          json={"token": token_reset[0], "nueva_password": "NuevaClave456"}, timeout=30),

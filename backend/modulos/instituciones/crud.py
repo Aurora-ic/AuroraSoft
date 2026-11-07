@@ -87,8 +87,11 @@ def subir_imagen_branding(
 
     url_publica = branding.resolver_url_publica(f"/api/instituciones/{institucion_id}/branding/{tipo}")
 
-    from core.storage import obtener_storage_service, construir_storage_key_logo_institucion
-    key = construir_storage_key_logo_institucion(institucion_id, tipo, extension)
+    # 🆕 (B6) Siempre la misma key, sin extensión: la subida nueva reemplaza
+    # de verdad a la anterior, sea .png, .jpg o .jpeg — ver
+    # core/storage.construir_storage_key_branding_vigente.
+    from core.storage import obtener_storage_service, construir_storage_key_branding_vigente
+    key = construir_storage_key_branding_vigente(institucion_id, tipo)
     obtener_storage_service().guardar(key, contenido, content_type)
 
     if tipo == "encabezado":
@@ -113,13 +116,24 @@ def leer_imagen_branding(db: Session, institucion_id: int, tipo: str):
         raise HTTPException(status_code=404, detail="No encontrado.")
 
     from core import branding
-    from core.storage import obtener_storage_service, construir_storage_key_logo_institucion
+    from core.descargas import tipo_contenido_por_firma
+    from core.storage import (
+        obtener_storage_service, construir_storage_key_branding_vigente, construir_storage_key_logo_institucion,
+    )
 
     storage = obtener_storage_service()
-    for extension in sorted(branding.EXTENSIONES_IMAGEN_PERMITIDAS):
-        key = construir_storage_key_logo_institucion(institucion_id, tipo, extension)
+    # 🆕 (B6) Primero la key vigente (toda subida desde este cambio). Solo si
+    # no existe, lo subido antes con la key por extensión: ahí ya no puede
+    # haber una subida más nueva que pierda contra una vieja, porque las
+    # subidas nuevas nunca vuelven a escribir esas keys.
+    candidatas = [construir_storage_key_branding_vigente(institucion_id, tipo)] + [
+        construir_storage_key_logo_institucion(institucion_id, tipo, extension)
+        for extension in sorted(branding.EXTENSIONES_IMAGEN_PERMITIDAS)
+    ]
+    for key in candidatas:
         if storage.existe(key):
-            return storage.leer(key), branding.content_type_por_extension(extension)
+            contenido = storage.leer(key)
+            return contenido, tipo_contenido_por_firma(contenido)
     raise HTTPException(status_code=404, detail="Esta institución no tiene esa imagen configurada.")
 
 

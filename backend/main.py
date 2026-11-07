@@ -96,6 +96,13 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# 🆕 (sesión 2026-11-07) El 422 ya no devuelve `input` (lo que mandó el
+# cliente: contraseñas, datos del alumno) — ver core/errores_validacion.py.
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+from core.errores_validacion import manejador_validacion  # noqa: E402
+
+app.add_exception_handler(RequestValidationError, manejador_validacion)
+
 # ==========================================
 # MANEJADOR GLOBAL DE ERRORES (SEGURIDAD)
 # ==========================================
@@ -147,9 +154,11 @@ app.add_middleware(
 # ==========================================
 # 4. CONFIGURACIÓN CORS
 # ==========================================
-origenes_permitidos = os.getenv(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:3000"
-).split(",")
+# 🆕 (sesión 2026-11-07) Validada al arrancar — ver core/cors.py: un "*",
+# "null", una ruta o (fuera de desarrollo) un http:// detienen el arranque.
+from core.cors import origenes_cors  # noqa: E402
+
+origenes_permitidos = origenes_cors(os.getenv("CORS_ALLOWED_ORIGINS"), ES_DESARROLLO)
 
 app.add_middleware(
     CORSMiddleware,

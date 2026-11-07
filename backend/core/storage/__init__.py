@@ -95,6 +95,17 @@ def construir_storage_key_logo_institucion(institucion_id: int, tipo: str, exten
     return f"instituciones/{institucion_id}/branding/{tipo}{extension}"
 
 
+def construir_storage_key_branding_vigente(institucion_id: int, tipo: str) -> str:
+    """🆕 (sesión 2026-11-07, B6 de la revisión de seguridad) Key ÚNICA, sin
+    extensión, para el branding de una institución. Con la key por extensión
+    de arriba, subir un .png después de un .jpg dejaba los dos guardados y
+    se servía el primero en orden alfabético — el logo VIEJO, para siempre.
+    Ahora toda subida sobrescribe esta misma key y el tipo se deduce de los
+    bytes al servir (core/descargas.tipo_contenido_por_firma). La función
+    de arriba queda solo para leer lo subido antes de este cambio."""
+    return f"instituciones/{institucion_id}/branding/{tipo}"
+
+
 def construir_storage_key_firma_usuario(usuario_id: int, token: str, extension: str) -> str:
     """Key de la firma personal (imagen) de un usuario — ver
     `Usuario.firma_imagen_url` en modulos/auth/models.py y

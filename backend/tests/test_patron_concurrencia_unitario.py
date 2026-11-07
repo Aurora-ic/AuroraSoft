@@ -89,7 +89,7 @@ _PATRON_PROTEGIDO = re.compile(r"bloquear_\w*\(")
 # ---------------------------------------------------------------------------
 _EXCLUSIONES_REVISADAS = {
     "modulos/auth/crud.py:crear_token_recuperacion": (
-        "TokenRecuperacion.token es secrets.token_urlsafe(32) — una colisión "
+        "TokenRecuperacion.token es el SHA-256 de secrets.token_urlsafe(32) — una colisión "
         "real es de probabilidad ~2^-256, no la clase de carrera que este "
         "patrón previene (dos escrituras lógicamente iguales compitiendo); "
         "envolverla en try/except sería ruido, no una corrección real."

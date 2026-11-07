@@ -286,13 +286,13 @@ def solicitar_recuperacion(
     """
     usuario = crud.obtener_usuario_por_email(db, datos.email)
     if usuario and usuario.rol == "superadmin" and usuario.activo:
-        token_obj = crud.crear_token_recuperacion(db, usuario.id)
+        token_plano = crud.crear_token_recuperacion(db, usuario.id)
         # ✉️ C-14 — El SMTP ya no bloquea al worker: antes una conversación
         # SMTP lenta (varios segundos) retenía el hilo durante toda la
         # petición. Además la respuesta tarda lo mismo exista o no la cuenta,
         # así que el tiempo de respuesta tampoco delata qué correos están
         # registrados.
-        background_tasks.add_task(enviar_correo_recuperacion, usuario.email, token_obj.token)
+        background_tasks.add_task(enviar_correo_recuperacion, usuario.email, token_plano)
 
     # Mismo mensaje exista o no el correo — no confirmamos si un email está registrado
     return {

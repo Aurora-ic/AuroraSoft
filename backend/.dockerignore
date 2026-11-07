@@ -2,8 +2,14 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+# Secretos: nunca dentro de la imagen (se pasan con env_file al correr).
 .env
+.env.*
 venv/
 .venv/
 .git/
 .gitignore
+# Logs y archivos locales de desarrollo.
+*.log
+storage_local/
+celerybeat-schedule*
