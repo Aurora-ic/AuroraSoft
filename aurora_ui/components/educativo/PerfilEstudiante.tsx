@@ -9,6 +9,11 @@ import {
   Stethoscope,
   ShieldCheck,
   HelpCircle,
+  FileSignature,
+  GraduationCap,
+  FileWarning,
+  ArrowRight,
+  ListChecks,
   type LucideIcon,
 } from "lucide-react";
 import type {
@@ -90,6 +95,7 @@ export function TarjetaPerfil({
   consentimientoVigente,
   antecedentes = null,
   puedeEditarAntecedentes = false,
+  informesPorRevisar = 0,
   acciones,
   children,
 }: {
@@ -100,7 +106,13 @@ export function TarjetaPerfil({
   // null = no cargó / error: no se muestra el apartado de riesgo.
   antecedentes?: PersonaAntecedentesClinicos | null;
   puedeEditarAntecedentes?: boolean;
+  // 🆕 (sesión 2026-11-07) Informes retenidos (con alerta) esperando la
+  // revisión del psicólogo — alimenta "Pendiente en esta ficha".
+  informesPorRevisar?: number;
   acciones?: ReactNode;
+  // 🔧 (sesión 2026-11-07) La ficha ya NO pasa la filiación aquí: quedaba
+  // la página "empezando dentro de un recuadro y saliéndose de él" y tres
+  // niveles de cajas anidadas. Se conserva para otros usos.
   children?: ReactNode;
 }) {
   const estadoDx = estadoDiagnostico(antecedentes);
@@ -171,7 +183,13 @@ export function TarjetaPerfil({
           <Dato etiqueta="Edad" valor={edad !== null ? `${edad} años` : null} />
           <Dato
             etiqueta="Nivel · grado · sección"
-            valor={ubicacion ? <span className="text-teal-800 dark:text-teal-accent-dark">{ubicacion}</span> : "Sin matrícula"}
+            valor={
+              ubicacion ? (
+                <span className="text-teal-800 dark:text-teal-accent-dark">{ubicacion}</span>
+              ) : (
+                <span className="font-medium text-ink/45 dark:text-ink-dark/45">Sin matrícula</span>
+              )
+            }
           />
           <Dato etiqueta="Turno" valor={matricula?.turno} />
           <Dato etiqueta="Año escolar" valor={matricula?.anio_escolar ? String(matricula.anio_escolar) : null} />
@@ -179,9 +197,9 @@ export function TarjetaPerfil({
             etiqueta="Consentimiento del apoderado"
             valor={
               consentimientoVigente === null ? null : consentimientoVigente ? (
-                <span className="text-teal-800 dark:text-teal-accent-dark">Vigente</span>
+                <EtiquetaEstado tono="ok">Vigente</EtiquetaEstado>
               ) : (
-                <span className="text-red-700 dark:text-red-300">Pendiente</span>
+                <EtiquetaEstado tono="problema">Pendiente</EtiquetaEstado>
               )
             }
           />
@@ -194,13 +212,120 @@ export function TarjetaPerfil({
         )}
       </div>
 
-      {estadoDx !== null && antecedentes && (
+      {(estadoDx === "con-dx" || estadoDx === "sin-dx") && antecedentes && (
         <SituacionRiesgo estado={estadoDx} antecedentes={antecedentes} puedeEditar={puedeEditarAntecedentes} />
       )}
+
+      <PendientesFicha
+        consentimientoPendiente={consentimientoVigente === false}
+        riesgoSinDefinir={estadoDx === "sin-completar"}
+        puedeEditarAntecedentes={puedeEditarAntecedentes}
+        sinMatricula={!matricula}
+        informesPorRevisar={informesPorRevisar}
+      />
 
       {/* --- Datos de filiación editables, dentro del mismo bloque --- */}
       {children && <div className="border-t border-teal-600/15 dark:border-border-dark bg-surface dark:bg-surface-dark p-5">{children}</div>}
     </section>
+  );
+}
+
+// 🆕 (sesión 2026-11-07) Etiqueta de estado (Vigente / Pendiente): antes era
+// solo texto de color, que se confundía con un dato más de la cuadrícula.
+function EtiquetaEstado({ tono, children }: { tono: "ok" | "problema"; children: ReactNode }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold ${
+        tono === "ok"
+          ? "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+          : "bg-red-600/10 text-red-700 dark:bg-red-400/15 dark:text-red-300"
+      }`}
+    >
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${tono === "ok" ? "bg-teal-500 dark:bg-teal-accent-dark" : "bg-red-500 dark:bg-red-300"}`} />
+      {children}
+    </span>
+  );
+}
+
+// 🆕 (sesión 2026-11-07) "Pendiente en esta ficha": lo que falta para que la
+// ficha esté completa o lo que espera una acción del psicólogo, cada uno con
+// un enlace directo al bloque donde se resuelve. Antes estaba disperso: un
+// "Pendiente" en rojo en la cuadrícula, una línea gris sobre la situación de
+// riesgo y los informes retenidos solo dentro de "Pruebas aplicadas". El
+// ámbar solo marca informes retenidos (resultado clínico real); un dato sin
+// llenar no es una alerta clínica.
+function PendientesFicha({
+  consentimientoPendiente,
+  riesgoSinDefinir,
+  puedeEditarAntecedentes,
+  sinMatricula,
+  informesPorRevisar,
+}: {
+  consentimientoPendiente: boolean;
+  riesgoSinDefinir: boolean;
+  puedeEditarAntecedentes: boolean;
+  sinMatricula: boolean;
+  informesPorRevisar: number;
+}) {
+  const items: { icono: LucideIcon; texto: string; detalle: string; href: string; destacado?: boolean }[] = [];
+  if (informesPorRevisar > 0) {
+    items.push({
+      icono: FileWarning,
+      texto: informesPorRevisar === 1 ? "1 informe por revisar" : `${informesPorRevisar} informes por revisar`,
+      detalle: "Retenido hasta tu revisión",
+      href: "#pruebas-aplicadas",
+      destacado: true,
+    });
+  }
+  if (consentimientoPendiente) {
+    items.push({ icono: FileSignature, texto: "Consentimiento del apoderado", detalle: "Necesario para evaluarlo", href: "#consentimiento-informado" });
+  }
+  if (riesgoSinDefinir && puedeEditarAntecedentes) {
+    items.push({ icono: HelpCircle, texto: "Antecedentes clínicos externos", detalle: "Define la situación de riesgo", href: "#antecedentes-clinicos" });
+  }
+  if (sinMatricula) {
+    items.push({ icono: GraduationCap, texto: "Matrícula académica", detalle: "Sin nivel, grado ni sección", href: "#matricula-academica" });
+  }
+  if (items.length === 0) return null;
+
+  return (
+    <div className="border-t border-teal-600/15 dark:border-border-dark px-5 py-3.5">
+      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+        <p className="m-0 flex shrink-0 items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
+          <ListChecks size={14} aria-hidden="true" />
+          Pendiente en esta ficha
+        </p>
+        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+          {items.map((it) => (
+            <li key={it.href}>
+              <a
+                href={it.href}
+                className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
+                  it.destacado
+                    ? "border-amber/50 bg-amber/10 hover:bg-amber/20 dark:border-amber/40"
+                    : "border-border bg-surface hover:border-teal-400 hover:bg-mist dark:border-border-dark dark:bg-surface-dark dark:hover:bg-surface-raised-dark"
+                }`}
+              >
+                <it.icono
+                  size={15}
+                  aria-hidden="true"
+                  className={it.destacado ? "shrink-0 text-amber-700 dark:text-amber" : "shrink-0 text-ink/45 dark:text-ink-dark/50"}
+                />
+                <span className="leading-tight">
+                  <span className="block text-[13px] font-semibold text-ink dark:text-ink-dark">{it.texto}</span>
+                  <span className="block text-[11.5px] text-ink/50 dark:text-ink-dark/50">{it.detalle}</span>
+                </span>
+                <ArrowRight
+                  size={14}
+                  aria-hidden="true"
+                  className="shrink-0 text-ink/30 transition-transform group-hover:translate-x-0.5 dark:text-ink-dark/40"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -279,20 +404,13 @@ function SituacionRiesgo({
     );
   }
 
-  const sinDx = estado === "sin-dx";
-  const Icono = sinDx ? ShieldCheck : HelpCircle;
+  // "sin-completar" ya no llega aquí: se muestra en PendientesFicha.
   return (
     <div className="border-t border-border dark:border-border-dark px-6 py-3">
       <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
-        <Icono size={15} aria-hidden="true" className={sinDx ? "text-teal-600 dark:text-teal-accent-dark" : "text-ink/40 dark:text-ink-dark/40"} />
-        <span className="font-semibold text-ink/75 dark:text-ink-dark/75">
-          {sinDx ? "Sin diagnóstico externo registrado" : "Situación de riesgo sin definir"}
-        </span>
-        <span>
-          {sinDx
-            ? "No recibe terapia psicológica ni atención psiquiátrica externa."
-            : "Responde Sí/No a terapia psicológica y atención psiquiátrica externa para definirla."}
-        </span>
+        <ShieldCheck size={15} aria-hidden="true" className="text-teal-600 dark:text-teal-accent-dark" />
+        <span className="font-semibold text-ink/75 dark:text-ink-dark/75">Sin diagnóstico externo registrado</span>
+        <span>No recibe terapia psicológica ni atención psiquiátrica externa.</span>
         {enlace}
       </p>
     </div>

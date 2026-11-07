@@ -1509,6 +1509,7 @@ export default function FichaAlumnoPage() {
         consentimientoVigente={consentimientos ? consentimientos.apoderado.tiene_consentimiento_vigente : null}
         antecedentes={errorAntecedentesClinicos ? null : antecedentesClinicos}
         puedeEditarAntecedentes={puedeEscribirDatosPrincipales}
+        informesPorRevisar={pruebasAplicadas ? pruebasAplicadas.filter((p) => !p.informe_liberado).length : 0}
         acciones={
           <>
             <Boton
@@ -1528,432 +1529,434 @@ export default function FichaAlumnoPage() {
             </Boton>
           </>
         }
-      >
-        {/* Datos de filiación del estudiante — identidad + familiares +
-            antecedentes clínicos + contactos, unificados en un solo apartado
-            a pedido explícito (antes vivían en 4 secciones separadas). Cada
-            sub-bloque sigue golpeando su propio endpoint/tabla del backend
-            (Persona / PersonaDatosFamiliares / PersonaAntecedentesClinicos /
-            ContactoFamiliar) — esto es reordenamiento visual, no un cambio de
-            modelo de datos. */}
-        <section className="space-y-4">
-          <TituloGrupoFicha
-            id="grupo-filiacion"
-            titulo="Datos de filiación"
-            descripcion="Identidad, entorno familiar, antecedentes y contactos."
-            acento="teal"
-          />
+      />
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-          {/* --- Identidad --- */}
-          <BloqueFicha
-            icono={IdCard}
-            titulo="Identidad"
-            acciones={
-              <>
-                <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
-                  Historial
+      {/* Datos de filiación del estudiante — identidad + familiares +
+          antecedentes clínicos + contactos, unificados en un solo apartado
+          a pedido explícito (antes vivían en 4 secciones separadas). Cada
+          sub-bloque sigue golpeando su propio endpoint/tabla del backend
+          (Persona / PersonaDatosFamiliares / PersonaAntecedentesClinicos /
+          ContactoFamiliar) — esto es reordenamiento visual, no un cambio de
+          modelo de datos. */}
+      <section className="space-y-4">
+        <TituloGrupoFicha
+          id="grupo-filiacion"
+          titulo="Datos de filiación"
+          descripcion="Identidad, entorno familiar, antecedentes y contactos."
+          acento="teal"
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
+        {/* --- Identidad --- */}
+        <BloqueFicha
+          className="h-full"
+          icono={IdCard}
+          titulo="Identidad"
+          acciones={
+            <>
+              <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
+                Historial
+              </BotonAccionFicha>
+              {!editando && (
+                <BotonAccionFicha icono={Pencil} onClick={abrirEdicion}>
+                  Editar
                 </BotonAccionFicha>
-                {!editando && (
-                  <BotonAccionFicha icono={Pencil} onClick={abrirEdicion}>
-                    Editar
-                  </BotonAccionFicha>
-                )}
-              </>
-            }
-          >
-            {!editando ? (
-              <CuadriculaDatos>
-                <DatoFicha etiqueta="Nombres" valor={alumno.nombres} />
-                <DatoFicha etiqueta="Apellidos" valor={alumno.apellidos} />
-                <DatoFicha etiqueta="Documento de identidad" valor={alumno.documento_identidad} />
-                <DatoFicha etiqueta="Código institucional" valor={alumno.codigo_institucional} />
-                <DatoFicha etiqueta="Fecha de nacimiento" valor={formatearFecha(alumno.fecha_nacimiento)} />
-                <DatoFicha etiqueta="Género" valor={alumno.genero} />
-              </CuadriculaDatos>
-            ) : (
-              <form onSubmit={guardarEdicion} className="grid sm:grid-cols-2 gap-4 text-sm">
-                <CampoEditable etiqueta="Nombres">
-                  <Input required value={form.nombres} onChange={(e) => setForm({ ...form, nombres: e.target.value })} />
-                </CampoEditable>
-                <CampoEditable etiqueta="Apellidos">
-                  <Input required value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} />
-                </CampoEditable>
-                <CampoEditable etiqueta="Documento de identidad">
-                  <Input
-                    value={form.documento_identidad}
-                    onChange={(e) => setForm({ ...form, documento_identidad: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Fecha de nacimiento">
-                  <Input
-                    type="date"
-                    value={form.fecha_nacimiento}
-                    onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Género">
-                  <Input value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} />
-                </CampoEditable>
+              )}
+            </>
+          }
+        >
+          {!editando ? (
+            <CuadriculaDatos>
+              <DatoFicha etiqueta="Nombres" valor={alumno.nombres} />
+              <DatoFicha etiqueta="Apellidos" valor={alumno.apellidos} />
+              <DatoFicha etiqueta="Documento de identidad" valor={alumno.documento_identidad} />
+              <DatoFicha etiqueta="Código institucional" valor={alumno.codigo_institucional} />
+              <DatoFicha etiqueta="Fecha de nacimiento" valor={formatearFecha(alumno.fecha_nacimiento)} />
+              <DatoFicha etiqueta="Género" valor={alumno.genero} />
+            </CuadriculaDatos>
+          ) : (
+            <form onSubmit={guardarEdicion} className="grid sm:grid-cols-2 gap-4 text-sm">
+              <CampoEditable etiqueta="Nombres">
+                <Input required value={form.nombres} onChange={(e) => setForm({ ...form, nombres: e.target.value })} />
+              </CampoEditable>
+              <CampoEditable etiqueta="Apellidos">
+                <Input required value={form.apellidos} onChange={(e) => setForm({ ...form, apellidos: e.target.value })} />
+              </CampoEditable>
+              <CampoEditable etiqueta="Documento de identidad">
+                <Input
+                  value={form.documento_identidad}
+                  onChange={(e) => setForm({ ...form, documento_identidad: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Fecha de nacimiento">
+                <Input
+                  type="date"
+                  value={form.fecha_nacimiento}
+                  onChange={(e) => setForm({ ...form, fecha_nacimiento: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Género">
+                <Input value={form.genero} onChange={(e) => setForm({ ...form, genero: e.target.value })} />
+              </CampoEditable>
 
-                <TextoError className="sm:col-span-2">{errorEdicion}</TextoError>
+              <TextoError className="sm:col-span-2">{errorEdicion}</TextoError>
 
-                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                  <Boton type="submit" disabled={guardando}>
-                    {guardando ? "Guardando..." : "Guardar cambios"}
-                  </Boton>
-                  <button
-                    type="button"
-                    onClick={() => setEditando(false)}
-                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
+              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                <Boton type="submit" disabled={guardando}>
+                  {guardando ? "Guardando..." : "Guardar cambios"}
+                </Boton>
+                <button
+                  type="button"
+                  onClick={() => setEditando(false)}
+                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
 
-            {mostrarHistorial && (
-              <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
-                <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
-                {cargandoHistorial && <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando historial...</p>}
-                <TextoError>{errorHistorial}</TextoError>
-                {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
-                  <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin cambios registrados todavía.</p>
-                )}
-                {!cargandoHistorial && historial && historial.length > 0 && (
-                  <div className="space-y-2">
-                    {historial.map((registro) => (
-                      <div key={registro.id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
-                        <span className="font-semibold text-teal-900 dark:text-ink-dark">{registro.campo}</span>
-                        {": "}
-                        <span className="text-ink/70 dark:text-ink-dark/70">{registro.valor_anterior ?? "(vacío)"}</span>
-                        {" → "}
-                        <span className="text-ink/90 dark:text-ink-dark/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
-                        <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
-                          {new Date(registro.fecha).toLocaleString()} · rol: {registro.rol_modificador ?? "—"}
-                        </div>
+          {mostrarHistorial && (
+            <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
+              <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
+              {cargandoHistorial && <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando historial...</p>}
+              <TextoError>{errorHistorial}</TextoError>
+              {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
+                <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin cambios registrados todavía.</p>
+              )}
+              {!cargandoHistorial && historial && historial.length > 0 && (
+                <div className="space-y-2">
+                  {historial.map((registro) => (
+                    <div key={registro.id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
+                      <span className="font-semibold text-teal-900 dark:text-ink-dark">{registro.campo}</span>
+                      {": "}
+                      <span className="text-ink/70 dark:text-ink-dark/70">{registro.valor_anterior ?? "(vacío)"}</span>
+                      {" → "}
+                      <span className="text-ink/90 dark:text-ink-dark/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
+                      <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
+                        {new Date(registro.fecha).toLocaleString()} · rol: {registro.rol_modificador ?? "—"}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </BloqueFicha>
+
+        {/* --- Datos familiares (PersonaDatosFamiliares, 1:1) --- */}
+        <BloqueFicha
+          className="h-full"
+          icono={UsersRound}
+          titulo="Datos familiares"
+          acciones={
+            puedeEscribirDatosPrincipales &&
+            !editandoDatosFamiliares && (
+              <BotonAccionFicha icono={Pencil} onClick={abrirEdicionDatosFamiliares}>
+                Editar
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <TextoError className="mb-3">{errorDatosFamiliares}</TextoError>
+
+          {!editandoDatosFamiliares ? (
+            <CuadriculaDatos>
+              <DatoFicha etiqueta="Número de hermanos" valor={datosFamiliares?.numero_hermanos?.toString() ?? null} />
+              <DatoFicha etiqueta="Vive con" valor={datosFamiliares?.vive_con ?? null} />
+              <DatoFicha etiqueta="Lugar de nacimiento" valor={datosFamiliares?.lugar_nacimiento ?? null} />
+              <DatoFicha etiqueta="Lugar de procedencia" valor={datosFamiliares?.lugar_procedencia ?? null} />
+            </CuadriculaDatos>
+          ) : (
+            <form onSubmit={guardarDatosFamiliares} className="grid sm:grid-cols-2 gap-4 text-sm">
+              <CampoEditable etiqueta="Número de hermanos">
+                <Input
+                  type="number"
+                  min={0}
+                  max={30}
+                  value={formDatosFamiliares.numero_hermanos}
+                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, numero_hermanos: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Vive con">
+                <Input
+                  placeholder="ambos padres, madre, tutor legal..."
+                  value={formDatosFamiliares.vive_con}
+                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, vive_con: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Lugar de nacimiento">
+                <Input
+                  value={formDatosFamiliares.lugar_nacimiento}
+                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_nacimiento: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Lugar de procedencia">
+                <Input
+                  value={formDatosFamiliares.lugar_procedencia}
+                  onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_procedencia: e.target.value })}
+                />
+              </CampoEditable>
+
+              <TextoError className="sm:col-span-2">{errorFormularioDatosFamiliares}</TextoError>
+
+              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                <Boton type="submit" disabled={guardandoDatosFamiliares}>
+                  {guardandoDatosFamiliares ? "Guardando..." : "Guardar cambios"}
+                </Boton>
+                <button
+                  type="button"
+                  onClick={() => setEditandoDatosFamiliares(false)}
+                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                >
+                  Cancelar
+                </button>
               </div>
-            )}
-          </BloqueFicha>
+            </form>
+          )}
+        </BloqueFicha>
+        </div>
 
-          {/* --- Datos familiares (PersonaDatosFamiliares, 1:1) --- */}
-          <BloqueFicha
-            icono={UsersRound}
-            titulo="Datos familiares"
-            acciones={
-              puedeEscribirDatosPrincipales &&
-              !editandoDatosFamiliares && (
-                <BotonAccionFicha icono={Pencil} onClick={abrirEdicionDatosFamiliares}>
-                  Editar
-                </BotonAccionFicha>
-              )
-            }
-          >
-            <TextoError className="mb-3">{errorDatosFamiliares}</TextoError>
+        {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
+        <BloqueFicha
+          id="antecedentes-clinicos"
+          icono={Stethoscope}
+          titulo="Antecedentes clínicos externos"
+          descripcion="Atención psicológica o psiquiátrica fuera del colegio."
+          acciones={
+            puedeEscribirDatosPrincipales &&
+            !editandoAntecedentesClinicos && (
+              <BotonAccionFicha icono={Pencil} onClick={abrirEdicionAntecedentesClinicos}>
+                Editar
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <TextoError className="mb-3">{errorAntecedentesClinicos}</TextoError>
 
-            {!editandoDatosFamiliares ? (
-              <CuadriculaDatos>
-                <DatoFicha etiqueta="Número de hermanos" valor={datosFamiliares?.numero_hermanos?.toString() ?? null} />
-                <DatoFicha etiqueta="Vive con" valor={datosFamiliares?.vive_con ?? null} />
-                <DatoFicha etiqueta="Lugar de nacimiento" valor={datosFamiliares?.lugar_nacimiento ?? null} />
-                <DatoFicha etiqueta="Lugar de procedencia" valor={datosFamiliares?.lugar_procedencia ?? null} />
-              </CuadriculaDatos>
-            ) : (
-              <form onSubmit={guardarDatosFamiliares} className="grid sm:grid-cols-2 gap-4 text-sm">
-                <CampoEditable etiqueta="Número de hermanos">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={30}
-                    value={formDatosFamiliares.numero_hermanos}
-                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, numero_hermanos: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Vive con">
-                  <Input
-                    placeholder="ambos padres, madre, tutor legal..."
-                    value={formDatosFamiliares.vive_con}
-                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, vive_con: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Lugar de nacimiento">
-                  <Input
-                    value={formDatosFamiliares.lugar_nacimiento}
-                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_nacimiento: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Lugar de procedencia">
-                  <Input
-                    value={formDatosFamiliares.lugar_procedencia}
-                    onChange={(e) => setFormDatosFamiliares({ ...formDatosFamiliares, lugar_procedencia: e.target.value })}
-                  />
-                </CampoEditable>
-
-                <TextoError className="sm:col-span-2">{errorFormularioDatosFamiliares}</TextoError>
-
-                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                  <Boton type="submit" disabled={guardandoDatosFamiliares}>
-                    {guardandoDatosFamiliares ? "Guardando..." : "Guardar cambios"}
-                  </Boton>
-                  <button
-                    type="button"
-                    onClick={() => setEditandoDatosFamiliares(false)}
-                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
-          </BloqueFicha>
-          </div>
-
-          {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
-          <BloqueFicha
-            id="antecedentes-clinicos"
-            icono={Stethoscope}
-            titulo="Antecedentes clínicos externos"
-            descripcion="Atención psicológica o psiquiátrica fuera del colegio."
-            acciones={
-              puedeEscribirDatosPrincipales &&
-              !editandoAntecedentesClinicos && (
-                <BotonAccionFicha icono={Pencil} onClick={abrirEdicionAntecedentesClinicos}>
-                  Editar
-                </BotonAccionFicha>
-              )
-            }
-          >
-            <TextoError className="mb-3">{errorAntecedentesClinicos}</TextoError>
-
-            {!editandoAntecedentesClinicos ? (
-              <CuadriculaDatos>
-                <DatoFicha
-                  etiqueta="Recibe terapia psicológica externa"
-                  valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_terapia_psicologica_externa)}
+          {!editandoAntecedentesClinicos ? (
+            <CuadriculaDatos>
+              <DatoFicha
+                etiqueta="Recibe terapia psicológica externa"
+                valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_terapia_psicologica_externa)}
+              />
+              <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_terapia_psicologica_externa ?? null} />
+              <DatoFicha
+                etiqueta="Recibe atención psiquiátrica externa"
+                valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_atencion_psiquiatrica_externa)}
+              />
+              <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_atencion_psiquiatrica_externa ?? null} />
+              <DatoFicha etiqueta="Diagnóstico reportado" valor={antecedentesClinicos?.diagnostico_reportado ?? null} ancho />
+            </CuadriculaDatos>
+          ) : (
+            <form onSubmit={guardarAntecedentesClinicos} className="grid sm:grid-cols-2 gap-4 text-sm">
+              <CampoEditable etiqueta="Recibe terapia psicológica externa">
+                <Select
+                  value={formAntecedentesClinicos.recibe_terapia_psicologica_externa}
+                  onChange={(e) =>
+                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_terapia_psicologica_externa: e.target.value })
+                  }
+                >
+                  <option value="">Sin especificar</option>
+                  <option value="true">Sí</option>
+                  <option value="false">No</option>
+                </Select>
+              </CampoEditable>
+              <CampoEditable etiqueta="Detalle">
+                <Input
+                  value={formAntecedentesClinicos.detalle_terapia_psicologica_externa}
+                  onChange={(e) =>
+                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_terapia_psicologica_externa: e.target.value })
+                  }
                 />
-                <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_terapia_psicologica_externa ?? null} />
-                <DatoFicha
-                  etiqueta="Recibe atención psiquiátrica externa"
-                  valor={formatearBooleanoTriple(antecedentesClinicos?.recibe_atencion_psiquiatrica_externa)}
+              </CampoEditable>
+              <CampoEditable etiqueta="Recibe atención psiquiátrica externa">
+                <Select
+                  value={formAntecedentesClinicos.recibe_atencion_psiquiatrica_externa}
+                  onChange={(e) =>
+                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_atencion_psiquiatrica_externa: e.target.value })
+                  }
+                >
+                  <option value="">Sin especificar</option>
+                  <option value="true">Sí</option>
+                  <option value="false">No</option>
+                </Select>
+              </CampoEditable>
+              <CampoEditable etiqueta="Detalle">
+                <Input
+                  value={formAntecedentesClinicos.detalle_atencion_psiquiatrica_externa}
+                  onChange={(e) =>
+                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_atencion_psiquiatrica_externa: e.target.value })
+                  }
                 />
-                <DatoFicha etiqueta="Detalle" valor={antecedentesClinicos?.detalle_atencion_psiquiatrica_externa ?? null} />
-                <DatoFicha etiqueta="Diagnóstico reportado" valor={antecedentesClinicos?.diagnostico_reportado ?? null} ancho />
-              </CuadriculaDatos>
-            ) : (
-              <form onSubmit={guardarAntecedentesClinicos} className="grid sm:grid-cols-2 gap-4 text-sm">
-                <CampoEditable etiqueta="Recibe terapia psicológica externa">
-                  <Select
-                    value={formAntecedentesClinicos.recibe_terapia_psicologica_externa}
-                    onChange={(e) =>
-                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_terapia_psicologica_externa: e.target.value })
-                    }
-                  >
-                    <option value="">Sin especificar</option>
-                    <option value="true">Sí</option>
-                    <option value="false">No</option>
-                  </Select>
-                </CampoEditable>
-                <CampoEditable etiqueta="Detalle">
-                  <Input
-                    value={formAntecedentesClinicos.detalle_terapia_psicologica_externa}
-                    onChange={(e) =>
-                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_terapia_psicologica_externa: e.target.value })
-                    }
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Recibe atención psiquiátrica externa">
-                  <Select
-                    value={formAntecedentesClinicos.recibe_atencion_psiquiatrica_externa}
-                    onChange={(e) =>
-                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, recibe_atencion_psiquiatrica_externa: e.target.value })
-                    }
-                  >
-                    <option value="">Sin especificar</option>
-                    <option value="true">Sí</option>
-                    <option value="false">No</option>
-                  </Select>
-                </CampoEditable>
-                <CampoEditable etiqueta="Detalle">
-                  <Input
-                    value={formAntecedentesClinicos.detalle_atencion_psiquiatrica_externa}
-                    onChange={(e) =>
-                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, detalle_atencion_psiquiatrica_externa: e.target.value })
-                    }
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Diagnóstico reportado" className="sm:col-span-2">
-                  <Textarea
-                    rows={3}
-                    value={formAntecedentesClinicos.diagnostico_reportado}
-                    onChange={(e) =>
-                      setFormAntecedentesClinicos({ ...formAntecedentesClinicos, diagnostico_reportado: e.target.value })
-                    }
-                  />
-                </CampoEditable>
+              </CampoEditable>
+              <CampoEditable etiqueta="Diagnóstico reportado" className="sm:col-span-2">
+                <Textarea
+                  rows={3}
+                  value={formAntecedentesClinicos.diagnostico_reportado}
+                  onChange={(e) =>
+                    setFormAntecedentesClinicos({ ...formAntecedentesClinicos, diagnostico_reportado: e.target.value })
+                  }
+                />
+              </CampoEditable>
 
-                <TextoError className="sm:col-span-2">{errorFormularioAntecedentesClinicos}</TextoError>
+              <TextoError className="sm:col-span-2">{errorFormularioAntecedentesClinicos}</TextoError>
 
-                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                  <Boton type="submit" disabled={guardandoAntecedentesClinicos}>
-                    {guardandoAntecedentesClinicos ? "Guardando..." : "Guardar cambios"}
-                  </Boton>
-                  <button
-                    type="button"
-                    onClick={() => setEditandoAntecedentesClinicos(false)}
-                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
-          </BloqueFicha>
+              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                <Boton type="submit" disabled={guardandoAntecedentesClinicos}>
+                  {guardandoAntecedentesClinicos ? "Guardando..." : "Guardar cambios"}
+                </Boton>
+                <button
+                  type="button"
+                  onClick={() => setEditandoAntecedentesClinicos(false)}
+                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
+        </BloqueFicha>
 
-          {/* --- Contactos familiares (ContactoFamiliar, 1:muchos) --- */}
-          <BloqueFicha
-            icono={Phone}
-            titulo="Contactos familiares"
-            descripcion="A quién llamar por este estudiante."
-            acciones={
-              !formularioContacto && (
-                <BotonAccionFicha icono={Plus} onClick={abrirNuevoContacto}>
-                  Agregar contacto
-                </BotonAccionFicha>
-              )
-            }
-          >
-            <TextoError className="mb-3">{errorContactos}</TextoError>
+        {/* --- Contactos familiares (ContactoFamiliar, 1:muchos) --- */}
+        <BloqueFicha
+          icono={Phone}
+          titulo="Contactos familiares"
+          descripcion="A quién llamar por este estudiante."
+          acciones={
+            !formularioContacto && (
+              <BotonAccionFicha icono={Plus} onClick={abrirNuevoContacto}>
+                Agregar contacto
+              </BotonAccionFicha>
+            )
+          }
+        >
+          <TextoError className="mb-3">{errorContactos}</TextoError>
 
-            {formularioContacto && (
-              <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border dark:border-border-dark pb-4 mb-4">
-                <CampoEditable etiqueta="Nombre">
-                  <Input
-                    required
-                    value={formularioContacto.nombre}
-                    onChange={(e) => setFormularioContacto({ ...formularioContacto, nombre: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Relación">
-                  <Input
-                    placeholder="madre, padre, tutor legal..."
-                    value={formularioContacto.relacion}
-                    onChange={(e) => setFormularioContacto({ ...formularioContacto, relacion: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Teléfono">
-                  <Input
-                    value={formularioContacto.telefono}
-                    onChange={(e) => setFormularioContacto({ ...formularioContacto, telefono: e.target.value })}
-                  />
-                </CampoEditable>
-                <CampoEditable etiqueta="Email">
-                  <Input
-                    type="email"
-                    value={formularioContacto.email}
-                    onChange={(e) => setFormularioContacto({ ...formularioContacto, email: e.target.value })}
-                  />
-                </CampoEditable>
+          {formularioContacto && (
+            <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border dark:border-border-dark pb-4 mb-4">
+              <CampoEditable etiqueta="Nombre">
+                <Input
+                  required
+                  value={formularioContacto.nombre}
+                  onChange={(e) => setFormularioContacto({ ...formularioContacto, nombre: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Relación">
+                <Input
+                  placeholder="madre, padre, tutor legal..."
+                  value={formularioContacto.relacion}
+                  onChange={(e) => setFormularioContacto({ ...formularioContacto, relacion: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Teléfono">
+                <Input
+                  value={formularioContacto.telefono}
+                  onChange={(e) => setFormularioContacto({ ...formularioContacto, telefono: e.target.value })}
+                />
+              </CampoEditable>
+              <CampoEditable etiqueta="Email">
+                <Input
+                  type="email"
+                  value={formularioContacto.email}
+                  onChange={(e) => setFormularioContacto({ ...formularioContacto, email: e.target.value })}
+                />
+              </CampoEditable>
 
-                <TextoError className="sm:col-span-2">{errorFormularioContacto}</TextoError>
+              <TextoError className="sm:col-span-2">{errorFormularioContacto}</TextoError>
 
-                <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                  <Boton type="submit" disabled={guardandoContacto}>
-                    {guardandoContacto ? "Guardando..." : formularioContacto.id === null ? "Agregar contacto" : "Guardar cambios"}
-                  </Boton>
-                  <button
-                    type="button"
-                    onClick={() => setFormularioContacto(null)}
-                    className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            )}
+              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
+                <Boton type="submit" disabled={guardandoContacto}>
+                  {guardandoContacto ? "Guardando..." : formularioContacto.id === null ? "Agregar contacto" : "Guardar cambios"}
+                </Boton>
+                <button
+                  type="button"
+                  onClick={() => setFormularioContacto(null)}
+                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </form>
+          )}
 
-            {contactos.length === 0 ? (
-              <VacioFicha icono={Phone} texto="No hay contactos familiares registrados." />
-            ) : (
-              <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
-                <table className="w-full min-w-[36rem] text-sm">
-                  <thead>
-                    <TheadFila>
-                      <Th className="px-3.5 py-2">Nombre</Th>
-                      <Th className="px-3.5 py-2">Relación</Th>
-                      <Th className="px-3.5 py-2">Teléfono</Th>
-                      <Th className="px-3.5 py-2">Email</Th>
-                      <Th className="px-3.5 py-2">Estado</Th>
-                      <Th className="px-3.5 py-2"></Th>
-                    </TheadFila>
-                  </thead>
-                  <tbody>
-                    {contactos.map((contacto) => (
-                      <tr
-                        key={contacto.id}
-                        className={`border-t border-border dark:border-border-dark ${contacto.activo ? "" : "opacity-40"}`}
-                      >
-                        <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{contacto.nombre}</td>
-                        <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">{contacto.relacion || "—"}</td>
-                        <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
-                          {contacto.telefono ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <Phone size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
-                              {contacto.telefono}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
-                          {contacto.email ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <Mail size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
-                              {contacto.email}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="px-3.5 py-2.5">
-                          <span
-                            className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                              contacto.activo ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/20 dark:text-ink-dark" : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
-                            }`}
-                          >
-                            {contacto.activo ? "Activo" : "Inactivo"}
+          {contactos.length === 0 ? (
+            <VacioFicha icono={Phone} texto="No hay contactos familiares registrados." />
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
+              <table className="w-full min-w-[36rem] text-sm">
+                <thead>
+                  <TheadFila>
+                    <Th className="px-3.5 py-2">Nombre</Th>
+                    <Th className="px-3.5 py-2">Relación</Th>
+                    <Th className="px-3.5 py-2">Teléfono</Th>
+                    <Th className="px-3.5 py-2">Email</Th>
+                    <Th className="px-3.5 py-2">Estado</Th>
+                    <Th className="px-3.5 py-2"></Th>
+                  </TheadFila>
+                </thead>
+                <tbody>
+                  {contactos.map((contacto) => (
+                    <tr
+                      key={contacto.id}
+                      className={`border-t border-border dark:border-border-dark ${contacto.activo ? "" : "opacity-40"}`}
+                    >
+                      <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{contacto.nombre}</td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">{contacto.relacion || "—"}</td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                        {contacto.telefono ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Phone size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                            {contacto.telefono}
                           </span>
-                        </td>
-                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                        {contacto.email ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <Mail size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                            {contacto.email}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-3.5 py-2.5">
+                        <span
+                          className={`text-xs rounded-full px-2 py-0.5 font-medium ${
+                            contacto.activo ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/20 dark:text-ink-dark" : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
+                          }`}
+                        >
+                          {contacto.activo ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
+                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => abrirEdicionContacto(contacto)}
+                          className="text-teal-600 dark:text-teal-accent-dark hover:underline font-medium mr-3"
+                        >
+                          Editar
+                        </button>
+                        {contacto.activo && (
                           <button
-                            onClick={() => abrirEdicionContacto(contacto)}
-                            className="text-teal-600 dark:text-teal-accent-dark hover:underline font-medium mr-3"
+                            onClick={() => desactivarContacto(contacto.id)}
+                            disabled={desactivandoContactoId === contacto.id}
+                            className="text-ink/70 dark:text-ink-dark/70 hover:text-ink hover:underline font-medium disabled:opacity-50"
                           >
-                            Editar
+                            {desactivandoContactoId === contacto.id ? "Desactivando..." : "Desactivar"}
                           </button>
-                          {contacto.activo && (
-                            <button
-                              onClick={() => desactivarContacto(contacto.id)}
-                              disabled={desactivandoContactoId === contacto.id}
-                              className="text-ink/70 dark:text-ink-dark/70 hover:text-ink hover:underline font-medium disabled:opacity-50"
-                            >
-                              {desactivandoContactoId === contacto.id ? "Desactivando..." : "Desactivar"}
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </BloqueFicha>
-        </section>
-      </TarjetaPerfil>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </BloqueFicha>
+      </section>
 
       {puedeEscribirDatosPrincipales && (
         <section className="space-y-3">
@@ -1976,6 +1979,7 @@ export default function FichaAlumnoPage() {
           contenido profesional del informe (PATCH revision-informe) y se
           reemite el PDF para que la edición quede reflejada. */}
       <BloqueFicha
+        id="pruebas-aplicadas"
         icono={ClipboardList}
         titulo="Pruebas aplicadas"
         descripcion="Informes generados por cada evaluación finalizada."
@@ -3023,6 +3027,7 @@ export default function FichaAlumnoPage() {
       />
       {/* Matrícula académica */}
       <BloqueFicha
+        id="matricula-academica"
         icono={School}
         titulo="Matrícula académica"
         cuerpoClassName="space-y-4"
@@ -3167,6 +3172,7 @@ export default function FichaAlumnoPage() {
           requisito — lo que habilita matrícula/examen es el registro con
           estado="vigente" en la base de datos, nunca la evidencia en sí. */}
       <BloqueFicha
+        id="consentimiento-informado"
         icono={ShieldCheck}
         titulo="Consentimiento informado"
         descripcion="Sin consentimiento del apoderado vigente no se puede matricular en campañas ni rendir exámenes."

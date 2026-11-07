@@ -109,8 +109,10 @@ export function DatoFicha({
         {Icono && <Icono size={12} aria-hidden="true" />}
         {etiqueta}
       </dt>
-      <dd className={`mt-0.5 break-words ${vacio ? "text-ink/30 dark:text-ink-dark/30" : "font-medium text-ink dark:text-ink-dark"}`}>
-        {vacio ? "—" : valor}
+      {/* 🆕 (sesión 2026-11-07) "Sin registrar" en vez de "—": un guion no
+          dice si el dato no existe, no aplica o falta llenarlo. */}
+      <dd className={`mt-0.5 break-words ${vacio ? "text-[13px] italic text-ink/35 dark:text-ink-dark/35" : "font-medium text-ink dark:text-ink-dark"}`}>
+        {vacio ? "Sin registrar" : valor}
       </dd>
     </div>
   );
