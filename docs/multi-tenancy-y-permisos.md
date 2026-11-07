@@ -48,6 +48,48 @@ Answering a public exam endpoint (no login, just a magic-link token) goes throug
 
 [core/limiter.py](../backend/core/limiter.py) — the shared `limiter` instance, imported from here, never a second `Limiter()`. Every public exam endpoint (comenzar, preguntas, progreso, guardar, finalizar, estado-resultados, informe-pdf, campos-socio) carries **two** stacked limits: a strict one keyed by the magic-link token (`clave_por_token`, via `@limiter.limit(..., key_func=clave_por_token)`), and a loose one keyed by client IP (`@limiter.shared_limit(..., scope=ambito_ip(nombre))`) — loose on purpose, because a whole classroom typically shares one NAT'd public IP. The per-IP limit **must** use `shared_limit` with a fixed scope string from `ambito_ip()`; slowapi's default scope is the URL path, which for these routes includes the token, so a plain `@limiter.limit` per-IP rule silently counts per (IP, token) instead of per IP and never fires against token enumeration. Auth endpoints keep their own limits (`5/minute` login/registration, `3/minute` password-recovery requests). Deploying behind a reverse proxy needs `uvicorn --proxy-headers --forwarded-allow-ips=...` or every student appears to share the proxy's IP; the counters live in each worker process's memory, so multiple workers each count independently.
 
+🆕 **(sesión 2026-11-07, A4/M5 de la revisión de seguridad previa al piloto) — lo de arriba cambió en tres puntos:**
+
+- **La IP sale de una sola función, `core/ip_cliente.ip_real`.** La usan el rate limit (`clave_ip` es el `key_func` de slowapi), el captcha adaptativo del login (`auth.router._ip_de`) y los registros de auditoría de la Ley 29733 (`core.deps.ip_del_cliente`). Antes `ip_del_cliente` creía el primer salto de `X-Forwarded-For` siempre, así que cualquiera podía dejar en la auditoría la IP que quisiera; y el rate limit usaba otra fuente. Ahora `X-Forwarded-For` solo cuenta si la conexión viene de un proxy declarado en **`PROXIES_CONFIABLES`** (IPs o CIDR separados por coma, vacía por defecto). Se recorre de derecha a izquierda saltando los proxies, y la primera IP que no es proxy es el cliente. Lo que no es una IP válida se guarda como NULL, nunca como texto.
+  - Con Caddy o nginx en la misma máquina no hace falta configurar nada: uvicorn ya trae `--proxy-headers` activado y confía solo en 127.0.0.1, así que reescribe `request.client` antes de llegar aquí.
+  - Con el proxy en otro contenedor o en otra máquina, hay que poner su red en `PROXIES_CONFIABLES`.
+- **La enumeración de tokens la frena `guardia_enumeracion`, no el límite por IP.** Es una dependencia con `yield` en los 11 endpoints públicos del examen: cuenta los 404 (enlaces inválidos) por IP, en Redis si hay `ALMACEN_SEGURIDAD_URL` o en memoria. Desde los 30 en 10 minutos, esa IP recibe 429 en todo el examen, también con un enlace válido; así no hay oráculo que le diga al atacante cuál acertó. Un alumno real casi nunca abre un enlace inválido.
+- **Los límites por IP generales se subieron para un colegio grande detrás de una sola IP**, unos 600 alumnos simultáneos: `guardar` 20000/min, `comenzar`/`intake`/`finalizar` 2000/min, `informe_pdf` 300/min. Antes `guardar` era 1500/min, y el frontend guarda cada respuesta (15–30 por minuto en un alumno rápido): con unos 100 alumnos a la vez ya se pasaba el cupo. Los límites **por token** no cambiaron.
+- **El frontend reintenta un 429 en `/guardar`** (a los 3 s y a los 6 s) en vez de borrarle la respuesta al alumno.
+
+Tests: `tests/test_ip_y_limites_examen_unitario.py` (sin BD ni servidor; incluye la guardia por HTTP contra `main.app` y, si hay Redis local, el contador compartido) y el bloque C-12 de `verificar_fase3_e2e.py`. Para no dejar bloqueada la IP de la PC de pruebas por 10 minutos, ese e2e simula la red atacante con una IP de documentación en `X-Forwarded-For`, que uvicorn acepta solo desde 127.0.0.1.
+
+
+### Cabeceras de seguridad y `ENTORNO` que ya no falla abierto (`core/cabeceras_seguridad.py`, `core/entorno.py`)
+
+🆕 (sesión 2026-11-07, M2/M3 de la revisión de seguridad previa al piloto)
+
+- **`ENTORNO` se lee en un solo lugar, `core/entorno.py`, y si falta vale `production`.** Antes cada archivo la leía con `development` por defecto: un servidor sin la variable arrancaba con Swagger abierto, `/openapi.json` publicado y la cookie de sesión sin `Secure`. Cualquier valor distinto de `development` (mayúsculas y espacios aparte) cuenta como producción, y un valor desconocido deja un aviso en el log. El `.env` local ya trae `ENTORNO=development`. `crear_tablas.py` sigue con su propio candado, ahora también con "falta = producción".
+- **`/openapi.json` solo existe en desarrollo** (`openapi_url=None` fuera de él). Antes se apagaban `/docs` y `/redoc`, pero el esquema completo de rutas seguía publicado. `npm run generar-tipos` corre contra el backend local, así que no lo necesita en producción.
+- **Cabeceras en todas las respuestas del backend**, con un middleware ASGI puro registrado el último en `main.py` (el más externo), así que también las llevan el preflight de CORS, el 413 del tope de cuerpo y los 429:
+  - `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`. El backend solo sirve JSON, PDFs e imágenes que el frontend pide con `fetch()` y muestra desde un blob (react-pdf, `<img src="blob:...">`); nunca se enmarca ni se ejecuta HTML suyo.
+  - `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
+  - `Cache-Control: no-store`, **solo si el endpoint no puso uno propio** (la firma conserva su `private, no-store`).
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains`, solo fuera de desarrollo. Por http el navegador lo ignora.
+  - Excepción: `/docs` y `/redoc` en desarrollo van sin CSP, porque Swagger carga scripts de un CDN.
+  - Lo único que no las lleva es el 500 del manejador global de errores (Starlette lo responde por fuera de todos los middlewares); es un JSON genérico sin datos.
+- **Frontend (`aurora_ui/next.config.ts`):** sin `X-Powered-By`; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (sin cámara, micrófono ni ubicación) y una **CSP en modo solo-reporte** (`Content-Security-Policy-Report-Only`) que permite `connect-src`/`img-src` al origen de `NEXT_PUBLIC_API_URL` y `worker-src 'self' blob:` para el worker de react-pdf. Solo-reporte quiere decir que el navegador no bloquea nada: solo avisa en la consola. **Pendiente antes de imponerla:** revisar en el piloto, con el build de producción (sin `'unsafe-eval'`), que login, examen y visor de PDF no den avisos, y entonces renombrar la cabecera a `Content-Security-Policy`. HSTS del frontend lo pone Vercel.
+- Tests: `tests/test_cabeceras_seguridad_unitario.py` (sin BD ni servidor; carga `main.app` en procesos hijos con `ENTORNO` ausente, `dev`, `development` y ` Development `, sin leer el `.env`, y falla si vuelve a aparecer una lectura de `ENTORNO` con `development` por defecto) y `aurora_ui/e2e/cabeceras-seguridad.spec.ts` (cabeceras reales de Next y cero violaciones de la CSP en login, examen y visor de PDF, en `next dev`).
+
+### Sentry sin datos personales (`core/monitoreo.py`)
+
+🆕 (sesión 2026-11-07, M4 de la revisión de seguridad previa al piloto)
+
+Antes `main.py` y `migraciones/env.py` llamaban a `sentry_sdk.init()` con los valores por defecto y `traces_sample_rate=1.0`. Con eso, un error mandaba a un tercero, fuera del Perú, las **variables locales de cada frame** (nombres, DNI, respuestas y diagnósticos de menores), el **cuerpo de la petición** y la **URL del examen, que es la credencial del alumno**. El worker de Celery no reportaba nada.
+
+Ahora todo pasa por `core.monitoreo.iniciar_sentry(componente)`: `"api"` en `main.py`, `"migraciones"` en `migraciones/env.py`, y `"worker"`/`"beat"` en las señales `worker_init`/`beat_init` de `core/cola_tareas.py`. Se inicia al arrancar el proceso, no al importar el módulo, que también lo importa uvicorn. Sin `SENTRY_DSN` no hace nada.
+
+- `send_default_pii=False`, `include_local_variables=False`, `max_request_body_size="never"`.
+- **Trazas apagadas por defecto.** `SENTRY_TRACES_SAMPLE_RATE=0.05` (o similar) las activa; el valor se acota entre 0 y 1.
+- `before_send`/`before_send_transaction` (`limpiar_evento`) se quedan con método + URL sin query, con el token de `/examen/{token}`, `/comenzar-test/{token}` y `/firma/{token}` tapado. Quitan cookies, cabeceras (salvo User-Agent, Content-Type y similares), cuerpo, IP, usuario, nombre de la máquina, `extra`, los `args` de la tarea de Celery y las variables de los frames, aunque una integración los vuelva a poner. Además tapan en los mensajes cualquier token largo, correo o número de 8 dígitos (DNI).
+- `before_breadcrumb` (`limpiar_miga`) descarta los breadcrumbs de SQL y deja en los de HTTP solo url (tapada), método y estado.
+- `sentry_sdk.init` solo puede aparecer en `core/monitoreo.py`.
+- Test: `tests/test_monitoreo_sentry_unitario.py` (sin BD ni servidor, sin enviar nada). Inicia el SDK real con un transporte que guarda lo que se habría enviado, provoca un error real en `main.app` con DNI, correo, token, cookie, JWT y cuerpo, y confirma que ninguno viaja.
 
 ### Captcha de imagen en el login (`core/captcha.py`)
 

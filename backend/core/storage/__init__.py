@@ -95,13 +95,17 @@ def construir_storage_key_logo_institucion(institucion_id: int, tipo: str, exten
     return f"instituciones/{institucion_id}/branding/{tipo}{extension}"
 
 
-def construir_storage_key_firma_usuario(usuario_id: int, extension: str) -> str:
+def construir_storage_key_firma_usuario(usuario_id: int, token: str, extension: str) -> str:
     """Key de la firma personal (imagen) de un usuario — ver
     `Usuario.firma_imagen_url` en modulos/auth/models.py y
-    modulos/auth/crud.py:subir_firma_usuario(). Mismo criterio "sin
-    versionado" que el branding institucional: una subida nueva reemplaza
-    a la anterior."""
-    return f"usuarios/{usuario_id}/firma{extension}"
+    modulos/auth/crud.py:subir_firma_usuario().
+
+    🆕 (sesión 2026-11-05, A3 de la revisión de seguridad) Lleva el mismo
+    token aleatorio que la URL pública: cada subida es una key nueva, y la
+    URL anterior deja de servirse porque ya no coincide con
+    `firma_imagen_url` (ver leer_firma_usuario). `token` lo genera el crud
+    (hex), nunca viene del cliente sin validar."""
+    return f"usuarios/{usuario_id}/firma-{token}{extension}"
 
 
 def construir_storage_key_imagen_seccion_documento(

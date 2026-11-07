@@ -19,15 +19,18 @@ seguridad = HTTPBearer(auto_error=False)
 def ip_del_cliente(request: Request) -> Optional[str]:
     """IP real del cliente, para los registros de auditoría (Ley 29733).
 
-    Detrás de un proxy inverso `request.client` es la IP del proxy, así que se
-    prefiere el primer salto de X-Forwarded-For cuando viene. Si no hay
-    contexto HTTP utilizable devuelve None: se guarda NULL antes que inventar
-    un dato en una tabla de auditoría.
+    🆕 (sesión 2026-11-07, M5 de la revisión de seguridad) Antes tomaba el
+    primer salto de X-Forwarded-For siempre que la cabecera viniera — la
+    escribe cualquiera, así que se podía dejar en la auditoría la IP que uno
+    quisiera. Ahora delega en core/ip_cliente.ip_real: X-Forwarded-For solo
+    cuenta si la conexión viene de un proxy de PROXIES_CONFIABLES, y es la
+    misma fuente que el rate limit y el captcha. Si no hay contexto HTTP
+    utilizable devuelve None: se guarda NULL antes que inventar un dato en
+    una tabla de auditoría.
     """
-    reenviada = request.headers.get("x-forwarded-for")
-    if reenviada:
-        return reenviada.split(",")[0].strip() or None
-    return request.client.host if request.client else None
+    from core.ip_cliente import ip_real
+
+    return ip_real(request)
 
 
 def obtener_usuario_actual(

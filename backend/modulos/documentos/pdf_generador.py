@@ -25,6 +25,7 @@ from reportlab.platypus import Image, KeepTogether, PageBreak, Paragraph, Simple
 
 from core.pdf_fuentes import registrar_fuentes
 from core.url_segura import descargar_logo_seguro
+from core.imagen_segura import dimensiones_imagen_segura
 
 logger = logging.getLogger("aurorasoft")
 
@@ -671,22 +672,25 @@ def _renderizar_imagen_anexo(datos: dict, estilos: dict) -> list:
     try:
         from core.storage import obtener_storage_service
         contenido_bytes = obtener_storage_service().leer(storage_key)
-        buffer = io.BytesIO(contenido_bytes)
-        try:
-            from PIL import Image as PILImage
-            with PILImage.open(buffer) as img:
-                ancho_px, alto_px = img.size
-            buffer.seek(0)
-            ancho_max = 12 * cm
-            alto = ancho_max * (alto_px / ancho_px) if ancho_px else 8 * cm
-            alto_max = 16 * cm
-            if alto > alto_max:
-                alto = alto_max
-                ancho_max = alto_max * (ancho_px / alto_px) if alto_px else ancho_max
-            elementos = [Image(buffer, width=ancho_max, height=alto)]
-        except Exception:
-            buffer.seek(0)
-            elementos = [Image(buffer, width=12 * cm, height=12 * cm)]
+    except Exception as exc:
+        logger.warning("No se pudo leer la imagen de la sección (%s): %s", storage_key, exc)
+        return [_placeholder("La imagen de esta sección no está disponible.", estilos)]
+    # 🆕 (A1 de la revisión de seguridad) solo PNG/JPEG dentro del tope de
+    # píxeles (core/imagen_segura.py). Antes, si PIL no podía leer las
+    # dimensiones, igual se le pasaba el archivo a reportlab con un tamaño
+    # fijo — que lo volvía a abrir con todos los formatos de Pillow.
+    dimensiones = dimensiones_imagen_segura(contenido_bytes, f"Imagen de sección ({storage_key})")
+    if dimensiones is None:
+        return [_placeholder("La imagen de esta sección no es un PNG o JPEG válido.", estilos)]
+    try:
+        ancho_px, alto_px = dimensiones
+        ancho_max = 12 * cm
+        alto = ancho_max * (alto_px / ancho_px)
+        alto_max = 16 * cm
+        if alto > alto_max:
+            alto = alto_max
+            ancho_max = alto_max * (ancho_px / alto_px)
+        elementos = [Image(io.BytesIO(contenido_bytes), width=ancho_max, height=alto)]
     except Exception as exc:
         logger.warning("No se pudo leer la imagen de la sección (%s): %s", storage_key, exc)
         return [_placeholder("La imagen de esta sección no está disponible.", estilos)]

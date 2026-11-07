@@ -21,7 +21,7 @@ from fastapi import status
 from fastapi.responses import StreamingResponse
 from core.pdf_generator import generar_pdf
 from core.email_service import enviar_alerta_riesgo, enviar_alerta_regresion_informe_liberado
-from core.limiter import ambito_ip, clave_por_token, limite_ip, limite_token, limiter
+from core.limiter import ambito_ip, clave_por_token, guardia_enumeracion, limite_ip, limite_token, limiter
 from modulos.superadmin import crud as superadmin_crud
 from modulos.superadmin import models as superadmin_models
 from modulos.instituciones import models as instituciones_models
@@ -138,7 +138,7 @@ def agregar_opcion_a_pregunta(
 # ==========================================
 # RUTAS DE PROGRESO Y FINALIZACIÓN
 # ==========================================
-@router.post("/examen/{token}/guardar", response_model=dict)
+@router.post("/examen/{token}/guardar", response_model=dict, dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("guardar"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("guardar"), scope=ambito_ip("guardar"))
 def guardar_progreso_examen(request: Request, token: str, respuestas: schemas.ExamenSubmit, db: Session = Depends(get_db)):
@@ -182,7 +182,7 @@ def guardar_progreso_examen(request: Request, token: str, respuestas: schemas.Ex
     resultado = crud.guardar_respuestas_examen(db=db, token=token, respuestas=respuestas.respuestas)
     return resultado
 
-@router.post("/examen/{token}/finalizar", response_model=List[schemas.DiagnosticoAlumnoResponse])
+@router.post("/examen/{token}/finalizar", response_model=List[schemas.DiagnosticoAlumnoResponse], dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("finalizar"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("finalizar"), scope=ambito_ip("finalizar"))
 def finalizar_examen_seguro(
@@ -405,6 +405,7 @@ def finalizar_examen_seguro(
 @router.get(
     "/examen/{token}/estado-resultados",
     response_model=schemas.EstadoResultadosAlumnoResponse,
+    dependencies=[Depends(guardia_enumeracion)],
 )
 @limiter.limit(limite_token("estado_resultados"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("estado_resultados"), scope=ambito_ip("estado_resultados"))
@@ -452,7 +453,7 @@ def obtener_estado_resultados_alumno(request: Request, token: str, db: Session =
 # ==========================================
 # INFORME PDF — DESCARGA PARA EL ALUMNO (con su link mágico)
 # ==========================================
-@router.get("/examen/{token}/informe-pdf")
+@router.get("/examen/{token}/informe-pdf", dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("informe_pdf"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("informe_pdf"), scope=ambito_ip("informe_pdf"))
 def descargar_informe_pdf_alumno(request: Request, token: str, db: Session = Depends(get_db)):
@@ -1280,7 +1281,7 @@ def listar_links_de_campana(
 
     return crud.obtener_links_por_campana(db=db, evaluacion_id=evaluacion_id)
 
-@router.get("/examen/{token}/intake", response_model=schemas.IntakeExamenResponse)
+@router.get("/examen/{token}/intake", response_model=schemas.IntakeExamenResponse, dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("intake"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("intake"), scope=ambito_ip("intake"))
 def obtener_intake_examen(request: Request, token: str, db: Session = Depends(get_db)):
@@ -1314,7 +1315,7 @@ def obtener_intake_examen(request: Request, token: str, db: Session = Depends(ge
     return crud.obtener_intake_previo_por_token(db=db, token=token)
 
 
-@router.get("/examen/{token}/asentimiento-texto", response_model=schemas.AsentimientoInformadoTextoPublico)
+@router.get("/examen/{token}/asentimiento-texto", response_model=schemas.AsentimientoInformadoTextoPublico, dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("asentimiento_texto"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("asentimiento_texto"), scope=ambito_ip("asentimiento_texto"))
 def obtener_asentimiento_texto_examen(request: Request, token: str, db: Session = Depends(get_db)):
@@ -1480,7 +1481,7 @@ def descargar_modelo_consentimiento_pdf(
     )
 
 
-@router.post("/comenzar-test/{token}", response_model=schemas.InscripcionResponse)
+@router.post("/comenzar-test/{token}", response_model=schemas.InscripcionResponse, dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("comenzar"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("comenzar"), scope=ambito_ip("comenzar"))
 def validar_y_comenzar_evaluacion(
@@ -1571,7 +1572,7 @@ def validar_y_comenzar_evaluacion(
     return inscripcion
 
 
-@router.get("/examen/{token}/progreso", response_model=schemas.ProgresoExamenResponse)
+@router.get("/examen/{token}/progreso", response_model=schemas.ProgresoExamenResponse, dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("progreso"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("progreso"), scope=ambito_ip("progreso"))
 def obtener_progreso_examen(request: Request, token: str, db: Session = Depends(get_db)):
@@ -1632,7 +1633,7 @@ def obtener_progreso_examen(request: Request, token: str, db: Session = Depends(
 # ==========================================
 # RUTA PARA RENDERIZAR EL EXAMEN EN VIVO
 # ==========================================
-@router.get("/examen/{token}/preguntas", response_model=List[schemas.PreguntaExamen])
+@router.get("/examen/{token}/preguntas", response_model=List[schemas.PreguntaExamen], dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("preguntas"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("preguntas"), scope=ambito_ip("preguntas"))
 def cargar_examen_en_vivo(request: Request, token: str, db: Session = Depends(get_db)):
@@ -2240,7 +2241,7 @@ def listar_baremos_de_dimension(
     crud.verificar_propiedad_de_prueba(db, dimension.prueba_id, usuario_actual)
     return crud.obtener_baremos_por_dimension(db=db, dimension_id=dimension_id)
 
-@router.get("/examen/{token}/campos-socio", response_model=List[schemas.CampoSociodemograficoResponse])
+@router.get("/examen/{token}/campos-socio", response_model=List[schemas.CampoSociodemograficoResponse], dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("campos_socio"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("campos_socio"), scope=ambito_ip("campos_socio"))
 def obtener_campos_socio_examen(request: Request, token: str, db: Session = Depends(get_db)):
@@ -2283,7 +2284,7 @@ def obtener_campos_socio_examen(request: Request, token: str, db: Session = Depe
     return campos
 
 
-@router.post("/examen/{token}/campos-socio", response_model=dict)
+@router.post("/examen/{token}/campos-socio", response_model=dict, dependencies=[Depends(guardia_enumeracion)])
 @limiter.limit(limite_token("campos_socio"), key_func=clave_por_token)
 @limiter.shared_limit(limite_ip("campos_socio"), scope=ambito_ip("campos_socio"))
 def guardar_campos_socio_examen(request: Request, token: str, datos: schemas.CamposSocioSubmit, db: Session = Depends(get_db)):

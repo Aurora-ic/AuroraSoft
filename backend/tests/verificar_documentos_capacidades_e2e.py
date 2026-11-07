@@ -199,6 +199,20 @@ def main(url_base):
     r_get_invalido = requests.get(f"{API}/instituciones/{inst_id}/branding/invalido", timeout=30)
     comprobar("[1] GET con tipo inválido -> 404", r_get_invalido.status_code == 404)
 
+    # 🆕 (A1 de la revisión de seguridad) el contenido real manda, no la
+    # extensión ni el Content-Type del cliente — core/imagen_segura.py. La
+    # validación corre antes que resolver_url_publica, así que es 400 con o
+    # sin PUBLIC_BACKEND_URL.
+    gif_disfrazado = bytes.fromhex("474946383961010001008000000000ffffff21f90401000000002c00000000010001000002024401003b")
+    for nombre_caso, archivo in (
+        ("GIF con nombre .png", ("logo.png", gif_disfrazado, "image/png")),
+        ("HTML con nombre .png", ("logo.png", b"<html><script>alert(1)</script></html>", "image/png")),
+        ("PNG real con nombre .jpg", ("logo.jpg", png_real, "image/jpeg")),
+    ):
+        r_falso = requests.post(f"{API}/instituciones/{inst_id}/branding/encabezado",
+                                files={"archivo": archivo}, headers=h_admin, timeout=30)
+        comprobar(f"[1] branding: {nombre_caso} -> 400", r_falso.status_code == 400, r_falso.text[:200])
+
     r_subir_logo = requests.post(f"{API}/instituciones/{inst_id}/branding/encabezado",
                                   files={"archivo": ("logo.png", png_real, "image/png")}, headers=h_admin, timeout=30)
     if os.getenv("PUBLIC_BACKEND_URL"):
@@ -330,6 +344,14 @@ def main(url_base):
     pdf_img_v1 = obtener_storage_service().leer(fila_img_v1.storage_key)
     comprobar("[4a] sin imagen subida: placeholder 'Sin imagen/anexo'", "Sin imagen" in texto_pdf(pdf_img_v1))
     comprobar("[4a] sin imagen subida: cero imágenes embebidas", num_imagenes(pdf_img_v1) == 0)
+
+    for nombre_caso, archivo in (
+        ("GIF con nombre .png", ("anexo.png", gif_disfrazado, "image/png")),
+        ("texto con nombre .jpg", ("anexo.jpg", b"no soy una imagen", "image/jpeg")),
+    ):
+        r_falso = requests.post(f"{API}/documentos/{doc_img['id']}/secciones/{seccion_img}/imagen",
+                                files={"archivo": archivo}, headers=h_psi, timeout=30)
+        comprobar(f"[4b] imagen de sección: {nombre_caso} -> 400", r_falso.status_code == 400, r_falso.text[:200])
 
     r_subir_img = requests.post(f"{API}/documentos/{doc_img['id']}/secciones/{seccion_img}/imagen",
                                  files={"archivo": ("anexo.png", png_real, "image/png")}, headers=h_psi, timeout=30)

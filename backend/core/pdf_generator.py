@@ -38,6 +38,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from core.url_segura import descargar_logo_seguro
+from core.imagen_segura import dimensiones_imagen_segura
 
 from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
 from reportlab.lib import colors
@@ -315,29 +316,31 @@ def _elemento_anexo_imagen(anexo: dict, estilos) -> list:
     """Evidencia tipo imagen, embebida directamente en el flujo del propio
     documento — mismo cálculo de aspecto que modulos/documentos/
     pdf_generador.py:_renderizar_imagen_anexo (no duplicar la lógica, solo
-    el mismo criterio: PIL para no deformar, con un tamaño fijo de reserva
-    si PIL no puede abrir el archivo)."""
+    el mismo criterio: proporción real para no deformar; si no es un
+    PNG/JPEG válido, un aviso en vez de la imagen)."""
     elementos = _encabezado_anexo(anexo, estilos)
-    buffer = io.BytesIO(anexo["bytes"])
-    try:
-        from PIL import Image as PILImage
-        with PILImage.open(buffer) as img:
-            ancho_px, alto_px = img.size
-        buffer.seek(0)
-        ancho_max = 15 * cm
-        alto = ancho_max * (alto_px / ancho_px) if ancho_px else 10 * cm
-        alto_max = 19 * cm
-        if alto > alto_max:
-            alto = alto_max
-            ancho_max = alto_max * (ancho_px / alto_px) if alto_px else ancho_max
-        elementos.append(Image(buffer, width=ancho_max, height=alto))
-    except Exception:
-        buffer.seek(0)
-        elementos.append(Image(buffer, width=15 * cm, height=15 * cm))
+    # 🆕 (A1 de la revisión de seguridad) solo PNG/JPEG dentro del tope de
+    # píxeles (core/imagen_segura.py). Antes, si PIL no podía leer las
+    # dimensiones, igual se le pasaba el archivo a reportlab con un tamaño
+    # fijo — que lo volvía a abrir con todos los formatos de Pillow.
+    dimensiones = dimensiones_imagen_segura(anexo["bytes"], "Anexo de imagen del informe")
+    if dimensiones is None:
+        elementos.append(Paragraph(
+            "<i>[No se pudo incluir esta imagen: no es un PNG o JPEG válido.]</i>", estilos["normal"],
+        ))
+        return elementos
+    ancho_px, alto_px = dimensiones
+    ancho_max = 15 * cm
+    alto = ancho_max * (alto_px / ancho_px)
+    alto_max = 19 * cm
+    if alto > alto_max:
+        alto = alto_max
+        ancho_max = alto_max * (ancho_px / alto_px)
+    elementos.append(Image(io.BytesIO(anexo["bytes"]), width=ancho_max, height=alto))
     return elementos
 
 
-def _portada_anexo_pdf(anexo: dict) -> io.BytesIO:
+def _portada_anexo_pdf(anexo: dict, aviso: str | None = None) -> io.BytesIO:
     """PDF de una sola página con título/fecha/descripción de un anexo tipo
     'pdf' — se antepone a sus propias páginas cuando se fusiona al final de
     generar_pdf() (ver bloque ANEXOS). Un documento aparte y minúsculo en
@@ -351,7 +354,10 @@ def _portada_anexo_pdf(anexo: dict) -> io.BytesIO:
         buffer, pagesize=A4,
         rightMargin=2 * cm, leftMargin=2 * cm, topMargin=2.3 * cm, bottomMargin=2.3 * cm,
     )
-    doc.build(_encabezado_anexo(anexo, estilos))
+    elementos = _encabezado_anexo(anexo, estilos)
+    if aviso:
+        elementos.append(Paragraph(f"<i>[{escape(aviso)}]</i>", estilos["normal"]))
+    doc.build(elementos)
     buffer.seek(0)
     return buffer
 
@@ -361,22 +367,30 @@ def _fusionar_anexos_pdf(buffer_base: io.BytesIO, anexos_pdf: list[dict]) -> io.
     (todas sus páginas, precedidas por su propia portada de una página) — la
     única forma de incluir un archivo PDF ajeno dentro de este documento:
     reportlab solo sabe dibujar flowables propios, nunca páginas de otro PDF,
-    así que esto corre DESPUÉS de doc.build(), con pypdf, nunca antes."""
-    from pypdf import PdfReader, PdfWriter
+    así que esto corre DESPUÉS de doc.build(), con pypdf, nunca antes.
 
-    writer = PdfWriter()
-    for pagina in PdfReader(buffer_base).pages:
-        writer.add_page(pagina)
+    🆕 (sesión 2026-11-05, M1 de la revisión de seguridad) pypdf ya no abre
+    el PDF ajeno en este proceso: cada anexo se revisa en un proceso hijo
+    con tiempo máximo (core/pdf_aislado.py) y la fusión también corre ahí.
+    Un anexo que no pasa (dañado, cifrado, demasiado grande o que tarda
+    demasiado) se omite y su portada lo dice — antes tumbaba el informe
+    entero, o colgaba el worker/la petición de reemitir/reprocesar."""
+    from core.pdf_aislado import PdfNoValido, fusionar_pdfs, inspeccionar_pdf
+
+    partes = [buffer_base.getvalue()]
     for anexo in anexos_pdf:
-        for pagina in PdfReader(_portada_anexo_pdf(anexo)).pages:
-            writer.add_page(pagina)
-        for pagina in PdfReader(io.BytesIO(anexo["bytes"])).pages:
-            writer.add_page(pagina)
+        try:
+            inspeccionar_pdf(anexo["bytes"])
+        except PdfNoValido as exc:
+            logger.warning("Anexo PDF '%s' omitido del informe: %s", anexo.get("titulo"), exc)
+            partes.append(_portada_anexo_pdf(
+                anexo, aviso=f"No se pudo incluir este anexo: {exc}",
+            ).getvalue())
+            continue
+        partes.append(_portada_anexo_pdf(anexo).getvalue())
+        partes.append(anexo["bytes"])
 
-    buffer_final = io.BytesIO()
-    writer.write(buffer_final)
-    buffer_final.seek(0)
-    return buffer_final
+    return io.BytesIO(fusionar_pdfs(partes))
 
 
 def generar_pdf(contenido: dict) -> io.BytesIO:

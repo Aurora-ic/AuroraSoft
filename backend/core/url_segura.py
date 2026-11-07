@@ -165,6 +165,14 @@ def descargar_logo_seguro(url: str, resolver=socket.getaddrinfo):
         if len(contenido) > TAMANO_MAXIMO_LOGO:
             logger.warning("Logo institucional descartado: supera %s bytes", TAMANO_MAXIMO_LOGO)
             return None
+        # 🆕 (sesión 2026-11-05, A1 de la revisión de seguridad) El
+        # Content-Type de arriba lo decide el servidor remoto. Aquí se exige
+        # que los bytes sean de verdad PNG/JPEG dentro del tope de píxeles
+        # antes de que reportlab/Pillow los abran con todos sus formatos.
+        # Cubre logo, pie, fondo y firmas, propios o de terceros.
+        from core.imagen_segura import dimensiones_imagen_segura
+        if dimensiones_imagen_segura(contenido, f"Imagen descargada de {host}") is None:
+            return None
         return contenido
     except Exception as exc:  # red, TLS, timeout...
         logger.warning("No se pudo descargar el logo institucional de %s: %s", host, exc)

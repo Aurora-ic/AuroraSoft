@@ -404,11 +404,31 @@ def main(url_base):
     comprobar("Otro alumno de la misma IP (mismo aula) NO se ve afectado (200)",
               r.status_code == 200, f"status {r.status_code}")
 
-    # Por IP: enumeración de tokens (cada intento usa un token distinto)
+    # Por IP: enumeración de tokens (cada intento usa un token distinto).
+    # 🆕 (sesión 2026-11-07, A4 de la revisión de seguridad) La frena ahora
+    # core/limiter.guardia_enumeracion: 30 enlaces inválidos en 10 min desde
+    # una IP -> esa IP recibe 429 en todo el examen. Para no dejar bloqueada
+    # la IP de esta máquina (127.0.0.1) por 10 minutos a los e2e que corran
+    # después, la "red atacante" es una IP de documentación (203.0.113.x)
+    # en X-Forwarded-For: uvicorn solo cree esa cabecera cuando la conexión
+    # viene de 127.0.0.1 (--proxy-headers por defecto), igual que con Caddy
+    # en la misma máquina en producción.
+    red_atacante = f"203.0.113.{uuid.uuid4().int % 250 + 1}"
+    otra_red = f"198.51.100.{uuid.uuid4().int % 250 + 1}"
     enumeracion = [requests.get(f"{API}/educativo/examen/{uuid.uuid4()}/informe-pdf",
-                                timeout=30).status_code for _ in range(125)]
+                                headers={"X-Forwarded-For": red_atacante},
+                                timeout=30).status_code for _ in range(40)]
     comprobar("Enumerar tokens desde una IP acaba bloqueado (429)",
-              429 in enumeracion, f"404×{enumeracion.count(404)} y 429×{enumeracion.count(429)}")
+              429 in enumeracion and enumeracion.index(429) == 30,
+              f"404×{enumeracion.count(404)} y 429×{enumeracion.count(429)}")
+    r = requests.get(f"{API}/educativo/examen/{token_d}/estado-resultados",
+                     headers={"X-Forwarded-For": red_atacante}, timeout=30)
+    comprobar("🆕 ...y esa red queda bloqueada también con un enlace VÁLIDO (sin oráculo)",
+              r.status_code == 429, f"status {r.status_code}")
+    r = requests.get(f"{API}/educativo/examen/{uuid.uuid4()}/informe-pdf",
+                     headers={"X-Forwarded-For": otra_red}, timeout=30)
+    comprobar("🆕 Otra red no se ve afectada (404 por el token inventado, no 429)",
+              r.status_code == 404, f"status {r.status_code}")
 
     total = len(_resultados)
     fallos = [n for n, ok, _ in _resultados if not ok]

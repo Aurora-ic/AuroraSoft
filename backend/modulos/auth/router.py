@@ -43,8 +43,11 @@ def registrar_usuario(
 
 
 def _ip_de(request: Request) -> Optional[str]:
-    # Misma fuente que la clave del rate limit (core/limiter.py).
-    return request.client.host if request.client else None
+    # Misma fuente que la clave del rate limit y la auditoría
+    # (core/ip_cliente.py, 🆕 M5 de la revisión de seguridad).
+    from core.ip_cliente import ip_real
+
+    return ip_real(request)
 
 
 @router.get("/captcha", response_model=schemas.CaptchaResponse)
@@ -405,10 +408,16 @@ async def subir_firma_usuario_endpoint(
     return crud.subir_firma_usuario(db, usuario_id, contenido, archivo.filename or "", archivo.content_type or "")
 
 
-@router.get("/usuarios/{usuario_id}/firma")
-def servir_firma_usuario_endpoint(usuario_id: int, db: Session = Depends(get_db)):
+@router.get("/usuarios/{usuario_id}/firma/{token}")
+def servir_firma_usuario_endpoint(usuario_id: int, token: str, db: Session = Depends(get_db)):
     """PÚBLICO a propósito, sin autenticación: es exactamente la URL que
     `core/url_segura.descargar_logo_seguro()` pide sin credenciales al
-    generar un PDF."""
-    contenido, content_type = crud.leer_firma_usuario(db, usuario_id)
-    return Response(content=contenido, media_type=content_type)
+    generar un PDF. 🆕 (A3 de la revisión de seguridad) Ya no basta el id:
+    hace falta el token de la firma vigente (ver crud.leer_firma_usuario) —
+    la ruta vieja /usuarios/{id}/firma sin token se retiró."""
+    contenido, content_type = crud.leer_firma_usuario(db, usuario_id, token)
+    return Response(content=contenido, media_type=content_type, headers={
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+    })

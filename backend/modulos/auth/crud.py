@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from . import models, schemas
 from core.security import get_password_hash
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -133,19 +134,36 @@ def actualizar_usuario(db: Session, usuario_id: int, datos: schemas.UsuarioUpdat
 # el propio usuario, así que el router también deja que alguien suba SU
 # PROPIA firma, no solo un admin/superadmin de su institución.
 # ==========================================
+# 🆕 (sesión 2026-11-05, A3 de la revisión de seguridad) La URL pública de
+# la firma lleva un token aleatorio: /api/auth/usuarios/{id}/firma/{token}.
+# Antes era /api/auth/usuarios/{id}/firma — pública sin sesión (la pide
+# descargar_logo_seguro() al generar el PDF) y con un id correlativo, así
+# que recorriendo ids se bajaba la firma escaneada de cada psicólogo. El
+# endpoint sigue siendo público (el generador no manda credenciales), pero
+# ahora solo responde si el token coincide con el de `firma_imagen_url`:
+# subir otra firma o borrarla (PATCH con "") invalida la URL anterior.
+_PATRON_TOKEN_FIRMA = re.compile(r"^[0-9a-f]{64}$")
+MENSAJE_FIRMA_NO_ENCONTRADA = "No encontrado."
+
+
+def ruta_publica_firma(usuario_id: int, token: str) -> str:
+    return f"/api/auth/usuarios/{usuario_id}/firma/{token}"
+
+
 def subir_firma_usuario(db: Session, usuario_id: int, contenido: bytes, nombre_archivo: str, content_type: str) -> models.Usuario:
     from core import branding
-    branding.validar_imagen_subida(contenido, content_type)
-    extension = branding.extension_imagen_segura(nombre_archivo)
+    # content_type se reemplaza por el del formato REAL de la imagen.
+    extension, content_type = branding.validar_imagen_subida(contenido, nombre_archivo)
 
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    url_publica = branding.resolver_url_publica(f"/api/auth/usuarios/{usuario_id}/firma")
+    token = secrets.token_hex(32)
+    url_publica = branding.resolver_url_publica(ruta_publica_firma(usuario_id, token))
 
     from core.storage import obtener_storage_service, construir_storage_key_firma_usuario
-    key = construir_storage_key_firma_usuario(usuario_id, extension)
+    key = construir_storage_key_firma_usuario(usuario_id, token, extension)
     obtener_storage_service().guardar(key, contenido, content_type)
 
     usuario.firma_imagen_url = url_publica
@@ -154,20 +172,30 @@ def subir_firma_usuario(db: Session, usuario_id: int, contenido: bytes, nombre_a
     return usuario
 
 
-def leer_firma_usuario(db: Session, usuario_id: int):
+def leer_firma_usuario(db: Session, usuario_id: int, token: str):
     """Sirve la firma ya subida — endpoint PÚBLICO a propósito (sin Depends
     de auth): `descargar_logo_seguro` la pide sin credenciales al generar
-    un PDF, exactamente como pediría el logo institucional."""
+    un PDF, exactamente como pediría el logo institucional. Solo responde si
+    `token` es el de la firma VIGENTE del usuario; cualquier otro caso
+    (usuario inexistente, sin firma, firma externa, token viejo o mal
+    formado) da el mismo 404, para no revelar cuál de ellos fue."""
+    if not _PATRON_TOKEN_FIRMA.match(token or ""):
+        raise HTTPException(status_code=404, detail=MENSAJE_FIRMA_NO_ENCONTRADA)
     usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="No encontrado.")
+    url_vigente = (usuario.firma_imagen_url or "") if usuario else ""
+    sufijo = ruta_publica_firma(usuario_id, token)
+    # compare_digest sobre la cola de la URL (mismo largo que el sufijo
+    # esperado): comparación en tiempo constante.
+    cola = url_vigente[-len(sufijo):]
+    if not usuario or not secrets.compare_digest(cola.encode(), sufijo.encode()):
+        raise HTTPException(status_code=404, detail=MENSAJE_FIRMA_NO_ENCONTRADA)
 
     from core import branding
     from core.storage import obtener_storage_service, construir_storage_key_firma_usuario
 
     storage = obtener_storage_service()
     for extension in sorted(branding.EXTENSIONES_IMAGEN_PERMITIDAS):
-        key = construir_storage_key_firma_usuario(usuario_id, extension)
+        key = construir_storage_key_firma_usuario(usuario_id, token, extension)
         if storage.existe(key):
             return storage.leer(key), branding.content_type_por_extension(extension)
-    raise HTTPException(status_code=404, detail="Este usuario no tiene firma configurada.")
+    raise HTTPException(status_code=404, detail=MENSAJE_FIRMA_NO_ENCONTRADA)

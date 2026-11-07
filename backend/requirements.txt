@@ -31,7 +31,7 @@ openpyxl==3.1.5
 packaging==26.2
 pandas==3.0.2
 passlib==1.7.4
-pillow==12.2.0
+pillow==13.0.0
 psycopg2-binary==2.9.12
 pyasn1==0.6.3
 pycparser==3.0
@@ -39,14 +39,14 @@ pydantic==2.13.3
 pydantic_core==2.46.3
 PyJWT==2.13.0
 pyparsing==3.3.2
-# 🆕 Fase de validación de informes — solo lo usa tests/verificar_informe_pdf_*
-# para verificar el CONTENIDO real de los PDF generados (extracción de texto),
-# nunca el backend de producción (que solo escribe PDFs con reportlab, nunca
-# los lee de vuelta).
-pypdf==6.19.0
+# Lo usan los tests (leer de vuelta los PDF generados) y, desde la evidencia
+# del expediente (sesión 2026-10-23), producción: fusiona los anexos PDF al
+# final del informe. 🆕 (sesión 2026-11-05) siempre en un proceso hijo con
+# tiempo máximo — core/pdf_aislado.py.
+pypdf==6.21.4
 python-dateutil==2.9.0.post0
 python-jose==3.5.0
-python-multipart==0.0.26
+python-multipart==0.0.31
 # 🆕 Fase 2 de core/models_tareas.py (ver docstring de ese módulo) — cola de
 # tareas real para lo que antes corría vía BackgroundTasks de FastaPI (PDF
 # de informe, enganche automático de documentos, emails de alerta). Celery
@@ -62,7 +62,7 @@ sentry-sdk==2.66.1
 six==1.17.0
 slowapi==0.1.10
 SQLAlchemy==2.0.49
-starlette==1.0.0
+starlette==1.3.1
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2026.2

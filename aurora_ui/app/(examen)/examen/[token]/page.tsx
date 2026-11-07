@@ -396,6 +396,15 @@ export default function ExamenPage() {
         await new Promise((resolver) => setTimeout(resolver, 800));
         return guardarRespuestaConReintento(preguntaId, valor, miIntento, intentosRestantes - 1);
       }
+      // 🆕 (A4 de la revisión de seguridad) Un 429 SÍ vale la pena
+      // reintentarlo: es "espera un momento", no "esta respuesta está mal".
+      // Antes se trataba como cualquier otro 4xx y se le borraba la
+      // respuesta al alumno. Espera más larga que un corte de red (3 s y
+      // luego 6 s), para dejar que el cupo se recupere.
+      if (err instanceof ApiError && err.status === 429 && intentosRestantes > 0) {
+        await new Promise((resolver) => setTimeout(resolver, 3000 * (3 - intentosRestantes)));
+        return guardarRespuestaConReintento(preguntaId, valor, miIntento, intentosRestantes - 1);
+      }
       // Solo se revierte si NINGÚN intento más nuevo ya quedó encolado para
       // esta misma pregunta — si lo hay, es ese el que debe decidir el
       // estado visible final, no este, que ya quedó obsoleto.

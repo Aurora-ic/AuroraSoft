@@ -536,6 +536,31 @@ def _extension_segura(nombre_archivo: str) -> str:
     return extension
 
 
+EXTENSIONES_EVIDENCIA_IMAGEN = {".jpg", ".jpeg", ".png"}
+
+
+def _validar_contenido_evidencia(contenido: bytes, extension: str, content_type: str) -> str:
+    """🆕 (sesión 2026-11-05, A1 de la revisión de seguridad) Si la evidencia
+    es una imagen, se valida su CONTENIDO real (PNG/JPEG, tope de píxeles,
+    decodificable — core/imagen_segura.py) y se guarda con el content-type
+    de ese formato, no con el que declara el cliente: el PDF del informe
+    decide si un anexo es imagen o PDF por ese content-type
+    (educativo/crud.py), y una imagen que no lo es terminaba abierta por
+    Pillow con todos sus formatos.
+
+    🆕 (M1 de la misma revisión) Los PDF también: cabecera `%PDF-` y una
+    pasada completa de pypdf en un proceso hijo con tiempo máximo
+    (core/pdf_aislado.py) — cifrado, vacío, dañado o de más de 200 páginas
+    -> 400 aquí, en vez de fallar (o colgarse) recién al armar el informe.
+    La lista blanca de `_extension_segura` deja solo .pdf/.jpg/.jpeg/.png,
+    así que no queda ninguna rama sin validar."""
+    if extension in EXTENSIONES_EVIDENCIA_IMAGEN:
+        from core.imagen_segura import validar_imagen_para_subida
+        return validar_imagen_para_subida(contenido, extension)
+    from core.pdf_aislado import validar_pdf_para_subida
+    return validar_pdf_para_subida(contenido)
+
+
 def guardar_evidencia_consentimiento(
     db: Session, consentimiento: models.ConsentimientoInformado,
     contenido: bytes, nombre_archivo: str, content_type: str, usuario_id: int,
@@ -557,6 +582,7 @@ def guardar_evidencia_consentimiento(
             detail=f"El archivo supera el tamaño máximo permitido ({TAMANO_MAXIMO_EVIDENCIA_BYTES // (1024*1024)} MB).",
         )
     extension = _extension_segura(nombre_archivo)
+    content_type = _validar_contenido_evidencia(contenido, extension, content_type)
 
     from core.storage import obtener_storage_service, construir_storage_key_evidencia_consentimiento
     key = construir_storage_key_evidencia_consentimiento(
@@ -2692,6 +2718,7 @@ def crear_entrada_expediente_evidencia(
             detail=f"El archivo supera el tamaño máximo permitido ({TAMANO_MAXIMO_EVIDENCIA_BYTES // (1024*1024)} MB).",
         )
     extension = _extension_segura(nombre_archivo)
+    content_type = _validar_contenido_evidencia(contenido, extension, content_type)
 
     # Se escribe el storage ANTES de insertar la fila — storage_key es
     # NOT NULL desde el primer INSERT (ck_expediente_campos_segun_tipo), así

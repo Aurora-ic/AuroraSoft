@@ -817,6 +817,10 @@ def guardar_imagen_seccion(
             detail=f"La imagen supera el tamaño máximo permitido ({TAMANO_MAXIMO_IMAGEN_SECCION_BYTES // (1024*1024)} MB).",
         )
     extension = _extension_imagen_segura(nombre_archivo)
+    # 🆕 (A1 de la revisión de seguridad) contenido real PNG/JPEG, tope de
+    # píxeles y decodificable — no basta con la extensión del nombre.
+    from core.imagen_segura import validar_imagen_para_subida
+    content_type = validar_imagen_para_subida(contenido, extension)
 
     from core.storage import obtener_storage_service, construir_storage_key_imagen_seccion_documento
     import uuid
@@ -824,7 +828,6 @@ def guardar_imagen_seccion(
     key = construir_storage_key_imagen_seccion_documento(
         documento.institucion_id, documento.id, plantilla_seccion_id, token, extension,
     )
-    content_type = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}[extension]
     obtener_storage_service().guardar(key, contenido, content_type)
 
     fila = db.query(models.DocumentoInstitucionalSeccionContenido).filter(

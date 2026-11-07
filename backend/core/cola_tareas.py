@@ -66,6 +66,17 @@ app.conf.update(
     # respuesta HTTP.
     broker_transport_options={"socket_connect_timeout": 3, "socket_timeout": 3},
     broker_connection_timeout=3,
+    # 🆕 (sesión 2026-11-05, M1 de la revisión de seguridad) Red de
+    # seguridad: ninguna tarea puede ocupar un worker para siempre. La más
+    # larga legítima es el informe PDF con anexos (cada PDF ajeno ya corre
+    # en un proceso hijo con su propio tope — core/pdf_aislado.py). Al
+    # vencer el blando se lanza SoftTimeLimitExceeded dentro de la tarea
+    # (su except hace rollback y reintenta); al vencer el duro, Celery mata
+    # el proceso del worker. Ojo: el pool 'solo' de desarrollo en Windows
+    # no aplica estos topes (necesitan señales); en el pool prefork de
+    # Linux sí.
+    task_soft_time_limit=300,
+    task_time_limit=360,
 )
 
 def encolar_sin_bloquear(tarea, *args) -> None:
@@ -111,3 +122,23 @@ app.conf.beat_schedule = {
         "schedule": crontab(hour=12, minute=0),  # 7:00 America/Lima
     },
 }
+
+
+# 🆕 (sesión 2026-11-07, M4 de la revisión de seguridad) Antes el worker no
+# reportaba nada a Sentry: un informe PDF o un correo de alerta que fallaba
+# solo quedaba en su consola. Se inicia al arrancar el worker o el beat (no al
+# importar este módulo, que también lo importa uvicorn para encolar), con la
+# misma configuración limpia que la API — ver core/monitoreo.py.
+from celery.signals import beat_init, worker_init  # noqa: E402
+
+
+@worker_init.connect
+def _sentry_en_worker(**_kwargs):
+    from core.monitoreo import iniciar_sentry
+    iniciar_sentry("worker")
+
+
+@beat_init.connect
+def _sentry_en_beat(**_kwargs):
+    from core.monitoreo import iniciar_sentry
+    iniciar_sentry("beat")

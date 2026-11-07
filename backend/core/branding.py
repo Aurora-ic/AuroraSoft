@@ -28,14 +28,25 @@ def extension_imagen_segura(nombre_archivo: str) -> str:
     return extension
 
 
-def validar_imagen_subida(contenido: bytes, content_type: str) -> None:
+def validar_imagen_subida(contenido: bytes, nombre_archivo: str) -> tuple[str, str]:
+    """Tamaño, lista blanca de extensión del nombre y CONTENIDO real (PNG/
+    JPEG, tope de píxeles, decodificable — core/imagen_segura.py). Devuelve
+    (extension, content_type) con los que se guarda: el content-type sale
+    del formato real, nunca del que declara el cliente.
+
+    🆕 (sesión 2026-11-05, A1 de la revisión de seguridad) Antes solo se
+    miraba que el Content-Type del cliente empezara con 'image/' — lo
+    escribe quien sube, así que cualquier archivo pasaba con solo
+    declararlo."""
     if len(contenido) > TAMANO_MAXIMO_IMAGEN_BYTES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"La imagen supera el tamaño máximo permitido ({TAMANO_MAXIMO_IMAGEN_BYTES // (1024*1024)} MB).",
         )
-    if not (content_type or "").startswith("image/"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El archivo debe ser una imagen.")
+    extension = extension_imagen_segura(nombre_archivo)
+    from core.imagen_segura import validar_imagen_para_subida
+    content_type = validar_imagen_para_subida(contenido, extension)
+    return extension, content_type
 
 
 def content_type_por_extension(extension: str) -> str:

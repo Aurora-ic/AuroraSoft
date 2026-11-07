@@ -351,7 +351,7 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
-    "GET /api/auth/usuarios/{usuario_id}/firma": {
+    "GET /api/auth/usuarios/{usuario_id}/firma/{token}": {
       "admin": false,
       "colegio": false,
       "psicologo": false,

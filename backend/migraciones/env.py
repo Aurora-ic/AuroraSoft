@@ -22,16 +22,11 @@ load_dotenv()
 # ==========================================
 # CONFIGURACIÓN DE SENTRY (MIGRACIONES)
 # ==========================================
-import sentry_sdk
+# 🆕 (sesión 2026-11-07, M4) Misma configuración limpia que la API — ver
+# core/monitoreo.py. Solo se activa si existe SENTRY_DSN.
+from core.monitoreo import iniciar_sentry  # noqa: E402
 
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        traces_sample_rate=1.0,
-        environment=os.getenv("ENTORNO", "development"),
-    )
+iniciar_sentry("migraciones")
 
 from alembic import context
 

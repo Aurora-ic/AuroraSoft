@@ -122,6 +122,15 @@ def test_c11_sin_redirecciones():
         def close(self):
             pass
 
+    # 🆕 (A1 de la revisión de seguridad) descargar_logo_seguro ahora exige
+    # que los bytes sean un PNG/JPEG real (core/imagen_segura.py) — el
+    # antiguo b"\x89PNG-ok" ya no cuenta como imagen válida.
+    import io as _io
+    from PIL import Image as _PILImage
+    _buf = _io.BytesIO()
+    _PILImage.new("RGB", (4, 4)).save(_buf, format="PNG")
+    png_real = _buf.getvalue()
+
     original = url_segura._abrir_conexion
     try:
         for estado, tipo, cuerpo, esperado, nombre in [
@@ -129,7 +138,8 @@ def test_c11_sin_redirecciones():
             (200, "text/html", b"<html>", None, "Un Content-Type que no es imagen se descarta"),
             (200, "image/png", b"x" * (url_segura.TAMANO_MAXIMO_LOGO + 10), None,
              "Un logo de más de 2 MiB se descarta"),
-            (200, "image/png", b"\x89PNG-ok", b"\x89PNG-ok", "Una imagen válida sí se descarga"),
+            (200, "image/png", b"\x89PNG-ok", None, "Bytes que solo empiezan como PNG se descartan"),
+            (200, "image/png", png_real, png_real, "Una imagen válida sí se descarga"),
         ]:
             conexiones = []
             def abrir(host, ip, timeout, _r=RespuestaFalsa(estado, tipo, cuerpo)):

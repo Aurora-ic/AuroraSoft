@@ -40,7 +40,7 @@ def leer_archivo_con_limite(archivo: UploadFile, limite_bytes: int, nombre_campo
         total += len(bloque)
         if total > limite_bytes:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail=(
                     f"El {nombre_campo} supera el tamaño máximo permitido "
                     f"({limite_bytes // (1024 * 1024)} MB)."

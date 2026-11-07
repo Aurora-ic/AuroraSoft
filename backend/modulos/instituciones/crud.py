@@ -78,8 +78,8 @@ def subir_imagen_branding(
         raise HTTPException(status_code=400, detail=f"tipo debe ser uno de {sorted(TIPOS_BRANDING_VALIDOS)}.")
 
     from core import branding
-    branding.validar_imagen_subida(contenido, content_type)
-    extension = branding.extension_imagen_segura(nombre_archivo)
+    # content_type se reemplaza por el del formato REAL de la imagen.
+    extension, content_type = branding.validar_imagen_subida(contenido, nombre_archivo)
 
     institucion = obtener_institucion_por_id(db, institucion_id)
     if not institucion:

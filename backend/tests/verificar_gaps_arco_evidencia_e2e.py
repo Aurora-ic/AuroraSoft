@@ -40,6 +40,22 @@ MOTOR = None
 _resultados = []
 
 
+def pdf_real(texto: str, paginas: int = 1) -> bytes:
+    """PDF real (reportlab). 🆕 (M1 de la revisión de seguridad) la subida
+    ahora abre el PDF de verdad (core/pdf_aislado.py): un b"%PDF-..." de
+    relleno ya no pasa."""
+    import io
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    lienzo = canvas.Canvas(buffer)
+    for n in range(paginas):
+        lienzo.drawString(72, 720, f"{texto} - pagina {n + 1}")
+        lienzo.showPage()
+    lienzo.save()
+    return buffer.getvalue()
+
+
 def comprobar(nombre, condicion, detalle=""):
     _resultados.append((nombre, bool(condicion), detalle))
     print(f"  [{'PASA' if condicion else 'FALLA'}] {nombre}" + (f" — {detalle}" if detalle else ""))
@@ -124,6 +140,16 @@ def responder_y_finalizar_phq9(token, preg_phq9, valores):
     ]
     exigir(requests.post(f"{API}/educativo/examen/{token}/guardar",
                          json={"respuestas": respuestas}, timeout=30), 200, "Guardar respuestas")
+    # 🔧 (sesión 2026-11-05) El PHQ-9 tiene además el ítem 10 informativo, sin
+    # dimensión (no sale en el detalle de staff) y finalizar exige responderlo:
+    # se completa con su primera opción, igual que verificar_flujo_completo_e2e.
+    hechas = {r["pregunta_id"] for r in respuestas}
+    preguntas = requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30).json()
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in preguntas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        exigir(requests.post(f"{API}/educativo/examen/{token}/guardar",
+                             json={"respuestas": faltan}, timeout=30), 200, "Completar ítems restantes")
     exigir(requests.post(f"{API}/educativo/examen/{token}/finalizar", timeout=60), 200, "Finalizar")
 
 
@@ -151,7 +177,7 @@ def main(url_base):
 
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa",
                                        headers=h_admin, timeout=30), 200, "Detalle PHQ-9")
-    preg_phq9 = {p["orden"]: p for p in detalle_phq9["dimensiones"][0]["preguntas"]}
+    preg_phq9 = {p["orden"]: p for d in detalle_phq9["dimensiones"] for p in d["preguntas"]}
 
     persona_id = crear_persona(h_admin, inst, sello, "Principal")
 
@@ -266,7 +292,7 @@ def main(url_base):
     # 4 · Evidencia del consentimiento
     # ------------------------------------------------------------------
     print("\n4 · POST/GET consentimiento/{id}/evidencia")
-    contenido_pdf = b"%PDF-1.4 contenido de prueba " + sello.encode()
+    contenido_pdf = pdf_real(f"Consentimiento firmado {sello}")
     r_subida = requests.post(
         f"{API}/admin/personas/consentimiento/{cons_2_id}/evidencia",
         files={"archivo": ("consentimiento_firmado.pdf", contenido_pdf, "application/pdf")},
@@ -300,6 +326,69 @@ def main(url_base):
     comprobar("Un admin de OTRA institución -> 403", r_otra_institucion.status_code == 403,
               f"status={r_otra_institucion.status_code}")
 
+    r_pdf_falso = requests.post(
+        f"{API}/admin/personas/consentimiento/{cons_2_id}/evidencia",
+        files={"archivo": ("escaneo.pdf", b"%PDF-1.4 esto no es un PDF de verdad", "application/pdf")},
+        headers=h_admin, timeout=30,
+    )
+    comprobar("🆕 PDF falso (solo la cabecera) -> 400", r_pdf_falso.status_code == 400, r_pdf_falso.text[:200])
+
+    # ------------------------------------------------------------------
+    # 5 · 🆕 (M1 de la revisión de seguridad) Evidencia PDF del expediente
+    # fusionada en el informe — pypdf corre en un proceso hijo con tiempo
+    # máximo (core/pdf_aislado.py), también dentro de la petición de reemitir.
+    # ------------------------------------------------------------------
+    print("\n5 · Evidencia PDF del expediente -> anexo del informe reemitido")
+    informe_2 = None
+    for _ in range(60):  # el worker de Celery genera la versión 1
+        informe_2 = sql_uno("select id, version_actual from edu_informes where inscripcion_id=:i", i=insc_2_id)
+        if informe_2 and informe_2[1] >= 1:
+            break
+        time.sleep(2)
+    comprobar("El informe de la campaña B existe (worker de Celery corriendo)", bool(informe_2 and informe_2[1] >= 1))
+    if informe_2 and informe_2[1] >= 1:
+        informe_2_id = informe_2[0]
+        url_evid = f"{API}/admin/personas/{persona_id}/expediente/evidencia"
+        datos_evid = {"titulo": f"{PREFIJO} Dibujo", "informe_id": str(informe_2_id), "incluir_en_pdf_informe": "true"}
+        from pypdf import PdfReader, PdfWriter
+        import io as _io
+        _w = PdfWriter()
+        for _p in PdfReader(_io.BytesIO(pdf_real("cifrado"))).pages:
+            _w.add_page(_p)
+        _w.encrypt("clave")
+        _b = _io.BytesIO()
+        _w.write(_b)
+        for nombre_caso, archivo in (
+            ("HTML llamado .pdf", ("dibujo.pdf", b"<html><script>alert(1)</script></html>", "application/pdf")),
+            ("PDF cifrado", ("dibujo.pdf", _b.getvalue(), "application/pdf")),
+        ):
+            r_mala = requests.post(url_evid, data=datos_evid, files={"archivo": archivo}, headers=h_psi, timeout=60)
+            comprobar(f"Evidencia {nombre_caso} -> 400", r_mala.status_code == 400, r_mala.text[:200])
+
+        marca = f"ANEXO-{sello}"
+        anexo = pdf_real(marca, paginas=2)
+        r_evid = requests.post(url_evid, data=datos_evid,
+                               files={"archivo": ("dibujo.pdf", anexo, "application/octet-stream")},
+                               headers=h_psi, timeout=60)
+        comprobar("Evidencia PDF real -> 201", r_evid.status_code == 201, r_evid.text[:200])
+        comprobar("se guarda como application/pdf aunque el cliente dijo octet-stream",
+                  r_evid.status_code == 201 and r_evid.json().get("content_type") == "application/pdf",
+                  str(r_evid.json().get("content_type") if r_evid.status_code == 201 else ""))
+
+        r_reemitir = requests.post(f"{API}/educativo/inscripciones/{insc_2_id}/informe/reemitir",
+                                   json={"motivo": "Incluir evidencia del expediente"}, headers=h_psi, timeout=120)
+        comprobar("Reemitir con el anexo -> 200", r_reemitir.status_code == 200, r_reemitir.text[:200])
+        if r_reemitir.status_code == 200:
+            n_ver = r_reemitir.json()["numero_version"]
+            fila = sql_uno("select storage_key from edu_informe_versiones where informe_id=:i and numero_version=:n",
+                           i=informe_2_id, n=n_ver)
+            from core.storage import obtener_storage_service
+            lector = PdfReader(_io.BytesIO(obtener_storage_service().leer(fila[0])))
+            texto = "\n".join(p.extract_text() or "" for p in lector.pages)
+            comprobar("las 2 páginas del anexo están en el PDF del informe", texto.count(marca) == 2,
+                      f"apariciones={texto.count(marca)}, paginas={len(lector.pages)}")
+            comprobar("y va precedido de su portada", f"{PREFIJO} Dibujo" in texto)
+
     total = len(_resultados)
     fallos = [n for n, ok, _ in _resultados if not ok]
     print("\n" + "=" * 72)
@@ -328,6 +417,10 @@ def limpiar():
             delete from edu_respuestas_alumno where inscripcion_id in (
                 select i.id from edu_inscripciones i join personas p on p.id = i.persona_id
                 where p.nombres like :pref)
+        """), {"pref": f"{PREFIJO}%"})
+        c.execute(text("""
+            delete from expediente_entradas where persona_id in (
+                select id from personas where nombres like :pref)
         """), {"pref": f"{PREFIJO}%"})
         c.execute(text("""
             delete from edu_informe_versiones where informe_id in (

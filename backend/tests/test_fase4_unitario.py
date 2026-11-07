@@ -219,14 +219,22 @@ def test_orden_de_carga_de_env():
         with open(os.path.join(_BACKEND_DIR, ruta), encoding="utf-8") as f:
             lineas = f.readlines()
         idx_dotenv = _indice_de_primera_linea(lineas, "load_dotenv()")
-        idx_sentry = _indice_de_primera_linea(lineas, 'os.getenv("SENTRY_DSN")')
+        # 🆕 (sesión 2026-11-07, M4) SENTRY_DSN ya no se lee aquí: lo lee
+        # core/monitoreo.iniciar_sentry(), que se llama desde ambos archivos.
+        idx_sentry = _indice_de_primera_linea(lineas, 'iniciar_sentry("')
         comprobar(
-            f"{ruta}: load_dotenv() corre antes de leer SENTRY_DSN",
+            f"{ruta}: load_dotenv() corre antes de iniciar Sentry",
             idx_dotenv is not None and idx_sentry is not None and idx_dotenv < idx_sentry,
             f"dotenv en línea {idx_dotenv}, SENTRY_DSN en línea {idx_sentry}",
         )
         # Verificación sintáctica de que el archivo sigue siendo Python válido.
         ast.parse("".join(lineas), filename=ruta)
+    # Y aunque alguien llame a iniciar_sentry() sin pasar por main.py,
+    # core/monitoreo importa core/entorno, que corre load_dotenv() al importarse.
+    with open(os.path.join(_BACKEND_DIR, "core", "entorno.py"), encoding="utf-8") as f:
+        comprobar("core/entorno.py carga el .env al importarse", "\nload_dotenv()" in f.read())
+    with open(os.path.join(_BACKEND_DIR, "core", "monitoreo.py"), encoding="utf-8") as f:
+        comprobar("core/monitoreo.py importa core.entorno", "from core.entorno import" in f.read())
 
 
 def test_archivo_huerfano_eliminado():

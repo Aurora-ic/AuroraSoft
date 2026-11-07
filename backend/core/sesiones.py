@@ -40,10 +40,10 @@ PATH_RENOVACION = "/api/auth"
 SESION_HORAS = float(os.getenv("SESION_HORAS", "12"))
 SESION_INACTIVIDAD_MINUTOS = float(os.getenv("SESION_INACTIVIDAD_MINUTOS", "60"))
 
-_ENTORNO = os.getenv("ENTORNO", "development")
+from core.entorno import ES_DESARROLLO  # noqa: E402 — falta ENTORNO = producción (M3)
 # Secure por defecto fuera de desarrollo (HTTPS). En desarrollo, localhost
 # por HTTP no podría guardar una cookie Secure en todos los navegadores.
-COOKIE_SECURE = os.getenv("SESION_COOKIE_SECURE", "false" if _ENTORNO == "development" else "true").strip().lower() in ("true", "1", "si", "sí")
+COOKIE_SECURE = os.getenv("SESION_COOKIE_SECURE", "false" if ES_DESARROLLO else "true").strip().lower() in ("true", "1", "si", "sí")
 # 'lax' sirve mientras frontend y API compartan sitio (app.x.pe/api.x.pe, o
 # localhost:3000/localhost:8000 — el puerto no cuenta). Si la API vive en
 # otro sitio (un túnel ngrok), hace falta 'none' (y entonces Secure).

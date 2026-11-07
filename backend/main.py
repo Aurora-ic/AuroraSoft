@@ -23,16 +23,13 @@ from core.limiter import limiter  # 👈 Usamos la instancia única centralizada
 # ==========================================
 # CONFIGURACIÓN DE SENTRY (MONITOREO DE ERRORES)
 # ==========================================
-import sentry_sdk
+from core.entorno import ENTORNO, ES_DESARROLLO  # noqa: E402 — ver core/entorno.py (falta = producción)
+from core.monitoreo import iniciar_sentry  # noqa: E402
 
-SENTRY_DSN = os.getenv("SENTRY_DSN")
-
-if SENTRY_DSN:
-    sentry_sdk.init(
-        dsn=SENTRY_DSN,
-        traces_sample_rate=1.0,  # Registra el 100% de las trazas para depuración
-        environment=os.getenv("ENTORNO", "development"),
-    )
+# 🆕 (sesión 2026-11-07, M4) Sin variables locales, sin cuerpo, sin cookies y
+# con los tokens del examen/firma tapados — ver core/monitoreo.py. Solo se
+# activa si existe SENTRY_DSN.
+iniciar_sentry("api")
 
 # ==========================================
 # CONFIGURACIÓN DE LOGGING (REGISTRO DE ERRORES)
@@ -71,13 +68,14 @@ from modulos.documentos import router as documentos_router
 # ==========================================
 # 3. APLICACIÓN Y CONFIGURACIÓN DE ENTORNO
 # ==========================================
-ENTORNO = os.getenv("ENTORNO", "development")
+# ENTORNO / ES_DESARROLLO vienen de core/entorno.py (importado arriba): si la
+# variable falta, el backend se comporta como producción, no como desarrollo.
 
 # 🆕 (sesión 2026-11-02) Fuera de desarrollo, los contadores de seguridad
 # (rate limit, captchas, captcha adaptativo) deben ir a Redis para que los
 # compartan todos los workers — ver core/almacen_seguridad.py.
 from core.almacen_seguridad import ALMACEN_SEGURIDAD_URL  # noqa: E402
-if ENTORNO != "development" and not ALMACEN_SEGURIDAD_URL:
+if not ES_DESARROLLO and not ALMACEN_SEGURIDAD_URL:
     logger.warning(
         "ALMACEN_SEGURIDAD_URL no está definida: rate limit y captchas viven en la "
         "memoria de cada proceso. Con más de un worker de uvicorn NO se comparten."
@@ -85,8 +83,13 @@ if ENTORNO != "development" and not ALMACEN_SEGURIDAD_URL:
 
 app = FastAPI(
     title="AuroraSoft API",
-    docs_url="/docs" if ENTORNO == "development" else None,
-    redoc_url="/redoc" if ENTORNO == "development" else None,
+    docs_url="/docs" if ES_DESARROLLO else None,
+    redoc_url="/redoc" if ES_DESARROLLO else None,
+    # 🆕 (sesión 2026-11-07, M3) Antes solo se apagaban /docs y /redoc:
+    # /openapi.json seguía publicando el mapa completo de rutas, parámetros
+    # y esquemas en producción. `npm run generar-tipos` corre contra el
+    # backend local (desarrollo), así que no lo necesita en producción.
+    openapi_url="/openapi.json" if ES_DESARROLLO else None,
 )
 
 # Configuración del Limiter (Rate Limiting)
@@ -105,6 +108,43 @@ async def manejador_global_de_errores(request: Request, exc: Exception):
     )
 
 # ==========================================
+# 3b. TOPE DE TAMAÑO DEL CUERPO (antes de autenticar)
+# ==========================================
+# 🆕 (sesión 2026-11-05, A2 de la revisión de seguridad) FastAPI lee el
+# multipart completo antes de resolver Depends(...): sin esto, cualquiera sin
+# sesión podía mandar varios GB a una ruta de subida y llenar el disco. Ver
+# core/limite_cuerpo.py. Cada ruta con UploadFile lleva el tope de su propio
+# endpoint + margen del multipart; tests/test_limite_cuerpo_unitario.py falla
+# si aparece una ruta de subida nueva sin su fila aquí.
+# Se registra ANTES que CORS a propósito: add_middleware apila hacia afuera,
+# así CORS queda envolviendo este middleware y el 413 sale con las cabeceras
+# CORS (si no, el navegador lo ve como un error de red sin mensaje).
+from core.branding import TAMANO_MAXIMO_IMAGEN_BYTES  # noqa: E402
+from core.limite_cuerpo import LIMITE_CUERPO_POR_DEFECTO_BYTES, MARGEN_MULTIPART_BYTES, MiddlewareLimiteCuerpo  # noqa: E402
+from modulos.documentos.crud import TAMANO_MAXIMO_IMAGEN_SECCION_BYTES  # noqa: E402
+from modulos.superadmin.crud import TAMANO_MAXIMO_EVIDENCIA_BYTES  # noqa: E402
+from modulos.superadmin.importacion_estudiantes import TAMANO_MAXIMO_BYTES as TAMANO_MAXIMO_EXCEL_BYTES  # noqa: E402
+
+LIMITES_SUBIDA_POR_RUTA = {
+    ruta: tope + MARGEN_MULTIPART_BYTES
+    for ruta, tope in {
+        "/api/admin/personas/consentimiento/{consentimiento_id}/evidencia": TAMANO_MAXIMO_EVIDENCIA_BYTES,
+        "/api/admin/personas/{persona_id}/expediente/evidencia": TAMANO_MAXIMO_EVIDENCIA_BYTES,
+        "/api/admin/personas/importar/validar": TAMANO_MAXIMO_EXCEL_BYTES,
+        "/api/admin/personas/importar/confirmar": TAMANO_MAXIMO_EXCEL_BYTES,
+        "/api/auth/usuarios/{usuario_id}/firma": TAMANO_MAXIMO_IMAGEN_BYTES,
+        "/api/instituciones/{institucion_id}/branding/{tipo}": TAMANO_MAXIMO_IMAGEN_BYTES,
+        "/api/documentos/{documento_id}/secciones/{plantilla_seccion_id}/imagen": TAMANO_MAXIMO_IMAGEN_SECCION_BYTES,
+    }.items()
+}
+
+app.add_middleware(
+    MiddlewareLimiteCuerpo,
+    limites_por_ruta=LIMITES_SUBIDA_POR_RUTA,
+    limite_por_defecto=LIMITE_CUERPO_POR_DEFECTO_BYTES,
+)
+
+# ==========================================
 # 4. CONFIGURACIÓN CORS
 # ==========================================
 origenes_permitidos = os.getenv(
@@ -118,6 +158,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==========================================
+# 4b. CABECERAS DE SEGURIDAD (el middleware más externo)
+# ==========================================
+# 🆕 (sesión 2026-11-07, M2) Se registra DESPUÉS de CORS a propósito:
+# add_middleware apila hacia afuera, así también llevan estas cabeceras el
+# preflight de CORS, un 413 del tope de cuerpo y un 429. Ver
+# core/cabeceras_seguridad.py.
+from core.cabeceras_seguridad import MiddlewareCabecerasSeguridad  # noqa: E402
+
+app.add_middleware(MiddlewareCabecerasSeguridad, es_desarrollo=ES_DESARROLLO)
 
 # ==========================================
 # 5. CONECTAR LOS ENRUTADORES

@@ -14,7 +14,8 @@ from core import models_tareas as core_models_tareas
 # 🔒 GUARD DE SEGURIDAD — NO QUITAR
 # ==========================================
 # Se unifica el nombre de la variable a 'ENTORNO'
-ENTORNO = os.getenv("ENTORNO", "development")
+# (M3, sesión 2026-11-07) Si falta, cuenta como producción — y entonces se niega.
+ENTORNO = (os.getenv("ENTORNO") or "production").strip().lower()
 if ENTORNO != "development":
     raise RuntimeError(
         f"⛔ Este script NO se puede ejecutar con ENTORNO='{ENTORNO}'. "

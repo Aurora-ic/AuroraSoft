@@ -48,7 +48,10 @@ def _tomar_candado_del_dia(clave: str) -> bool:
     return bool(r.set(clave, "1", nx=True, ex=CANDADO_AGENDA_SEGUNDOS))
 
 
-@celery_app.task(name="tareas.notificar_agenda_diaria")
+# Tope propio, más amplio que el global de core/cola_tareas.py: manda un
+# correo por psicólogo, uno tras otro, y su candado de un envío por día
+# impide repetirla si se corta a mitad — mejor dejarla terminar.
+@celery_app.task(name="tareas.notificar_agenda_diaria", soft_time_limit=1500, time_limit=1800)
 def tarea_notificar_agenda_diaria() -> int:
     from datetime import datetime
 

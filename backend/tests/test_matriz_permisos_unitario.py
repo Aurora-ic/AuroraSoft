@@ -174,8 +174,9 @@ _PUBLICO_PERMITIDO_PATRONES = [
     re.compile(r"^/api/instituciones/\{institucion_id\}/branding/\{tipo\}$"),
     # Firma personal — mismo criterio: es la URL que descargar_logo_seguro()
     # pide sin credenciales al generar un PDF (ver modulos/auth/crud.py:
-    # leer_firma_usuario()).
-    re.compile(r"^/api/auth/usuarios/\{usuario_id\}/firma$"),
+    # leer_firma_usuario()). 🆕 (A3 de la revisión de seguridad) con el
+    # token de la firma vigente en la ruta: el id solo ya no alcanza.
+    re.compile(r"^/api/auth/usuarios/\{usuario_id\}/firma/\{token\}$"),
 ]
 
 

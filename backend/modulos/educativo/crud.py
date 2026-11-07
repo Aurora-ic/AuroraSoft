@@ -4299,7 +4299,10 @@ def _armar_casos_riesgo(db: Session, institucion_id: int, incluir_cerrados: bool
     return casos
 
 
-@celery_app.task(name="educativo.sincronizar_casos_riesgo", bind=True, max_retries=3, default_retry_delay=30)
+# Tope propio, más amplio que el global de core/cola_tareas.py: la pasada de
+# beat recorre TODAS las instituciones.
+@celery_app.task(name="educativo.sincronizar_casos_riesgo", bind=True, max_retries=3, default_retry_delay=30,
+                 soft_time_limit=900, time_limit=960)
 def tarea_sincronizar_casos_riesgo(self, institucion_id: Optional[int] = None) -> int:
     """🆕 (sesión 2026-11-02) Sincroniza la bandeja de casos en riesgo FUERA
     de la lectura. Se encola al finalizar un examen, al reprocesar un
