@@ -3,6 +3,7 @@ import logging
 import re
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Request, BackgroundTasks
+from core.descargas import content_disposition  # M7: nombre de descarga seguro
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -515,7 +516,7 @@ def descargar_informe_pdf_alumno(request: Request, token: str, db: Session = Dep
 
     # 🟢 PRIVACIDAD Y SEGURIDAD: Cabeceras anti-caché estrictas (Ley 29733)
     headers = {
-        "Content-Disposition": f'attachment; filename="{nombre_archivo}"',
+        "Content-Disposition": content_disposition(nombre_archivo, "informe.pdf"),
         "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         "Pragma": "no-cache",
         "Expires": "0"
@@ -575,7 +576,7 @@ def descargar_informe_pdf_staff(
     return StreamingResponse(
         pdf_buffer,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'}
+        headers={"Content-Disposition": content_disposition(nombre_archivo, "informe.pdf")}
     )
 
 
@@ -1477,7 +1478,7 @@ def descargar_modelo_consentimiento_pdf(
     return StreamingResponse(
         pdf,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="{prefijo}_{persona.id}.pdf"'},
+        headers={"Content-Disposition": content_disposition(f"{prefijo}_{persona.id}.pdf")},
     )
 
 
@@ -1835,7 +1836,7 @@ def exportar_dashboard_academico_excel(
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="resultados_{prueba_id}_{nombre_ambito}.xlsx"'}
+        headers={"Content-Disposition": content_disposition(f"resultados_{prueba_id}_{nombre_ambito}.xlsx")}
     )
 
 
@@ -1899,7 +1900,7 @@ def exportar_dashboard_excel(
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="resultados_{evaluacion_id}.xlsx"'}
+        headers={"Content-Disposition": content_disposition(f"resultados_{evaluacion_id}.xlsx")}
     )
 
 # ==========================================

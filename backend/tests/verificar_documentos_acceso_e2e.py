@@ -147,13 +147,14 @@ def main(url_base):
     comprobar("[2] 'colegio' SÍ puede descargar el documento compartible_colegio", r.status_code == 200, f"status {r.status_code}")
 
     listado_colegio = exigir(requests.get(f"{API}/documentos/", params={"institucion_id": inst_a}, headers=h_colegio_a, timeout=30), 200, "listar como colegio")
-    ids_listado_colegio = {d["id"] for d in listado_colegio}
+    # El listado está paginado desde 2026-10-17: {total, items}.
+    ids_listado_colegio = {d["id"] for d in listado_colegio["items"]}
     comprobar("[2] El listado de 'colegio' incluye el compartible_colegio", doc_compartible["id"] in ids_listado_colegio)
     comprobar("[2] El listado de 'colegio' NO incluye el confidencial_clinico (filtrado, no bloqueado entero)",
                doc_confidencial["id"] not in ids_listado_colegio)
 
     listado_admin = exigir(requests.get(f"{API}/documentos/", params={"institucion_id": inst_a}, headers=h_admin_a, timeout=30), 200, "listar como admin")
-    ids_listado_admin = {d["id"] for d in listado_admin}
+    ids_listado_admin = {d["id"] for d in listado_admin["items"]}
     comprobar("[2] admin de la misma institución ve AMBOS documentos (sin ACL por documento)",
                {doc_confidencial["id"], doc_compartible["id"]} <= ids_listado_admin)
 

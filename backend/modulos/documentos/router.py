@@ -2,6 +2,7 @@ import io
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File
+from core.descargas import content_disposition  # M7: nombre de descarga seguro
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -578,5 +579,5 @@ def descargar_version_endpoint(
     return StreamingResponse(
         io.BytesIO(contenido),
         media_type=version.mime_type,
-        headers={"Content-Disposition": f'attachment; filename="{version.nombre_archivo}"'},
+        headers={"Content-Disposition": content_disposition(version.nombre_archivo, "documento.pdf")},
     )

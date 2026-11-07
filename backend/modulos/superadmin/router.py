@@ -1,6 +1,7 @@
 import io
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, File, Form, status
+from core.descargas import content_disposition, tipo_contenido_por_firma  # M7: nombre y tipo seguros
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -405,9 +406,11 @@ def descargar_evidencia_consentimiento_endpoint(
     nombre_descarga = consentimiento.evidencia_nombre_archivo or "evidencia"
     return StreamingResponse(
         io.BytesIO(contenido),
-        media_type=consentimiento.evidencia_content_type or "application/octet-stream",
+        # 🆕 (M7) El tipo sale de los bytes, no del content_type guardado:
+        # antes de A1/M1 ese valor lo escribía el cliente al subir.
+        media_type=tipo_contenido_por_firma(contenido),
         headers={
-            "Content-Disposition": f'attachment; filename="{nombre_descarga}"',
+            "Content-Disposition": content_disposition(nombre_descarga, "evidencia"),
             "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
         },
     )
@@ -1020,7 +1023,7 @@ def descargar_plantilla_importacion(
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=plantilla_estudiantes_aurorasoft.xlsx"},
+        headers={"Content-Disposition": content_disposition("plantilla_estudiantes_aurorasoft.xlsx")},
     )
 
 
@@ -1381,8 +1384,9 @@ def descargar_evidencia_expediente_endpoint(
     nombre_descarga = entrada.nombre_archivo_original or "evidencia"
     return StreamingResponse(
         io.BytesIO(contenido),
-        media_type=entrada.content_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{nombre_descarga}"'},
+        # 🆕 (M7) Tipo por los bytes y nombre seguro — ver core/descargas.py.
+        media_type=tipo_contenido_por_firma(contenido),
+        headers={"Content-Disposition": content_disposition(nombre_descarga, "evidencia")},
     )
 
 

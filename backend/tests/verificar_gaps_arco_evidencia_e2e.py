@@ -389,6 +389,60 @@ def main(url_base):
                       f"apariciones={texto.count(marca)}, paginas={len(lector.pages)}")
             comprobar("y va precedido de su portada", f"{PREFIJO} Dibujo" in texto)
 
+    # ------------------------------------------------------------------
+    # 6 · 🆕 (M7 de la revisión de seguridad) Descarga de evidencia: nombre
+    # con tildes/apóstrofo/comillas sin 500, y el tipo sale de los bytes —
+    # nunca del content_type guardado (antes de A1/M1 lo escribía el cliente).
+    # ------------------------------------------------------------------
+    print("\n6 · Descarga de evidencia: nombre seguro y tipo por los bytes")
+    from urllib.parse import unquote
+    import re as _re
+    nombre_dificil = 'Consentimiento José O’Brien "firmado".pdf'
+    contenido_m7 = pdf_real(f"M7 {sello}")
+    r_sub = requests.post(
+        f"{API}/admin/personas/consentimiento/{cons_2_id}/evidencia",
+        files={"archivo": (nombre_dificil, contenido_m7, "application/pdf")},
+        headers=h_admin, timeout=30,
+    )
+    comprobar("Subida con nombre difícil: 200", r_sub.status_code == 200, r_sub.text[:200])
+    # Una fila "de antes de la revisión": content_type escrito por el cliente.
+    with MOTOR.begin() as c:
+        c.execute(text("update consentimientos_informados set evidencia_content_type='text/html' where id=:i"),
+                  {"i": cons_2_id})
+    r_baj = requests.get(f"{API}/admin/personas/consentimiento/{cons_2_id}/evidencia", headers=h_psi, timeout=30)
+    comprobar("Descarga: 200 (antes: 500 por el ’)", r_baj.status_code == 200, f"status={r_baj.status_code}")
+    comprobar("Content-Type application/pdf aunque la fila diga text/html",
+              r_baj.headers.get("content-type") == "application/pdf", r_baj.headers.get("content-type"))
+    cd = r_baj.headers.get("content-disposition", "")
+    ascii_ = _re.search(r'filename="([^"]*)"', cd)
+    utf8 = _re.search(r"filename\*=UTF-8''([^;]*)", cd)
+    comprobar("filename= en ASCII sin tildes ni comillas",
+              bool(ascii_) and ascii_.group(1).isascii() and "Jose" in ascii_.group(1), cd)
+    # El cliente (como los navegadores, por la norma HTML5 de multipart)
+    # manda las comillas del nombre como %22, y así queda guardado; lo que
+    # importa es que el nombre real llegue entero y sin comillas crudas.
+    nombre_real = unquote(utf8.group(1)) if utf8 else ""
+    comprobar("filename*= trae el nombre real (José O’Brien), sin comillas crudas",
+              nombre_real.startswith("Consentimiento José O’Brien") and nombre_real.endswith(".pdf")
+              and '"' not in nombre_real, nombre_real or cd)
+    comprobar("nosniff presente en la descarga", r_baj.headers.get("x-content-type-options") == "nosniff")
+
+    fila_evid = sql_uno(
+        "select id from expediente_entradas where persona_id=:p and tipo_entrada='evidencia' order by id desc limit 1",
+        p=persona_id)
+    if fila_evid:
+        with MOTOR.begin() as c:
+            c.execute(text("update expediente_entradas set content_type='text/html', "
+                           "nombre_archivo_original=:n where id=:i"), {"i": fila_evid[0], "n": "Dibujo de Łukasz’s.pdf"})
+        r_exp = requests.get(f"{API}/admin/personas/expediente/evidencia/{fila_evid[0]}/archivo",
+                             headers=h_psi, timeout=30)
+        comprobar("Evidencia del expediente: 200 con nombre fuera de Latin-1", r_exp.status_code == 200,
+                  f"status={r_exp.status_code}")
+        comprobar("Evidencia del expediente: application/pdf aunque la fila diga text/html",
+                  r_exp.headers.get("content-type") == "application/pdf", r_exp.headers.get("content-type"))
+    else:
+        comprobar("Hay una evidencia de expediente de la sección 5 para probar", False)
+
     total = len(_resultados)
     fallos = [n for n, ok, _ in _resultados if not ok]
     print("\n" + "=" * 72)
@@ -417,6 +471,12 @@ def limpiar():
             delete from edu_respuestas_alumno where inscripcion_id in (
                 select i.id from edu_inscripciones i join personas p on p.id = i.persona_id
                 where p.nombres like :pref)
+        """), {"pref": f"{PREFIJO}%"})
+        # 🆕 (M7) la sección 6 descarga una evidencia del expediente, y cada
+        # descarga deja su lectura auditada (Ley 29733).
+        c.execute(text("""
+            delete from registro_lecturas_expediente where persona_id in (
+                select id from personas where nombres like :pref)
         """), {"pref": f"{PREFIJO}%"})
         c.execute(text("""
             delete from expediente_entradas where persona_id in (
