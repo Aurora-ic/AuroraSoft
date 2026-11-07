@@ -24,7 +24,7 @@ db = SessionLocal()
 
 try:
     # 1. Obtener email del entorno o usar valor predeterminado
-    email_superadmin = os.getenv("SUPERADMIN_EMAIL", "admin@aurorasoft.com")
+    email_superadmin = os.getenv("SUPERADMIN_EMAIL", "auroraintegratedconsulting@gmail.com")
 
     # 2. Obtener contraseña del .env o generar una segura temporal si no existe
     password_env = os.getenv("SUPERADMIN_PASSWORD")

@@ -101,7 +101,7 @@ def main(url_base):
     sello = datetime.utcnow().strftime("%H%M%S")
 
     print("\n0 · Montaje")
-    tok_super = exigir(login(os.getenv("SUPERADMIN_EMAIL", "admin@aurorasoft.com"),
+    tok_super = exigir(login(os.getenv("SUPERADMIN_EMAIL", "auroraintegratedconsulting@gmail.com"),
                              os.getenv("SUPERADMIN_PASSWORD")), 200, "login superadmin")["access_token"]
     h_super = {"Authorization": f"Bearer {tok_super}"}
 

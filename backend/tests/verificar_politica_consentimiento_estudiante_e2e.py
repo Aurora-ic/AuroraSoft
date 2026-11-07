@@ -145,7 +145,7 @@ def main(url_base):
     phq9_id = sql_uno("select id from edu_pruebas where nombre_tecnico = 'PHQ-9' and institucion_id is null")[0]
 
     print("\n0 · Montaje: dos instituciones (A y B), cada una con admin y psicólogo")
-    tok_super = exigir(login(os.getenv("SUPERADMIN_EMAIL", "admin@aurorasoft.com"),
+    tok_super = exigir(login(os.getenv("SUPERADMIN_EMAIL", "auroraintegratedconsulting@gmail.com"),
                              os.getenv("SUPERADMIN_PASSWORD")), 200, "Login superadmin")["access_token"]
     h_super = {"Authorization": f"Bearer {tok_super}"}
     inst_a, h_admin_a, h_psi_a = crear_colegio_con_admin_y_psicologo(h_super, "A", sello)

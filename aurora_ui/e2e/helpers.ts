@@ -16,7 +16,7 @@ export const API = process.env.PLAYWRIGHT_API_URL || "http://127.0.0.1:8010/api"
 // backend/seeds/seed_superadmin_e2e.py) en vez del superadmin real, cuya
 // contraseña puede haber cambiado en la BD.
 export function emailSuperadmin(): string {
-  return process.env.E2E_SUPERADMIN_EMAIL || process.env.SUPERADMIN_EMAIL || "admin@aurorasoft.com";
+  return process.env.E2E_SUPERADMIN_EMAIL || process.env.SUPERADMIN_EMAIL || "auroraintegratedconsulting@gmail.com";
 }
 
 export function requerirPasswordSuperadmin(): string {

@@ -77,7 +77,7 @@ def main(url_base):
     cabecera("0 · Preparación: superadmin, institución y psicólogo")
 
     pwd_super = os.getenv("SUPERADMIN_PASSWORD")
-    email_super = os.getenv("SUPERADMIN_EMAIL", "admin@aurorasoft.com")
+    email_super = os.getenv("SUPERADMIN_EMAIL", "auroraintegratedconsulting@gmail.com")
     if not pwd_super:
         print("!! Falta SUPERADMIN_PASSWORD en el .env")
         sys.exit(1)

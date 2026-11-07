@@ -21,11 +21,12 @@
 .EXAMPLE
   .\scripts\entorno-dev.ps1 estado
   .\scripts\entorno-dev.ps1 detener -Simular    # muestra qué detendría, sin detener nada
-  .\scripts\entorno-dev.ps1 iniciar
+  .\scripts\entorno-dev.ps1 iniciar      # instala dependencias si cambiaron tras un git pull
+  .\scripts\entorno-dev.ps1 actualizar   # solo instala dependencias si cambiaron
 #>
 param(
   [Parameter(Position = 0)]
-  [ValidateSet("iniciar", "detener", "estado")]
+  [ValidateSet("iniciar", "detener", "estado", "actualizar")]
   [string]$Accion = "estado",
   [switch]$Simular
 )
@@ -109,9 +110,72 @@ function Stop-Entorno {
   }
 }
 
+# 🆕 (sesión 2026-11-07) Después de un `git pull` no hay que acordarse de
+# reinstalar nada: si requirements.txt o package-lock.json cambiaron desde la
+# última vez (se compara un hash guardado DENTRO del venv / node_modules, que
+# git ignora), se instala solo. Además se desinstalan los paquetes que el
+# proyecto dejó de usar, para que no queden versiones viejas con CVEs.
+$PaquetesRetirados = @("python-jose", "ecdsa", "rsa", "pyasn1")
+
+function Get-Venv {
+  foreach ($nombre in "venv", ".venv") {
+    $py = Join-Path $backend "$nombre\Scripts\python.exe"
+    if (Test-Path $py) { return Join-Path $backend $nombre }
+  }
+  return $null
+}
+
+# Corre un programa externo (pip, npm) sin que sus avisos por stderr corten el
+# script: con $ErrorActionPreference = "Stop", PowerShell 5.1 convierte
+# cualquier línea de stderr de un ejecutable en error. Solo cuenta el código
+# de salida.
+function Invoke-Externo([scriptblock]$Bloque, [string]$SiFalla, [switch]$TolerarFallo) {
+  $anterior = $ErrorActionPreference
+  $ErrorActionPreference = "Continue"
+  try { & $Bloque 2>&1 | ForEach-Object { "$_" } | Where-Object { $_ -notmatch "^\s*$" } | Write-Host }
+  finally { $ErrorActionPreference = $anterior }
+  if ($LASTEXITCODE -ne 0 -and -not $TolerarFallo) { throw $SiFalla }
+}
+
+function Sync-Dependencias {
+  $venv = Get-Venv
+  if (-not $venv) {
+    Write-Warning "No encontré backend\venv ni backend\.venv: crea el entorno y corre pip install -r requirements.txt."
+  } else {
+    $req = Join-Path $backend "requirements.txt"
+    $marca = Join-Path $venv ".requirements.hash"
+    $hash = (Get-FileHash $req -Algorithm SHA256).Hash
+    $anterior = if (Test-Path $marca) { (Get-Content $marca -Raw).Trim() } else { "" }
+    if ($hash -ne $anterior) {
+      Write-Host "requirements.txt cambió: instalando dependencias del backend..." -ForegroundColor Cyan
+      $py = Join-Path $venv "Scripts\python.exe"
+      Invoke-Externo { & $py -m pip install -q --disable-pip-version-check -r $req } "pip install falló; revisa el mensaje de arriba."
+      # Los que no estén instalados solo dan un aviso: se tolera.
+      Invoke-Externo { & $py -m pip uninstall -y -q @PaquetesRetirados } "" -TolerarFallo
+      Set-Content -Path $marca -Value $hash -Encoding ascii
+      Write-Host "  dependencias del backend al día." -ForegroundColor Green
+    }
+  }
+  $lock = Join-Path $frontend "package-lock.json"
+  $modulos = Join-Path $frontend "node_modules"
+  $marcaNpm = Join-Path $modulos ".package-lock.hash"
+  $hashNpm = (Get-FileHash $lock -Algorithm SHA256).Hash
+  $anteriorNpm = if (Test-Path $marcaNpm) { (Get-Content $marcaNpm -Raw).Trim() } else { "" }
+  if ($hashNpm -ne $anteriorNpm) {
+    Write-Host "package-lock.json cambió: instalando dependencias del frontend..." -ForegroundColor Cyan
+    Push-Location $frontend
+    try {
+      Invoke-Externo { npm install --no-audit --no-fund } "npm install falló; revisa el mensaje de arriba."
+    } finally { Pop-Location }
+    Set-Content -Path $marcaNpm -Value $hashNpm -Encoding ascii
+    Write-Host "  dependencias del frontend al día." -ForegroundColor Green
+  }
+}
+
 function Start-Entorno {
   Stop-Entorno
   Start-Sleep -Seconds 2
+  Sync-Dependencias
   foreach ($servicio in "postgresql-x64-16", "Memurai") {
     $s = Get-Service -Name $servicio -ErrorAction SilentlyContinue
     if ($s -and $s.Status -ne "Running") { Write-Warning "El servicio $servicio no está corriendo (inícialo como administrador)." }
@@ -134,4 +198,5 @@ switch ($Accion) {
   "estado" { Show-Estado }
   "detener" { Stop-Entorno; if (-not $Simular) { Start-Sleep -Seconds 1; Show-Estado } }
   "iniciar" { Start-Entorno }
+  "actualizar" { Sync-Dependencias; Write-Host "Dependencias revisadas." }
 }

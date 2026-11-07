@@ -83,7 +83,7 @@ def main(url_base):
     sello = datetime.utcnow().strftime("%H%M%S")
 
     print("\n0 · Montaje")
-    r = login(os.getenv("SUPERADMIN_EMAIL", "admin@aurorasoft.com"), os.getenv("SUPERADMIN_PASSWORD"))
+    r = login(os.getenv("SUPERADMIN_EMAIL", "auroraintegratedconsulting@gmail.com"), os.getenv("SUPERADMIN_PASSWORD"))
     h_super = {"Authorization": f"Bearer {exigir(r, 200, 'login superadmin')['access_token']}"}
     inst = exigir(requests.post(f"{API}/instituciones/", json={
         "nombre": f"{PREFIJO} Colegio {sello}"}, headers=h_super, timeout=30), 201, "Institución")["id"]

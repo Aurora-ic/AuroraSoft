@@ -98,7 +98,7 @@ def main(url_base):
 
     tok_super = exigir(pedir_con_reintento(
         requests.post, f"{API}/auth/login", "login superadmin",
-        data={"username": os.getenv("SUPERADMIN_EMAIL", "admin@aurorasoft.com"),
+        data={"username": os.getenv("SUPERADMIN_EMAIL", "auroraintegratedconsulting@gmail.com"),
               "password": os.getenv("SUPERADMIN_PASSWORD")}),
         200, "Login superadmin")["access_token"]
     h_super = {"Authorization": f"Bearer {tok_super}"}

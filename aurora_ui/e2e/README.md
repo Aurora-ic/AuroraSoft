@@ -48,7 +48,7 @@ académico/tendencias.
 
    ```bash
    export SUPERADMIN_PASSWORD=...
-   # export SUPERADMIN_EMAIL=...   (opcional, default admin@aurorasoft.com)
+   # export SUPERADMIN_EMAIL=...   (opcional, default auroraintegratedconsulting@gmail.com)
    # export PLAYWRIGHT_API_URL=... (opcional, default http://127.0.0.1:8010/api)
    # export PLAYWRIGHT_BASE_URL=...(opcional, default http://localhost:3000 -- nunca
    #                                127.0.0.1: next dev bloquea sus recursos de dev
