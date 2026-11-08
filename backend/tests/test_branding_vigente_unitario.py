@@ -15,7 +15,12 @@ from types import SimpleNamespace
 from PIL import Image
 
 import core.storage as storage_mod
+from core import branding
 from modulos.instituciones import crud
+
+# La URL pública real depende de PUBLIC_BACKEND_URL (no existe en CI); aquí
+# solo importa qué se guarda y qué se sirve, igual que en test_firma_token.
+branding.resolver_url_publica = lambda ruta: f"https://api.ejemplo.pe{ruta}"
 
 RESULTADOS = {"ok": 0, "fallo": 0}
 

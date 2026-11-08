@@ -269,7 +269,12 @@ def test_cada_endpoint_publico_tiene_la_guardia():
 
 def test_frontend_reintenta_429():
     print("\n[9] El frontend reintenta un 429 en /guardar en vez de borrar la respuesta")
-    pagina = (RAIZ / "aurora_ui" / "app" / "(examen)" / "examen" / "[token]" / "page.tsx").read_text(encoding="utf-8")
+    ruta = RAIZ / "aurora_ui" / "app" / "(examen)" / "examen" / "[token]" / "page.tsx"
+    if not ruta.exists():
+        # Dentro de la imagen Docker del backend (CI) no viaja el frontend.
+        print("  (omitido: el frontend no está junto al backend — p. ej. dentro de la imagen Docker)")
+        return
+    pagina = ruta.read_text(encoding="utf-8")
     comprobar("guardarRespuestaConReintento maneja status 429",
               re.search(r"err\.status === 429 && intentosRestantes > 0", pagina) is not None)
 
