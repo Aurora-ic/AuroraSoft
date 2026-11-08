@@ -34,7 +34,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: .env de mentira (solo para esta prueba)
         run: |
@@ -63,7 +63,9 @@ jobs:
           set -u
           falla=0
           ok()  { echo "OK    $1"; }
-          mal() { echo "FALLA $1"; falla=1; }
+          # ::error:: deja una anotación pública en el check run (se lee sin
+          # credenciales por la API, a diferencia del log del job).
+          mal() { echo "::error::$1"; falla=1; }
 
           for s in web worker beat; do
             uid=$(docker compose exec -T "$s" id -u)
@@ -73,7 +75,8 @@ jobs:
           docker compose exec -T web sh -c 'touch /app/storage_local/zz' && ok "storage_local es escribible" || mal "storage_local no es escribible"
           docker compose exec -T web sh -c 'test ! -e /app/.env' && ok "no hay .env en la imagen" || mal "la imagen trae un .env"
           docker compose exec -T web sh -c 'test ! -d /app/venv' && ok "no hay venv en la imagen" || mal "la imagen trae un venv"
-          [ -z "$(docker compose port redis 6379 2>/dev/null)" ] && ok "redis no publica su puerto" || mal "redis publica su puerto"
+          publicados=$(docker port "$(docker compose ps -q redis)" 2>/dev/null)
+          [ -z "$publicados" ] && ok "redis no publica su puerto" || mal "redis publica su puerto: $publicados"
           puerto=$(docker compose port web 8000)
           case "$puerto" in 127.0.0.1:*) ok "web publicado solo en 127.0.0.1 ($puerto)";; *) mal "web publicado en $puerto";; esac
 
@@ -102,7 +105,8 @@ jobs:
               if python -m "tests.$m" > "/tmp/$m.log" 2>&1; then
                 echo "OK    $m"
               else
-                echo "FALLA $m"; tail -25 "/tmp/$m.log"; fallas=$((fallas+1))
+                echo "::error::Prueba unitaria $m falla en el contenedor: $(tail -5 "/tmp/$m.log" | tr "\n" " " | cut -c1-400)"
+                tail -25 "/tmp/$m.log"; fallas=$((fallas+1))
               fi
             done
             echo "Archivos con fallas: $fallas"
