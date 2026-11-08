@@ -238,7 +238,11 @@ def main(url_base):
         preg_por_orden = {p["orden"]: p for d in detalle_staff["dimensiones"] for p in d["preguntas"]}
 
         def _opcion_id(pregunta_publica_id, valor_deseado):
-            orden = next(o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id)
+            orden = next((o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id), None)
+            if orden is None:
+                # 🔧 (sesión 2026-11-08) Ítem informativo sin dimensión (PHQ-9 ítem 10,
+                # dificultad funcional): no puntúa; se responde con su primera opción.
+                return next(p for p in preguntas if p["id"] == pregunta_publica_id)["opciones"][0]["id"]
             return next(o["id"] for o in preg_por_orden[orden]["opciones"] if o["valor_puntuacion"] == valor_deseado)
 
         respuestas = [{"pregunta_id": p["id"], "opcion_id": _opcion_id(p["id"], valor_respuesta)} for p in preguntas]

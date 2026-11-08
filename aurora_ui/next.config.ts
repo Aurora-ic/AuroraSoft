@@ -3,17 +3,20 @@ import type { NextConfig } from "next";
 // 🆕 (sesión 2026-11-07, M2 de la revisión de seguridad) Cabeceras de
 // seguridad para todas las páginas del frontend.
 //
-// La CSP va en modo SOLO-REPORTE (Content-Security-Policy-Report-Only): el
-// navegador no bloquea nada, solo avisa en la consola qué la violaría. Next
-// mete scripts inline propios y react-pdf usa un worker (public/
-// pdf.worker.min.mjs); antes de imponerla hay que ver en el piloto que no
-// salga ningún aviso en las pantallas reales (examen, ficha, visor de PDF).
-// Cuando esté limpia se cambia el nombre de la cabecera a
-// Content-Security-Policy — ver docs/multi-tenancy-y-permisos.md.
+// 🆕 (sesión 2026-11-08) La CSP es OBLIGATORIA (Content-Security-Policy): el
+// navegador bloquea lo que no esté permitido. Antes iba en solo-reporte; se
+// impuso después de correr TODA la suite de Playwright sobre un build de
+// producción con la CSP ya obligatoria (también el visor de PDF con react-pdf
+// y su worker), sin ningún bloqueo — ver docs/multi-tenancy-y-permisos.md.
+//
+// Vuelta atrás sin tocar código: CSP_SOLO_REPORTE=1 en el entorno del BUILD
+// (Vercel → Settings → Environment Variables, y redeploy) la devuelve a
+// Content-Security-Policy-Report-Only.
 
 const esDesarrollo = process.env.NODE_ENV !== "production";
+const soloReporte = process.env.CSP_SOLO_REPORTE === "1";
 
-// Origen del backend (sin /api): la app le hace fetch() y muestra sus logos.
+// Origen del backend (sin /api): la app le hace fetch().
 function origenApi(): string {
   const url = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
   try {
@@ -30,7 +33,11 @@ const csp = [
   // Next inyecta scripts inline; en desarrollo además usa eval (recarga en caliente).
   `script-src 'self' 'unsafe-inline'${esDesarrollo ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${api}`.trim(),
+  // Imágenes: también de cualquier origen https. El logo del colegio
+  // (Institucion.logo_url) puede ser una URL externa que pega el propio
+  // colegio, y la barra lateral y el examen la muestran tal cual; una imagen
+  // no ejecuta código, lo que la CSP protege de verdad son los scripts.
+  `img-src 'self' data: blob: https: ${api}`.trim(),
   "font-src 'self' data:",
   `connect-src 'self' ${api}${esDesarrollo ? " ws: wss:" : ""}`.trim(),
   "worker-src 'self' blob:",
@@ -55,7 +62,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // La app no usa cámara, micrófono ni ubicación.
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
-          { key: "Content-Security-Policy-Report-Only", value: csp },
+          { key: soloReporte ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy", value: csp },
         ],
       },
     ];

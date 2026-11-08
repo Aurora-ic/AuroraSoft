@@ -1,4 +1,5 @@
 from fastapi import HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from . import models, schemas
 
@@ -20,9 +21,22 @@ def crear_institucion(db: Session, institucion: schemas.InstitucionCreate):
     db.refresh(db_institucion)
     return db_institucion
 
-def obtener_instituciones(db: Session, skip: int = 0, limit: int = 100):
-    """Obtiene la lista de colegios registrados"""
-    return db.query(models.Institucion).offset(skip).limit(limit).all()
+def obtener_instituciones(db: Session):
+    """TODAS las instituciones, ordenadas por nombre (solo superadmin).
+
+    🔧 (sesión 2026-11-08) Antes: `.offset(0).limit(100)` sin ORDER BY. Con
+    más de 100 instituciones el panel /master recibía 100 elegidas por
+    PostgreSQL, sin aviso: una recién creada podía no aparecer en la lista,
+    /master/clientes/[id] (que busca la institución en esta misma lista) no
+    podía administrarla, y los contadores de activas/vencidas salían mal. Se
+    devuelve la lista completa a propósito: la usan solo las 3 pantallas del
+    superadmin, que filtran y cuentan en el navegador, y son cientos de filas
+    como mucho. Lo detectó aurora_ui/e2e/master.spec.ts con 184 instituciones
+    en la base de desarrollo.
+    """
+    return db.query(models.Institucion).order_by(
+        func.lower(models.Institucion.nombre), models.Institucion.id
+    ).all()
 
 def obtener_institucion_por_id(db: Session, institucion_id: int):
     """Busca un colegio específico por su ID"""

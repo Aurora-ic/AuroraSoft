@@ -46,6 +46,36 @@ def enviar_correo(destinatario: str, asunto: str, cuerpo_html: str) -> bool:
         return False
 
 
+def nombre_de_inscripcion(referencia) -> tuple[str | None, str]:
+    """(nombre para el correo, etiqueta para los logs) a partir de la referencia
+    que viaja en la tarea de Celery.
+
+    🆕 (sesión 2026-11-08, B3 de la revisión de seguridad) Las alertas viajan
+    por Redis (el broker de Celery) en claro, y sus mensajes de log y de error
+    pueden terminar en Sentry o en los registros del servidor. Antes llevaban
+    el NOMBRE del alumno junto a su nivel de riesgo; ahora llevan solo el id de
+    la inscripción y el worker busca el nombre en la base al armar el correo.
+    En los logs solo aparece "inscripción N", nunca el nombre.
+
+    Compatibilidad: una alerta encolada con el formato viejo (el nombre como
+    texto) que siga en Redis al desplegar se envía igual, sin escribir ese
+    nombre en ningún log.
+    """
+    if isinstance(referencia, str):
+        return referencia, "inscripción (formato anterior)"
+    from core.database import SessionLocal
+    from modulos.educativo import models as educativo_models
+
+    db = SessionLocal()
+    try:
+        inscripcion = db.query(educativo_models.Inscripcion).filter(
+            educativo_models.Inscripcion.id == referencia
+        ).first()
+        return (inscripcion.nombre_completo if inscripcion else None), f"inscripción {referencia}"
+    finally:
+        db.close()
+
+
 def enviar_correo_recuperacion(destinatario: str, token: str) -> bool:
     link = f"{FRONTEND_URL}/resetear-password?token={token}"
     cuerpo = f"""
@@ -60,7 +90,7 @@ def enviar_correo_recuperacion(destinatario: str, token: str) -> bool:
 def enviar_alerta_riesgo(
     self,
     destinatarios,
-    nombre_alumno: str,
+    inscripcion_id,
     dimensiones_en_riesgo: list,
     dimensiones_sin_baremo: list = None,
     reglas_con_error: list = None,
@@ -76,6 +106,11 @@ def enviar_alerta_riesgo(
       - la interpretación no pudo completarse por falta de baremo, que no es
         un resultado "sin riesgo" sino un caso pendiente de revisar.
 
+    🆕 (sesión 2026-11-08, B3) Recibe `inscripcion_id`, no el nombre del
+    alumno: ver nombre_de_inscripcion(). Los niveles ("Severo") y los nombres
+    de dimensión que sí viajan son configuración de la prueba y, sin el
+    nombre, no identifican a nadie.
+
     🆕 Fase 2 (Celery, ver core/cola_tareas.py) — tarea real con reintento.
     `self.request.id` (el job_id real) y `self.request.retries` no se
     registran en `RegistroTareaAsincrona`: esa bitácora es solo para las dos
@@ -86,11 +121,13 @@ def enviar_alerta_riesgo(
         destinatarios = [destinatarios]
     destinatarios = [d for d in (destinatarios or []) if d]
 
+    nombre_alumno, etiqueta = nombre_de_inscripcion(inscripcion_id)
+
     if not destinatarios:
         logger.error(
-            "No hay ningún destinatario para la alerta de '%s'. El caso queda "
+            "No hay ningún destinatario para la alerta de la %s. El caso queda "
             "retenido en la plataforma pero nadie ha sido notificado.",
-            nombre_alumno or "evaluado sin nombre",
+            etiqueta,
         )
         return False
 
@@ -147,8 +184,8 @@ def enviar_alerta_riesgo(
         # éxito, no se reintenta — eso reenviaría a quien ya lo recibió.
         try:
             raise RuntimeError(
-                f"Los {len(destinatarios)} envío(s) de la alerta de riesgo de "
-                f"'{nombre_alumno}' fallaron."
+                f"Los {len(destinatarios)} envío(s) de la alerta de riesgo de la "
+                f"{etiqueta} fallaron."
             )
         except RuntimeError as exc:
             raise self.retry(exc=exc)
@@ -159,7 +196,7 @@ def enviar_alerta_riesgo(
 def enviar_alerta_regresion_informe_liberado(
     self,
     destinatario: str,
-    nombre_alumno: str,
+    inscripcion_id,
     numero_version_anterior: int,
 ) -> bool:
     """Avisa a quien había liberado un informe que un reproceso lo retuvo de nuevo.
@@ -182,6 +219,8 @@ def enviar_alerta_regresion_informe_liberado(
     `enviar_alerta_riesgo` acá no hay ambigüedad de "algunos sí, algunos
     no": si falla, reintentar es siempre seguro (nadie lo recibió).
     """
+    # 🆕 (sesión 2026-11-08, B3) inscripcion_id, no el nombre: ver nombre_de_inscripcion().
+    nombre_alumno, _ = nombre_de_inscripcion(inscripcion_id)
     nombre_seguro = escape(nombre_alumno) if nombre_alumno else "sin nombre registrado"
     cuerpo = (
         f"<p>El informe de <strong>{nombre_seguro}</strong> que tú liberaste "

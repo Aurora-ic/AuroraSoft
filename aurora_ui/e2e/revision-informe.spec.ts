@@ -36,13 +36,15 @@ test.describe("Revisar y liberar un informe retenido", () => {
     await expect(page.getByRole("heading", { name: "Pruebas aplicadas" })).toBeVisible();
 
     // El informe nace RETENIDO (el baremo de este spec alerta siempre).
-    await expect(page.getByText("Retenido")).toBeVisible();
+    // 🔧 (sesión 2026-11-08) exact: la ficha también dice "Retenido hasta tu
+    // revisión" en el bloque "Pendiente en esta ficha" (rediseño del 2026-11-07).
+    await expect(page.getByText("Retenido", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Revisar informe" }).click();
     await page.getByLabel("Informe liberado al alumno").check();
     await page.getByRole("button", { name: "Guardar revisión" }).click();
 
-    await expect(page.getByText("Liberado")).toBeVisible();
-    await expect(page.getByText("Retenido")).not.toBeVisible();
+    await expect(page.getByText("Liberado", { exact: true })).toBeVisible();
+    await expect(page.getByText("Retenido", { exact: true })).not.toBeVisible();
   });
 });

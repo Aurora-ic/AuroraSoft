@@ -171,6 +171,9 @@ def orden_correcto(texto_mayus: str, titulos_en_orden) -> bool:
     for titulo in titulos_en_orden:
         idx = texto_mayus.find(titulo.upper())
         if idx == -1 or idx <= posicion:
+            # Dice cuál falla, en vez de solo False.
+            motivo = "no aparece" if idx == -1 else f"aparece en {idx}, antes que el anterior ({posicion})"
+            print(f"      orden_correcto: '{titulo}' {motivo}")
             return False
         posicion = idx
     return True
@@ -324,7 +327,11 @@ def main(url_base):
     preg_por_orden = {p["orden"]: p for d in detalle_staff["dimensiones"] for p in d["preguntas"]}
 
     def _opcion_id_publica(pregunta_publica_id, valor_deseado):
-        orden = next(o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id)
+        orden = next((o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id), None)
+        if orden is None:
+            # 🔧 (sesión 2026-11-08) Ítem informativo sin dimensión (PHQ-9 ítem 10,
+            # dificultad funcional): no puntúa; se responde con su primera opción.
+            return next(p for p in preguntas1 if p["id"] == pregunta_publica_id)["opciones"][0]["id"]
         return next(o["id"] for o in preg_por_orden[orden]["opciones"] if o["valor_puntuacion"] == valor_deseado)
 
     # Puntaje bajo (0 en todos los ítems, incluido el 9) -> sin alerta, para
@@ -391,8 +398,10 @@ def main(url_base):
     pdf1_v1 = leer_pdf_de_version(1, doc1["id"])
     texto1 = texto_pdf(pdf1_v1).upper()
 
-    titulos_orden1 = [t for _, _, t, _ in _CASO1_SECCIONES]
-    comprobar("[4] Las 9 secciones del CASO 1 aparecen EN ORDEN en el PDF real", orden_correcto(texto1, titulos_orden1))
+    # Encabezado (membrete) y firma se dibujan SIN título de sección, a propósito
+    # (modulos/documentos/pdf_generador.py): el orden se mira en las que lo llevan.
+    titulos_orden1 = [t for _, tipo, t, _ in _CASO1_SECCIONES if tipo not in ("encabezado", "firma")]
+    comprobar("[4] Las 7 secciones con título del CASO 1 aparecen EN ORDEN en el PDF real", orden_correcto(texto1, titulos_orden1))
     comprobar("[4] No aparece 'No aplica' en ningún lado (hay exactamente 1 estudiante)", "NO APLICA" not in texto1)
     comprobar("[4] El correlativo se imprimió (INF-0001-...)", "INF-0001" in texto1, texto1[:200])
     comprobar("[4] El año oficial configurado aparece", f"AÑO DE LA PRUEBA {sello}".upper() in texto1)
@@ -520,8 +529,10 @@ def main(url_base):
 
     pdf2_v1 = leer_pdf_de_version(1, doc2["id"])
     texto2 = texto_pdf(pdf2_v1).upper()
-    titulos_orden2 = [t for _, _, t, _ in _CASO2_SECCIONES]
-    comprobar("[8] Las 6 secciones del CASO 2 aparecen EN ORDEN en el PDF real", orden_correcto(texto2, titulos_orden2))
+    # Encabezado (membrete) y firma se dibujan SIN título de sección, a propósito
+    # (modulos/documentos/pdf_generador.py): el orden se mira en las que lo llevan.
+    titulos_orden2 = [t for _, tipo, t, _ in _CASO2_SECCIONES if tipo not in ("encabezado", "firma")]
+    comprobar("[8] Las 4 secciones con título del CASO 2 aparecen EN ORDEN en el PDF real", orden_correcto(texto2, titulos_orden2))
     comprobar("[8] 'No aplica' NUNCA aparece (la plantilla grupal no usa ninguna sección de 1-estudiante)",
               "NO APLICA" not in texto2)
     comprobar("[8] La tabla trae los 3 nombres reales de los estudiantes matriculados",

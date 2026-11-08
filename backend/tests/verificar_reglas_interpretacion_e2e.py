@@ -204,37 +204,64 @@ def main(url_base):
     comprobar("[A] Sin reglas con error", estado_a[2] is None)
 
     # ==================================================================
+    # 🔧 (sesión 2026-11-08) Desde el 2026-11-02 el PHQ-9 tiene 3 dimensiones
+    # y un diagnóstico por cada una: Afectivo-Cognitiva (ítems 1,2,6,7,9),
+    # Somática/Vegetativa (3,4,5,8) y el total "Depresión" (suma de ambas, la
+    # única con tramos de alerta). La regla del ítem 9 se aplica a la dimensión
+    # que contiene ese ítem (crud.evaluar_reglas_interpretacion); el baremo de
+    # alerta, al total. Antes este test leía "el" diagnóstico (uno cualquiera).
+    def diagnosticos_por_rol(insc_id):
+        """{'item9': fila, 'total': fila, 'otra': fila} con (es_alerta, alerta_por, regla_activada_id)."""
+        with MOTOR.connect() as c:
+            filas = c.execute(text(
+                "select d.es_alerta, d.alerta_por, d.regla_activada_id, d.dimension_id, dim.tipo_calculo "
+                "from edu_diagnosticos_alumno d join edu_dimensiones dim on dim.id = d.dimension_id "
+                "where d.inscripcion_id = :i"), {"i": insc_id}).fetchall()
+            dim_item9 = c.execute(text(
+                "select dimension_id from edu_preguntas where prueba_id = :p and orden = 9"), {"p": phq9_id}).scalar()
+        roles = {}
+        for es_alerta, alerta_por, regla_id, dim_id, tipo in filas:
+            rol = "total" if tipo == "suma_de_dimensiones" else ("item9" if dim_id == dim_item9 else "otra")
+            roles.setdefault(rol, []).append((es_alerta, alerta_por, regla_id))
+        return len(filas), {k: v[0] for k, v in roles.items() if len(v) == 1}, roles
+
     print("\nCASO B · Puntaje bajo + ítem 9 positivo -> requiere_revision por regla")
     # Total = 1 (solo el ítem 9 en 1) -> tramo 0-4, SIN alerta por baremo.
     tok_b, insc_b = aplicar_phq9(h_a, inst_a, sello, "CasoB", preg_phq9, phq9_id, [0, 0, 0, 0, 0, 0, 0, 0, 1])
-    diag_b = sql_uno("select es_alerta, alerta_por, regla_activada_id from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_b)
+    n_b, d_b, _ = diagnosticos_por_rol(insc_b)
     estado_b = sql_uno("select resultado_visible_alumno, informe_liberado from edu_inscripciones where id=:i", i=insc_b)
-    comprobar("[B] es_alerta=True por la regla (el baremo por sí solo NO habría alertado)", diag_b[0] is True)
-    comprobar("[B] alerta_por == 'regla' (el baremo no contribuyó)", diag_b[1] == "regla")
-    comprobar("[B] regla_activada_id apunta a la regla del ítem 9", diag_b[2] == regla_item9["id"])
+    comprobar("[B] Un diagnóstico por dimensión (3)", n_b == 3 and set(d_b) == {"item9", "otra", "total"}, str(d_b))
+    comprobar("[B] La dimensión del ítem 9 queda en alerta POR LA REGLA",
+              d_b.get("item9", (None,))[0] is True and d_b["item9"][1] == "regla", str(d_b.get("item9")))
+    comprobar("[B] regla_activada_id apunta a la regla del ítem 9", d_b.get("item9", (0, 0, None))[2] == regla_item9["id"])
+    comprobar("[B] El total NO alerta por baremo (puntaje 1, tramo mínimo)",
+              d_b.get("total", (None,))[0] is False and d_b["total"][1] is None, str(d_b.get("total")))
+    comprobar("[B] La otra dimensión sigue sin alerta", d_b.get("otra", (None,))[0] is False, str(d_b.get("otra")))
     comprobar("[B] El informe queda retenido (requiere_revision)", estado_b[0] is False and estado_b[1] is False)
-
-    r_pdf_b = requests.get(f"{API}/educativo/examen/{tok_b}/informe-pdf", timeout=60)
-    comprobar("[B][9] El PDF del alumno queda bloqueado — el informe refleja la retención por regla", r_pdf_b.status_code == 403)
 
     # ==================================================================
     print("\nCASO C · Puntaje alto + ítem 9 negativo -> alerta por baremo, no por regla")
     # 8 ítems en 3 (=24) + ítem 9 en 0 -> total 24 -> tramo alto, CON alerta de baremo.
     tok_c, insc_c = aplicar_phq9(h_a, inst_a, sello, "CasoC", preg_phq9, phq9_id, [3, 3, 3, 3, 3, 3, 3, 3, 0])
-    diag_c = sql_uno("select es_alerta, alerta_por, regla_activada_id from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_c)
-    comprobar("[C] es_alerta=True por baremo", diag_c[0] is True)
-    comprobar("[C] alerta_por == 'baremo' (la regla del ítem 9 NO disparó)", diag_c[1] == "baremo")
-    comprobar("[C] regla_activada_id es NULL (ninguna regla contribuyó)", diag_c[2] is None)
+    n_c, d_c, roles_c = diagnosticos_por_rol(insc_c)
+    estado_c = sql_uno("select resultado_visible_alumno, informe_liberado from edu_inscripciones where id=:i", i=insc_c)
+    comprobar("[C] El total alerta POR BAREMO", d_c.get("total", (None,))[0] is True and d_c["total"][1] == "baremo",
+              str(d_c.get("total")))
+    comprobar("[C] Ningún diagnóstico registra la regla (el ítem 9 NO disparó)",
+              all("regla" not in (f[1] or "") and f[2] is None for filas in roles_c.values() for f in filas), str(roles_c))
+    comprobar("[C] El informe queda retenido", estado_c[0] is False and estado_c[1] is False)
 
     # ==================================================================
-    print("\nCASO D · Puntaje alto + ítem 9 positivo -> una sola alerta, ambos orígenes trazados")
+    print("\nCASO D · Puntaje alto + ítem 9 positivo -> ambos orígenes trazados, sin filas duplicadas")
     tok_d, insc_d = aplicar_phq9(h_a, inst_a, sello, "CasoD", preg_phq9, phq9_id, [3, 3, 3, 3, 3, 3, 3, 3, 3])
-    filas_diag_d = MOTOR.connect().execute(text(
-        "select es_alerta, alerta_por, regla_activada_id from edu_diagnosticos_alumno where inscripcion_id=:i"), {"i": insc_d}).fetchall()
-    comprobar("[D] Exactamente UN diagnóstico (sin duplicación de filas)", len(filas_diag_d) == 1, f"{len(filas_diag_d)} filas")
-    comprobar("[D] es_alerta=True", filas_diag_d[0][0] is True)
-    comprobar("[D] alerta_por registra AMBOS orígenes: 'baremo,regla'", filas_diag_d[0][1] == "baremo,regla")
-    comprobar("[D] regla_activada_id sigue apuntando a la regla del ítem 9", filas_diag_d[0][2] == regla_item9["id"])
+    n_d, d_d, _ = diagnosticos_por_rol(insc_d)
+    comprobar("[D] Exactamente UN diagnóstico por dimensión (3, sin duplicación)",
+              n_d == 3 and set(d_d) == {"item9", "otra", "total"}, f"{n_d} filas: {d_d}")
+    comprobar("[D] El total alerta por baremo", d_d.get("total", (None,))[0] is True and "baremo" in (d_d["total"][1] or ""),
+              str(d_d.get("total")))
+    comprobar("[D] La dimensión del ítem 9 alerta por la regla, con regla_activada_id",
+              d_d.get("item9", (None,))[0] is True and "regla" in (d_d["item9"][1] or "")
+              and d_d["item9"][2] == regla_item9["id"], str(d_d.get("item9")))
 
     # ==================================================================
     print("\nCASO E · Otra prueba SIN reglas -> funciona exactamente como antes")
@@ -283,17 +310,59 @@ def main(url_base):
     # Solo se responde el ítem 1 — el ítem 2 (el que la regla necesita) queda sin respuesta.
     exigir(requests.post(f"{API}/educativo/examen/{tok_f}/guardar",
                          json={"respuestas": [{"pregunta_id": preg_f[1]["id"], "opcion_id": op_bajo}]}, timeout=30), 200, "Guardar F")
-    completar_restantes(tok_f)
-    exigir(requests.post(f"{API}/educativo/examen/{tok_f}/finalizar", timeout=60), 200, "Finalizar F")
-    insc_f = sql_uno("select id from edu_inscripciones where token=:t", t=tok_f)
-    estado_f = sql_uno("select resultado_visible_alumno, informe_liberado, reglas_con_error from edu_inscripciones where id=:i", i=insc_f[0])
-    diag_f = sql_uno("select es_alerta from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_f[0])
-    comprobar("[F] El baremo por sí solo NO habría alertado (puntaje bajo)", diag_f[0] is False)
-    comprobar("[F] Aun así, el informe queda RETENIDO por la regla inevaluable", estado_f[0] is False and estado_f[1] is False)
-    comprobar("[F] reglas_con_error queda registrado, mencionando la regla concreta",
-              estado_f[2] is not None and f"Regla #{regla_f['id']}" in estado_f[2], str(estado_f[2]))
-    r_pdf_f = requests.get(f"{API}/educativo/examen/{tok_f}/informe-pdf", timeout=60)
-    comprobar("[F] El alumno no puede descargar su informe (no se convirtió en 'sin riesgo')", r_pdf_f.status_code == 403)
+    # 🔧 (sesión 2026-11-08) Desde el 2026-11-02 el backend NO deja finalizar
+    # con preguntas sin responder: el hueco "regla sobre un ítem no respondido"
+    # ya no llega al motor. Lo que se comprueba aquí es ese candado; la regla
+    # inevaluable que SÍ llega al motor (reglas_con_error, nunca 'sin riesgo')
+    # la cubre el caso F2, justo debajo.
+    r_fin_f = requests.post(f"{API}/educativo/examen/{tok_f}/finalizar", timeout=60)
+    comprobar("[F] No se puede finalizar con el ítem de la regla sin responder (400)",
+              r_fin_f.status_code == 400 and "sin responder" in r_fin_f.text, f"{r_fin_f.status_code} {r_fin_f.text[:150]}")
+    insc_f = sql_uno("select id, estado from edu_inscripciones where token=:t", t=tok_f)
+    comprobar("[F] La inscripción NO queda finalizada (no se convirtió en 'sin riesgo')", insc_f[1] != "Finalizado", str(insc_f[1]))
+    n_diag_f = sql_uno("select count(*) from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_f[0])[0]
+    comprobar("[F] Ningún diagnóstico emitido", n_diag_f == 0, str(n_diag_f))
+
+    # F2 · Una regla que SÍ llega al motor y no se puede evaluar: regla de
+    # ámbito 'dimension' sobre una dimensión SIN ítems (sin puntaje
+    # calculado). El examen se finaliza completo; la regla falla y eso tiene
+    # que traducirse en informe RETENIDO + reglas_con_error, nunca en "sin riesgo".
+    prueba_f2 = exigir(requests.post(f"{API}/educativo/pruebas/", json={
+        "nombre_tecnico": f"{PREFIJO}-F2-{sello}", "nombre_publico": "Prueba F2",
+        "escala_minima": 0, "escala_maxima": 1}, headers=h_a, timeout=30), 200, "Prueba F2")["id"]
+    exigir(requests.post(f"{API}/educativo/pruebas/carga-masiva/", json={
+        "prueba_id": prueba_f2, "dimensiones": [{"nombre": "D"}, {"nombre": "Sin items"}],
+        "preguntas": [{"texto_pregunta": "Ítem 1", "orden": 1, "nombre_dimension": "D",
+                       "opciones": [{"texto_opcion": "No", "valor_puntuacion": 0}, {"texto_opcion": "Sí", "valor_puntuacion": 1}]}]},
+        headers=h_a, timeout=30), 200, "Carga F2")
+    det_f2 = exigir(requests.get(f"{API}/educativo/pruebas/{prueba_f2}/completa", headers=h_a, timeout=30), 200, "Detalle F2")
+    dim_d = next(d for d in det_f2["dimensiones"] if d["nombre"] == "D")
+    dim_vacia = next(d for d in det_f2["dimensiones"] if d["nombre"] == "Sin items")
+    exigir(requests.post(f"{API}/educativo/baremos/", json={
+        "dimension_id": dim_d["id"], "puntaje_minimo": 0, "puntaje_maximo": 1, "nivel": "Normal", "es_alerta": False},
+        headers=h_a, timeout=30), 200, "Baremo F2")
+    regla_f2 = exigir(requests.post(f"{API}/educativo/pruebas/{prueba_f2}/reglas", json={
+        "ambito": "dimension", "dimension_id": dim_vacia["id"], "operador": ">", "valor_comparacion": 0,
+        "descripcion": "Regla sobre una dimensión sin ítems"}, headers=h_a, timeout=30), 200, "Regla F2")
+    campana_f2 = exigir(requests.post(f"{API}/educativo/campanas/", json={
+        "prueba_id": prueba_f2, "nombre_grupo": f"{PREFIJO} CasoF2 {sello}", "institucion_id": inst_a},
+        headers=h_a, timeout=30), 200, "Campaña F2")
+    tok_f2 = matricular(h_a, campana_f2["id"], crear_persona_con_consentimiento(h_a, inst_a, sello, "CasoF2"))
+    exigir(requests.post(f"{API}/educativo/comenzar-test/{tok_f2}", json={
+        "nombre_completo": "Alumno F2", "edad": 15, "poblacion": "Secundaria", "acepta_terminos": True},
+        timeout=30), 200, "Comenzar F2")
+    op_no = dim_d["preguntas"][0]["opciones"][0]["id"]
+    exigir(requests.post(f"{API}/educativo/examen/{tok_f2}/guardar", json={"respuestas": [
+        {"pregunta_id": dim_d["preguntas"][0]["id"], "opcion_id": op_no}]}, timeout=30), 200, "Guardar F2")
+    exigir(requests.post(f"{API}/educativo/examen/{tok_f2}/finalizar", timeout=60), 200, "Finalizar F2")
+    estado_f2 = sql_uno("select resultado_visible_alumno, informe_liberado, reglas_con_error, id "
+                        "from edu_inscripciones where token=:t", t=tok_f2)
+    alerta_f2 = sql_uno("select bool_or(es_alerta) from edu_diagnosticos_alumno where inscripcion_id=:i", i=estado_f2[3])[0]
+    comprobar("[F2] El baremo por sí solo NO habría alertado", alerta_f2 is not True, str(alerta_f2))
+    comprobar("[F2] Aun así, el informe queda RETENIDO por la regla inevaluable",
+              estado_f2[0] is False and estado_f2[1] is False, str(estado_f2[:2]))
+    comprobar("[F2] reglas_con_error queda registrado, mencionando la regla concreta",
+              estado_f2[2] is not None and f"Regla #{regla_f2['id']}" in estado_f2[2], str(estado_f2[2]))
 
     # ==================================================================
     print("\nCASO G · Aislamiento entre instituciones")

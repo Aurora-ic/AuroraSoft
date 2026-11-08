@@ -73,7 +73,14 @@ Tests: `tests/test_ip_y_limites_examen_unitario.py` (sin BD ni servidor; incluye
   - `Strict-Transport-Security: max-age=31536000; includeSubDomains`, solo fuera de desarrollo. Por http el navegador lo ignora.
   - Excepción: `/docs` y `/redoc` en desarrollo van sin CSP, porque Swagger carga scripts de un CDN.
   - Lo único que no las lleva es el 500 del manejador global de errores (Starlette lo responde por fuera de todos los middlewares); es un JSON genérico sin datos.
-- **Frontend (`aurora_ui/next.config.ts`):** sin `X-Powered-By`; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (sin cámara, micrófono ni ubicación) y una **CSP en modo solo-reporte** (`Content-Security-Policy-Report-Only`) que permite `connect-src`/`img-src` al origen de `NEXT_PUBLIC_API_URL` y `worker-src 'self' blob:` para el worker de react-pdf. Solo-reporte quiere decir que el navegador no bloquea nada: solo avisa en la consola. **Pendiente antes de imponerla:** revisar en el piloto, con el build de producción (sin `'unsafe-eval'`), que login, examen y visor de PDF no den avisos, y entonces renombrar la cabecera a `Content-Security-Policy`. HSTS del frontend lo pone Vercel.
+- **Frontend (`aurora_ui/next.config.ts`):** sin `X-Powered-By`; `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (sin cámara, micrófono ni ubicación) y una **CSP obligatoria** (`Content-Security-Policy`, 🆕 sesión 2026-11-08; antes solo-reporte):
+  - scripts solo del propio sitio (`'unsafe-inline'` por los scripts de Next; `'unsafe-eval'` solo en desarrollo);
+  - `connect-src` al origen de `NEXT_PUBLIC_API_URL`;
+  - `worker-src 'self' blob:` para el worker de react-pdf;
+  - `object-src`/`frame-src` `'none'` y `frame-ancestors 'none'`;
+  - `img-src` también `https:`, porque el logo del colegio (`Institucion.logo_url`) puede ser una URL externa que la barra lateral y el examen muestran tal cual; una imagen no ejecuta código.
+
+  Antes de imponerla se corrió **toda** la suite de Playwright (18 pruebas: login, examen, visor de PDF, documentos, agenda, casos en riesgo, `/master`, sesión…) sobre un build de producción (`next build` + `next start`, sin `'unsafe-eval'`) con la CSP ya obligatoria, sin ningún bloqueo. **Vuelta atrás sin tocar código:** `CSP_SOLO_REPORTE=1` en el entorno del build (Vercel → Environment Variables, y redeploy) la devuelve a `Content-Security-Policy-Report-Only`. HSTS del frontend lo pone Vercel.
 - Tests: `tests/test_cabeceras_seguridad_unitario.py` (sin BD ni servidor; carga `main.app` en procesos hijos con `ENTORNO` ausente, `dev`, `development` y ` Development `, sin leer el `.env`, y falla si vuelve a aparecer una lectura de `ENTORNO` con `development` por defecto) y `aurora_ui/e2e/cabeceras-seguridad.spec.ts` (cabeceras reales de Next y cero violaciones de la CSP en login, examen y visor de PDF, en `next dev`).
 
 ### Sentry sin datos personales (`core/monitoreo.py`)

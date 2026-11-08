@@ -115,7 +115,10 @@ def esperar_fila_registro_tarea(tipo_tarea, referencia_id, excluir_id=None, time
     -- opcionalmente excluyendo una fila ya conocida (para esperar la
     SIGUIENTE, tras un re-encolado)."""
     limite = time.time() + timeout
-    clausula_excluir = "and id != :excluir_id" if excluir_id is not None else ""
+    # 🔧 (sesión 2026-11-08) "id > excluir_id", no "!=": con "!=" la fila de la
+    # emisión ORIGINAL (anterior a la colgada) también contaba como "nueva" y
+    # la comprobación de la v2 corría antes de que la re-ejecución terminara.
+    clausula_excluir = "and id > :excluir_id" if excluir_id is not None else ""
     while time.time() < limite:
         fila = sql_uno(
             f"""select id, estado, job_id, intentos, error_detalle from registro_tareas_asincronas
@@ -153,6 +156,17 @@ def responder_phq9(token, preguntas_por_orden, valores):
     ]
     exigir(requests.post(f"{API}/educativo/examen/{token}/guardar",
                          json={"respuestas": respuestas}, timeout=30), 200, "Guardar respuestas")
+    # 🔧 (sesión 2026-11-08) Desde el 2026-11-02 no se puede finalizar con
+    # preguntas sin responder, y el PHQ-9 tiene una 10ª pregunta informativa
+    # (dificultad funcional) que no puntúa ni pertenece a ninguna dimensión:
+    # se responde con su primera opción, sin alterar el puntaje.
+    hechas = {r["pregunta_id"] for r in respuestas}
+    publicas = exigir(requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30), 200, "Preguntas")
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in publicas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        exigir(requests.post(f"{API}/educativo/examen/{token}/guardar",
+                             json={"respuestas": faltan}, timeout=30), 200, "Completar ítems restantes")
 
 
 def main(url_base):
@@ -281,7 +295,13 @@ def main(url_base):
         comprobar("[3] Y tiene su PROPIO job_id (una ejecución Celery distinta, no la misma fila reusada)",
                   fila_reencolada[2] is not None and fila_reencolada[2] != "")
 
+    # Espera a que la re-ejecución deje la v2 (esperar_informe vuelve apenas
+    # existe la v1, que ya estaba).
+    limite_v2 = time.time() + 30
     meta_tras_reconciliar = esperar_informe(h, inscripcion_id)
+    while meta_tras_reconciliar.get("version_actual") != 2 and time.time() < limite_v2:
+        time.sleep(0.5)
+        meta_tras_reconciliar = esperar_informe(h, inscripcion_id)
     comprobar("[3] El re-encolado de verdad regeneró el informe: ahora hay una v2",
               meta_tras_reconciliar.get("version_actual") == 2, str(meta_tras_reconciliar.get("version_actual")))
 

@@ -6,9 +6,8 @@ import {
 } from "./helpers";
 
 // 🆕 (sesión 2026-11-07, M2 de la revisión de seguridad) Cabeceras del
-// frontend (next.config.ts) y la CSP en modo solo-reporte: el navegador no
-// bloquea nada, pero dispara `securitypolicyviolation` por cada cosa que la
-// violaría. Este spec recorre las pantallas con más riesgo de chocar con la
+// frontend (next.config.ts). 🆕 (sesión 2026-11-08) La CSP ya es obligatoria:
+// el navegador bloquea y dispara `securitypolicyviolation` por cada bloqueo. Este spec recorre las pantallas con más riesgo de chocar con la
 // CSP — login, examen público y el visor de PDF (react-pdf + su worker) —
 // y falla si aparece alguna violación. Así se sabe cuándo se puede pasar de
 // Report-Only a Content-Security-Policy de verdad.
@@ -36,14 +35,16 @@ test.describe("Cabeceras de seguridad del frontend", () => {
     expect(h["x-frame-options"]).toBe("DENY");
     expect(h["referrer-policy"]).toBe("strict-origin-when-cross-origin");
     expect(h["permissions-policy"]).toContain("camera=()");
-    const csp = h["content-security-policy-report-only"];
+    // 🆕 (sesión 2026-11-08) CSP obligatoria (antes solo-reporte).
+    const csp = h["content-security-policy"];
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("object-src 'none'");
     // La app tiene que poder hablar con el backend configurado.
     const apiOrigen = new URL(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8010/api").origin;
     expect(csp).toMatch(new RegExp(`connect-src [^;]*${apiOrigen.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
-    // Solo-reporte por ahora: no debe existir todavía la cabecera que bloquea.
-    expect(h["content-security-policy"]).toBeUndefined();
+    expect(h["content-security-policy-report-only"]).toBeUndefined();
+    // Los scripts siguen limitados al propio sitio (sin orígenes externos).
+    expect(csp).toMatch(/script-src 'self' 'unsafe-inline'(;| 'unsafe-eval';)/);
   });
 
   test("login, examen y visor de PDF no violan la CSP", async ({ page }) => {

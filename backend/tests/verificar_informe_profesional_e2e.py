@@ -94,6 +94,14 @@ def login(email, clave):
     return pedir(requests.post, f"{API}/auth/login", "login", data={"username": email, "password": clave})
 
 
+def seccion(texto, desde, hasta):
+    """Texto entre dos títulos de sección del PDF ('' si no están)."""
+    if desde not in texto:
+        return ""
+    resto = texto.split(desde, 1)[1]
+    return resto.split(hasta, 1)[0] if hasta in resto else resto
+
+
 def texto_pdf(contenido: bytes) -> str:
     lector = PdfReader(io.BytesIO(contenido))
     texto_crudo = "\n".join((pagina.extract_text() or "") for pagina in lector.pages)
@@ -277,30 +285,40 @@ def main(url_base):
     comprobar("[4] Técnicas: instrumento (PHQ-9) listado", "PHQ-9" in texto_a.upper() or "SALUD DEL PACIENTE" in texto_a.upper())
     comprobar("[4] Técnicas adicionales configuradas (Entrevista/Observación) listadas",
               "Entrevista" in texto_a and "Observación" in texto_a)
-    comprobar("[5] Observación conductual, sin profesional que la registre, queda como PENDIENTE (no inventada)",
-              "pendiente de registro" in texto_a.lower())
+    # 🔧 (sesión 2026-11-08) Desde seeds.normalizar_contenido_comun el PHQ-9
+    # trae una observación CONFIGURADA; el PDF la marca como "Pendiente de
+    # validación profesional" (core/pdf_generator._bloque_contenido). Lo que
+    # importa es que nunca aparezca como si la hubiera escrito el psicólogo.
+    obs_a = seccion(texto_a, "4. OBSERVACIÓN CONDUCTUAL", "5. RESULTADOS")
+    comprobar("[5] Observación conductual sin registro del profesional: queda PENDIENTE (de registro o de validación), no inventada",
+              "pendiente de registro" in obs_a.lower() or "pendiente de validación profesional" in obs_a.lower(), obs_a[:160])
 
     # ---- C · DINAMISMO — A/B/C deben diferir en nivel, interpretación, conclusión y recomendación ----
     print("\n· C· DINAMISMO — bajo/moderado/alto producen contenido REALMENTE distinto")
-    nivel_a = sql_uno("select nivel from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_a)[0]
-    nivel_b = sql_uno("select nivel from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_b)[0]
-    nivel_c = sql_uno("select nivel from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_c)[0]
+    # 🔧 (sesión 2026-11-08) El PHQ-9 tiene 3 dimensiones desde el 2026-11-02;
+    # nivel, conclusión y recomendación del instrumento son los del total
+    # (dimensión 'suma_de_dimensiones'). Antes se leía un diagnóstico cualquiera.
+    dim_total = sql_uno("select id from edu_dimensiones where prueba_id=:p and tipo_calculo='suma_de_dimensiones'",
+                        p=phq9_id)[0]
+
+    def diag_total(insc, campo):
+        return sql_uno(f"select {campo} from edu_diagnosticos_alumno where inscripcion_id=:i and dimension_id=:d",
+                       i=insc, d=dim_total)[0]
+
+    nivel_a, nivel_b, nivel_c = (diag_total(i, "nivel") for i in (insc_a, insc_b, insc_c))
     comprobar("[20][21][22] Los tres niveles clínicos son DISTINTOS entre sí",
               len({nivel_a, nivel_b, nivel_c}) == 3, f"{nivel_a} / {nivel_b} / {nivel_c}")
 
-    concl_a = sql_uno("select conclusion_sugerida from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_a)[0]
-    concl_b = sql_uno("select conclusion_sugerida from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_b)[0]
-    concl_c = sql_uno("select conclusion_sugerida from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_c)[0]
+    concl_a, concl_b, concl_c = (diag_total(i, "conclusion_sugerida") for i in (insc_a, insc_b, insc_c))
     comprobar("[11] Las tres CONCLUSIONES son textos distintos (no la misma frase con el número cambiado)",
-              len({concl_a, concl_b, concl_c}) == 3)
+              len({concl_a, concl_b, concl_c}) == 3 and None not in {concl_a, concl_b, concl_c},
+              f"{(concl_a or '')[:40]} / {(concl_b or '')[:40]} / {(concl_c or '')[:40]}")
 
-    recom_a = sql_uno("select recomendacion_sugerida from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_a)[0]
-    recom_b = sql_uno("select recomendacion_sugerida from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_b)[0]
-    recom_c = sql_uno("select recomendacion_sugerida from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_c)[0]
-    comprobar("[12] Las tres RECOMENDACIONES son textos distintos", len({recom_a, recom_b, recom_c}) == 3)
+    recom_a, recom_b, recom_c = (diag_total(i, "recomendacion_sugerida") for i in (insc_a, insc_b, insc_c))
+    comprobar("[12] Las tres RECOMENDACIONES son textos distintos",
+              len({recom_a, recom_b, recom_c}) == 3 and None not in {recom_a, recom_b, recom_c})
 
-    interp_a = sql_uno("select interpretacion from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_a)[0]
-    interp_c = sql_uno("select interpretacion from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_c)[0]
+    interp_a, interp_c = diag_total(insc_a, "interpretacion"), diag_total(insc_c, "interpretacion")
     comprobar("[7] La interpretación cualitativa de A y C son distintas", interp_a != interp_c)
 
     comprobar("[9] El PDF de A refleja su propia conclusión/recomendación (no la de otro caso)",
@@ -308,11 +326,20 @@ def main(url_base):
 
     # ---- D · Alerta por regla + baremo combinados ----
     print("\n· D· CASO D — puntaje alto + ítem 9 -> alerta con doble origen, trazable")
-    diag_d = sql_uno("select es_alerta, alerta_por, regla_activada_id from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_d)
-    comprobar("[23][24] alerta_por = 'baremo,regla' (ambos orígenes)", diag_d[1] == "baremo,regla")
-    comprobar("Trazabilidad: regla_activada_id apunta a una regla real", diag_d[2] is not None)
-    comprobar("[23] El PDF de D muestra AMBOS orígenes de alerta", "Baremo + Regla" in texto_d)
-    comprobar("El PDF de C (solo baremo) NO muestra 'Baremo + Regla'", "Baremo + Regla" not in texto_c)
+    # 🔧 (sesión 2026-11-08) Con 3 dimensiones, la regla del ítem 9 marca la
+    # dimensión que contiene ese ítem y el baremo de alerta marca el total:
+    # los dos orígenes quedan trazados, cada uno en su fila.
+    with MOTOR.connect() as c:
+        filas_d = c.execute(text("select alerta_por, regla_activada_id from edu_diagnosticos_alumno "
+                                 "where inscripcion_id=:i and es_alerta"), {"i": insc_d}).fetchall()
+    origenes_d = {o for fila in filas_d for o in (fila[0] or "").split(",") if o}
+    comprobar("[23][24] Ambos orígenes de alerta quedan registrados (baremo y regla)",
+              origenes_d == {"baremo", "regla"}, str(filas_d))
+    comprobar("Trazabilidad: regla_activada_id apunta a una regla real",
+              any(f[1] is not None for f in filas_d if "regla" in (f[0] or "")), str(filas_d))
+    comprobar("[23] El PDF de D muestra AMBOS orígenes de alerta",
+              "Regla de interpretación" in texto_d and "Baremo" in texto_d)
+    comprobar("El PDF de C (solo baremo) NO muestra la regla", "Regla de interpretación" not in texto_c)
 
     # ---- E · Prueba con múltiples dimensiones ----
     print("\nCASO E · Prueba con 2 dimensiones — cada una con su propia interpretación")
@@ -389,8 +416,9 @@ def main(url_base):
     comprobar("[F] v2 refleja la observación conductual real (ya no 'pendiente de registro')",
               "buen contacto visual" in texto_a_v2 and "pendiente de registro" not in texto_a_v2)
     comprobar("[F] v2 refleja la conclusión escrita por la profesional", "redactada por la profesional" in texto_a_v2)
-    comprobar("[27] v1 (ya almacenada) sigue intacta: seguía diciendo 'pendiente de registro'",
-              "pendiente de registro" in texto_a)
+    comprobar("[27] v1 (ya almacenada) sigue intacta: su observación seguía pendiente y sin el texto de la profesional",
+              obs_a and "buen contacto visual" not in texto_a
+              and ("pendiente de registro" in obs_a.lower() or "pendiente de validación profesional" in obs_a.lower()))
 
     total = len(_resultados)
     fallos = [n for n, ok, _ in _resultados if not ok]

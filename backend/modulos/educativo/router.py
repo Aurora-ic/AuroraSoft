@@ -387,7 +387,7 @@ def finalizar_examen_seguro(
             _encolar_sin_bloquear(
                 enviar_alerta_riesgo,
                 destinatarios,
-                inscripcion.nombre_completo or "Evaluado",
+                inscripcion.id,  # B3: el id, nunca el nombre, viaja por Redis
                 niveles_alerta,
                 dimensiones_sin_baremo,
                 reglas_con_error,
@@ -799,7 +799,7 @@ def reprocesar_informe_de_inscripcion(
             _encolar_sin_bloquear(
                 enviar_alerta_riesgo,
                 destinatarios,
-                inscripcion.nombre_completo or "Evaluado",
+                inscripcion.id,  # B3: el id, nunca el nombre, viaja por Redis
                 niveles_alerta,
                 dimensiones_sin_baremo,
                 reglas_con_error,
@@ -827,7 +827,7 @@ def reprocesar_informe_de_inscripcion(
             _encolar_sin_bloquear(
                 enviar_alerta_regresion_informe_liberado,
                 revisor_original.email,
-                inscripcion.nombre_completo or "Evaluado",
+                inscripcion.id,  # B3: el id, nunca el nombre, viaja por Redis
                 version.numero_version - 1,
             )
             revisor_original_notificado = True

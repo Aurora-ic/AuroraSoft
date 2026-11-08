@@ -42,7 +42,10 @@ def test_escapado_html_alerta():
         dimension_hostil = "Ansiedad<img src=x onerror=alert(2)>"
         enviar_alerta_riesgo(
             destinatarios="psicologo@colegio.edu.pe",
-            nombre_alumno=nombre_hostil,
+            # 🔧 (sesión 2026-11-08, B3) La tarea recibe el id de la inscripción y
+            # busca el nombre en la base; un texto se trata como nombre ya
+            # resuelto (formato anterior), lo justo para probar el escapado.
+            inscripcion_id=nombre_hostil,
             dimensiones_en_riesgo=[dimension_hostil],
         )
     finally:

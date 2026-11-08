@@ -486,7 +486,12 @@ def main(url_base):
         completar_restantes(tok_phq9)
         exigir(requests.post(f"{API}/educativo/examen/{tok_phq9}/finalizar", timeout=60), 200, "Finalizar PHQ-9 regresión")
         insc_phq9 = sql_uno("select id from edu_inscripciones where token=:t", t=tok_phq9)[0]
-        puntaje_phq9 = sql_uno("select puntaje_directo from edu_resultados_dimensiones where inscripcion_id=:i", i=insc_phq9)
+        # 🔧 (sesión 2026-11-08) El PHQ-9 tiene 3 dimensiones desde el 2026-11-02;
+        # el total (suma de las otras dos) es la dimensión 'suma_de_dimensiones'.
+        dim_total_phq9 = sql_uno(
+            "select id from edu_dimensiones where prueba_id=:p and tipo_calculo='suma_de_dimensiones'", p=phq9_id[0])[0]
+        puntaje_phq9 = sql_uno("select puntaje_directo from edu_resultados_dimensiones "
+                               "where inscripcion_id=:i and dimension_id=:d", i=insc_phq9, d=dim_total_phq9)
         comprobar("[8] PHQ-9 (likert_suma) sigue sumando exactamente igual que antes de esta fase: total = 5",
                   float(puntaje_phq9[0]) == 5.0, str(puntaje_phq9))
         # No asumimos qué texto/tramo tiene el catálogo PHQ-9 en vivo (puede
@@ -496,10 +501,10 @@ def main(url_base):
         # el puntaje contra EL BAREMO REAL exactamente igual que antes de
         # introducir correcto_incorrecto, no un valor de nivel hardcodeado.
         baremo_esperado_phq9 = sql_uno(
-            "select nivel, es_alerta from edu_baremos where dimension_id = "
-            "(select dimension_id from edu_resultados_dimensiones where inscripcion_id=:i) "
-            "and puntaje_minimo <= 5 and puntaje_maximo >= 5", i=insc_phq9)
-        diag_phq9 = sql_uno("select nivel, es_alerta from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_phq9)
+            "select nivel, es_alerta from edu_baremos where dimension_id = :d "
+            "and puntaje_minimo <= 5 and puntaje_maximo >= 5", d=dim_total_phq9)
+        diag_phq9 = sql_uno("select nivel, es_alerta from edu_diagnosticos_alumno "
+                            "where inscripcion_id=:i and dimension_id=:d", i=insc_phq9, d=dim_total_phq9)
         comprobar("[8] PHQ-9 interpreta el puntaje 5 contra el baremo REAL en vigor, sin verse afectado "
                   "por el nuevo modo correcto_incorrecto (el likert_suma de siempre)",
                   diag_phq9[0] == baremo_esperado_phq9[0] and diag_phq9[1] == bool(baremo_esperado_phq9[1]),
