@@ -25,9 +25,9 @@ test.describe("Casos en riesgo", () => {
     await finalizarExamenCompleto(ctx, tokenExamen, prueba.preguntaIds, prueba.opcionCorrectaIds);
     await ctx.dispose();
 
-    // Interruptor apagado (por defecto): el alumno solo ve el agradecimiento.
+    // 🆕 (M6) El alumno solo ve "Ya terminaste", haya o no alerta.
     await page.goto(`/examen/${tokenExamen}`);
-    await expect(page.getByRole("heading", { name: "Evaluación finalizada" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ya terminaste" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Tus resultados" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Descargar mi informe (PDF)" })).toHaveCount(0);
 

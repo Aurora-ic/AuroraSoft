@@ -67,8 +67,9 @@ test.describe("Flujo público del examen", () => {
     await page.getByRole("button", { name: "Finalizar evaluación" }).click();
     // Finalizar corrige, interpreta y genera el informe en una transacción:
     // puede tardar más que la espera por defecto (5 s).
-    await expect(page.getByRole("heading", { name: "Evaluación finalizada" })).toBeVisible({ timeout: 30_000 });
-    // Solo agradecimiento: ni niveles ni descarga del informe.
+    await expect(page.getByRole("heading", { name: "Ya terminaste" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Cerrar esta pestaña" })).toBeVisible();
+    // 🆕 (M6) Solo "Ya terminaste": ni niveles ni descarga del informe.
     await expect(page.getByText("Nivel:")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Descargar/ })).toHaveCount(0);
   });

@@ -366,8 +366,11 @@ def main(url_base):
         requests.get(f"{API}/educativo/examen/{token}/estado-resultados", timeout=30),
         200, "Estado de resultados",
     )
-    comprobar("El alumno ve un estado 'en revisión' sin puntajes",
-              estado["resultado_visible_alumno"] is False and "revis" in estado["mensaje"].lower())
+    # 🆕 (sesión 2026-11-07, M6) El alumno solo ve "Ya terminaste": la
+    # respuesta ya no trae resultado_visible_alumno (delataba el caso de riesgo).
+    comprobar("El alumno ve solo 'Ya terminaste', sin puntajes ni estado de revisión",
+              estado["mensaje"].startswith("Ya terminaste") and estado["resultados"] == []
+              and "resultado_visible_alumno" not in estado and "informe_liberado" not in estado, str(estado))
 
     r = requests.get(f"{API}/educativo/examen/{token}/informe-pdf", timeout=60)
     comprobar("El PDF del alumno está bloqueado antes de la revisión (403)",
@@ -386,19 +389,18 @@ def main(url_base):
             headers=h_psi, timeout=30,
         ), 200, "Liberar informe",
     )
-    # 🆕 (sesión 2026-11-01) Liberar ya no abre el PDF al alumno: eso lo
-    # decide solo el interruptor de la campaña (Evaluacion.alumno_ve_informe).
+    # 🆕 (sesión 2026-11-07, M6) Ni liberar ni el interruptor de la campaña
+    # abren el PDF al alumno por su enlace: lo entrega el equipo de orientación.
     r = requests.get(f"{API}/educativo/examen/{token}/informe-pdf", timeout=60)
-    comprobar("Liberado pero con el interruptor de la campaña apagado: el alumno sigue sin PDF (403)",
+    comprobar("Liberado: el alumno sigue sin PDF por su enlace (403)",
               r.status_code == 403, f"status {r.status_code}")
     exigir(
         requests.patch(f"{API}/educativo/campanas/{campana_id}", json={"alumno_ve_informe": True},
-                       headers=h_psi, timeout=30), 200, "Encender 'los estudiantes ven su resultado'",
+                       headers=h_psi, timeout=30), 200, "Encender alumno_ve_informe (ya sin efecto)",
     )
     r = requests.get(f"{API}/educativo/examen/{token}/informe-pdf", timeout=60)
-    comprobar("Con el interruptor encendido el alumno ya descarga su PDF",
-              r.status_code == 200 and r.content[:4] == b"%PDF",
-              f"status {r.status_code}, {len(r.content)} bytes")
+    comprobar("Con alumno_ve_informe encendido, tampoco (403)",
+              r.status_code == 403, f"status {r.status_code}")
 
     # ------------------------------------------------------------------
     cabecera("8 · B-3 · Los candados de expiración ya actúan de verdad")

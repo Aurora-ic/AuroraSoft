@@ -283,7 +283,22 @@ Primer punto del análisis crítico de UI/UX. Las tres decisiones de fondo las t
 
   `e2e/examen-publico.spec.ts` está actualizado al flujo nuevo.
 
-### 🆕 "Los estudiantes ven su resultado": interruptor por campaña (sesión 2026-11-01)
+### 🆕 Al terminar, el enlace del alumno solo dice "Ya terminaste" (sesión 2026-11-07, M6)
+
+**Reemplaza al interruptor de la sección siguiente.** M6 de la revisión de seguridad previa al piloto: en la sala de cómputo de un colegio, el siguiente alumno abría desde el historial del navegador el resultado y el PDF de quien terminó antes. Decisión del usuario: una vez que termina, el enlace muestra solo "Ya terminaste" y lo necesario para cerrar la pestaña, haya o no alerta y aunque la campaña tenga `alumno_ve_informe` encendido. El resultado lo entrega el equipo de orientación.
+
+- **Backend.**
+  - `crud.alumno_puede_ver_resultados` devuelve siempre `False`, así que los tres endpoints que la usan quedan cerrados: `/finalizar` devuelve `[]` y `/estado-resultados` trae `resultados: []`. `GET /examen/{token}/informe-pdf` responde siempre 403 con "Tu informe lo entrega el equipo de orientación de tu institución.". Se borró `crud.resultados_visibles_alumno`, que quedó sin uso.
+  - `/estado-resultados` ya no devuelve `informe_liberado`, `resultado_visible_alumno` ni `estado_interpretacion`: un informe retenido delataba que el alumno quedó marcado como caso de riesgo. Solo `estado_examen`, `mensaje` ("Ya terminaste. Tus respuestas quedaron registradas.") y los dos campos vacíos por compatibilidad.
+  - `/preguntas` responde 409 después de terminar, como ya hacían `/intake`, `/progreso`, `/guardar` y `comenzar-test`.
+  - La columna `Evaluacion.alumno_ve_informe` **sigue en la base** y `PATCH`/`POST` la siguen aceptando; ya no tiene efecto. Se retira en una migración aparte ("agregar primero y retirar después").
+- **Frontend.**
+  - La pantalla final del examen dice "Ya terminaste", "Tus respuestas quedaron registradas" y "Tus resultados los verá el equipo de orientación". Debajo, un recuadro "Ahora cierra esta pestaña" con un botón "Cerrar esta pestaña" (`window.close()`). Los navegadores solo dejan cerrar desde la página una pestaña que abrió un script; si no se cierra, aparecen instrucciones: la X o Ctrl+W (⌘+W en Mac), o la lista de pestañas en el celular. El título recibe el foco al llegar.
+  - Ya no se consulta `/estado-resultados` ni se ofrece el PDF.
+  - Se retiró el interruptor de las tres pantallas: "Nueva campaña", la tarjeta "Resultados para los estudiantes" del dashboard de campaña y la casilla "Ve su resultado al terminar" del modal de aplicación individual. El resumen de "Nueva campaña" dice "Resultado: Solo el equipo de orientación".
+- **Verificado.** `tests/verificar_visibilidad_alumno_e2e.py` (prefijo `ZZVISAL`) reescrito a la regla nueva: con el campo encendido y con alerta, el alumno recibe `[]`, un mensaje igual al del caso sin alerta, ningún campo que delate el riesgo, 403 en el PDF y 409 en `/preguntas`, y el psicólogo descarga el PDF. Los e2e que bajaban el PDF por el enlace del alumno para revisar su contenido (`fase0`, `fase1`, `informe_pdf`, `informe_phq9`, `flujo_completo`, `edicion_persona`) ahora lo bajan por `/inscripciones/{id}/informe-pdf` y comprueban el 403 del alumno. `test_fase1_unitario` comprueba que el esquema público ya no expone esos tres campos. En Playwright, `examen-publico`, `casos-riesgo` y `aplicacion-individual` esperan "Ya terminaste", y el último también el aviso cuando la pestaña no se puede cerrar.
+
+### "Los estudiantes ven su resultado": interruptor por campaña (sesión 2026-11-01) — retirado el 2026-11-07, ver la sección anterior
 
 El usuario fijó tres decisiones: el interruptor va por campaña; encendido, muestra el resultado **también con alerta clínica y sin revisión previa**; y el alumno ve el PDF más un resumen en pantalla. El psicólogo recibe siempre todos los resultados.
 

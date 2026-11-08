@@ -388,11 +388,11 @@ def main(url_base):
                  u=f"http://127.0.0.1:{interno.server_address[1]}/latest/meta-data", i=inst_a)
         ejecutar("update edu_inscripciones set informe_liberado=true, resultado_visible_alumno=true "
                  "where id=:i", i=insc_d)
-        # 🆕 (sesión 2026-11-01) el PDF del alumno lo abre el interruptor de la campaña.
-        ejecutar("update edu_evaluaciones set alumno_ve_informe=true "
-                 "where id=(select evaluacion_id from edu_inscripciones where id=:i)", i=insc_d)
-        r = requests.get(f"{API}/educativo/examen/{token_d}/informe-pdf", timeout=60)
-        comprobar("El PDF PÚBLICO del alumno se genera igualmente (200)",
+        # 🆕 (sesión 2026-11-07, M6) El alumno ya no descarga su PDF por el
+        # enlace: el PDF con el logo heredado se pide por el endpoint del staff,
+        # que pasa por el mismo descargar_logo_seguro.
+        r = requests.get(f"{API}/educativo/inscripciones/{insc_d}/informe-pdf", headers=h_a, timeout=60)
+        comprobar("El PDF se genera igualmente con el logo heredado (200)",
                   r.status_code == 200 and r.content[:4] == b"%PDF", f"status {r.status_code}")
         comprobar("...y el servicio interno NO recibió ninguna petición",
                   peticiones == [], f"peticiones: {peticiones}")

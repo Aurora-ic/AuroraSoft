@@ -315,10 +315,14 @@ def main(url_base):
 
     estado_api = exigir(requests.get(
         f"{API}/educativo/examen/{tok3}/estado-resultados", timeout=30), 200, "Estado C3")
-    comprobar("El endpoint de estado expone 'incompleta' al backend/frontend",
-              estado_api["estado_interpretacion"] == "incompleta")
-    comprobar("Al alumno se le dice 'en revisión', sin revelar el motivo técnico",
-              "revis" in estado_api["mensaje"].lower()
+    # 🆕 (sesión 2026-11-07, M6) 'incompleta' queda para el staff (BD); al
+    # alumno el endpoint público ya no le expone estado_interpretacion.
+    comprobar("La interpretación queda 'incompleta' (para el staff)",
+              sql_uno("select estado_interpretacion from edu_inscripciones where id=:i", i=est3[0])[0] == "incompleta")
+    comprobar("El endpoint público ya no expone estado_interpretacion",
+              "estado_interpretacion" not in estado_api, str(sorted(estado_api)))
+    comprobar("Al alumno solo 'Ya terminaste', sin revelar el motivo técnico",
+              estado_api["mensaje"].startswith("Ya terminaste")
               and "baremo" not in estado_api["mensaje"].lower())
 
     # Caso de contraste: resultado válido SIN alerta -> sí se entrega

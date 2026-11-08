@@ -19,7 +19,6 @@ import {
   Download,
   Lock,
   Ban,
-  Eye,
   type LucideIcon,
 } from "lucide-react";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -101,9 +100,6 @@ export default function DashboardCampanaPage() {
 
   const [exportando, setExportando] = useState(false);
   const [accionando, setAccionando] = useState(false);
-  // 🆕 Interruptor "los estudiantes ven su resultado" (Evaluacion.alumno_ve_informe).
-  const [cambiandoVisibilidad, setCambiandoVisibilidad] = useState(false);
-  const [errorVisibilidad, setErrorVisibilidad] = useState<string | null>(null);
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
   const [motivoCancelar, setMotivoCancelar] = useState("");
   const [mostrarCancelar, setMostrarCancelar] = useState(false);
@@ -359,23 +355,6 @@ export default function DashboardCampanaPage() {
     await navigator.clipboard.writeText(texto);
     setCopiadoLinksPendientes(true);
     setTimeout(() => setCopiadoLinksPendientes(false), 2000);
-  }
-
-  // Se puede cambiar en cualquier estado de la campaña (también cerrada):
-  // afecta al instante a todos sus estudiantes, incluidos los que ya terminaron.
-  async function alternarVisibilidadAlumno() {
-    if (!dashboard) return;
-    setCambiandoVisibilidad(true);
-    setErrorVisibilidad(null);
-    try {
-      await apiClient.patch(`/educativo/campanas/${campanaId}`, { alumno_ve_informe: !dashboard.alumno_ve_informe });
-      const actualizado = await apiClient.get<DashboardCampana>(`/educativo/campanas/${campanaId}/dashboard`);
-      setDashboard(actualizado);
-    } catch (err: unknown) {
-      setErrorVisibilidad(err instanceof Error ? err.message : "No se pudo cambiar la visibilidad para los estudiantes.");
-    } finally {
-      setCambiandoVisibilidad(false);
-    }
   }
 
   async function cerrar() {
@@ -932,42 +911,6 @@ export default function DashboardCampanaPage() {
               </p>
             )}
           </section>
-
-          {puedeAdministrar && (
-            <section className={`${CLASE_TARJETA} overflow-hidden`}>
-              <CabeceraTarjeta icono={Eye} titulo="Resultados para los estudiantes" />
-              <div className="p-4 space-y-3">
-                <TextoError>{errorVisibilidad}</TextoError>
-                <div className="flex items-start justify-between gap-3">
-                  <p className="m-0 text-[13px] font-semibold text-ink dark:text-ink-dark">
-                    {dashboard.alumno_ve_informe ? "Ven su resultado y su PDF" : "No ven su resultado"}
-                  </p>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={!!dashboard.alumno_ve_informe}
-                    aria-label="Los estudiantes ven su resultado al terminar"
-                    onClick={alternarVisibilidadAlumno}
-                    disabled={cambiandoVisibilidad}
-                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:opacity-50 ${
-                      dashboard.alumno_ve_informe ? "bg-accion dark:bg-teal-accent-dark" : "bg-border dark:bg-border-dark"
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                        dashboard.alumno_ve_informe ? "translate-x-5" : "translate-x-0.5"
-                      }`}
-                    />
-                  </button>
-                </div>
-                <p className="m-0 text-[12px] leading-relaxed text-ink/60 dark:text-ink-dark/60">
-                  Encendido, cada estudiante ve un resumen por dimensión y puede descargar su informe en PDF —{" "}
-                  <strong className="font-semibold">también si hay alerta clínica, sin tu revisión previa</strong>. Tú siempre
-                  recibes todos los resultados. El cambio aplica al instante, también a quienes ya terminaron.
-                </p>
-              </div>
-            </section>
-          )}
 
           {puedeAdministrar && (
             <section className={`${CLASE_TARJETA} overflow-hidden`}>

@@ -127,8 +127,13 @@ def test_b6_estados_interpretacion():
               hasattr(models.Inscripcion, "estado_interpretacion"))
     comprobar("Inscripcion registra qué dimensiones quedaron sin baremo",
               hasattr(models.Inscripcion, "dimensiones_sin_baremo"))
-    comprobar("El endpoint de estado del alumno lo expone",
-              "estado_interpretacion" in schemas.EstadoResultadosAlumnoResponse.model_fields)
+    # 🆕 (sesión 2026-11-07, M6) Antes el endpoint público del alumno lo
+    # exponía; ahora NO (con informe_liberado/resultado_visible_alumno
+    # delataba el caso de riesgo). Lo sigue viendo solo el staff.
+    comprobar("El endpoint de estado del alumno YA NO lo expone (M6)",
+              "estado_interpretacion" not in schemas.EstadoResultadosAlumnoResponse.model_fields
+              and "informe_liberado" not in schemas.EstadoResultadosAlumnoResponse.model_fields
+              and "resultado_visible_alumno" not in schemas.EstadoResultadosAlumnoResponse.model_fields)
     comprobar("El panel del psicólogo lo ve en InscripcionResponse",
               "estado_interpretacion" in schemas.InscripcionResponse.model_fields
               and "dimensiones_sin_baremo" in schemas.InscripcionResponse.model_fields)

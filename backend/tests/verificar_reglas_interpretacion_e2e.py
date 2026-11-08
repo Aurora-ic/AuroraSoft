@@ -40,6 +40,22 @@ MOTOR = None
 _resultados = []
 
 
+
+def completar_restantes(token):
+    """🔧 (sesión 2026-11-07, mismo ajuste que verificar_informe_phq9_e2e del
+    2026-11-02) El backend exige responder TODAS las preguntas antes de
+    finalizar; este test arma a mano solo las puntuables (ítems 1-9 del
+    PHQ-9). Responde con la primera opción lo que falte — hoy, el ítem 10
+    informativo, que no puntúa — para no alterar el puntaje verificado."""
+    progreso = requests.get(f"{API}/educativo/examen/{token}/progreso", timeout=30).json()
+    hechas = {r["pregunta_id"] for r in progreso.get("respuestas", [])}
+    preguntas = requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30).json()
+    faltan = [{"pregunta_id": p["id"], "opcion_id": p["opciones"][0]["id"]}
+              for p in preguntas if p["id"] not in hechas and p.get("opciones")]
+    if faltan:
+        r = requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": faltan}, timeout=30)
+        assert r.status_code == 200, f"Completar ítems restantes: {r.status_code} {r.text[:200]}"
+
 def comprobar(nombre, condicion, detalle=""):
     _resultados.append((nombre, bool(condicion), detalle))
     print(f"  [{'PASA' if condicion else 'FALLA'}] {nombre}" + (f" — {detalle}" if detalle else ""))
@@ -122,6 +138,8 @@ def aplicar_phq9(headers, inst_id, sello, etiqueta, preg_phq9, phq9_id, valores)
     respuestas = [{"pregunta_id": preg_phq9[i + 1]["id"], "opcion_id": opcion_id(i + 1, v)} for i, v in enumerate(valores)]
     exigir(requests.post(f"{API}/educativo/examen/{token}/guardar", json={"respuestas": respuestas}, timeout=30), 200, f"Guardar {etiqueta}")
 
+    completar_restantes(token)
+
     r = requests.post(f"{API}/educativo/examen/{token}/finalizar", timeout=60)
     exigir(r, 200, f"Finalizar {etiqueta}")
 
@@ -171,7 +189,7 @@ def main(url_base):
 
     phq9_id = sql_uno("select id from edu_pruebas where nombre_tecnico = 'PHQ-9' and institucion_id is null")[0]
     detalle_phq9 = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_a, timeout=30), 200, "Detalle PHQ-9")
-    preg_phq9 = {p["orden"]: p for p in detalle_phq9["dimensiones"][0]["preguntas"]}
+    preg_phq9 = {p["orden"]: p for d in detalle_phq9["dimensiones"] for p in d["preguntas"]}
     comprobar("[0] El PHQ-9 público trae al menos 1 regla de interpretación (ítem 9)", len(detalle_phq9["reglas"]) >= 1)
     regla_item9 = detalle_phq9["reglas"][0]
     comprobar("[0] La regla es de ámbito 'item', operador '>' 0", regla_item9["ambito"] == "item" and regla_item9["operador"] == ">" and regla_item9["valor_comparacion"] == 0)
@@ -232,6 +250,7 @@ def main(url_base):
     op_alerta = next(o["id"] for o in preg_e[1]["opciones"] if o["valor_puntuacion"] == 1)
     exigir(requests.post(f"{API}/educativo/examen/{tok_e}/guardar",
                          json={"respuestas": [{"pregunta_id": preg_e[1]["id"], "opcion_id": op_alerta}]}, timeout=30), 200, "Guardar E")
+    completar_restantes(tok_e)
     exigir(requests.post(f"{API}/educativo/examen/{tok_e}/finalizar", timeout=60), 200, "Finalizar E")
     insc_e = sql_uno("select id from edu_inscripciones where token=:t", t=tok_e)[0]
     diag_e = sql_uno("select es_alerta, alerta_por from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_e)
@@ -264,6 +283,7 @@ def main(url_base):
     # Solo se responde el ítem 1 — el ítem 2 (el que la regla necesita) queda sin respuesta.
     exigir(requests.post(f"{API}/educativo/examen/{tok_f}/guardar",
                          json={"respuestas": [{"pregunta_id": preg_f[1]["id"], "opcion_id": op_bajo}]}, timeout=30), 200, "Guardar F")
+    completar_restantes(tok_f)
     exigir(requests.post(f"{API}/educativo/examen/{tok_f}/finalizar", timeout=60), 200, "Finalizar F")
     insc_f = sql_uno("select id from edu_inscripciones where token=:t", t=tok_f)
     estado_f = sql_uno("select resultado_visible_alumno, informe_liberado, reglas_con_error from edu_inscripciones where id=:i", i=insc_f[0])
@@ -305,6 +325,7 @@ def main(url_base):
     op_bajo_gb = next(o["id"] for o in preg_gb[1]["opciones"] if o["valor_puntuacion"] == 0)
     exigir(requests.post(f"{API}/educativo/examen/{tok_gb}/guardar",
                          json={"respuestas": [{"pregunta_id": preg_gb[1]["id"], "opcion_id": op_bajo_gb}]}, timeout=30), 200, "Guardar GB")
+    completar_restantes(tok_gb)
     exigir(requests.post(f"{API}/educativo/examen/{tok_gb}/finalizar", timeout=60), 200, "Finalizar GB")
     insc_gb = sql_uno("select id from edu_inscripciones where token=:t", t=tok_gb)[0]
     diag_gb = sql_uno("select es_alerta, alerta_por from edu_diagnosticos_alumno where inscripcion_id=:i", i=insc_gb)

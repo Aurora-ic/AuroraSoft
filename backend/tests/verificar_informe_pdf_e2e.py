@@ -239,8 +239,12 @@ def main(url_base):
     meta_ok = esperar_informe(h_a, insc_ok)
     comprobar("[1] El informe se generó (existe)", meta_ok.get("existe") is True)
 
-    r_pdf_ok = requests.get(f"{API}/educativo/examen/{tok_ok}/informe-pdf", timeout=60)
-    comprobar("[1] Descarga autorizada del alumno (200)", r_pdf_ok.status_code == 200)
+    # 🆕 (sesión 2026-11-07, M6) El alumno ya no descarga su PDF por el
+    # enlace: se revisa el que descarga el staff, y que el alumno reciba 403.
+    comprobar("[1] El alumno NO descarga su PDF por el enlace (403, M6)",
+              requests.get(f"{API}/educativo/examen/{tok_ok}/informe-pdf", timeout=60).status_code == 403)
+    r_pdf_ok = requests.get(f"{API}/educativo/inscripciones/{insc_ok}/informe-pdf", headers=h_a, timeout=60)
+    comprobar("[1] Descarga del staff (200)", r_pdf_ok.status_code == 200)
     contenido_ok = r_pdf_ok.content
     comprobar("[1] Empieza con la cabecera %PDF (archivo real, no basura)", contenido_ok[:5] == b"%PDF-")
 
@@ -299,9 +303,11 @@ def main(url_base):
     exigir(requests.patch(f"{API}/educativo/campanas/{campana_de_tok_al}", json={"alumno_ve_informe": True},
                           headers=h_a, timeout=30), 200, "Encender 'los estudiantes ven su resultado'")
     r_pdf_al_liberado = requests.get(f"{API}/educativo/examen/{tok_al}/informe-pdf", timeout=60)
-    comprobar("[4] Liberado + interruptor encendido: el alumno SÍ puede descargarlo (200)", r_pdf_al_liberado.status_code == 200)
+    comprobar("[4] Liberado + campo encendido: el alumno sigue sin PDF por el enlace (403, M6)",
+              r_pdf_al_liberado.status_code == 403)
+    r_pdf_al_staff_2 = requests.get(f"{API}/educativo/inscripciones/{insc_al}/informe-pdf", headers=h_a, timeout=60)
     comprobar("[4] Es el MISMO PDF que ya estaba almacenado (no se regeneró al liberar)",
-              r_pdf_al_liberado.content == r_pdf_al_staff.content)
+              r_pdf_al_staff_2.content == r_pdf_al_staff.content)
 
     # ==================================================================
     print("\n3 · CONTENIDO HISTÓRICO — el informe conserva 3°A aunque el alumno se mueva a 3°B")
@@ -332,7 +338,7 @@ def main(url_base):
     insc_hist = sql_uno("select id from edu_inscripciones where token=:t", t=tok_hist)[0]
     esperar_informe(h_a, insc_hist)
 
-    r_pdf_hist_antes = requests.get(f"{API}/educativo/examen/{tok_hist}/informe-pdf", timeout=60)
+    r_pdf_hist_antes = requests.get(f"{API}/educativo/inscripciones/{insc_hist}/informe-pdf", headers=h_a, timeout=60)
     texto_hist_antes = texto_pdf(r_pdf_hist_antes.content)
     comprobar("[3] Antes de mover al alumno, el informe muestra 3° A", "3° A" in texto_hist_antes)
 
@@ -343,7 +349,7 @@ def main(url_base):
     comprobar("[3] La ficha ACTUAL del alumno ya muestra 3° B",
               "B" in (ficha_hist.get("informacion_academica_actual") or {}).get("seccion", ""))
 
-    r_pdf_hist_despues = requests.get(f"{API}/educativo/examen/{tok_hist}/informe-pdf", timeout=60)
+    r_pdf_hist_despues = requests.get(f"{API}/educativo/inscripciones/{insc_hist}/informe-pdf", headers=h_a, timeout=60)
     texto_hist_despues = texto_pdf(r_pdf_hist_despues.content)
     comprobar("[3] El informe YA ALMACENADO sigue mostrando 3° A (no se recalculó)", "3° A" in texto_hist_despues)
     comprobar("[3] El informe NO muestra 3° B en ningún momento", "3° B" not in texto_hist_despues)
@@ -426,7 +432,7 @@ def main(url_base):
                        "opciones": [{"texto_opcion": "No", "valor_puntuacion": 0}, {"texto_opcion": "Sí", "valor_puntuacion": 1}]}]},
         headers=h_a, timeout=30), 200, "Carga sin baremo")
     detalle_sb = exigir(requests.get(f"{API}/educativo/pruebas/{prueba_sb['id']}/completa", headers=h_a, timeout=30), 200, "Detalle sin baremo")
-    preg_sb = {p["orden"]: p for p in detalle_sb["dimensiones"][0]["preguntas"]}
+    preg_sb = {p["orden"]: p for d in detalle_sb["dimensiones"] for p in d["preguntas"]}
     campana_sb = exigir(requests.post(f"{API}/educativo/campanas/", json={
         "prueba_id": prueba_sb["id"], "nombre_grupo": f"{PREFIJO} Incompleta {sello}", "institucion_id": inst_a},
         headers=h_a, timeout=30), 200, "Campaña sin baremo")

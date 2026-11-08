@@ -80,8 +80,9 @@ function fechaCorta(iso: string | null): string {
 //   2. los SALONES (lo principal): elegir un salón marca a todos sus
 //      alumnos que pueden rendir la prueba (/resumen-padron?incluir_ids);
 //   3. ajuste fino alumno por alumno (opcional), con búsqueda;
-//   4. nombre (sale solo de los salones + la prueba), cierre y si los
-//      alumnos ven su resultado.
+//   4. nombre (sale solo de los salones + la prueba) y cierre. 🆕 (sesión
+//      2026-11-07, M6) Ya no hay "los alumnos ven su resultado": el enlace
+//      del examen, al terminar, solo dice "Ya terminaste".
 // Quien NO puede rendir la prueba ahora (sin consentimiento, la rindió hace
 // menos de lo que pide la prueba, la tiene pendiente en otra campaña, límite
 // mensual) aparece bloqueado con el motivo y la fecha en que vuelve a estar
@@ -102,7 +103,7 @@ export default function NuevaCampanaPage() {
   const [busquedaPrueba, setBusquedaPrueba] = useState("");
   const [filtroInformante, setFiltroInformante] = useState<string>("todos");
   const [detalles, setDetalles] = useState<Map<number, PruebaDetalle>>(new Map());
-  const [form, setForm] = useState({ prueba_id: "", nombre_grupo: "", fecha_fin: "", alumno_ve_informe: false });
+  const [form, setForm] = useState({ prueba_id: "", nombre_grupo: "", fecha_fin: "" });
   const [nombreManual, setNombreManual] = useState(false);
 
   // --- 2 y 3. Salones y estudiantes ---
@@ -264,7 +265,6 @@ export default function NuevaCampanaPage() {
           nombre_grupo: nombreEfectivo.trim(),
           institucion_id: institucionId,
           fecha_fin: form.fecha_fin ? new Date(form.fecha_fin).toISOString() : null,
-          alumno_ve_informe: form.alumno_ve_informe,
         };
         nueva = await apiClient.post<Evaluacion>("/educativo/campanas/", payload);
         setCampana(nueva);
@@ -664,7 +664,7 @@ export default function NuevaCampanaPage() {
 
             {/* ===== 4. Detalles ===== */}
             <section className={`${CLASE_TARJETA} overflow-hidden`}>
-              <EncabezadoSeccion numero={4} titulo="Detalles" subtitulo="Nombre, cierre y si los estudiantes ven su resultado." />
+              <EncabezadoSeccion numero={4} titulo="Detalles" subtitulo="Nombre y cierre de la campaña." />
               <div className="px-5 pb-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <CampoEditable etiqueta="Nombre de la campaña">
@@ -703,23 +703,6 @@ export default function NuevaCampanaPage() {
                     )}
                   </CampoEditable>
                 </div>
-                {/* Llave del alumno — Evaluacion.alumno_ve_informe. */}
-                <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-border bg-surface p-4 dark:border-border-dark dark:bg-surface-dark">
-                  <input
-                    type="checkbox"
-                    checked={form.alumno_ve_informe}
-                    onChange={(e) => setForm({ ...form, alumno_ve_informe: e.target.checked })}
-                    className="mt-0.5 h-4 w-4 shrink-0 accent-[#0F5A4F]"
-                  />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-semibold text-ink dark:text-ink-dark">Los estudiantes ven su resultado al terminar</span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-ink/60 dark:text-ink-dark/60">
-                      Verán un resumen por dimensión y podrán descargar su informe en PDF —{" "}
-                      <strong className="font-semibold">también si hay alerta clínica, sin tu revisión previa</strong>. Tú siempre
-                      recibes todos los resultados. Puedes cambiarlo después desde el panel de la campaña.
-                    </span>
-                  </span>
-                </label>
               </div>
             </section>
           </div>
@@ -782,7 +765,7 @@ export default function NuevaCampanaPage() {
                   )}
                 </FilaResumen>
                 <FilaResumen icono={Eye} etiqueta="Resultado">
-                  <span className="text-ink dark:text-ink-dark">{form.alumno_ve_informe ? "Los estudiantes lo ven" : "Solo tú lo ves"}</span>
+                  <span className="text-ink dark:text-ink-dark">Solo el equipo de orientación</span>
                 </FilaResumen>
                 <FilaResumen icono={CalendarClock} etiqueta="Cierre">
                   {form.fecha_fin ? (

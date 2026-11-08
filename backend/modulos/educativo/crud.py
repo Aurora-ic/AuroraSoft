@@ -1232,27 +1232,24 @@ def bloquear_evaluacion_para_editar(db: Session, evaluacion_id: int):
 
 
 def alumno_puede_ver_resultados(evaluacion) -> bool:
-    """🆕 (sesión 2026-11-01) Única regla de qué ve el ESTUDIANTE de su propio
-    resultado por su enlace: el resumen por dimensión y el PDF, solo si la
-    campaña tiene encendido `alumno_ve_informe` — haya o no alerta, sin
-    revisión previa (decisión del usuario). Antes la regla era
-    `informe_liberado`/`resultado_visible_alumno`, que siguen intactos para
-    el staff y el rol `colegio`. Se lee en vivo en cada petición: encender o
-    apagar el interruptor afecta al instante a toda la campaña.
+    """Única regla de qué ve el ESTUDIANTE de su propio resultado por su
+    enlace.
+
+    🆕 (sesión 2026-11-07, M6 de la revisión de seguridad — decisión del
+    usuario) NADA: al terminar, el enlace muestra solo "Ya terminaste" y cómo
+    cerrar la pestaña. Ni resumen por dimensión ni PDF, aunque la campaña
+    tenga `alumno_ve_informe` encendido. Motivo: en la sala de cómputo de un
+    colegio el siguiente alumno abría desde el historial del navegador el
+    resultado y el informe de quien terminó antes. El resultado lo entrega
+    el equipo de orientación.
+
+    Antes (sesión 2026-11-01) devolvía `evaluacion.alumno_ve_informe`. La
+    columna sigue en la base (se retira después, "agregar primero y retirar
+    después") y el frontend ya no muestra el interruptor. `informe_liberado`/
+    `resultado_visible_alumno` siguen intactos para el staff y el rol
+    `colegio`.
     """
-    return bool(evaluacion is not None and evaluacion.alumno_ve_informe)
-
-
-def resultados_visibles_alumno(db: Session, inscripcion_id: int):
-    """Resumen en pantalla del alumno: (dimensión, nivel) por diagnóstico."""
-    filas = (
-        db.query(models.Dimension.nombre, models.DiagnosticoAlumno.nivel)
-        .join(models.Dimension, models.Dimension.id == models.DiagnosticoAlumno.dimension_id)
-        .filter(models.DiagnosticoAlumno.inscripcion_id == inscripcion_id)
-        .order_by(models.DiagnosticoAlumno.id)
-        .all()
-    )
-    return [{"dimension": nombre, "nivel": nivel} for nombre, nivel in filas]
+    return False
 
 
 def actualizar_campana(db: Session, evaluacion: "models.Evaluacion", datos: schemas.EvaluacionUpdate):

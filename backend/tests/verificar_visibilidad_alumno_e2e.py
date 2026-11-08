@@ -1,19 +1,20 @@
-"""E2E — interruptor por campaña "los estudiantes ven su informe"
-(`Evaluacion.alumno_ve_informe`, sesión 2026-11-01).
+"""E2E — qué ve el alumno por su enlace después de terminar.
 
-Regla (decisión del usuario): el alumno ve su resultado — resumen por
-dimensión en pantalla y el PDF — SOLO si la campaña tiene el interruptor
-encendido, y entonces lo ve aunque haya alerta clínica, sin revisión previa.
-El psicólogo recibe siempre todos los resultados. Contra uvicorn real en :8010:
+🆕 (sesión 2026-11-07, M6 de la revisión de seguridad — decisión del
+usuario) NADA más que "Ya terminaste": ni resumen ni PDF, aunque la campaña
+tenga `alumno_ve_informe` encendido (sesión 2026-11-01, la regla anterior).
+En una sala de cómputo el siguiente alumno abría desde el historial el
+resultado de quien terminó antes. El psicólogo recibe siempre todo.
+Contra uvicorn real en :8010:
 
-  1  Campaña nueva sin el campo -> apagado
-  2  Apagado + sin alerta: /finalizar devuelve [], /estado-resultados sin
-     resultados y con el mensaje de revisión, PDF del alumno 403; el
-     psicólogo descarga el PDF igual
-  3  Encendido + CON alerta (retenido para el staff): /finalizar devuelve
-     los diagnósticos, /estado-resultados trae dimensión+nivel, PDF 200
-  4  Encender/apagar con PATCH tiene efecto inmediato sobre quien ya terminó
-  5  Con la campaña CERRADA el interruptor se puede cambiar; el nombre no
+  1  Campaña nueva sin el campo -> apagado (la columna sigue existiendo)
+  2  Apagado + sin alerta: /finalizar devuelve [], /estado-resultados solo
+     dice "Ya terminaste", PDF del alumno 403; el psicólogo descarga el PDF
+  3  ENCENDIDO + CON alerta: exactamente lo mismo — y /estado-resultados ya
+     no trae informe_liberado / resultado_visible_alumno /
+     estado_interpretacion (delataban el caso de riesgo); /preguntas -> 409
+  4  Encender con PATCH sobre quien ya terminó no le abre nada
+  5  Con la campaña CERRADA el campo se puede cambiar; el nombre no
   6  Candados: `colegio` y otro colegio no pueden cambiarlo; un null
      explícito no rompe nada
 
@@ -162,37 +163,44 @@ def main(url_base):
     e = estado(tok_1)
     comprobar("/estado-resultados: alumno_puede_ver_informe False y sin resultados",
               e["alumno_puede_ver_informe"] is False and e["resultados"] == [], str(e))
-    comprobar("Mensaje de revisión (no revela nada)", "revisad" in e["mensaje"].lower(), e["mensaje"])
+    comprobar("Mensaje: solo Ya terminaste", e["mensaje"].startswith("Ya terminaste"), e["mensaje"])
     comprobar("PDF del alumno -> 403", pdf_alumno(tok_1).status_code == 403)
     r_staff = requests.get(f"{API}/educativo/inscripciones/{fila_1[0]}/informe-pdf", headers=h_psi, timeout=60)
     comprobar("El psicólogo descarga el PDF igual (200, %PDF)", r_staff.status_code == 200 and r_staff.content[:4] == b"%PDF",
               f"status {r_staff.status_code}")
 
     # ------------------------------------------------------------------
-    print("\n3 · Encendido + CON alerta")
+    print("\n3 · ENCENDIDO + CON alerta: igual, solo Ya terminaste")
     c_encendida = campana("Encendida", alumno_ve_informe=True)
-    comprobar("POST con alumno_ve_informe True -> queda encendido", c_encendida.get("alumno_ve_informe") is True)
+    comprobar("POST con alumno_ve_informe True -> se guarda (sin efecto para el alumno)",
+              c_encendida.get("alumno_ve_informe") is True)
     tok_2 = matricular(c_encendida["id"], persona("ConAlerta"))
     devueltos = rendir(tok_2, ultima_opcion=True)
     fila_2 = inscripcion(tok_2)
     comprobar("El caso SÍ tiene alerta (retenido para el staff)", fila_2[1] is False and fila_2[2] is False, str(fila_2))
-    comprobar("/finalizar devuelve los diagnósticos al alumno", len(devueltos) > 0)
+    comprobar("/finalizar NO devuelve diagnósticos al alumno", devueltos == [], str(devueltos)[:200])
     e = estado(tok_2)
-    comprobar("/estado-resultados: alumno_puede_ver_informe True", e["alumno_puede_ver_informe"] is True, str(e)[:300])
-    comprobar("resultados = solo dimensión y nivel, uno por diagnóstico",
-              len(e["resultados"]) == len(devueltos) and all(set(x) == {"dimension", "nivel"} for x in e["resultados"]),
-              str(e["resultados"])[:300])
+    comprobar("/estado-resultados: sin resultados y alumno_puede_ver_informe False",
+              e["alumno_puede_ver_informe"] is False and e["resultados"] == [], str(e)[:300])
+    comprobar("/estado-resultados no delata el caso de riesgo (sin informe_liberado, "
+              "resultado_visible_alumno ni estado_interpretacion)",
+              not ({"informe_liberado", "resultado_visible_alumno", "estado_interpretacion"} & set(e)), str(sorted(e)))
+    comprobar("Mismo mensaje que sin alerta", e["mensaje"] == estado(tok_1)["mensaje"], e["mensaje"])
     r = pdf_alumno(tok_2)
-    comprobar("PDF del alumno -> 200 aunque haya alerta", r.status_code == 200 and r.content[:4] == b"%PDF", f"status {r.status_code}")
+    comprobar("PDF del alumno -> 403 aunque el campo esté encendido", r.status_code == 403, f"status {r.status_code}")
+    r = requests.get(f"{API}/educativo/examen/{tok_2}/preguntas", timeout=30)
+    comprobar("/preguntas después de terminar -> 409", r.status_code == 409, f"status {r.status_code}")
+    r_staff = requests.get(f"{API}/educativo/inscripciones/{fila_2[0]}/informe-pdf", headers=h_psi, timeout=60)
+    comprobar("El psicólogo descarga el PDF del caso con alerta (200, %PDF)",
+              r_staff.status_code == 200 and r_staff.content[:4] == b"%PDF", f"status {r_staff.status_code}")
 
     # ------------------------------------------------------------------
-    print("\n4 · Encender/apagar con efecto inmediato")
+    print("\n4 · Encender sobre quien ya terminó no le abre nada")
     url_a = f"{API}/educativo/campanas/{c_apagada['id']}"
     exigir(requests.patch(url_a, json={"alumno_ve_informe": True}, headers=h_psi, timeout=30), 200, "encender")
-    comprobar("Tras encender: el alumno que ya terminó descarga su PDF", pdf_alumno(tok_1).status_code == 200)
-    comprobar("Tras encender: ve su resumen", len(estado(tok_1)["resultados"]) > 0)
+    comprobar("Tras encender: PDF del alumno sigue 403", pdf_alumno(tok_1).status_code == 403)
+    comprobar("Tras encender: sigue sin resumen", estado(tok_1)["resultados"] == [])
     exigir(requests.patch(url_a, json={"alumno_ve_informe": False}, headers=h_psi, timeout=30), 200, "apagar")
-    comprobar("Tras apagar: PDF -> 403 otra vez", pdf_alumno(tok_1).status_code == 403)
 
     # ------------------------------------------------------------------
     print("\n5 · Campaña cerrada")

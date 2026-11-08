@@ -1,0 +1,118 @@
+# 🆕 (sesión 2026-11-07) Construye la imagen del backend y la prueba de verdad
+# en cada cambio de backend/. En la PC de desarrollo no hay Docker (Windows 10
+# Home, 8 GB de RAM, sin WSL2), así que tests/test_docker_unitario.py solo
+# puede revisar los archivos; aquí se comprueba la imagen real:
+#   - levanta el docker-compose.yml real (web, worker, beat, redis);
+#   - los procesos no corren como root y el código no es escribible;
+#   - no hay .env dentro de la imagen; Redis no publica su puerto;
+#   - /health responde con las cabeceras de seguridad y sin "server: uvicorn";
+#   - las pruebas unitarias pasan dentro del contenedor (Linux, sin root).
+# No usa secretos: el .env es de mentira, generado aquí, y la base no existe
+# (ninguna de estas comprobaciones la necesita).
+name: Backend — imagen Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/docker-backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/docker-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  imagen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .env de mentira (solo para esta prueba)
+        run: |
+          {
+            echo "ENTORNO=production"
+            echo "DATABASE_URL=postgresql://usuario:clave@127.0.0.1:1/no_existe"
+            echo "SECRET_KEY=$(openssl rand -hex 32)"
+            echo "CORS_ALLOWED_ORIGINS=https://app.ejemplo.pe"
+            echo "STORAGE_BACKEND=local"
+          } > .env
+
+      - name: Construir y levantar web, worker, beat y redis
+        run: docker compose up -d --build
+
+      - name: /health responde
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health; then echo; exit 0; fi
+            sleep 2
+          done
+          docker compose logs web
+          exit 1
+
+      - name: Comprobaciones de la imagen y del compose
+        run: |
+          set -u
+          falla=0
+          ok()  { echo "OK    $1"; }
+          mal() { echo "FALLA $1"; falla=1; }
+
+          for s in web worker beat; do
+            uid=$(docker compose exec -T "$s" id -u)
+            [ "$uid" != "0" ] && ok "$s corre sin root (uid $uid)" || mal "$s corre como root"
+          done
+          docker compose exec -T web sh -c 'touch /app/zz 2>/dev/null' && mal "el código es escribible" || ok "el código es de solo lectura"
+          docker compose exec -T web sh -c 'touch /app/storage_local/zz' && ok "storage_local es escribible" || mal "storage_local no es escribible"
+          docker compose exec -T web sh -c 'test ! -e /app/.env' && ok "no hay .env en la imagen" || mal "la imagen trae un .env"
+          docker compose exec -T web sh -c 'test ! -d /app/venv' && ok "no hay venv en la imagen" || mal "la imagen trae un venv"
+          [ -z "$(docker compose port redis 6379 2>/dev/null)" ] && ok "redis no publica su puerto" || mal "redis publica su puerto"
+          puerto=$(docker compose port web 8000)
+          case "$puerto" in 127.0.0.1:*) ok "web publicado solo en 127.0.0.1 ($puerto)";; *) mal "web publicado en $puerto";; esac
+
+          cabeceras=$(curl -sI http://127.0.0.1:8000/health | tr -d '\r' | tr 'A-Z' 'a-z')
+          echo "$cabeceras" | grep -q '^server:' && mal "responde con cabecera server" || ok "sin cabecera server"
+          echo "$cabeceras" | grep -q '^x-content-type-options: nosniff' && ok "nosniff" || mal "falta nosniff"
+          echo "$cabeceras" | grep -q '^strict-transport-security:' && ok "HSTS (producción)" || mal "falta HSTS"
+          [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8000/openapi.json)" = "404" ] && ok "/openapi.json apagado" || mal "/openapi.json publicado"
+
+          sleep 10
+          for s in worker beat; do
+            estado=$(docker compose ps --format '{{.State}}' "$s")
+            [ "$estado" = "running" ] && ok "$s sigue corriendo" || { mal "$s: $estado"; docker compose logs "$s"; }
+          done
+          exit $falla
+
+      - name: Pruebas unitarias dentro del contenedor (Linux, sin root)
+        run: |
+          docker compose exec -T web sh -c '
+            cd /app
+            fallas=0
+            for f in tests/test_*.py; do
+              m=$(basename "$f" .py)
+              # Necesita un Redis propio en localhost (db 15): no aplica aquí.
+              [ "$m" = "test_almacen_seguridad_redis" ] && continue
+              if python -m "tests.$m" > "/tmp/$m.log" 2>&1; then
+                echo "OK    $m"
+              else
+                echo "FALLA $m"; tail -25 "/tmp/$m.log"; fallas=$((fallas+1))
+              fi
+            done
+            echo "Archivos con fallas: $fallas"
+            [ "$fallas" -eq 0 ]
+          '
+
+      - name: Registros si algo falló
+        if: failure()
+        run: docker compose logs --tail=80
+
+      - name: Apagar
+        if: always()
+        run: docker compose down -v

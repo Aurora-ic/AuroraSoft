@@ -776,15 +776,13 @@ class ReprocesarInformeRequest(BaseModel):
 
 
 class EstadoResultadosAlumnoResponse(BaseModel):
+    """🆕 (sesión 2026-11-07, M6) Solo si el examen terminó y un mensaje.
+    `informe_liberado`, `resultado_visible_alumno` y `estado_interpretacion`
+    se quitaron de esta respuesta pública: un informe retenido delataba un
+    caso de riesgo. `alumno_puede_ver_informe` es siempre False y
+    `resultados` siempre vacío; se conservan por compatibilidad de forma."""
     estado_examen: str
-    resultado_visible_alumno: bool
-    informe_liberado: bool
-    # "completa" | "incompleta" — distingue un resultado interpretado de uno
-    # que quedó pendiente por falta de baremo aplicable (B-6).
-    estado_interpretacion: str = "completa"
     mensaje: str
-    # 🆕 La llave del alumno (Evaluacion.alumno_ve_informe): si es True,
-    # `resultados` trae el resumen por dimensión y el PDF se puede descargar.
     alumno_puede_ver_informe: bool = False
     resultados: List["ResultadoVisibleAlumno"] = []
 

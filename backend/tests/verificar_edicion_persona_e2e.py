@@ -182,7 +182,8 @@ def main(url_base):
     comprobar("[montaje] La InformeVersion queda almacenada (no solo generada al vuelo)",
               informe_meta is not None and informe_meta.status_code == 200 and informe_meta.json().get("existe"))
 
-    r_pdf_original = requests.get(f"{API}/educativo/examen/{token}/informe-pdf", timeout=60)
+    # 🆕 (sesión 2026-11-07, M6) El alumno ya no descarga su PDF por el enlace: el del staff.
+    r_pdf_original = requests.get(f"{API}/educativo/inscripciones/{insc_id}/informe-pdf", headers=h_a, timeout=60)
     comprobar("[montaje] El informe (sin alerta, PHQ-9 en 0) se generó y es descargable", r_pdf_original.status_code == 200)
     texto_original = texto_pdf(r_pdf_original.content)
     comprobar("[montaje] El PDF original contiene el nombre ORIGINAL", "Nombre Original" in texto_original)

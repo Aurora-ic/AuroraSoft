@@ -200,12 +200,17 @@ def main(url_base):
     completar_restantes(tok_ok)
     r = requests.post(f"{API}/educativo/examen/{tok_ok}/finalizar", timeout=60)
     comprobar("[1] Finaliza correctamente (200)", r.status_code == 200, f"status {r.status_code}")
-    diagnosticos = r.json()
-    # 🔧 (sesión 2026-11-02) PHQ-9 produce un diagnóstico por dimensión
-    # (3); se mira el que lleva la alerta, no uno cualquiera.
-    comprobar("[1] Se devuelven los diagnósticos al alumno (uno por dimensión, campaña con interruptor)", len(diagnosticos) >= 1)
+    # 🆕 (sesión 2026-11-07, M6) /finalizar ya no devuelve diagnósticos al
+    # alumno, aunque la campaña tenga alumno_ve_informe encendido: se leen de la BD.
+    comprobar("[1] /finalizar NO devuelve diagnósticos al alumno (M6)", r.json() == [], str(r.json())[:200])
+    # 🔧 (sesión 2026-11-02) PHQ-9 produce un diagnóstico por dimensión (3).
+    with MOTOR.connect() as c:
+        diagnosticos = c.execute(text(
+            "select d.nivel, d.es_alerta from edu_diagnosticos_alumno d join edu_inscripciones i "
+            "on i.id = d.inscripcion_id where i.token = :t"), {"t": tok_ok}).fetchall()
+    comprobar("[1] Se guardaron los diagnósticos (uno por dimensión)", len(diagnosticos) >= 1, str(diagnosticos))
     comprobar("[1] Puntaje 0/27: ninguna dimensión en tramo de alerta",
-              all(d["es_alerta"] is False for d in diagnosticos), str([(d["nivel"], d["es_alerta"]) for d in diagnosticos]))
+              all(es_alerta is False for _, es_alerta in diagnosticos), str(diagnosticos))
 
     insc_ok = sql_uno("select id, resultado_visible_alumno, informe_liberado from edu_inscripciones where token=:t", t=tok_ok)
     comprobar("[2] resultado_visible_alumno=True, informe_liberado=True", insc_ok[1] is True and insc_ok[2] is True)
@@ -224,18 +229,18 @@ def main(url_base):
     comprobar("[4] La storage_key está aislada por institución y por informe",
               fila_version[0].startswith(f"instituciones/{inst_a}/informes/"), fila_version[0])
 
+    # 🆕 (sesión 2026-11-07, M6) El alumno ya no descarga su PDF por el
+    # enlace, aunque la campaña tenga alumno_ve_informe encendido.
     r_pdf_alumno = requests.get(f"{API}/educativo/examen/{tok_ok}/informe-pdf", timeout=60)
-    comprobar("[5] El alumno descarga su PDF (200, campaña con 'los estudiantes ven su resultado')",
-              r_pdf_alumno.status_code == 200, f"status {r_pdf_alumno.status_code}")
-    comprobar("[5] Es un PDF real", r_pdf_alumno.content[:4] == b"%PDF")
-    comprobar("[6] tamano_bytes/checksum en BD coinciden con el PDF servido",
-              len(r_pdf_alumno.content) == fila_version[1]
-              and hashlib.sha256(r_pdf_alumno.content).hexdigest() == fila_version[2])
+    comprobar("[5] El alumno NO descarga su PDF por el enlace (403, M6)",
+              r_pdf_alumno.status_code == 403, f"status {r_pdf_alumno.status_code}")
 
     r_pdf_staff = requests.get(f"{API}/educativo/inscripciones/{insc_ok[0]}/informe-pdf", headers=h_a, timeout=60)
-    comprobar("[7] El staff del propio colegio también puede descargarlo (200)", r_pdf_staff.status_code == 200)
-    comprobar("[7] El PDF servido al staff es el MISMO archivo ya almacenado (no se regeneró)",
-              r_pdf_staff.content == r_pdf_alumno.content)
+    comprobar("[7] El staff del propio colegio lo descarga (200)", r_pdf_staff.status_code == 200)
+    comprobar("[5] Es un PDF real", r_pdf_staff.content[:4] == b"%PDF")
+    comprobar("[6][7] tamano_bytes/checksum en BD coinciden con el PDF servido (el almacenado, no regenerado)",
+              len(r_pdf_staff.content) == fila_version[1]
+              and hashlib.sha256(r_pdf_staff.content).hexdigest() == fila_version[2])
 
     hist_persona = exigir(requests.get(f"{API}/educativo/personas/{persona_ok}/informes",
                                        headers=h_a, timeout=30), 200, "Historial de informes")
@@ -286,8 +291,8 @@ def main(url_base):
     exigir(requests.patch(f"{API}/educativo/campanas/{campana_alerta['id']}", json={"alumno_ve_informe": True},
                           headers=h_a, timeout=30), 200, "Encender 'los estudiantes ven su resultado'")
     r_pdf_tras_liberar = requests.get(f"{API}/educativo/examen/{tok_alerta}/informe-pdf", timeout=60)
-    comprobar("[13] Liberado + interruptor encendido: el alumno SÍ puede descargar su PDF (200)",
-              r_pdf_tras_liberar.status_code == 200, f"status {r_pdf_tras_liberar.status_code}")
+    comprobar("[13] Liberado + campo encendido: el alumno sigue sin PDF por el enlace (403, M6)",
+              r_pdf_tras_liberar.status_code == 403, f"status {r_pdf_tras_liberar.status_code}")
 
     r_reemitir_sin_motivo = requests.post(f"{API}/educativo/inscripciones/{insc_alerta[0]}/informe/reemitir",
                                           json={"motivo": ""}, headers=h_a, timeout=30)
@@ -323,7 +328,7 @@ def main(url_base):
                        "opciones": [{"texto_opcion": "No", "valor_puntuacion": 0}, {"texto_opcion": "Sí", "valor_puntuacion": 1}]}]},
         headers=h_a, timeout=30), 200, "Carga sin baremo")
     detalle_sb = exigir(requests.get(f"{API}/educativo/pruebas/{prueba_sb['id']}/completa", headers=h_a, timeout=30), 200, "Detalle sin baremo")
-    preg_sb = {p["orden"]: p for p in detalle_sb["dimensiones"][0]["preguntas"]}
+    preg_sb = {p["orden"]: p for d in detalle_sb["dimensiones"] for p in d["preguntas"]}
 
     campana_sb = exigir(requests.post(f"{API}/educativo/campanas/", json={
         "prueba_id": prueba_sb["id"], "nombre_grupo": f"{PREFIJO} SinBaremo {sello}", "institucion_id": inst_a},

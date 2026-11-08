@@ -267,9 +267,15 @@ def montar_institucion(h_super, letra, sello):
     # --- Resultado (antes de revisar/liberar): debe quedar retenido ---
     r_estado = requests.get(f"{API}/educativo/examen/{ctx.token}/estado-resultados", timeout=30)
     estado_json = exigir(r_estado, 200, f"[GET /examen/{{token}}/estado-resultados] {letra}")
-    comprobar(f"[{letra}] Puntaje alto -> el resultado queda RETENIDO (nunca muestra el puntaje al alumno)",
-              "puntaje" not in str(estado_json).lower() and estado_json.get("resultado_visible_alumno") is False,
+    # 🆕 (sesión 2026-11-07, M6) Al alumno solo "Ya terminaste": sin puntaje
+    # y sin resultado_visible_alumno/informe_liberado (delataban el riesgo).
+    comprobar(f"[{letra}] Puntaje alto -> al alumno solo 'Ya terminaste', sin puntaje ni estado de revisión",
+              "puntaje" not in str(estado_json).lower() and estado_json.get("mensaje", "").startswith("Ya terminaste")
+              and "resultado_visible_alumno" not in estado_json and "informe_liberado" not in estado_json,
               "GET /api/educativo/examen/{token}/estado-resultados", str(estado_json))
+    ret = sql_uno("select resultado_visible_alumno, informe_liberado from edu_inscripciones where id=:i", i=ctx.insc_id)
+    comprobar(f"[{letra}] Puntaje alto -> el resultado queda RETENIDO para el staff", ret[0] is False and ret[1] is False,
+              "edu_inscripciones", str(ret))
 
     r_pdf_bloqueado = requests.get(f"{API}/educativo/examen/{ctx.token}/informe-pdf", timeout=60)
     comprobar(f"[{letra}] PDF bloqueado al alumno mientras está retenido (403)", r_pdf_bloqueado.status_code == 403,
@@ -288,22 +294,25 @@ def montar_institucion(h_super, letra, sello):
               "PATCH /api/educativo/inscripciones/{id}/liberar-informe", r_liberar.text[:200])
 
     # --- PDF, ya liberado ---
-    # 🆕 (sesión 2026-11-01) liberar no abre el PDF al alumno: lo abre el
-    # interruptor de la campaña (Evaluacion.alumno_ve_informe).
+    # 🆕 (sesión 2026-11-07, M6) Ni liberar ni alumno_ve_informe abren el PDF
+    # al alumno por su enlace: lo descarga el staff y lo entrega orientación.
     r_interruptor = requests.patch(f"{API}/educativo/campanas/{ctx.campana_id}", json={"alumno_ve_informe": True},
                                    headers=ctx.h, timeout=30)
-    comprobar(f"[{letra}] Encender 'los estudiantes ven su resultado' (200)", r_interruptor.status_code == 200,
+    comprobar(f"[{letra}] PATCH alumno_ve_informe sigue aceptándose (200, ya sin efecto)", r_interruptor.status_code == 200,
               "PATCH /api/educativo/campanas/{id}", r_interruptor.text[:200])
+    r_pdf_alumno = requests.get(f"{API}/educativo/examen/{ctx.token}/informe-pdf", timeout=60)
+    comprobar(f"[{letra}] Liberado: el alumno sigue sin PDF por el enlace (403)", r_pdf_alumno.status_code == 403,
+              "GET /api/educativo/examen/{token}/informe-pdf")
     limite = time.time() + 20
     r_pdf = None
     while time.time() < limite:
-        r_pdf = requests.get(f"{API}/educativo/examen/{ctx.token}/informe-pdf", timeout=60)
+        r_pdf = requests.get(f"{API}/educativo/inscripciones/{ctx.insc_id}/informe-pdf", headers=ctx.h, timeout=60)
         if r_pdf.status_code == 200:
             break
         time.sleep(0.5)
-    comprobar(f"[{letra}] PDF descargable con el interruptor encendido (200, %PDF- real)",
+    comprobar(f"[{letra}] PDF descargable por el staff (200, %PDF- real)",
               r_pdf is not None and r_pdf.status_code == 200 and r_pdf.content[:5] == b"%PDF-",
-              "GET /api/educativo/examen/{token}/informe-pdf")
+              "GET /api/educativo/inscripciones/{id}/informe-pdf")
     ctx.pdf_bytes = r_pdf.content if r_pdf else b""
 
     # --- Dashboard ---

@@ -261,7 +261,7 @@ def main(url_base):
         }, timeout=30), 200, "comenzar test")
         preguntas = exigir(requests.get(f"{API}/educativo/examen/{token}/preguntas", timeout=30), 200, "preguntas")
         detalle_staff = exigir(requests.get(f"{API}/educativo/pruebas/{phq9_id}/completa", headers=h_psi, timeout=30), 200, "detalle staff PHQ-9")
-        preg_por_orden = {p["orden"]: p for p in detalle_staff["dimensiones"][0]["preguntas"]}
+        preg_por_orden = {p["orden"]: p for d in detalle_staff["dimensiones"] for p in d["preguntas"]}
 
         def _opcion_id(pregunta_publica_id, valor_deseado):
             orden = next(o["orden"] for o in preg_por_orden.values() if o["id"] == pregunta_publica_id)

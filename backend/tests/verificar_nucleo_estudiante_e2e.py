@@ -207,7 +207,7 @@ def main(url_base):
         headers=h_a, timeout=30), 200, "Carga masiva")
     detalle = exigir(requests.get(f"{API}/educativo/pruebas/{prueba['id']}/completa",
                                   headers=h_a, timeout=30), 200, "Detalle prueba")
-    pregs = {p["orden"]: p for p in detalle["dimensiones"][0]["preguntas"]}
+    pregs = {p["orden"]: p for d in detalle["dimensiones"] for p in d["preguntas"]}
     exigir(requests.post(f"{API}/educativo/baremos/", json={
         "dimension_id": detalle["dimensiones"][0]["id"], "puntaje_minimo": 0, "puntaje_maximo": 1, "nivel": "Normal"},
         headers=h_a, timeout=30), 200, "Baremo")

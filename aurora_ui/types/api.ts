@@ -787,13 +787,12 @@ export type DiagnosticoAlumno = {
   es_alerta: boolean;
 };
 
+// 🆕 (sesión 2026-11-07, M6) Solo si terminó y un mensaje: el alumno ya no
+// ve resultados ni PDF por su enlace (alumno_puede_ver_informe siempre
+// false, resultados siempre vacío). El examen ya no la consulta.
 export type EstadoResultadosAlumno = {
   estado_examen: string;
-  resultado_visible_alumno: boolean;
-  informe_liberado: boolean;
-  estado_interpretacion: string;
   mensaje: string;
-  // 🆕 Llave del alumno (Evaluacion.alumno_ve_informe) y su resumen en pantalla.
   alumno_puede_ver_informe: boolean;
   resultados: { dimension: string; nivel: string }[];
 };
@@ -885,7 +884,8 @@ export type Evaluacion = {
   estado: string; // "activa" | "cerrada" | "cancelada"
   fecha_fin: string | null;
   fecha_creacion: string;
-  // 🆕 Si los estudiantes ven su resultado y su PDF al terminar (apagado por defecto).
+  // Sin efecto desde la sesión 2026-11-07 (M6): el estudiante ya no ve su
+  // resultado por el enlace. La columna sigue en la base hasta retirarla.
   alumno_ve_informe: boolean;
   // 🆕 "grupal" (uno o varios salones) | "individual" (un estudiante, desde su perfil).
   tipo?: "grupal" | "individual";

@@ -428,27 +428,22 @@ def obtener_estado_resultados_alumno(request: Request, token: str, db: Session =
             detail="Este enlace de evaluación ya no está disponible. Contacta a tu colegio.",
         )
 
-    # 🆕 (sesión 2026-11-01) Lo que ve el alumno depende SOLO del
-    # interruptor de la campaña (crud.alumno_puede_ver_resultados), haya o
-    # no alerta. Apagado, el mensaje es el mismo para todos: el alumno no
-    # puede deducir por el texto si fue marcado como caso de riesgo.
-    evaluacion = db.query(models.Evaluacion).filter(models.Evaluacion.id == inscripcion.evaluacion_id).first()
-    puede_ver = inscripcion.estado == "Finalizado" and crud.alumno_puede_ver_resultados(evaluacion)
+    # 🆕 (sesión 2026-11-07, M6 — decisión del usuario) Terminado el examen,
+    # el enlace solo dice "ya terminaste": ni resultados ni PDF
+    # (crud.alumno_puede_ver_resultados). Tampoco se devuelven ya
+    # informe_liberado / resultado_visible_alumno / estado_interpretacion:
+    # un informe RETENIDO delataba que el alumno quedó marcado como caso de
+    # riesgo, a él o a quien abriera el enlace después.
     if inscripcion.estado != "Finalizado":
         mensaje = "Tu evaluación aún no ha sido finalizada."
-    elif not puede_ver:
-        mensaje = "Tus resultados serán revisados por el equipo de orientación de tu institución."
     else:
-        mensaje = "Tus resultados y tu informe están disponibles."
+        mensaje = "Ya terminaste. Tus respuestas quedaron registradas."
 
     return {
         "estado_examen": inscripcion.estado,
-        "resultado_visible_alumno": inscripcion.resultado_visible_alumno,
-        "informe_liberado": inscripcion.informe_liberado,
-        "estado_interpretacion": inscripcion.estado_interpretacion,
         "mensaje": mensaje,
-        "alumno_puede_ver_informe": puede_ver,
-        "resultados": crud.resultados_visibles_alumno(db, inscripcion.id) if puede_ver else [],
+        "alumno_puede_ver_informe": False,
+        "resultados": [],
     }
 
 # ==========================================
@@ -473,59 +468,14 @@ def descargar_informe_pdf_alumno(request: Request, token: str, db: Session = Dep
     if inscripcion.estado != "Finalizado":
         raise HTTPException(status_code=400, detail="El examen todavía no ha sido finalizado.")
 
-    # 🆕 (sesión 2026-11-01) La descarga del alumno depende SOLO del
-    # interruptor de la campaña — antes, de informe_liberado.
-    evaluacion_alumno = db.query(models.Evaluacion).filter(
-        models.Evaluacion.id == inscripcion.evaluacion_id
-    ).first()
-    if not crud.alumno_puede_ver_resultados(evaluacion_alumno):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tu psicólogo del colegio revisará tus resultados contigo antes de entregarte el informe.",
-        )
-
-    # 🆕 Informes — si ya existe un PDF almacenado (el caso normal desde que
-    # finalizar-examen los genera en segundo plano), se sirve tal cual desde
-    # storage: nunca se regenera solo porque alguien vuelva a pedirlo. Si no
-    # existe (inscripción finalizada ANTES de esta fase, o el trabajo en
-    # segundo plano aún no terminó), se cae al generado al vuelo de siempre.
-    informe = crud.obtener_informe_de_inscripcion(db, inscripcion.id)
-    version = crud.obtener_version_actual_de_informe(db, informe) if informe else None
-
-    if version:
-        try:
-            contenido = crud.leer_pdf_de_version(version)
-        except FileNotFoundError:
-            contenido = None
-    else:
-        contenido = None
-
-    if contenido is not None:
-        pdf_buffer = io.BytesIO(contenido)
-        nombre_archivo = version.nombre_archivo
-    else:
-        datos = crud.obtener_datos_para_pdf(db=db, inscripcion_id=inscripcion.id)
-        if not datos:
-            raise HTTPException(status_code=404, detail="No se encontraron datos para generar el informe.")
-
-        institucion_pdf = db.query(instituciones_models.Institucion).filter(
-            instituciones_models.Institucion.id == datos["institucion_id"]
-        ).first()
-        pdf_buffer = generar_pdf(crud.construir_contenido_pdf(datos, institucion=institucion_pdf))
-        nombre_archivo = f"informe_{(inscripcion.nombre_completo or 'evaluado').replace(' ', '_')}.pdf"
-
-    # 🟢 PRIVACIDAD Y SEGURIDAD: Cabeceras anti-caché estrictas (Ley 29733)
-    headers = {
-        "Content-Disposition": content_disposition(nombre_archivo, "informe.pdf"),
-        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-        "Pragma": "no-cache",
-        "Expires": "0"
-    }
-
-    return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers=headers
+    # 🆕 (sesión 2026-11-07, M6 — decisión del usuario) El alumno ya no
+    # descarga su informe por el enlace, nunca: en una sala de cómputo el
+    # siguiente alumno lo abría desde el historial. Lo entrega el equipo de
+    # orientación (GET /inscripciones/{id}/informe-pdf, con sesión). Ver
+    # crud.alumno_puede_ver_resultados.
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Tu informe lo entrega el equipo de orientación de tu institución.",
     )
 
 
@@ -1673,6 +1623,14 @@ def cargar_examen_en_vivo(request: Request, token: str, db: Session = Depends(ge
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Este enlace de evaluación ha expirado debido a que la fecha límite ha concluido."
+        )
+
+    # 🆕 (sesión 2026-11-07, M6) Terminado el examen, el enlace ya no sirve
+    # para nada más — igual que /intake, /progreso, /guardar y comenzar-test.
+    if inscripcion.estado == "Finalizado":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Esta evaluación ya fue finalizada.",
         )
 
     preguntas = crud.obtener_preguntas_por_token(db=db, token=token)

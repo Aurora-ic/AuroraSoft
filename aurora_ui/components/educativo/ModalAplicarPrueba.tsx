@@ -30,7 +30,6 @@ export function ModalAplicarPrueba({
   const [busqueda, setBusqueda] = useState("");
   const [pruebaId, setPruebaId] = useState<number | null>(null);
   const [fechaFin, setFechaFin] = useState("");
-  const [alumnoVe, setAlumnoVe] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<AplicacionIndividual | null>(null);
@@ -65,7 +64,6 @@ export function ModalAplicarPrueba({
         await apiClient.post<AplicacionIndividual>(`/educativo/personas/${personaId}/aplicacion-individual`, {
           prueba_id: pruebaId,
           fecha_fin: fechaFin ? new Date(fechaFin).toISOString() : null,
-          alumno_ve_informe: alumnoVe,
         }),
       );
     } catch (err: unknown) {
@@ -216,13 +214,6 @@ export function ModalAplicarPrueba({
                 Fecha de cierre (opcional)
                 <Input type="datetime-local" min={ahoraParaInputLocal()} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} aria-invalid={fechaPasada} />
                 {fechaPasada && <span className="font-medium text-red-700 dark:text-red-300">{MENSAJE_FECHA_CIERRE_PASADA}</span>}
-              </label>
-              <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-border dark:border-border-dark p-3">
-                <input type="checkbox" checked={alumnoVe} onChange={(e) => setAlumnoVe(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#0F5A4F]" />
-                <span>
-                  <span className="block font-semibold text-ink dark:text-ink-dark">Ve su resultado al terminar</span>
-                  <span className="block text-[12px] text-ink/55 dark:text-ink-dark/55">Resumen y PDF, también si hay alerta clínica.</span>
-                </span>
               </label>
             </div>
 

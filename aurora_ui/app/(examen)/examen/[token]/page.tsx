@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Download, ListChecks } from "lucide-react";
-import { apiClient, ApiError, descargarBlob, estadoHttpDe, mensajeDe } from "@/lib/api-client";
+import { ArrowLeft, ArrowRight, CheckCircle2, ListChecks, X } from "lucide-react";
+import { apiClient, ApiError, estadoHttpDe, mensajeDe } from "@/lib/api-client";
 import { Boton } from "@/components/ui/Boton";
 import { TextoError } from "@/components/ui/TextoError";
 import type {
@@ -13,7 +13,6 @@ import type {
   CampoSociodemografico,
   PreguntaExamen,
   ProgresoExamen,
-  EstadoResultadosAlumno,
 } from "@/types/api";
 
 // Botones del examen SIN variantes `dark:` — el examen es siempre claro
@@ -42,10 +41,11 @@ const BOTON_SECUNDARIO =
 // - antes de finalizar, una pantalla de revisión que lista las preguntas
 //   sin responder y deja ir a cada una (antes: "Faltan N" sin decir cuáles,
 //   y un window.confirm);
-// - al terminar, agradecimiento; el resumen por dimensión y el PDF solo si
-//   la campaña tiene encendido "los estudiantes ven su resultado"
-//   (Evaluacion.alumno_ve_informe, apagado por defecto — ver irAFinalizado).
-//   Apagado, el mensaje es el mismo haya o no alerta.
+// - al terminar, solo "Ya terminaste" y cómo cerrar la pestaña. 🆕 (sesión
+//   2026-11-07, M6 de la revisión de seguridad — decisión del usuario) Ni
+//   resumen ni PDF: en una sala de cómputo el siguiente alumno los abría
+//   desde el historial. El backend tampoco los entrega por el enlace
+//   (crud.alumno_puede_ver_resultados).
 // El autoguardado por respuesta (cola por pregunta, reintento, rollback) no
 // cambió.
 type Fase = "intake" | "socio" | "preguntas" | "finalizado" | "error_terminal";
@@ -98,13 +98,6 @@ export default function ExamenPage() {
       );
   }, [token]);
 
-  // --- Fase 4: finalizado ---
-  // 🆕 Solo se usa si la campaña deja que el alumno vea su resultado
-  // (alumno_puede_ver_informe) — si no, la pantalla final es solo un
-  // agradecimiento. Declarado aquí porque el efecto de /intake (abajo) lo
-  // usa cuando el enlace ya está finalizado.
-  const [estadoResultados, setEstadoResultados] = useState<EstadoResultadosAlumno | null>(null);
-
   // 🆕 Antes de mostrar el formulario, averiguamos qué datos ya tiene esta
   // inscripción (nombre/edad/nivel, cuando viene de una matrícula por
   // padrón) para no volver a pedirlos — ver GET .../intake. Si falla (link
@@ -128,16 +121,10 @@ export default function ExamenPage() {
         // terminó (409) o el enlace venció (410). Antes se ignoraba y un
         // alumno que volvía a abrir su enlace después de terminar veía otra
         // vez "Antes de comenzar": recién al reenviar el formulario llegaba
-        // al agradecimiento (y a su resultado, si la campaña lo permite).
+        // a "Ya terminaste".
         const estado = estadoHttpDe(err);
         if (estado === 409) {
-          // Lo mismo que irAFinalizado() (más abajo), escrito aquí para no
-          // depender de una función declarada después del efecto.
-          apiClient
-            .get<EstadoResultadosAlumno>(`/educativo/examen/${token}/estado-resultados`)
-            .then(setEstadoResultados)
-            .catch(() => setEstadoResultados(null))
-            .finally(() => setFase("finalizado"));
+          setFase("finalizado");
         } else if (estado === 410) {
           setFase("error_terminal");
           setErrorTerminal(mensajeDe(err));
@@ -202,10 +189,15 @@ export default function ExamenPage() {
   const [vista, setVista] = useState<VistaPreguntas>("pregunta");
   const refTituloVista = useRef<HTMLHeadingElement>(null);
 
-  // --- Fase 4: finalizado --- (estadoResultados se declara más arriba,
-  // antes del efecto de /intake, que también lo usa)
-  const [descargando, setDescargando] = useState(false);
-  const [errorDescarga, setErrorDescarga] = useState<string | null>(null);
+  // --- Fase 4: finalizado ---
+  // true después de intentar cerrar la pestaña: si el navegador no la
+  // cerró (window.close solo funciona en pestañas abiertas por un script),
+  // se muestra cómo cerrarla a mano.
+  const [intentoCerrar, setIntentoCerrar] = useState(false);
+  const refTituloFinal = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (fase === "finalizado") refTituloFinal.current?.focus();
+  }, [fase]);
 
   async function enviarIntake(e: React.FormEvent) {
     e.preventDefault();
@@ -228,8 +220,8 @@ export default function ExamenPage() {
       await cargarSiguientePaso();
     } catch (err) {
       if (estadoHttpDe(err) === 409) {
-        // Ya estaba Finalizado -- no es un error, vamos directo al estado.
-        await irAFinalizado();
+        // Ya estaba Finalizado -- no es un error, vamos directo al final.
+        irAFinalizado();
       } else if (estadoHttpDe(err) === 410) {
         setFase("error_terminal");
         setErrorTerminal(mensajeDe(err));
@@ -500,7 +492,7 @@ export default function ExamenPage() {
       // La respuesta (diagnósticos) se ignora a propósito: el alumno no ve
       // niveles — ver el comentario al inicio del archivo.
       await apiClient.post(`/educativo/examen/${token}/finalizar`);
-      await irAFinalizado();
+      irAFinalizado();
     } catch (err) {
       setErrorFinalizar(mensajeDe(err) || "No se pudo finalizar la evaluación.");
     } finally {
@@ -508,31 +500,16 @@ export default function ExamenPage() {
     }
   }
 
-  // 🆕 Lo que ve el alumno al terminar lo decide el interruptor de la
-  // campaña (Evaluacion.alumno_ve_informe), leído de /estado-resultados:
-  // apagado (por defecto) solo agradecimiento; encendido, resumen por
-  // dimensión + PDF, haya o no alerta. Si la consulta falla, solo
-  // agradecimiento.
-  async function irAFinalizado() {
-    try {
-      setEstadoResultados(await apiClient.get<EstadoResultadosAlumno>(`/educativo/examen/${token}/estado-resultados`));
-    } catch {
-      setEstadoResultados(null);
-    }
+  // 🆕 (sesión 2026-11-07, M6) Al terminar solo se muestra "Ya terminaste":
+  // no se pide /estado-resultados ni se ofrece el PDF.
+  function irAFinalizado() {
     setFase("finalizado");
   }
 
-  async function descargarInforme() {
-    setDescargando(true);
-    setErrorDescarga(null);
-    try {
-      const blob = await apiClient.descargarArchivo(`/educativo/examen/${token}/informe-pdf`);
-      descargarBlob(blob, "mi_informe.pdf");
-    } catch (err: unknown) {
-      setErrorDescarga(err instanceof Error && err.message ? err.message : "No se pudo descargar tu informe.");
-    } finally {
-      setDescargando(false);
-    }
+  function cerrarPestana() {
+    window.close();
+    // Si seguimos aquí, el navegador no dejó cerrarla desde la página.
+    setTimeout(() => setIntentoCerrar(true), 300);
   }
 
   if (fase === "error_terminal") {
@@ -977,39 +954,44 @@ export default function ExamenPage() {
     );
   }
 
-  // fase === "finalizado" — agradecimiento siempre; resumen + PDF solo si
-  // la campaña lo permite (ver irAFinalizado). Apagado, el mensaje es el
-  // mismo haya o no alerta.
-  const puedeVer = !!estadoResultados?.alumno_puede_ver_informe;
+  // fase === "finalizado" — 🆕 (sesión 2026-11-07, M6) solo "Ya terminaste"
+  // y cómo cerrar la pestaña, sin resultados ni PDF, haya o no alerta.
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-card border border-border p-8 sm:p-10 text-center space-y-3">
-        <CheckCircle2 className="mx-auto h-12 w-12 text-teal-600" aria-hidden />
-        <h1 className="font-display text-xl text-teal-900">Evaluación finalizada</h1>
-        <p className="text-base text-ink/80">Gracias por completar la evaluación. Tus respuestas quedaron registradas.</p>
-        <p className="text-sm text-ink/60">Si tienes alguna duda, acércate al equipo de orientación de tu institución.</p>
+    <div className="bg-white rounded-card border border-border p-8 sm:p-10 text-center space-y-5">
+      <CheckCircle2 className="mx-auto h-14 w-14 text-teal-600" aria-hidden />
+      <div className="space-y-2">
+        <h1 ref={refTituloFinal} tabIndex={-1} className="font-display text-2xl text-teal-900 focus:outline-none">
+          Ya terminaste
+        </h1>
+        <p className="text-base text-ink/80">Gracias. Tus respuestas quedaron registradas.</p>
+        <p className="text-sm text-ink/60">Tus resultados los verá el equipo de orientación de tu institución.</p>
       </div>
 
-      {puedeVer && (
-        <section className="bg-white rounded-card border border-border p-6 sm:p-8 space-y-4">
-          <h2 className="font-display text-lg text-teal-900">Tus resultados</h2>
-          {estadoResultados && estadoResultados.resultados.length > 0 && (
-            <ul className="divide-y divide-border rounded-xl border border-border">
-              {estadoResultados.resultados.map((r, i) => (
-                <li key={`${r.dimension}-${i}`} className="flex items-baseline justify-between gap-4 px-4 py-3">
-                  <span className="text-sm text-ink/75">{r.dimension}</span>
-                  <span className="text-right text-sm font-semibold text-ink">{r.nivel}</span>
-                </li>
-              ))}
+      <div className="mx-auto max-w-md rounded-xl border border-teal-100 bg-teal-50 p-5 text-left space-y-3">
+        <p className="text-sm font-semibold text-teal-900">Ahora cierra esta pestaña</p>
+        <p className="text-sm text-ink/75">
+          Así el siguiente compañero que use esta computadora no encuentra tu evaluación abierta.
+        </p>
+        <button type="button" onClick={cerrarPestana} className={`${BOTON_PRIMARIO} w-full`}>
+          <X className="h-4 w-4" aria-hidden />
+          Cerrar esta pestaña
+        </button>
+        {intentoCerrar && (
+          <div role="status" className="text-sm text-ink/75 space-y-1">
+            <p className="font-semibold text-ink">Tu navegador no dejó cerrarla desde aquí. Ciérrala tú:</p>
+            <ul className="list-disc pl-5 space-y-0.5">
+              <li>
+                En la computadora: haz clic en la <strong>X</strong> de la pestaña, o presiona{" "}
+                <kbd className="rounded border border-border bg-white px-1">Ctrl</kbd> +{" "}
+                <kbd className="rounded border border-border bg-white px-1">W</kbd> (en Mac,{" "}
+                <kbd className="rounded border border-border bg-white px-1">⌘</kbd> +{" "}
+                <kbd className="rounded border border-border bg-white px-1">W</kbd>).
+              </li>
+              <li>En el celular: abre la lista de pestañas y cierra esta.</li>
             </ul>
-          )}
-          <TextoError>{errorDescarga}</TextoError>
-          <button type="button" onClick={descargarInforme} disabled={descargando} className={`${BOTON_PRIMARIO} w-full sm:w-auto`}>
-            <Download className="h-4 w-4" aria-hidden />
-            {descargando ? "Descargando..." : "Descargar mi informe (PDF)"}
-          </button>
-        </section>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
