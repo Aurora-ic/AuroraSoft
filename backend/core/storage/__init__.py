@@ -47,6 +47,8 @@ def obtener_storage_service() -> StorageService:
             region_name=os.getenv("STORAGE_S3_REGION"),
             access_key=os.getenv("STORAGE_S3_ACCESS_KEY"),
             secret_key=os.getenv("STORAGE_S3_SECRET_KEY"),
+            # 🆕 (piloto) separa entornos que comparten bucket — ver object_storage.validar_prefijo.
+            prefijo=os.getenv("STORAGE_PREFIJO"),
         )
     else:
         raise RuntimeError(

@@ -1,0 +1,15 @@
+# Configuración del túnel de Cloudflare del piloto.
+# Va en %USERPROFILE%\.cloudflared\aurorasoft-piloto.yml (ver docs/piloto.md, paso 4).
+# Cambia TUNEL_ID (lo da `cloudflared tunnel create aurorasoft-piloto`) y TU-DOMINIO.
+tunnel: TUNEL_ID
+credentials-file: C:\Users\ADMIN\.cloudflared\TUNEL_ID.json
+
+ingress:
+  # La API (FastAPI) — todo lo que empieza con /api.
+  - hostname: TU-DOMINIO
+    path: ^/api/
+    service: http://127.0.0.1:8100
+  # El resto es la app (Next.js).
+  - hostname: TU-DOMINIO
+    service: http://127.0.0.1:3100
+  - service: http_status:404

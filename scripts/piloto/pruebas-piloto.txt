@@ -1,0 +1,4 @@
+# Pruebas que se cargan en la base del PILOTO, una por línea (nombre del seed).
+# Las decide el responsable del piloto; el script nunca elige por su cuenta.
+# Ejemplo de formato (sin el # delante):
+# seed_phq9

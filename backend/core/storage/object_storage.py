@@ -7,7 +7,30 @@
 # No se activa por defecto (STORAGE_BACKEND=local es el default) y por eso
 # el import de boto3 es perezoso en core/storage/__init__.py — un entorno de
 # desarrollo no necesita tener boto3 instalado para arrancar la app.
+import re
+
 from .base import StorageService
+
+# 🆕 (sesión 2026-11-12, piloto) Prefijo opcional para que dos entornos
+# compartan un bucket sin pisarse: la base del piloto empieza sus ids en 1,
+# igual que la de desarrollo, así que "instituciones/1/branding/encabezado"
+# existiría en las dos. Con STORAGE_PREFIJO=piloto/ todo lo del piloto vive
+# bajo "piloto/...". Es transparente: las storage_key guardadas en la base NO
+# llevan el prefijo (se agrega aquí, al hablar con el bucket), así que
+# cambiar de bucket o quitar el prefijo no obliga a tocar la base.
+_PREFIJO_VALIDO = re.compile(r"^[a-z0-9][a-z0-9_-]*/$")
+
+
+def validar_prefijo(prefijo: str | None) -> str:
+    """'' si no hay prefijo; si lo hay, minúsculas/dígitos/_/- y terminado en '/'."""
+    if not prefijo:
+        return ""
+    if not _PREFIJO_VALIDO.match(prefijo):
+        raise RuntimeError(
+            f"STORAGE_PREFIJO={prefijo!r} no es válido: usa minúsculas, dígitos, '_' o '-' "
+            "y termina en '/', por ejemplo 'piloto/'."
+        )
+    return prefijo
 
 
 class ObjectStorageService(StorageService):
@@ -18,10 +41,12 @@ class ObjectStorageService(StorageService):
         region_name: str | None = None,
         access_key: str | None = None,
         secret_key: str | None = None,
+        prefijo: str | None = None,
     ):
         import boto3  # noqa: PLC0415 — import perezoso a propósito, ver arriba
 
         self.bucket = bucket
+        self.prefijo = validar_prefijo(prefijo)
         self._client = boto3.client(
             "s3",
             endpoint_url=endpoint_url,
@@ -30,10 +55,13 @@ class ObjectStorageService(StorageService):
             aws_secret_access_key=secret_key,
         )
 
+    def _clave(self, key: str) -> str:
+        return f"{self.prefijo}{key}"
+
     def guardar(self, key: str, contenido: bytes, content_type: str) -> None:
         self._client.put_object(
             Bucket=self.bucket,
-            Key=key,
+            Key=self._clave(key),
             Body=contenido,
             ContentType=content_type or "application/octet-stream",
         )
@@ -42,7 +70,7 @@ class ObjectStorageService(StorageService):
         from botocore.exceptions import ClientError  # noqa: PLC0415
 
         try:
-            respuesta = self._client.get_object(Bucket=self.bucket, Key=key)
+            respuesta = self._client.get_object(Bucket=self.bucket, Key=self._clave(key))
         except ClientError as exc:
             codigo = exc.response.get("Error", {}).get("Code")
             if codigo in ("NoSuchKey", "404"):
@@ -54,7 +82,7 @@ class ObjectStorageService(StorageService):
         from botocore.exceptions import ClientError  # noqa: PLC0415
 
         try:
-            self._client.head_object(Bucket=self.bucket, Key=key)
+            self._client.head_object(Bucket=self.bucket, Key=self._clave(key))
             return True
         except ClientError:
             return False
