@@ -1,4 +1,23 @@
 # Pruebas que se cargan en la base del PILOTO, una por línea (nombre del seed).
 # Las decide el responsable del piloto; el script nunca elige por su cuenta.
-# Ejemplo de formato (sin el # delante):
-# seed_phq9
+#
+# Decisión del responsable (2026-11-12): todas las pruebas del catálogo menos
+# BARSIT, que queda fuera por falta de reactivos. Para agregarla más adelante:
+# quitar el # de la línea de abajo y correr `piloto.ps1 preparar-base` (los
+# seeds son idempotentes: no duplican lo ya cargado).
+# seed_barsit
+#
+# seed_prueba_aptitud_tecnica no va: es un instrumento interno de prueba del motor.
+seed_phq9
+seed_gad7
+seed_chaside
+seed_apgar_familiar
+seed_scared
+seed_rcads47
+seed_riasec
+seed_rosenberg
+seed_sdq
+seed_cesdc
+seed_vanderbilt_padres
+seed_dass21
+seed_hamilton_autoinforme
