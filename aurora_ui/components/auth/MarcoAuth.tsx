@@ -10,9 +10,9 @@ import { IlustracionLogin } from "@/components/auth/IlustracionLogin";
 // formulario a la derecha, selector de tema y pie de privacidad. Cada
 // pantalla solo aporta su título y su tarjeta.
 const PUNTOS_PRODUCTO = [
-  "Campañas con un enlace único por estudiante, sin cuentas que crear.",
-  "Resultados interpretados con baremos y reglas clínicas.",
-  "Los casos en riesgo los revisa un profesional antes de publicarse.",
+  "Expediente y seguimiento de cada estudiante.",
+  "Evaluaciones, informes y documentos institucionales.",
+  "Casos en riesgo bajo revisión profesional.",
 ];
 
 type Props = {
@@ -39,21 +39,21 @@ export function MarcoAuth({ titulo, subtitulo, children, pie }: Props) {
 
         <div className="relative">
           <p className="font-display text-lg font-semibold tracking-tight">AuroraSoft</p>
-          <p className="text-xs text-white/60">Plataforma de Evaluación Psicométrica</p>
+          <p className="text-xs text-white/60">Gestión psicológica estudiantil</p>
         </div>
 
-        <div className="relative mx-auto w-full max-w-md">
-          <IlustracionLogin className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.25)]" />
+        <div className="relative mx-auto w-full max-w-sm">
+          <IlustracionLogin className="w-full drop-shadow-[0_20px_40px_rgba(0,0,0,0.2)]" />
         </div>
 
         <div className="relative max-w-md">
           <h2 className="font-display text-2xl font-semibold leading-snug xl:text-[28px]">
-            Evaluación psicométrica escolar, con criterio profesional.
+            El acompañamiento de cada estudiante, en un solo lugar.
           </h2>
-          <ul className="mt-6 space-y-3">
+          <ul className="mt-6 space-y-2.5">
             {PUNTOS_PRODUCTO.map((punto) => (
-              <li key={punto} className="flex items-start gap-3 text-sm text-white/80">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#5EE0C6]" aria-hidden />
+              <li key={punto} className="flex items-center gap-3 text-sm text-white/75">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[#5EE0C6]" aria-hidden />
                 {punto}
               </li>
             ))}
