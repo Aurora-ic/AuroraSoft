@@ -134,7 +134,9 @@ switch ($Accion) {
     }
     if ($e["STORAGE_BACKEND"] -eq "s3" -and -not $e["STORAGE_PREFIJO"]) { $errores += "con STORAGE_BACKEND=s3 define STORAGE_PREFIJO=piloto/ (el bucket es compartido con el desarrollo)" }
     if (-not (Test-Path $configTunel) -and -not $SinTunel) { $errores += "falta la configuración del túnel $configTunel (ver docs\piloto.md, paso 4)" }
-    if ($errores.Count -eq 0) { Escribir "Configuración del piloto: OK (dominio $(Dominio $e))." "Green" }
+    # exit explícito en los dos casos: quien llama mira $LASTEXITCODE, y un
+    # script que termina sin exit lo deja vacío ($null -ne 0 es verdadero).
+    if ($errores.Count -eq 0) { Escribir "Configuración del piloto: OK (dominio $(Dominio $e))." "Green"; exit 0 }
     else { $errores | ForEach-Object { Escribir "  ✗ $_" "Red" }; exit 1 }
   }
 
@@ -224,7 +226,9 @@ switch ($Accion) {
     if (-not (Test-Path $pgDump)) { throw "No encuentro pg_dump 16 en $pgDump" }
     New-Item -ItemType Directory -Force $respaldos | Out-Null
     $destino = Join-Path $respaldos ("piloto-{0}.dump" -f (Get-Date -Format "yyyyMMdd-HHmm"))
-    $env:PGPASSWORD = [Uri]::UnescapeDataString($clave); $env:PGSSLMODE = "require"
+    $env:PGPASSWORD = [Uri]::UnescapeDataString($clave)
+    # Neon exige SSL; una base local (ensayo) no lo tiene.
+    $env:PGSSLMODE = $(if ($u.Host -in @("localhost", "127.0.0.1")) { "prefer" } else { "require" })
     & $pgDump --format=custom --no-owner --no-privileges -h $u.Host -p $(if ($u.Port -gt 0) { $u.Port } else { 5432 }) -U ([Uri]::UnescapeDataString($usuario)) -f $destino $base
     Remove-Item Env:PGPASSWORD
     if ($LASTEXITCODE -ne 0) { throw "falló pg_dump" }
