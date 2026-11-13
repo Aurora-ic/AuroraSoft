@@ -97,7 +97,13 @@ powershell -ExecutionPolicy Bypass -File scripts\piloto\piloto.ps1 estado
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\piloto\piloto.ps1 programar
 ```
-Crea dos tareas de Windows: **iniciar al entrar a Windows** y **respaldo diario a las 23:00**. Además, en Windows:
+Córrelo **desde la copia del piloto** (`%USERPROFILE%\aurorasoft-piloto\scripts\piloto\piloto.ps1`), no desde el Escritorio: las tareas apuntan al script desde el que se crearon, y el piloto no debe depender de lo que se edite en el Escritorio.
+
+Deja dos cosas programadas, y dice ✓ o ✗ por cada una (sale con código 1 si alguna falla):
+- **Respaldo diario a las 23:00**: una tarea del Programador de tareas (`AuroraSoft piloto - respaldo diario`). No pide permisos de administrador.
+- **Iniciar al entrar a Windows**: primero intenta la tarea `AuroraSoft piloto - iniciar` con disparador "al iniciar sesión", pero Windows exige una consola de **administrador** para ese disparador ("Acceso denegado"). Sin ella, el script crea en su lugar un **acceso directo en la carpeta Inicio** del usuario (`shell:startup` → `AuroraSoft piloto - iniciar.lnk`), que hace lo mismo sin permisos especiales. Si después lo corres como administrador, se crea la tarea y se borra el acceso directo, para que no arranque dos veces.
+
+Para comprobarlo: `schtasks /Query /TN "AuroraSoft piloto - respaldo diario"`, y el acceso directo en `shell:startup` (Win+R). Además, en Windows:
 - **Configuración → Sistema → Energía:** que nunca se suspenda mientras está enchufada.
 - **Windows Update → Horas activas:** fíjalas en el horario escolar, para que no se reinicie en medio de un examen.
 - De preferencia, **conexión por cable**.
@@ -134,3 +140,9 @@ Ensayo general en esta PC, con el script real, una base local desechable y un pr
 El ensayo destapó dos bugs, ya corregidos:
 1. **`seed_asentimiento_informado_default` fallaba en cualquier base nueva**, porque no registraba la tabla `niveles_educativos`. Ahora `seeds/__init__.py` registra todos los modelos antes de cualquier seed.
 2. **`piloto.ps1` no seguía después de un `verificar` exitoso**, porque no dejaba código de salida.
+
+La puesta en marcha real (2026-11-12, con Neon y el dominio `aurorasoft.dpdns.org`) destapó cuatro más, ya corregidos en `piloto.ps1`:
+1. **`verificar` fallaba siempre corriendo la copia del piloto**: buscaba el repo del desarrollo "dos carpetas arriba del script", que en la copia es la propia copia, y comparaba su `.env` consigo mismo. Ahora lo resuelve git (`--git-common-dir`).
+2. **`estado` revisaba `/api/health`, que no existe** (el health está en `/health`, que el túnel no publica). Ahora revisa `/` y `/api/auth/me` (401 sin sesión = la API respondió). Además, PowerShell 5.1 lanza excepción con cualquier 4xx, y eso contaba como "no responde".
+3. **`respaldo` conectaba a Neon por el puerto 80**: la URL sin puerto, leída como `http://`, da 80. Ahora usa 5432, y si `pg_dump` falla borra el `.dump` vacío.
+4. **`programar` decía "Tareas creadas" aunque la de inicio fallara** por falta de permisos de administrador. Ahora revisa cada una y usa el acceso directo en Inicio (paso 7).

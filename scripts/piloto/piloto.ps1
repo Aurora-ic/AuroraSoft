@@ -45,7 +45,13 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$repoDesarrollo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+# El repo del DESARROLLO es el worktree principal. No sirve "dos carpetas arriba
+# del script": corriendo la copia del piloto (lo que hace la tarea programada)
+# eso es la copia del piloto, y 'verificar' comparaba su .env consigo mismo
+# ("DATABASE_URL es la MISMA base del desarrollo", siempre). git lo resuelve
+# igual desde cualquiera de las dos copias.
+$gitComun = git -C $PSScriptRoot rev-parse --path-format=absolute --git-common-dir 2>$null
+$repoDesarrollo = if ($LASTEXITCODE -eq 0 -and $gitComun) { Split-Path -Parent $gitComun } else { Split-Path -Parent (Split-Path -Parent $PSScriptRoot) }
 $piloto = Join-Path $env:USERPROFILE "aurorasoft-piloto"
 $backend = Join-Path $piloto "backend"
 $frontend = Join-Path $piloto "aurora_ui"
@@ -87,7 +93,9 @@ function Iniciar-Oculto($nombre, $archivo, $argumentos, $directorio) {
 function Esperar-Url($url, $segundos) {
   $limite = (Get-Date).AddSeconds($segundos)
   while ((Get-Date) -lt $limite) {
-    try { $r = Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 5; if ($r.StatusCode -lt 500) { return $true } } catch { }
+    # PowerShell 5.1 lanza excepción con un 4xx: también es "el servidor respondió".
+    try { $r = Invoke-WebRequest -UseBasicParsing -Uri $url -TimeoutSec 5; if ($r.StatusCode -lt 500) { return $true } }
+    catch { $resp = $_.Exception.Response; if ($resp -and [int]$resp.StatusCode -lt 500) { return $true } }
     Start-Sleep -Seconds 2
   }
   return $false
@@ -213,8 +221,13 @@ switch ($Accion) {
     foreach ($par in @(@("API local", "http://127.0.0.1:$PUERTO_API/health"), @("Web local", "http://127.0.0.1:$PUERTO_WEB/"))) {
       $ok = Esperar-Url $par[1] 4; Escribir ("  {0}: {1}" -f $par[0], $(if ($ok) { "OK" } else { "NO RESPONDE" })) $(if ($ok) { "Green" } else { "Red" })
     }
-    try { $d = Dominio (Leer-Env); $ok = Esperar-Url "https://$d/api/health" 8
-      Escribir ("  Público https://{0}: {1}" -f $d, $(if ($ok) { "OK" } else { "NO RESPONDE" })) $(if ($ok) { "Green" } else { "Red" }) } catch { }
+    # Por el dominio: la web (/) y la API. /health está fuera de /api y el túnel
+    # no lo publica; /api/auth/me sin sesión responde 401 desde la propia API
+    # (si el túnel o la API caen, Cloudflare da 5xx).
+    try { $d = Dominio (Leer-Env)
+      foreach ($par in @(@("Público web", "https://$d/"), @("Público API", "https://$d/api/auth/me"))) {
+        $ok = Esperar-Url $par[1] 8; Escribir ("  {0} {1}: {2}" -f $par[0], $par[1], $(if ($ok) { "OK" } else { "NO RESPONDE" })) $(if ($ok) { "Green" } else { "Red" })
+      } } catch { }
   }
 
   "respaldo" {
@@ -229,9 +242,14 @@ switch ($Accion) {
     $env:PGPASSWORD = [Uri]::UnescapeDataString($clave)
     # Neon exige SSL; una base local (ensayo) no lo tiene.
     $env:PGSSLMODE = $(if ($u.Host -in @("localhost", "127.0.0.1")) { "prefer" } else { "require" })
-    & $pgDump --format=custom --no-owner --no-privileges -h $u.Host -p $(if ($u.Port -gt 0) { $u.Port } else { 5432 }) -U ([Uri]::UnescapeDataString($usuario)) -f $destino $base
+    # La URL se lee como http:// solo para partirla: sin puerto explícito (Neon)
+    # [Uri] da el de http, 80, no -1. IsDefaultPort lo distingue -> 5432.
+    $puerto = $(if ($u.IsDefaultPort) { 5432 } else { $u.Port })
+    & $pgDump --format=custom --no-owner --no-privileges -h $u.Host -p $puerto -U ([Uri]::UnescapeDataString($usuario)) -f $destino $base
+    $codigo = $LASTEXITCODE
     Remove-Item Env:PGPASSWORD
-    if ($LASTEXITCODE -ne 0) { throw "falló pg_dump" }
+    # Un .dump vacío o a medias no es un respaldo: no se guarda.
+    if ($codigo -ne 0) { Remove-Item $destino -ErrorAction SilentlyContinue; throw "falló pg_dump" }
     Get-ChildItem $respaldos -Filter "piloto-*.dump" | Sort-Object Name -Descending | Select-Object -Skip 14 | Remove-Item
     Escribir "Respaldo guardado: $destino" "Green"
   }
@@ -251,8 +269,31 @@ switch ($Accion) {
 
   "programar" {
     $ps = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`""
-    schtasks /Create /F /TN "AuroraSoft piloto - iniciar" /SC ONLOGON /RL LIMITED /TR "$ps iniciar" | Out-Null
-    schtasks /Create /F /TN "AuroraSoft piloto - respaldo diario" /SC DAILY /ST 23:00 /RL LIMITED /TR "$ps respaldo" | Out-Null
-    Escribir "Tareas creadas: iniciar al entrar a Windows y respaldo diario a las 23:00." "Green"
+    # schtasks escribe en stderr ("Acceso denegado"): con Stop eso sería una
+    # excepción en vez de un código de salida que revisar.
+    $ErrorActionPreference = "Continue"
+    $errores = 0
+    schtasks /Create /F /TN "AuroraSoft piloto - respaldo diario" /SC DAILY /ST 23:00 /RL LIMITED /TR "$ps respaldo" 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) { Escribir "  ✓ tarea 'respaldo diario' (23:00)" "Green" } else { Escribir "  ✗ no se pudo crear la tarea del respaldo diario" "Red"; $errores++ }
+    # Un disparador "al iniciar sesión" (ONLOGON) exige una consola de
+    # administrador. Sin ella, el acceso directo en la carpeta Inicio del
+    # usuario hace lo mismo y no pide permisos.
+    $inicio = Join-Path ([Environment]::GetFolderPath("Startup")) "AuroraSoft piloto - iniciar.lnk"
+    schtasks /Create /F /TN "AuroraSoft piloto - iniciar" /SC ONLOGON /RL LIMITED /TR "$ps iniciar" 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+      Remove-Item $inicio -ErrorAction SilentlyContinue
+      Escribir "  ✓ tarea 'iniciar' al entrar a Windows" "Green"
+    } else {
+      $acceso = (New-Object -ComObject WScript.Shell).CreateShortcut($inicio)
+      $acceso.TargetPath = "powershell.exe"
+      $acceso.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" iniciar"
+      $acceso.WorkingDirectory = $piloto
+      $acceso.WindowStyle = 7  # minimizada
+      $acceso.Save()
+      if (Test-Path $inicio) { Escribir "  ✓ 'iniciar' al entrar a Windows: acceso directo en la carpeta Inicio (sin admin, ONLOGON lo exige)" "Green" }
+      else { Escribir "  ✗ no se pudo programar el inicio automático" "Red"; $errores++ }
+    }
+    if ($errores -gt 0) { exit 1 }
+    exit 0
   }
 }
