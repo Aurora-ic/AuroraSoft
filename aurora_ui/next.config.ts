@@ -48,9 +48,33 @@ const csp = [
   "frame-ancestors 'none'",
 ].join("; ");
 
+// 🆕 (sesión 2026-11-14, revisión de seguridad del piloto) HTTPS obligatorio.
+// Detrás de Cloudflare, http://dominio servía la app por http y el login
+// mandaba la contraseña sin cifrar hasta Cloudflare. El proxy dice por dónde
+// entró el cliente en X-Forwarded-Proto: si fue "http", 308 a la misma URL en
+// https (el backend hace lo mismo con /api, ver core/cabeceras_seguridad.py).
+// En local no hay proxy ni esa cabecera, así que `next start`/Playwright por
+// http://localhost siguen igual. HSTS: desde la primera visita por https, el
+// navegador ya no intenta http durante un año (lo ignora si llega por http).
+const HSTS = "max-age=31536000; includeSubDomains";
+
 const nextConfig: NextConfig = {
   // Sin "X-Powered-By: Next.js": no regala la tecnología y versión a quien escanea.
   poweredByHeader: false,
+  async redirects() {
+    if (esDesarrollo) return [];
+    return [
+      {
+        source: "/:path*",
+        has: [
+          { type: "header", key: "x-forwarded-proto", value: "http" },
+          { type: "host", value: "(?<host>[A-Za-z0-9.-]+(?::[0-9]{1,5})?)" },
+        ],
+        destination: "https://:host/:path*",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {
@@ -63,6 +87,7 @@ const nextConfig: NextConfig = {
           // La app no usa cámara, micrófono ni ubicación.
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
           { key: soloReporte ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy", value: csp },
+          ...(esDesarrollo ? [] : [{ key: "Strict-Transport-Security", value: HSTS }]),
         ],
       },
     ];

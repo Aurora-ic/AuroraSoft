@@ -29,6 +29,8 @@
     respaldo       pg_dump de la base del piloto (guarda los últimos 14)
     actualizar     lleva la copia a origin/main, instala, migra y reconstruye
     programar      tareas de Windows: iniciar al entrar y respaldo diario
+    restaurar      carga un respaldo (.dump) en la base del .env, solo si está VACÍA
+                   (pasar el piloto a otro proyecto de Neon, o recuperarse)
 
 .EXAMPLE
   powershell -File scripts\piloto\piloto.ps1 crear
@@ -37,11 +39,15 @@
 #>
 param(
   [Parameter(Position = 0)]
-  [ValidateSet("crear", "verificar", "preparar-base", "construir", "iniciar", "detener", "estado", "respaldo", "actualizar", "programar")]
+  [ValidateSet("crear", "verificar", "preparar-base", "construir", "iniciar", "detener", "estado", "respaldo", "actualizar", "programar", "restaurar")]
   [string]$Accion = "estado",
   [switch]$SinTunel,
   # Versión del código para 'crear'/'actualizar' (por defecto la última publicada).
-  [string]$Version = "origin/main"
+  [string]$Version = "origin/main",
+  # 'restaurar': el .dump a cargar (por defecto el más reciente de los respaldos).
+  [string]$Archivo = "",
+  # 'restaurar': base de destino; por defecto la DATABASE_URL del .env (para ensayos).
+  [string]$UrlDestino = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -73,6 +79,26 @@ function Leer-Env {
     if ($linea -match '^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$') { $valores[$Matches[1]] = $Matches[2].Trim().Trim('"') }
   }
   return $valores
+}
+
+function Partes-Url($url) {
+  # [Uri] solo entiende http: se cambia el esquema para partirla. Sin puerto
+  # explícito (Neon) daría el de http, 80: IsDefaultPort lo distingue -> 5432.
+  $u = [Uri]($url -replace '^postgres(ql)?(\+psycopg2?)?://', 'http://')
+  $usuario, $clave = $u.UserInfo.Split(":", 2)
+  return @{
+    Host = $u.Host; Puerto = $(if ($u.IsDefaultPort) { 5432 } else { $u.Port })
+    Usuario = [Uri]::UnescapeDataString($usuario); Clave = [Uri]::UnescapeDataString($clave)
+    Base = $u.AbsolutePath.TrimStart("/")
+    # Neon exige SSL; una base local (ensayo) no lo tiene.
+    Ssl = $(if ($u.Host -in @("localhost", "127.0.0.1")) { "prefer" } else { "require" })
+  }
+}
+
+function Herramienta-Pg($nombre) {
+  $ruta = Join-Path $env:ProgramFiles "PostgreSQL\16\bin\$nombre.exe"
+  if (-not (Test-Path $ruta)) { throw "No encuentro $nombre 16 en $ruta" }
+  return $ruta
 }
 
 function Dominio($envs) { return ([Uri]$envs["FRONTEND_URL"]).Host }
@@ -123,7 +149,10 @@ switch ($Accion) {
     $errores = @()
     $obligatorias = "ENTORNO", "DATABASE_URL", "SECRET_KEY", "CORS_ALLOWED_ORIGINS", "FRONTEND_URL", "PUBLIC_BACKEND_URL",
       "PROXIES_CONFIABLES", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND", "ALMACEN_SEGURIDAD_URL", "STORAGE_BACKEND",
-      "EMAIL_USUARIO", "EMAIL_PASSWORD", "SUPERADMIN_EMAIL", "SUPERADMIN_PASSWORD"
+      "EMAIL_USUARIO", "EMAIL_PASSWORD"
+    # SUPERADMIN_EMAIL/PASSWORD ya no son obligatorias: solo 'preparar-base'
+    # las usa (para crear la cuenta). Después de cambiar la contraseña desde la
+    # app conviene BORRAR SUPERADMIN_PASSWORD del .env, y el piloto sigue arrancando.
     foreach ($v in $obligatorias) { if (-not $e[$v]) { $errores += "falta $v" } }
     if ($e["ENTORNO"] -ne "production") { $errores += "ENTORNO debe ser production" }
     if ($e["SECRET_KEY"] -and $e["SECRET_KEY"].Length -lt 32) { $errores += "SECRET_KEY demasiado corta (mínimo 32 caracteres)" }
@@ -140,6 +169,23 @@ switch ($Accion) {
         $errores += "DATABASE_URL es la MISMA base del desarrollo: el piloto necesita una base nueva"
       }
     }
+    # Avisos (no bloquean el arranque): credenciales compartidas con el desarrollo.
+    # Quien tenga las del desarrollo (su .env, los tests) entraría a los datos
+    # del piloto. Ver docs/piloto.md, "Credenciales propias del piloto".
+    $avisos = @()
+    if (Test-Path $envDesarrollo) {
+      $d = @{}
+      foreach ($linea in Get-Content $envDesarrollo -Encoding UTF8) {
+        if ($linea -match '^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)$') { $d[$Matches[1]] = $Matches[2].Trim().Trim('"') }
+      }
+      if ($d["DATABASE_URL"] -and $e["DATABASE_URL"]) {
+        $pp = Partes-Url $e["DATABASE_URL"]; $pd = Partes-Url $d["DATABASE_URL"]
+        if ($pp.Host -eq $pd.Host -and $pp.Usuario -eq $pd.Usuario) { $avisos += "la base del piloto usa el MISMO proyecto y usuario de Neon que el desarrollo" }
+      }
+      if ($e["STORAGE_S3_ACCESS_KEY"] -and $e["STORAGE_S3_ACCESS_KEY"] -eq $d["STORAGE_S3_ACCESS_KEY"]) { $avisos += "R2 usa la MISMA clave que el desarrollo" }
+      if ($e["STORAGE_S3_BUCKET"] -and $e["STORAGE_S3_BUCKET"] -eq $d["STORAGE_S3_BUCKET"]) { $avisos += "R2 usa el MISMO bucket que el desarrollo" }
+    }
+    $avisos | ForEach-Object { Escribir "  ! $_" "Yellow" }
     if ($e["STORAGE_BACKEND"] -eq "s3" -and -not $e["STORAGE_PREFIJO"]) { $errores += "con STORAGE_BACKEND=s3 define STORAGE_PREFIJO=piloto/ (el bucket es compartido con el desarrollo)" }
     if (-not (Test-Path $configTunel) -and -not $SinTunel) { $errores += "falta la configuración del túnel $configTunel (ver docs\piloto.md, paso 4)" }
     # exit explícito en los dos casos: quien llama mira $LASTEXITCODE, y un
@@ -151,6 +197,8 @@ switch ($Accion) {
   "preparar-base" {
     & $PSCommandPath verificar -SinTunel:$SinTunel
     if ($LASTEXITCODE -ne 0) { Escribir "Corrige la configuración antes de seguir." "Red"; exit 1 }
+    $e = Leer-Env
+    if (-not $e["SUPERADMIN_EMAIL"] -or -not $e["SUPERADMIN_PASSWORD"]) { Escribir "preparar-base necesita SUPERADMIN_EMAIL y SUPERADMIN_PASSWORD en el .env (para crear la cuenta)." "Red"; exit 1 }
     Push-Location $backend
     try {
       $env:PYTHONUTF8 = "1"
@@ -232,26 +280,48 @@ switch ($Accion) {
 
   "respaldo" {
     $e = Leer-Env
-    $u = [Uri]($e["DATABASE_URL"] -replace '^postgresql(\+psycopg2)?://', 'http://')
-    $usuario, $clave = $u.UserInfo.Split(":", 2)
-    $base = $u.AbsolutePath.TrimStart("/")
-    $pgDump = Join-Path $env:ProgramFiles "PostgreSQL\16\bin\pg_dump.exe"
-    if (-not (Test-Path $pgDump)) { throw "No encuentro pg_dump 16 en $pgDump" }
+    $p = Partes-Url $e["DATABASE_URL"]
+    $pgDump = Herramienta-Pg "pg_dump"
     New-Item -ItemType Directory -Force $respaldos | Out-Null
     $destino = Join-Path $respaldos ("piloto-{0}.dump" -f (Get-Date -Format "yyyyMMdd-HHmm"))
-    $env:PGPASSWORD = [Uri]::UnescapeDataString($clave)
-    # Neon exige SSL; una base local (ensayo) no lo tiene.
-    $env:PGSSLMODE = $(if ($u.Host -in @("localhost", "127.0.0.1")) { "prefer" } else { "require" })
-    # La URL se lee como http:// solo para partirla: sin puerto explícito (Neon)
-    # [Uri] da el de http, 80, no -1. IsDefaultPort lo distingue -> 5432.
-    $puerto = $(if ($u.IsDefaultPort) { 5432 } else { $u.Port })
-    & $pgDump --format=custom --no-owner --no-privileges -h $u.Host -p $puerto -U ([Uri]::UnescapeDataString($usuario)) -f $destino $base
+    $env:PGPASSWORD = $p.Clave; $env:PGSSLMODE = $p.Ssl
+    & $pgDump --format=custom --no-owner --no-privileges -h $p.Host -p $p.Puerto -U $p.Usuario -f $destino $p.Base
     $codigo = $LASTEXITCODE
     Remove-Item Env:PGPASSWORD
     # Un .dump vacío o a medias no es un respaldo: no se guarda.
     if ($codigo -ne 0) { Remove-Item $destino -ErrorAction SilentlyContinue; throw "falló pg_dump" }
     Get-ChildItem $respaldos -Filter "piloto-*.dump" | Sort-Object Name -Descending | Select-Object -Skip 14 | Remove-Item
     Escribir "Respaldo guardado: $destino" "Green"
+  }
+
+  "restaurar" {
+    # Carga un respaldo en una base VACÍA. Para pasar el piloto a su propio
+    # proyecto de Neon (docs/piloto.md): 'respaldo' con la URL vieja, poner la
+    # nueva DATABASE_URL en el .env, y luego esto. Nunca pisa una base con
+    # tablas: si la de destino ya tiene datos, se niega.
+    $e = Leer-Env
+    $url = $(if ($UrlDestino) { $UrlDestino } else { $e["DATABASE_URL"] })
+    if (-not $Archivo) {
+      $ultimo = Get-ChildItem $respaldos -Filter "piloto-*.dump" -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+      if (-not $ultimo) { throw "No hay respaldos en $respaldos" }
+      $Archivo = $ultimo.FullName
+    }
+    if (-not (Test-Path $Archivo) -or (Get-Item $Archivo).Length -eq 0) { throw "El respaldo $Archivo no existe o está vacío" }
+    $p = Partes-Url $url
+    $psql = Herramienta-Pg "psql"
+    $contar = "select count(*) from information_schema.tables where table_schema='public'"
+    $env:PGPASSWORD = $p.Clave; $env:PGSSLMODE = $p.Ssl
+    try {
+      $tablas = & $psql -h $p.Host -p $p.Puerto -U $p.Usuario -d $p.Base -tAc $contar
+      if ($LASTEXITCODE -ne 0) { throw "No pude conectar a la base de destino ($($p.Base) en $($p.Host))" }
+      if ([int]"$tablas".Trim() -gt 0) { throw "La base de destino $($p.Base) ya tiene $("$tablas".Trim()) tablas: 'restaurar' solo carga en una base VACÍA" }
+      Escribir "Restaurando $(Split-Path -Leaf $Archivo) en $($p.Base) ($($p.Host))..." "Cyan"
+      & (Herramienta-Pg "pg_restore") --no-owner --no-privileges --exit-on-error -h $p.Host -p $p.Puerto -U $p.Usuario -d $p.Base $Archivo
+      if ($LASTEXITCODE -ne 0) { throw "falló pg_restore" }
+      $total = & $psql -h $p.Host -p $p.Puerto -U $p.Usuario -d $p.Base -tAc $contar
+      $version = & $psql -h $p.Host -p $p.Puerto -U $p.Usuario -d $p.Base -tAc "select version_num from alembic_version"
+      Escribir "Restaurado: $("$total".Trim()) tablas, migración $("$version".Trim())." "Green"
+    } finally { Remove-Item Env:PGPASSWORD -ErrorAction SilentlyContinue }
   }
 
   "actualizar" {

@@ -108,6 +108,27 @@ Para comprobarlo: `schtasks /Query /TN "AuroraSoft piloto - respaldo diario"`, y
 - **Windows Update → Horas activas:** fíjalas en el horario escolar, para que no se reinicie en medio de un examen.
 - De preferencia, **conexión por cable**.
 
+### 8. Credenciales propias del piloto y HTTPS (antes del primer colegio)
+🆕 (2026-11-14) La revisión de seguridad del piloto encontró que el piloto se armó con las credenciales del desarrollo: el **mismo usuario de Neon** (dueño de las dos bases) y **la misma clave y el mismo bucket de R2**. El prefijo `piloto/` ordena los archivos, pero no los protege. Quien tenga las credenciales del desarrollo (su `.env`, los tests) tendría acceso a los datos de menores del piloto. Mientras siga así, `verificar` lo avisa en amarillo, sin bloquear el arranque. Se corrige en cuatro partes, todas en los paneles:
+
+**a) Neon: un proyecto propio para el piloto.** Un usuario nuevo en el mismo proyecto no alcanza: el usuario del desarrollo administra los roles que crea y podría darse acceso.
+1. Neon → **New project** → nombre `aurorasoft-piloto`, misma región (São Paulo). Copia su *connection string*: la directa, no la "Pooled".
+2. Saca un respaldo con la URL vieja: `piloto.ps1 respaldo`.
+3. En `%USERPROFILE%\aurorasoft-piloto\backend\.env`, reemplaza `DATABASE_URL` por la nueva.
+4. `piloto.ps1 restaurar`. Carga el último respaldo en la base nueva, y **solo si está vacía**: nunca pisa una base con datos. Luego `piloto.ps1 iniciar` y `piloto.ps1 estado`.
+5. Cuando todo funcione, borra la base `aurorasoft_piloto` del proyecto del desarrollo (Neon → Databases).
+
+**b) R2: un bucket y una clave propios.** El piloto todavía no tiene archivos en R2, así que no hay nada que mover.
+1. Cloudflare → R2 → **Create bucket** → `aurorasoft-piloto`. Comprueba que **Public access** quede *Disabled*.
+2. R2 → **Manage API tokens** → **Create API token** → permiso *Object Read & Write*, **solo** para el bucket `aurorasoft-piloto`.
+3. En el `.env` del piloto: `STORAGE_S3_BUCKET=aurorasoft-piloto` y las dos claves nuevas (`STORAGE_S3_ACCESS_KEY`/`STORAGE_S3_SECRET_KEY`). Deja `STORAGE_PREFIJO=piloto/`. Luego `piloto.ps1 iniciar`.
+
+**c) HTTPS siempre.** La app ya redirige `http://` a `https://` por su cuenta (backend `core/cabeceras_seguridad.py` y `next.config.ts`, con HSTS). Para que Cloudflare lo haga antes de llegar a esta PC: Cloudflare → el dominio → **SSL/TLS → Edge Certificates → Always Use HTTPS: On**.
+
+**d) Contraseña del superadmin.** Entra a la app y cámbiala. Después borra `CLAVE-SUPERADMIN-INICIAL.txt` y la línea `SUPERADMIN_PASSWORD` del `.env`: el piloto sigue arrancando, porque solo `preparar-base` la usa.
+
+Además, en tus cuentas: verificación en dos pasos en Cloudflare, Neon, GitHub y el Gmail de alertas, y una contraseña o PIN en tu usuario de Windows. Los respaldos y el `.env` están sin cifrar en esta PC.
+
 ## Operación durante el piloto
 
 | Necesito… | Comando |
@@ -116,6 +137,7 @@ Para comprobarlo: `schtasks /Query /TN "AuroraSoft piloto - respaldo diario"`, y
 | Reiniciar todo | `piloto.ps1 iniciar` (detiene y vuelve a levantar) |
 | Detener | `piloto.ps1 detener` |
 | Un respaldo ahora | `piloto.ps1 respaldo` |
+| Cargar un respaldo en una base vacía (cambio de proyecto o recuperación) | `piloto.ps1 restaurar` (el último) o `piloto.ps1 restaurar -Archivo <ruta .dump>` |
 | Ver errores | `%USERPROFILE%\aurorasoft-piloto\logs\` (`api`, `worker`, `beat`, `web`, `tunel`) |
 
 ### Aplicar una corrección mínima
@@ -126,7 +148,7 @@ Para comprobarlo: `schtasks /Query /TN "AuroraSoft piloto - respaldo diario"`, y
    powershell -ExecutionPolicy Bypass -File scripts\piloto\piloto.ps1 actualizar
    ```
    En orden: detiene, trae `origin/main`, instala dependencias si cambiaron, **saca un respaldo**, aplica migraciones, recompila y vuelve a iniciar.
-4. **Si algo salió mal, vuelve a la versión anterior:** `piloto.ps1 actualizar -Version <commit anterior>`. Si además hubo una migración, restaura el respaldo con `pg_restore`.
+4. **Si algo salió mal, vuelve a la versión anterior:** `piloto.ps1 actualizar -Version <commit anterior>`. Si además hubo una migración, carga el respaldo que `actualizar` sacó antes de migrar, con `piloto.ps1 restaurar -Archivo <ruta>`, en una base vacía.
 
 ## Verificado antes de entregarlo
 

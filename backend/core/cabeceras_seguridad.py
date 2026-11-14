@@ -30,6 +30,9 @@ main.py para quedar por fuera de CORS y del tope de cuerpo — así también
 llevan cabeceras el preflight de CORS, un 413 o un 429.
 """
 
+import re
+from typing import Optional
+
 CSP_API = (
     "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; "
     "form-action 'none'"
@@ -56,6 +59,35 @@ def cabeceras_para(path: str, es_desarrollo: bool) -> list[tuple[bytes, bytes]]:
     return cabeceras
 
 
+# 🆕 (sesión 2026-11-14, revisión de seguridad del piloto) Redirección a HTTPS.
+# Detrás de Cloudflare, quien escribía http://dominio recibía la app y la API
+# por http: la contraseña del login viajaba sin cifrar hasta Cloudflare (p. ej.
+# por el wifi del colegio), y el HSTS no lo evita porque el navegador lo ignora
+# si llega por http. El proxy dice por dónde entró el cliente en
+# X-Forwarded-Proto; si fue "http", se responde 308 a la misma URL en https
+# sin tocar la API. Una llamada local directa (los chequeos de piloto.ps1 a
+# 127.0.0.1) no trae esa cabecera y no se redirige. Solo fuera de desarrollo.
+# Falsificar la cabecera no da nada: solo se recibe una redirección al mismo
+# host. Un Host raro (con /, @, espacios...) no se redirige, para no armar
+# una URL hacia otro sitio.
+_HOST_VALIDO = re.compile(r"^[A-Za-z0-9.-]+(:[0-9]{1,5})?$")
+
+
+def destino_https(scope) -> Optional[str]:
+    """URL https a la que redirigir, o None si la petición no llegó por http
+    a través de un proxy."""
+    cabeceras = {}
+    for nombre, valor in scope.get("headers", []):
+        cabeceras.setdefault(nombre.decode("latin-1").lower(), valor.decode("latin-1"))
+    proto = cabeceras.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    host = cabeceras.get("host", "").strip()
+    if proto != "http" or not _HOST_VALIDO.match(host):
+        return None
+    ruta = (scope.get("raw_path") or scope.get("path", "/").encode()).decode("latin-1") or "/"
+    consulta = scope.get("query_string", b"").decode("latin-1")
+    return f"https://{host}{ruta}" + (f"?{consulta}" if consulta else "")
+
+
 class MiddlewareCabecerasSeguridad:
     def __init__(self, app, es_desarrollo: bool):
         self.app = app
@@ -67,6 +99,14 @@ class MiddlewareCabecerasSeguridad:
             return
 
         extra = cabeceras_para(scope.get("path", ""), self.es_desarrollo)
+
+        destino = None if self.es_desarrollo else destino_https(scope)
+        if destino:
+            # 308 (no 301): conserva el método y el cuerpo de un POST.
+            await send({"type": "http.response.start", "status": 308,
+                        "headers": [(b"location", destino.encode("latin-1")), (b"content-length", b"0")] + extra})
+            await send({"type": "http.response.body", "body": b""})
+            return
 
         async def send_con_cabeceras(mensaje):
             if mensaje["type"] == "http.response.start":

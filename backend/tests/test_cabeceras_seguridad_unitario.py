@@ -76,6 +76,8 @@ r = {
     "cuerpo_grande": llamar("POST", "/api/auth/login", [
         ("content-length", str(LIMITE_CUERPO_POR_DEFECTO_BYTES + 1))]),
     "cache_propio": llamar("GET", "/zz-prueba-cache"),
+    "por_proxy_http": llamar("POST", "/api/auth/login", [("x-forwarded-proto", "http")]),
+    "por_proxy_https": llamar("GET", "/health", [("x-forwarded-proto", "https")]),
 }
 sys.stdout.write("@@JSON@@" + json.dumps(r))
 '''
@@ -174,9 +176,42 @@ def test_produccion(r):
                   ("x-content-type-options", "x-frame-options", "referrer-policy", "content-security-policy")))
 
 
+def test_redireccion_https_pura():
+    print("\n[4b] destino_https(): solo lo que llegó por http a través del proxy")
+    def scope(headers, path="/api/x", query=b""):
+        return {"headers": [(k.encode(), v.encode()) for k, v in headers], "path": path,
+                "raw_path": path.encode(), "query_string": query}
+    comprobar("X-Forwarded-Proto http → https://mismo-host/ruta?consulta",
+              cs.destino_https(scope([("host", "aurorasoft.dpdns.org"), ("x-forwarded-proto", "http")], query=b"a=1"))
+              == "https://aurorasoft.dpdns.org/api/x?a=1")
+    comprobar("X-Forwarded-Proto https → no redirige",
+              cs.destino_https(scope([("host", "a.pe"), ("x-forwarded-proto", "https")])) is None)
+    comprobar("sin X-Forwarded-Proto (llamada local, chequeos de piloto.ps1) → no redirige",
+              cs.destino_https(scope([("host", "127.0.0.1:8100")])) is None)
+    comprobar("varios saltos 'http, https': manda el primero (el del cliente)",
+              cs.destino_https(scope([("host", "a.pe"), ("x-forwarded-proto", "http, https")])) == "https://a.pe/api/x")
+    comprobar("Host raro (otro sitio con @ o /) → no se arma la redirección",
+              cs.destino_https(scope([("host", "a.pe@malo.com"), ("x-forwarded-proto", "http")])) is None
+              and cs.destino_https(scope([("host", "malo.com/x"), ("x-forwarded-proto", "http")])) is None)
+    comprobar("host con puerto se conserva",
+              cs.destino_https(scope([("host", "a.pe:8443"), ("x-forwarded-proto", "http")])) == "https://a.pe:8443/api/x")
+
+
+def test_redireccion_https_app(r_prod):
+    print("\n[4c] Producción: la app redirige lo que entró por http y deja pasar lo demás")
+    rh = r_prod["por_proxy_http"]
+    comprobar("POST /api/auth/login por http → 308 (no llega al login)", rh["status"] == 308, rh["status"])
+    comprobar("Location https://testserver/api/auth/login", h(rh, "location") == "https://testserver/api/auth/login", h(rh, "location"))
+    comprobar_cabeceras_base("308 a https", rh, con_hsts=True)
+    comprobar("por https → pasa normal (200)", r_prod["por_proxy_https"]["status"] == 200, r_prod["por_proxy_https"]["status"])
+    comprobar("local sin proxy (/health) → pasa normal (200)", r_prod["health"]["status"] == 200)
+
+
 def test_desarrollo():
     print("\n[5] ENTORNO=development → Swagger y openapi siguen disponibles en local")
     r = correr("development")
+    comprobar("desarrollo: X-Forwarded-Proto http NO redirige (local va por http)",
+              r["por_proxy_http"]["status"] != 308, r["por_proxy_http"]["status"])
     comprobar("ES_DESARROLLO es True", r["es_desarrollo"] is True)
     comprobar("cookie de sesión sin Secure (localhost por http)", r["cookie_secure"] is False)
     comprobar("GET /openapi.json → 200", r["openapi"]["status"] == 200, r["openapi"]["status"])
@@ -215,6 +250,8 @@ if __name__ == "__main__":
     r_prod = test_sin_variable()
     test_valor_desconocido()
     test_produccion(r_prod)
+    test_redireccion_https_pura()
+    test_redireccion_https_app(r_prod)
     test_desarrollo()
     test_mayusculas_y_espacios()
     test_fuentes()
