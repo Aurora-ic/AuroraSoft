@@ -100,7 +100,7 @@ powershell -ExecutionPolicy Bypass -File scripts\piloto\piloto.ps1 programar
 Córrelo **desde la copia del piloto** (`%USERPROFILE%\aurorasoft-piloto\scripts\piloto\piloto.ps1`), no desde el Escritorio: las tareas apuntan al script desde el que se crearon, y el piloto no debe depender de lo que se edite en el Escritorio.
 
 Deja dos cosas programadas, y dice ✓ o ✗ por cada una (sale con código 1 si alguna falla):
-- **Respaldo diario a las 23:00**: una tarea del Programador de tareas (`AuroraSoft piloto - respaldo diario`). No pide permisos de administrador.
+- **Respaldo diario a las 23:00**: una tarea del Programador de tareas (`AuroraSoft piloto - respaldo diario`). No pide permisos de administrador. Corre **sin ventana** (antes abría una de PowerShell y, si alguien la cerraba, el respaldo quedaba en 0 KB, como pasó el 14 y el 15/11) y, si a las 23:00 la PC estaba apagada, se hace al volver a encenderla. Escribe primero un `.parcial` y solo lo renombra a `.dump` si `pg_dump` terminó bien; cada resultado queda en `logsespaldo.log` (`OK` o `FALLO`).
 - **Iniciar al entrar a Windows**: primero intenta la tarea `AuroraSoft piloto - iniciar` con disparador "al iniciar sesión", pero Windows exige una consola de **administrador** para ese disparador ("Acceso denegado"). Sin ella, el script crea en su lugar un **acceso directo en la carpeta Inicio** del usuario (`shell:startup` → `AuroraSoft piloto - iniciar.lnk`), que hace lo mismo sin permisos especiales. Si después lo corres como administrador, se crea la tarea y se borra el acceso directo, para que no arranque dos veces.
 
 Para comprobarlo: `schtasks /Query /TN "AuroraSoft piloto - respaldo diario"`, y el acceso directo en `shell:startup` (Win+R). Además, en Windows:

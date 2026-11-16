@@ -74,9 +74,13 @@ class PersonaResponse(PersonaBase):
 class ConsentimientoCreate(BaseModel):
     """Consentimiento del PADRE/MADRE/APODERADO. `persona_id`/`institucion_id`
     se conservan por compatibilidad con el frontend actual, pero el endpoint
-    los ignora para determinar propiedad — ver B-8 en el router."""
-    persona_id: int
-    institucion_id: int
+    los ignora para determinar propiedad — ver B-8 en el router.
+
+    🔧 (2026-11-16) Opcionales: el frontend dejó de enviarlos y el registro
+    desde la ficha del alumno respondía 422 "Field required" (bug hallado en
+    el piloto). Como el endpoint nunca los usa, exigirlos solo rompía."""
+    persona_id: Optional[int] = None
+    institucion_id: Optional[int] = None
     otorgado_por_nombre: str
     tipo_otorgante: str  # "apoderado" o "colegio_delegado"
     referencia_documento: Optional[str] = None
@@ -110,6 +114,9 @@ class ConsentimientoAsentimientoCreate(BaseModel):
 
 class ConsentimientoResponse(ConsentimientoCreate):
     id: int
+    # En la respuesta siempre vienen del registro guardado.
+    persona_id: int
+    institucion_id: int
     tipo_consentimiento: str
     estado: str
     registrado_por_usuario_id: int

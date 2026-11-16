@@ -284,13 +284,27 @@ switch ($Accion) {
     $pgDump = Herramienta-Pg "pg_dump"
     New-Item -ItemType Directory -Force $respaldos | Out-Null
     $destino = Join-Path $respaldos ("piloto-{0}.dump" -f (Get-Date -Format "yyyyMMdd-HHmm"))
+    # Se escribe en un .parcial y solo se renombra a .dump si pg_dump terminó
+    # bien: si el proceso muere a la mitad (se cerró la ventana, se apagó la
+    # PC) no queda un .dump vacío que parezca un respaldo. Los restos de
+    # corridas cortadas se borran aquí.
+    $parcial = "$destino.parcial"
+    Get-ChildItem $respaldos -Filter "*.parcial" -ErrorAction SilentlyContinue | Remove-Item -ErrorAction SilentlyContinue
+    Get-ChildItem $respaldos -Filter "piloto-*.dump" | Where-Object { $_.Length -eq 0 } | Remove-Item -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force $logs | Out-Null
+    $registro = Join-Path $logs "respaldo.log"
     $env:PGPASSWORD = $p.Clave; $env:PGSSLMODE = $p.Ssl
-    & $pgDump --format=custom --no-owner --no-privileges -h $p.Host -p $p.Puerto -U $p.Usuario -f $destino $p.Base
+    & $pgDump --format=custom --no-owner --no-privileges -h $p.Host -p $p.Puerto -U $p.Usuario -f $parcial $p.Base
     $codigo = $LASTEXITCODE
     Remove-Item Env:PGPASSWORD
-    # Un .dump vacío o a medias no es un respaldo: no se guarda.
-    if ($codigo -ne 0) { Remove-Item $destino -ErrorAction SilentlyContinue; throw "falló pg_dump" }
+    if ($codigo -ne 0 -or -not (Test-Path $parcial) -or (Get-Item $parcial).Length -eq 0) {
+      Remove-Item $parcial -ErrorAction SilentlyContinue
+      Add-Content $registro ("{0}  FALLO pg_dump (codigo {1})" -f (Get-Date -Format "yyyy-MM-dd HH:mm"), $codigo)
+      throw "falló pg_dump"
+    }
+    Move-Item $parcial $destino -Force
     Get-ChildItem $respaldos -Filter "piloto-*.dump" | Sort-Object Name -Descending | Select-Object -Skip 14 | Remove-Item
+    Add-Content $registro ("{0}  OK {1} ({2:N0} KB)" -f (Get-Date -Format "yyyy-MM-dd HH:mm"), (Split-Path -Leaf $destino), ((Get-Item $destino).Length / 1KB))
     Escribir "Respaldo guardado: $destino" "Green"
   }
 
@@ -343,8 +357,16 @@ switch ($Accion) {
     # excepción en vez de un código de salida que revisar.
     $ErrorActionPreference = "Continue"
     $errores = 0
-    schtasks /Create /F /TN "AuroraSoft piloto - respaldo diario" /SC DAILY /ST 23:00 /RL LIMITED /TR "$ps respaldo" 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) { Escribir "  ✓ tarea 'respaldo diario' (23:00)" "Green" } else { Escribir "  ✗ no se pudo crear la tarea del respaldo diario" "Red"; $errores++ }
+    # Respaldo SIN ventana (antes se abría una consola a las 23:00 y, si
+    # alguien la cerraba, el respaldo moría a la mitad), recuperado si a esa
+    # hora la PC estaba apagada (StartWhenAvailable) y con 1 h de tope.
+    try {
+      $accion = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$PSCommandPath`" respaldo"
+      $disparo = New-ScheduledTaskTrigger -Daily -At "23:00"
+      $ajustes = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 1)
+      Register-ScheduledTask -TaskName "AuroraSoft piloto - respaldo diario" -Action $accion -Trigger $disparo -Settings $ajustes -Force -ErrorAction Stop | Out-Null
+      Escribir "  ✓ tarea 'respaldo diario' (23:00, sin ventana, se recupera si la PC estaba apagada)" "Green"
+    } catch { Escribir "  ✗ no se pudo crear la tarea del respaldo diario: $($_.Exception.Message)" "Red"; $errores++ }
     # Un disparador "al iniciar sesión" (ONLOGON) exige una consola de
     # administrador. Sin ella, el acceso directo en la carpeta Inicio del
     # usuario hace lo mismo y no pide permisos.
