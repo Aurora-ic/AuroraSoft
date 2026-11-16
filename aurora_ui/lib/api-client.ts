@@ -322,6 +322,15 @@ export function resetearPassword(token: string, nuevaPassword: string) {
   );
 }
 
+/** 🆕 Cambiar la propia contraseña desde la sesión (POST /auth/cambiar-password).
+ * Una contraseña actual equivocada vuelve como 400, nunca 401: la sesión sigue. */
+export function cambiarPassword(actual: string, nueva: string) {
+  return apiClient.post<{ mensaje: string }>("/auth/cambiar-password", {
+    password_actual: actual,
+    nueva_password: nueva,
+  });
+}
+
 export type RespuestaCaptcha = { captchaId: string; respuesta: string };
 
 export async function login(email: string, password: string, captcha?: RespuestaCaptcha) {

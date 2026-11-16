@@ -88,13 +88,36 @@ def crear_token_recuperacion(db: Session, usuario_id: int) -> str:
     return token
 
 
-def validar_token_recuperacion(db: Session, token: str):
+ENLACES_RECUPERACION_POR_HORA = 3
+
+
+def puede_emitir_enlace_recuperacion(db: Session, usuario_id: int) -> bool:
+    """Tope por CUENTA (el rate limit del endpoint es por IP): a lo sumo 3
+    enlaces por hora. Sin esto, alguien podría llenar de correos el buzón de
+    una psicóloga cambiando de IP."""
+    desde = datetime.now(timezone.utc) - timedelta(hours=1)
+    emitidos = db.query(func.count(models.TokenRecuperacion.id)).filter(
+        models.TokenRecuperacion.usuario_id == usuario_id,
+        models.TokenRecuperacion.fecha_creacion >= desde,
+    ).scalar()
+    return (emitidos or 0) < ENLACES_RECUPERACION_POR_HORA
+
+
+def validar_token_recuperacion(db: Session, token: str, bloquear: bool = False):
+    """`bloquear=True` toma el candado de la fila: dos envíos simultáneos del
+    mismo enlace no pueden usarlo los dos (el segundo, al desbloquearse, ya
+    lo ve `usado`)."""
     if not isinstance(token, str) or not token:
         return None
-    registro = db.query(models.TokenRecuperacion).filter(
+    q = db.query(models.TokenRecuperacion).filter(
         models.TokenRecuperacion.token == hash_token_recuperacion(token),
         models.TokenRecuperacion.usado == False,
-    ).first()
+    )
+    if bloquear:
+        q = q.with_for_update().populate_existing()
+    registro = q.first()
+    if registro is not None and registro.usado:
+        return None
     # 🔑 Fase 3 — Antes: fecha_expiracion (aware, timestamptz) < utcnow() (naive)
     # lanzaba TypeError, así que TODO reseteo de contraseña acababa en 500:
     # la recuperación de cuenta no había funcionado nunca.
@@ -108,23 +131,56 @@ def validar_token_recuperacion(db: Session, token: str):
     return registro
 
 
-def resetear_password(db: Session, registro: models.TokenRecuperacion, nueva_password: str):
-    usuario = db.query(models.Usuario).filter(models.Usuario.id == registro.usuario_id).first()
+def aplicar_nueva_password(
+    db: Session,
+    usuario: models.Usuario,
+    nueva_password: str,
+    motivo: str,
+    sesion_que_se_conserva: str | None = None,
+) -> None:
+    """Único lugar que cambia una contraseña (restablecer por correo o
+    cambiarla desde la sesión). No hace commit: lo hace quien llama.
+
+    - 🔑 C-4: sube `token_version`, así que todo token emitido antes deja de
+      valer (un JWT robado no sobrevive al cambio).
+    - Revoca en el servidor TODAS las sesiones abiertas del usuario, salvo
+      `sesion_que_se_conserva` (la del navegador que hizo el cambio), que
+      recibe la versión nueva para seguir trabajando sin volver a entrar.
+    - Anula los enlaces de recuperación pendientes: si alguien pidió uno,
+      ya no debe servir para pisar la contraseña recién elegida.
+    """
+    from core import sesiones
+
     usuario.hashed_password = get_password_hash(nueva_password)
-
-    # 🔑 C-4 — Cambiar la contraseña invalida TODAS las sesiones abiertas.
-    # Antes un JWT robado seguía sirviendo hasta 7 días después del cambio,
-    # que es justo cuando el titular intenta echar al intruso.
     usuario.token_version = (usuario.token_version or 0) + 1
-
-    # Y los demás enlaces de recuperación pendientes de ese usuario también
-    # dejan de valer: si alguien pidió varios, no debe quedar ninguno vivo.
+    ahora = sesiones.ahora_utc()
+    for sesion in db.query(models.SesionUsuario).filter(
+        models.SesionUsuario.usuario_id == usuario.id,
+        models.SesionUsuario.revocada_en.is_(None),
+    ).with_for_update().all():
+        if sesion.id == sesion_que_se_conserva:
+            sesion.token_version = usuario.token_version
+        else:
+            sesion.revocada_en = ahora
+            sesion.motivo_revocacion = motivo
     db.query(models.TokenRecuperacion).filter(
         models.TokenRecuperacion.usuario_id == usuario.id,
         models.TokenRecuperacion.usado == False,  # noqa: E712
     ).update({"usado": True}, synchronize_session=False)
+
+
+def resetear_password(db: Session, registro: models.TokenRecuperacion, nueva_password: str) -> models.Usuario | None:
+    """Usa el enlace del correo. Devuelve el usuario, o None si la cuenta ya
+    no está activa (el enlace se quema igual y no se cambia nada)."""
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == registro.usuario_id).with_for_update().first()
     registro.usado = True
+    if usuario is None or not usuario.activo:
+        db.commit()
+        return None
+    aplicar_nueva_password(db, usuario, nueva_password, "password_restablecida")
     db.commit()
+    return usuario
+
 
 def listar_usuarios_de_institucion(db: Session, institucion_id: int):
     return db.query(models.Usuario).filter(
@@ -132,12 +188,37 @@ def listar_usuarios_de_institucion(db: Session, institucion_id: int):
     ).order_by(models.Usuario.id).all()
 
 def actualizar_usuario(db: Session, usuario_id: int, datos: schemas.UsuarioUpdate):
-    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).first()
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_id).with_for_update().first()
     if not usuario:
         return None
-    for campo, valor in datos.model_dump(exclude_unset=True).items():
+    cambios = datos.model_dump(exclude_unset=True)
+    nuevo_email = cambios.pop("email", None)
+    if nuevo_email is not None and nuevo_email.lower() != usuario.email.lower():
+        if db.query(models.Usuario.id).filter(
+            func.lower(models.Usuario.email) == nuevo_email.lower(), models.Usuario.id != usuario.id
+        ).first():
+            db.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ese correo electrónico ya está en uso.")
+        # El correo es el usuario del login y va dentro del token: cambiarlo
+        # cierra todas sus sesiones y anula sus enlaces de recuperación.
+        from core import sesiones
+        usuario.email = nuevo_email
+        usuario.token_version = (usuario.token_version or 0) + 1
+        db.query(models.SesionUsuario).filter(
+            models.SesionUsuario.usuario_id == usuario.id, models.SesionUsuario.revocada_en.is_(None)
+        ).update({"revocada_en": sesiones.ahora_utc(), "motivo_revocacion": "email_cambiado"}, synchronize_session=False)
+        db.query(models.TokenRecuperacion).filter(
+            models.TokenRecuperacion.usuario_id == usuario.id, models.TokenRecuperacion.usado == False,  # noqa: E712
+        ).update({"usado": True}, synchronize_session=False)
+    elif nuevo_email is not None:
+        usuario.email = nuevo_email  # solo mayúsculas/minúsculas
+    for campo, valor in cambios.items():
         setattr(usuario, campo, valor)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Ese correo electrónico ya está en uso.")
     db.refresh(usuario)
     return usuario
 

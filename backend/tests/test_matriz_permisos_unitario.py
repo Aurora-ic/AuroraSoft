@@ -376,6 +376,9 @@ _COLEGIO_POR_DISENO_CONOCIDO = {
     # ya trae decodificado del lado del cliente (email/rol/institucion_id);
     # no expone nada que 'colegio' no tuviera ya.
     "GET /api/auth/me",
+    # 🆕 (2026-11-15) Cada usuario cambia SOLO su propia contraseña (exige
+    # la actual); no lee ni toca datos de nadie más.
+    "POST /api/auth/cambiar-password",
     "POST /api/educativo/campos-socio/",
     # Catálogo de pruebas: lectura permitida a colegio POR DISEÑO (decisión de
     # producto explícita, remediación de permisos paso 2/2025) — colegio

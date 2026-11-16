@@ -165,6 +165,26 @@ export default function DetalleInstitucionPage() {
     }
   }
 
+  // 🆕 (2026-11-15) Corregir el correo (el usuario con que se entra) sin
+  // perder el trabajo de la cuenta. El backend cierra sus sesiones abiertas.
+  const [editandoEmail, setEditandoEmail] = useState<{ id: number; valor: string } | null>(null);
+  const [guardandoEmail, setGuardandoEmail] = useState(false);
+
+  async function guardarEmail() {
+    if (!editandoEmail || guardandoEmail) return;
+    setGuardandoEmail(true);
+    try {
+      const actualizado = await apiClient.patch<Usuario>(`/auth/usuarios/${editandoEmail.id}`, { email: editandoEmail.valor.trim() });
+      setUsuarios((prev) => prev.map((u) => (u.id === actualizado.id ? actualizado : u)));
+      setEditandoEmail(null);
+      setErrorUsuarios("");
+    } catch (err) {
+      setErrorUsuarios(mensajeDe(err) || "No se pudo cambiar el correo.");
+    } finally {
+      setGuardandoEmail(false);
+    }
+  }
+
   async function alternarActivo(usuario: Usuario) {
     try {
       const actualizado = await apiClient.patch<Usuario>(`/auth/usuarios/${usuario.id}`, { activo: !usuario.activo });
@@ -431,9 +451,42 @@ export default function DetalleInstitucionPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-ink dark:text-ink-dark truncate">{u.nombre_completo}</p>
-                    <p className="text-xs text-ink/55 dark:text-ink-dark/55 truncate" title={u.email}>
-                      {u.email}
-                    </p>
+                    {editandoEmail?.id === u.id ? (
+                      <form
+                        className="mt-1 flex flex-wrap items-center gap-1.5"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          guardarEmail();
+                        }}
+                      >
+                        <input
+                          type="email"
+                          autoFocus
+                          aria-label={`Nuevo correo de ${u.nombre_completo}`}
+                          value={editandoEmail.valor}
+                          onChange={(e) => setEditandoEmail({ id: u.id, valor: e.target.value })}
+                          disabled={guardandoEmail}
+                          className="min-w-0 flex-1 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2 py-1 text-xs text-ink dark:text-ink-dark"
+                        />
+                        <button type="submit" disabled={guardandoEmail} className="rounded-lg px-2 py-1 text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:bg-teal-600/10">
+                          Guardar
+                        </button>
+                        <button type="button" onClick={() => setEditandoEmail(null)} className="rounded-lg px-2 py-1 text-xs text-ink/60 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-raised-dark">
+                          Cancelar
+                        </button>
+                      </form>
+                    ) : (
+                      <p className="text-xs text-ink/55 dark:text-ink-dark/55 truncate" title={u.email}>
+                        {u.email}{" "}
+                        <button
+                          type="button"
+                          onClick={() => setEditandoEmail({ id: u.id, valor: u.email })}
+                          className="ml-1 font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+                        >
+                          Cambiar correo
+                        </button>
+                      </p>
+                    )}
                     <div className="mt-1 flex flex-wrap gap-1">
                       <Badge tono="teal-suave">{INFO_ROL[u.rol]?.nombre ?? u.rol}</Badge>
                       {!u.activo && <Badge tono="neutro">Desactivado</Badge>}

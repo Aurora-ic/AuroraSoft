@@ -12,6 +12,7 @@ import {
   SlidersHorizontal,
   ChevronRight,
   LogOut,
+  KeyRound,
   X,
   School,
   type LucideIcon,
@@ -21,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
 import type { BandejaCasosRiesgo, Cita, Institucion } from "@/types/api";
 import { ETIQUETA_ROL, useUsuarioActual } from "@/lib/usuario";
+import { DialogoCambiarPassword } from "@/components/auth/DialogoCambiarPassword";
 
 // 🆕 `soloStaff` (sesión 2026-11-01, punto 4 del análisis de UI/UX): el rol
 // `colegio` (dirección) no ve enlaces a pantallas cuyo backend le responde
@@ -124,6 +126,7 @@ function inicialesInstitucion(nombre: string): string {
 export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: boolean; onCerrar?: () => void }) {
   const pathname = usePathname();
   const { sesion, cerrarSesion } = useAuth();
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
   const [institucion, setInstitucion] = useState<Institucion | null>(null);
   // "Recordatorio" dentro de la app (docs/frontend.md): un contador de
   // citas programadas para HOY, leído del mismo GET que /agenda ya usa —
@@ -352,14 +355,25 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
             </p>
           </div>
           <button
+            type="button"
+            onClick={() => setCambiandoPassword(true)}
+            aria-label="Cambiar contraseña"
+            title="Cambiar contraseña"
+            className="flex-shrink-0 text-white/55 hover:text-white p-1.5 rounded-lg hover:bg-white/10"
+          >
+            <KeyRound size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+          <button
             onClick={cerrarSesion}
             aria-label="Cerrar sesión"
+            title="Cerrar sesión"
             className="flex-shrink-0 text-white/55 hover:text-white p-1.5 rounded-lg hover:bg-white/10"
           >
             <LogOut size={15} strokeWidth={2} aria-hidden="true" />
           </button>
         </div>
       </div>
+      {cambiandoPassword && <DialogoCambiarPassword onCerrar={() => setCambiandoPassword(false)} />}
     </aside>
   );
 }

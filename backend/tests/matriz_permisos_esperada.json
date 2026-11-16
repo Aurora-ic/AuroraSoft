@@ -1175,6 +1175,14 @@
       "sin_autenticar": false,
       "verifica_institucion": false
     },
+    "POST /api/auth/cambiar-password": {
+      "admin": true,
+      "colegio": true,
+      "psicologo": true,
+      "superadmin": true,
+      "sin_autenticar": false,
+      "verifica_institucion": false
+    },
     "POST /api/auth/resetear-password": {
       "admin": false,
       "colegio": false,

@@ -16,10 +16,11 @@ from fastapi.responses import JSONResponse
 
 from core import sesiones
 from core.security import ACCESS_TOKEN_EXPIRE_MINUTES, verificar_password_sin_delatar, create_access_token
+from core.security import verify_password
 from core.limiter import limiter  # 👈 Evita importación circular
 from core import captcha
 from . import models, schemas, crud
-from core.email_service import enviar_correo_recuperacion
+from core.email_service import enviar_aviso_password_cambiada, enviar_correo_recuperacion
 from fastapi import Request
 router = APIRouter(prefix="/auth", tags=["Autenticación y Seguridad"])
 
@@ -277,15 +278,18 @@ def solicitar_recuperacion(
     🔒 FIX: 'email' ahora viaja en el body (schemas.SolicitudRecuperacion),
     no como query param. Protegido con Rate Limiting (3 req/min).
 
-    🆕 Solo cuentas SUPERADMIN activas reciben el enlace (decisión del
-    equipo: el superadmin es la cuenta de AuroraSoft con correo real; a
-    admin/psicólogo/colegio les cambia la clave un administrador). Para el
-    resto la respuesta es idéntica y no se envía nada — no se delata qué
-    correos existen ni qué rol tienen. /resetear-password no repite el filtro
-    a propósito: esta es la única vía que emite tokens.
+    🆕 (2026-11-15) Toda cuenta ACTIVA recibe el enlace, sea cual sea su
+    rol. Antes solo el superadmin: el resto dependía de que "un
+    administrador" le cambiara la clave, función que nunca existió — una
+    psicóloga que olvidaba su contraseña quedaba fuera. Con correos reales
+    de clientes, cada quien recupera su propia cuenta.
+
+    La respuesta es idéntica exista o no la cuenta, esté o no activa, y se
+    haya o no alcanzado el tope por cuenta (crud.puede_emitir_enlace_
+    recuperacion): nada delata qué correos están registrados.
     """
     usuario = crud.obtener_usuario_por_email(db, datos.email)
-    if usuario and usuario.rol == "superadmin" and usuario.activo:
+    if usuario and usuario.activo and crud.puede_emitir_enlace_recuperacion(db, usuario.id):
         token_plano = crud.crear_token_recuperacion(db, usuario.id)
         # ✉️ C-14 — El SMTP ya no bloquea al worker: antes una conversación
         # SMTP lenta (varios segundos) retenía el hilo durante toda la
@@ -301,21 +305,82 @@ def solicitar_recuperacion(
 
 
 @router.post("/resetear-password")
+@limiter.limit("10/minute")
 def resetear_password_endpoint(
-    datos: schemas.ResetearPasswordRequest, db: Session = Depends(get_db)
+    request: Request,
+    datos: schemas.ResetearPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     """
     🔒 FIX: 'token' y 'nueva_password' ahora viajan en el body
     (schemas.ResetearPasswordRequest), no como query params — antes
     quedaban expuestos en logs del servidor y en el historial del navegador.
+
+    🆕 (2026-11-15) El enlace se toma con candado (dos envíos simultáneos no
+    lo usan dos veces), una cuenta desactivada no cambia su clave, se
+    revocan en el servidor todas sus sesiones abiertas y se avisa por correo.
     """
-    registro = crud.validar_token_recuperacion(db, datos.token)
+    registro = crud.validar_token_recuperacion(db, datos.token, bloquear=True)
     if not registro:
+        db.rollback()
         raise HTTPException(
             status_code=400, detail="El link de recuperación es inválido o ya expiró."
         )
-    crud.resetear_password(db, registro, datos.nueva_password)
+    usuario = crud.resetear_password(db, registro, datos.nueva_password)
+    if usuario is None:
+        raise HTTPException(
+            status_code=400, detail="El link de recuperación es inválido o ya expiró."
+        )
+    captcha.limpiar_fallos(None, usuario.email)
+    background_tasks.add_task(enviar_aviso_password_cambiada, usuario.email, "restablecida")
     return {"mensaje": "Contraseña actualizada correctamente."}
+
+
+@router.post("/cambiar-password")
+@limiter.limit("5/minute")
+def cambiar_password(
+    request: Request,
+    response: Response,
+    datos: schemas.CambiarPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    usuario_actual: models.Usuario = Depends(obtener_usuario_actual),
+):
+    """🆕 (2026-11-15) Cualquier usuario cambia su propia contraseña desde la
+    sesión. Exige la actual. Las demás sesiones abiertas (otro navegador,
+    otra PC) se cierran en el servidor; la de quien hizo el cambio sigue
+    viva con un acceso nuevo. Se avisa al correo de la cuenta.
+
+    Una contraseña actual equivocada responde 400 y no 401: un 401 haría
+    que el navegador crea que la sesión terminó."""
+    if not verify_password(datos.password_actual, usuario_actual.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta.")
+    if verify_password(datos.nueva_password, usuario_actual.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La nueva contraseña debe ser distinta de la actual.")
+
+    sid = _sid_del_acceso(request)
+    usuario = db.query(models.Usuario).filter(models.Usuario.id == usuario_actual.id).with_for_update().populate_existing().one()
+    crud.aplicar_nueva_password(db, usuario, datos.nueva_password, "password_cambiada", sesion_que_se_conserva=sid)
+    db.commit()
+    if sid:
+        sesiones.fijar_cookies(response, _emitir_acceso(usuario, sid), None, ACCESS_TOKEN_EXPIRE_MINUTES)
+    background_tasks.add_task(enviar_aviso_password_cambiada, usuario.email, "cambiada")
+    return {"mensaje": "Contraseña actualizada correctamente."}
+
+
+def _sid_del_acceso(request: Request) -> Optional[str]:
+    """La sesión de servidor del acceso con que llegó la petición (cookie o
+    Bearer). Ya validado por obtener_usuario_actual: aquí solo se lee."""
+    import jwt
+    from core.security import ALGORITHM, SECRET_KEY
+
+    autorizacion = request.headers.get("authorization") or ""
+    token = autorizacion[7:] if autorizacion.lower().startswith("bearer ") else request.cookies.get(sesiones.COOKIE_ACCESO)
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]).get("sid") if token else None
+    except jwt.PyJWTError:
+        return None
 
 @router.get("/usuarios/", response_model=list[schemas.UsuarioResponse])
 def listar_mis_psicologos(
@@ -363,6 +428,11 @@ def actualizar_psicologo(
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
     if usuario_actual.rol != "superadmin" and objetivo.institucion_id != usuario_actual.institucion_id:
         raise HTTPException(status_code=403, detail="No puedes editar usuarios de otra institución.")
+    # 🆕 Cambiar el correo es cambiar con qué se entra: un admin no puede
+    # hacerlo con otro admin (podría poner el suyo y pedir el enlace de
+    # recuperación), ni con el superadmin.
+    if datos.email is not None and usuario_actual.rol != "superadmin" and objetivo.rol not in ("psicologo", "colegio"):
+        raise HTTPException(status_code=403, detail="Solo el equipo de AuroraSoft puede cambiar el correo de un administrador.")
 
     # 🛡️ Mismo candado temprano que el logo institucional (C-11): una URL
     # de firma que apunte a la red interna ni siquiera llega a guardarse.

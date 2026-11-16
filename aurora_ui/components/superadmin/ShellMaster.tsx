@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Building2, LogOut, Menu, X, Sun, Moon, type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Building2, LogOut, KeyRound, Menu, X, Sun, Moon, type LucideIcon } from "lucide-react";
+import { DialogoCambiarPassword } from "@/components/auth/DialogoCambiarPassword";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -86,6 +87,7 @@ export function ShellMaster({ children }: { children: React.ReactNode }) {
 function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
   const { sesion, cerrarSesion } = useAuth();
   const { tema, alternarTema } = useTheme();
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
 
   return (
     <div className="flex flex-col justify-between w-full overflow-y-auto">
@@ -145,6 +147,15 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
           </div>
           <button
             type="button"
+            onClick={() => setCambiandoPassword(true)}
+            aria-label="Cambiar contraseña"
+            title="Cambiar contraseña"
+            className="shrink-0 text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:hover:text-ink-dark p-1.5 rounded-lg hover:bg-mist dark:hover:bg-surface-dark"
+          >
+            <KeyRound size={15} strokeWidth={2} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
             onClick={cerrarSesion}
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
@@ -154,6 +165,7 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
           </button>
         </div>
       </div>
+      {cambiandoPassword && <DialogoCambiarPassword onCerrar={() => setCambiandoPassword(false)} />}
     </div>
   );
 }

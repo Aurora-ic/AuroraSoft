@@ -86,6 +86,23 @@ def enviar_correo_recuperacion(destinatario: str, token: str) -> bool:
     return enviar_correo(destinatario, "Recupera tu contraseña — AuroraSoft", cuerpo)
 
 
+def enviar_aviso_password_cambiada(destinatario: str, como: str) -> bool:
+    """🆕 (2026-11-15) Aviso al titular cada vez que su contraseña cambia
+    ('cambiada' desde la sesión o 'restablecida' por el enlace del correo):
+    si no fue él, se entera y puede recuperar la cuenta. Sin datos de nadie
+    más que el propio titular."""
+    accion = "restableció con el enlace de recuperación" if como == "restablecida" else "cambió desde tu cuenta"
+    link = f"{FRONTEND_URL}/recuperar-password"
+    cuerpo = f"""
+    <p>La contraseña de tu cuenta de AuroraSoft se {accion}.</p>
+    <p>Por seguridad cerramos las demás sesiones que tenías abiertas.</p>
+    <p>Si fuiste tú, no tienes que hacer nada. <strong>Si no fuiste tú</strong>,
+    <a href="{link}">crea una contraseña nueva ahora</a> y avisa al
+    responsable de AuroraSoft de tu institución.</p>
+    """
+    return enviar_correo(destinatario, "Tu contraseña de AuroraSoft cambió", cuerpo)
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def enviar_alerta_riesgo(
     self,

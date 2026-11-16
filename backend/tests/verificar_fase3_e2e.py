@@ -184,14 +184,13 @@ def main(url_base):
 
     exigir(pedir(requests.post, f"{API}/auth/solicitar-recuperacion", "recuperación",
                  json={"email": correo_psi}), 200, "Solicitar recuperación")
-    # 🆕 La recuperación por correo es solo para superadmin: la solicitud de
-    # un psicólogo responde 200 (mismo mensaje genérico) pero no emite token.
+    # 🆕 (2026-11-15) Toda cuenta activa recibe el enlace (antes solo el
+    # superadmin) — ver tests/verificar_password_e2e.py. El correo no sale en
+    # el e2e, así que el enlace que se USA se emite directo en la BD.
     token_reset = sql_uno("select t.token from auth_tokens_recuperacion t join auth_usuarios u "
                           "on u.id=t.usuario_id where u.email=:e and t.usado=false "
                           "order by t.id desc", e=correo_psi)
-    comprobar("Un psicólogo NO recibe enlace de recuperación (solo superadmin)", token_reset is None)
-    # Lo que sigue prueba la invalidación de JWT al resetear (C-4), que vale
-    # para cualquier rol: el token se emite directo en la BD.
+    comprobar("Un psicólogo activo SÍ recibe enlace de recuperación", token_reset is not None)
     # 🆕 (sesión 2026-11-07) La BD guarda solo el SHA-256 del token: se
     # inserta el hash, y el enlace se usa con el token en claro.
     import hashlib

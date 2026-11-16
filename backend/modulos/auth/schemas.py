@@ -4,6 +4,23 @@ from typing import Optional
 
 ROLES_VALIDOS = {"superadmin", "admin", "psicologo", "colegio"}
 
+PASSWORD_MINIMO = 8
+# bcrypt solo usa los primeros 72 BYTES: lo que sigue se descarta en
+# silencio, así que una clave más larga tendría una cola que no protege nada.
+PASSWORD_MAXIMO_BYTES = 72
+
+
+def validar_password_nueva(v: str) -> str:
+    """Única regla de fortaleza para toda contraseña nueva: alta de usuario,
+    restablecer por correo y cambiar desde la sesión."""
+    if len(v) < PASSWORD_MINIMO:
+        raise ValueError(f"La contraseña debe tener al menos {PASSWORD_MINIMO} caracteres.")
+    if len(v.encode("utf-8")) > PASSWORD_MAXIMO_BYTES:
+        raise ValueError("La contraseña es demasiado larga (máximo 72 caracteres sin tildes).")
+    if not v.strip():
+        raise ValueError("La contraseña no puede ser solo espacios.")
+    return v
+
 
 class UsuarioCreate(BaseModel):
     email: EmailStr
@@ -23,9 +40,7 @@ class UsuarioCreate(BaseModel):
     @classmethod
     def password_segura(cls, v):
         # 🔒 FIX: antes no había ninguna validación de fortaleza de contraseña
-        if len(v) < 8:
-            raise ValueError("La contraseña debe tener al menos 8 caracteres.")
-        return v
+        return validar_password_nueva(v)
 
 
 class UsuarioResponse(BaseModel):
@@ -97,12 +112,27 @@ class ResetearPasswordRequest(BaseModel):
     @field_validator("nueva_password")
     @classmethod
     def password_segura(cls, v):
-        if len(v) < 8:
-            raise ValueError("La contraseña debe tener al menos 8 caracteres.")
-        return v
+        return validar_password_nueva(v)
+
+
+class CambiarPasswordRequest(BaseModel):
+    """🆕 (2026-11-15) Cambiar la contraseña desde la sesión: exige la actual,
+    para que alguien que encuentre la sesión abierta no pueda quedarse con
+    la cuenta."""
+    password_actual: str
+    nueva_password: str
+
+    @field_validator("nueva_password")
+    @classmethod
+    def password_segura(cls, v):
+        return validar_password_nueva(v)
 
 class UsuarioUpdate(BaseModel):
     nombre_completo: Optional[str] = None
+    # 🆕 (2026-11-15) Corregir el correo (= el usuario con que se entra) sin
+    # perder el trabajo de la cuenta. Solo superadmin, o un admin para
+    # psicólogo/colegio de su colegio (ver router.actualizar_psicologo).
+    email: Optional[EmailStr] = None
     activo: Optional[bool] = None
     # 🆕 Motor de documentos institucionales — para resolver el "Emisor" de
     # un documento automáticamente (nombre + cargo), sin efecto en login/rol.

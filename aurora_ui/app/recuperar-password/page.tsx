@@ -16,9 +16,9 @@ import {
 } from "@/components/auth/MarcoAuth";
 
 // "Olvidé mi contraseña": pide el enlace al backend. La respuesta es la misma
-// exista o no la cuenta (no se delata qué correos están registrados), y el
-// correo solo se envía a una cuenta superadmin — las demás cuentas las
-// restablece un administrador.
+// exista o no la cuenta (no se delata qué correos están registrados).
+// 🆕 (2026-11-15) Vale para toda cuenta activa — superadmin, administrador,
+// psicólogo o colegio — no solo para el superadmin como antes.
 export default function RecuperarPasswordPage() {
   const [email, setEmail] = useState("");
   const [errorCampo, setErrorCampo] = useState("");
@@ -60,13 +60,14 @@ export default function RecuperarPasswordPage() {
               <MailCheck className="h-7 w-7" aria-hidden />
             </span>
             <p className="text-sm text-ink/80 dark:text-ink-dark/80">
-              Si <strong className="font-semibold text-ink dark:text-ink-dark">{email.trim()}</strong> es la cuenta de
-              administración de AuroraSoft, en unos minutos recibirás un enlace para crear una nueva contraseña.
+              Si <strong className="font-semibold text-ink dark:text-ink-dark">{email.trim()}</strong> corresponde a una
+              cuenta activa de AuroraSoft, en unos minutos recibirás un enlace para crear una nueva contraseña.
             </p>
             <ul className="mt-5 w-full space-y-2 rounded-xl bg-mist p-4 text-left text-xs text-ink/60 dark:bg-surface-raised-dark dark:text-ink-dark/60">
               <li>• El enlace vence en 1 hora y sirve una sola vez.</li>
               <li>• Si no lo ves, revisa la carpeta de spam o correo no deseado.</li>
-              <li>• ¿Eres psicólogo o personal del colegio? Pide al administrador de tu institución que restablezca tu contraseña.</li>
+              <li>• Puedes pedir hasta 3 enlaces por hora; siempre vale el último que no hayas usado.</li>
+              <li>• ¿No llega o tu cuenta está desactivada? Escribe al administrador de tu institución.</li>
             </ul>
             <button
               type="button"
@@ -126,7 +127,7 @@ export default function RecuperarPasswordPage() {
               <p id="email-error" className="text-xs text-red-700 dark:text-red-300">{errorCampo}</p>
             ) : (
               <p id="email-ayuda" className="text-xs text-ink/45 dark:text-ink-dark/45">
-                La recuperación por correo está disponible para la cuenta de administración de AuroraSoft.
+                El mismo correo con el que inicias sesión en AuroraSoft.
               </p>
             )}
           </div>
