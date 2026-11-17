@@ -440,15 +440,32 @@ class EditarDetallesPromocionRequest(BaseModel):
 # ==========================================
 # 🆕 EXPEDIENTE / SEGUIMIENTO DEL ESTUDIANTE
 # ==========================================
-class ContactoFamiliarCreate(BaseModel):
-    nombre: str
+class _DatosFamiliar(BaseModel):
+    """🆕 (2026-11-16) Datos de la composición familiar que viven en la misma
+    fila del contacto (registro único por familiar, ver
+    models.ContactoFamiliar). Todos opcionales: quien integraba con la forma
+    anterior (nombre/teléfono/relación/correo) sigue funcionando igual."""
+    apellidos: Optional[str] = Field(default=None, max_length=200)
+    es_apoderado: Optional[bool] = None
+    es_contacto: Optional[bool] = None
+    vive_con_estudiante: Optional[bool] = None
+    ocupacion: Optional[str] = Field(default=None, max_length=200)
+    grado_instruccion: Optional[str] = Field(default=None, max_length=100)
+    estado_civil: Optional[str] = Field(default=None, max_length=50)
+    direccion: Optional[str] = Field(default=None, max_length=300)
+    distrito: Optional[str] = Field(default=None, max_length=100)
+    fecha_nacimiento: Optional[date] = None
+
+
+class ContactoFamiliarCreate(_DatosFamiliar):
+    nombre: str = Field(min_length=1, max_length=200)
     telefono: Optional[str] = None
     relacion: Optional[str] = None   # catálogo abierto: "madre", "padre", "tutor legal"...
     email: Optional[EmailStr] = None
 
 
-class ContactoFamiliarUpdate(BaseModel):
-    nombre: Optional[str] = None
+class ContactoFamiliarUpdate(_DatosFamiliar):
+    nombre: Optional[str] = Field(default=None, min_length=1, max_length=200)
     telefono: Optional[str] = None
     relacion: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -467,6 +484,18 @@ class ContactoFamiliarResponse(BaseModel):
     activo: bool
     fecha_registro: datetime
     registrado_por_usuario_id: Optional[int] = None
+    # 🆕 Composición familiar. Para el rol `colegio` (dirección) el router
+    # vacía los datos del entorno familiar (ver CAMPOS_FAMILIAR_SOLO_STAFF).
+    apellidos: Optional[str] = None
+    es_apoderado: bool = False
+    es_contacto: bool = True
+    vive_con_estudiante: Optional[bool] = None
+    ocupacion: Optional[str] = None
+    grado_instruccion: Optional[str] = None
+    estado_civil: Optional[str] = None
+    direccion: Optional[str] = None
+    distrito: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
 
     class Config:
         from_attributes = True

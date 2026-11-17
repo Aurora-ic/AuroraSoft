@@ -1437,7 +1437,13 @@ def listar_contactos_familiares_endpoint(
 ):
     persona = _obtener_persona_o_404(db, persona_id)
     _verificar_misma_institucion_o_403(usuario_actual, persona.institucion_id, "No puedes ver los contactos de otro colegio.")
-    return crud.listar_contactos_de_persona(db=db, persona_id=persona_id, incluir_inactivos=incluir_inactivos)
+    # 🆕 (2026-11-16) `colegio` recibe los familiares sin los datos del
+    # entorno familiar (ocupación, dirección, estado civil...) — ver
+    # crud.CAMPOS_FAMILIAR_SOLO_STAFF.
+    return [
+        crud.contacto_para_rol(c, usuario_actual.rol)
+        for c in crud.listar_contactos_de_persona(db=db, persona_id=persona_id, incluir_inactivos=incluir_inactivos)
+    ]
 
 
 @router.patch("/contactos/{contacto_id}", response_model=schemas.ContactoFamiliarResponse)

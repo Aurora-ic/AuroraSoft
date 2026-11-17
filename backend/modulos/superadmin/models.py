@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, Boolean, DateTime, ForeignKey, Text,
+    Column, Integer, String, Boolean, Date, DateTime, ForeignKey, Text,
     UniqueConstraint, Index, CheckConstraint,
 )
 from sqlalchemy.sql import func, text
@@ -670,6 +670,29 @@ class ContactoFamiliar(Base):
     telefono = Column(String, nullable=True)
     relacion = Column(String, nullable=True)   # "madre", "padre", "tutor legal"... catálogo abierto
     email = Column(String, nullable=True)
+
+    # 🆕 (2026-11-16) Registro único por familiar: esta misma fila es a la vez
+    # un miembro de la "Composición familiar" (padre, madre, hermanos,
+    # apoderado...) y, si `es_contacto`, una fila de "Contactos familiares".
+    # Así el nombre o el teléfono de la madre se escriben UNA vez y nunca se
+    # contradicen entre los dos apartados. Todas las columnas son opcionales
+    # (o con default) para que los contactos ya existentes queden intactos.
+    apellidos = Column(String, nullable=True)
+    # Puede haber más de un apoderado (p. ej. padre y madre). No reemplaza al
+    # consentimiento: solo sirve para rellenar el formulario del consentimiento.
+    es_apoderado = Column(Boolean, nullable=False, server_default="false", default=False)
+    # True = aparece en "Contactos familiares" (a quién llamar). Las filas
+    # anteriores a este cambio eran todas contactos, por eso el default true.
+    es_contacto = Column(Boolean, nullable=False, server_default="true", default=True)
+    # NULL = no se preguntó (distinto de "no vive con él"), mismo criterio que
+    # PersonaAntecedentesClinicos.
+    vive_con_estudiante = Column(Boolean, nullable=True)
+    ocupacion = Column(String, nullable=True)
+    grado_instruccion = Column(String, nullable=True)
+    estado_civil = Column(String, nullable=True)   # pensado para padre/madre
+    direccion = Column(String, nullable=True)
+    distrito = Column(String, nullable=True)
+    fecha_nacimiento = Column(Date, nullable=True)  # pensado para hermanos (la edad se calcula)
 
     activo = Column(Boolean, nullable=False, server_default="true", default=True)
     fecha_registro = Column(DateTime(timezone=True), server_default=func.now())

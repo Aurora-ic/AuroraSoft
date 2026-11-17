@@ -316,6 +316,19 @@ export type ContactoFamiliar = {
   activo: boolean;
   fecha_registro: string;
   registrado_por_usuario_id: number | null;
+  // 🆕 (2026-11-16) Registro único por familiar (composición familiar). Para
+  // el rol `colegio` llegan en null vive_con_estudiante, ocupacion,
+  // grado_instruccion, estado_civil, direccion, distrito y fecha_nacimiento.
+  apellidos: string | null;
+  es_apoderado: boolean;
+  es_contacto: boolean; // aparece en "Contactos familiares"
+  vive_con_estudiante: boolean | null; // null = sin dato
+  ocupacion: string | null;
+  grado_instruccion: string | null;
+  estado_civil: string | null;
+  direccion: string | null;
+  distrito: string | null;
+  fecha_nacimiento: string | null; // "YYYY-MM-DD"
 };
 
 export type ContactoFamiliarCreate = {
@@ -323,6 +336,16 @@ export type ContactoFamiliarCreate = {
   telefono?: string | null;
   relacion?: string | null;
   email?: string | null;
+  apellidos?: string | null;
+  es_apoderado?: boolean;
+  es_contacto?: boolean;
+  vive_con_estudiante?: boolean | null;
+  ocupacion?: string | null;
+  grado_instruccion?: string | null;
+  estado_civil?: string | null;
+  direccion?: string | null;
+  distrito?: string | null;
+  fecha_nacimiento?: string | null;
 };
 
 export type ContactoFamiliarUpdate = Partial<ContactoFamiliarCreate>;

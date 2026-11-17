@@ -22,6 +22,15 @@ import { ModeloConsentimiento } from "@/components/educativo/ModeloConsentimient
 import { TarjetaPerfil, IndicadoresEstudiante, TituloGrupoFicha } from "@/components/educativo/PerfilEstudiante";
 import { BloqueFicha, CuadriculaDatos, DatoFicha, BotonAccionFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
 import {
+  ComposicionFamiliar,
+  FormularioFamiliar,
+  formFamiliarDe,
+  formFamiliarNuevo,
+  nombreFamiliar,
+  payloadFamiliar,
+  type FormFamiliar,
+} from "@/components/educativo/FamiliaEstudiante";
+import {
   ShieldCheck,
   Paperclip,
   School,
@@ -331,13 +340,10 @@ export default function FichaAlumnoPage() {
   const [contactos, setContactos] = useState<ContactoFamiliar[]>([]);
   const [errorContactos, setErrorContactos] = useState<string | null>(null);
   // null = panel cerrado; id === null = creando uno nuevo; id !== null = editando ese contacto.
-  const [formularioContacto, setFormularioContacto] = useState<{
-    id: number | null;
-    nombre: string;
-    telefono: string;
-    relacion: string;
-    email: string;
-  } | null>(null);
+  // 🆕 (2026-11-16) El mismo formulario de familiar sirve a "Composición
+  // familiar" y a "Contactos familiares" (registro único por familiar);
+  // `origen` dice en cuál de los dos bloques se abrió.
+  const [formularioContacto, setFormularioContacto] = useState<FormFamiliar | null>(null);
   const [guardandoContacto, setGuardandoContacto] = useState(false);
   const [errorFormularioContacto, setErrorFormularioContacto] = useState<string | null>(null);
   const [desactivandoContactoId, setDesactivandoContactoId] = useState<number | null>(null);
@@ -896,18 +902,17 @@ export default function FichaAlumnoPage() {
   }
 
   function abrirNuevoContacto() {
-    setFormularioContacto({ id: null, nombre: "", telefono: "", relacion: "", email: "" });
+    setFormularioContacto(formFamiliarNuevo("contactos"));
     setErrorFormularioContacto(null);
   }
 
-  function abrirEdicionContacto(contacto: ContactoFamiliar) {
-    setFormularioContacto({
-      id: contacto.id,
-      nombre: contacto.nombre,
-      telefono: contacto.telefono ?? "",
-      relacion: contacto.relacion ?? "",
-      email: contacto.email ?? "",
-    });
+  function abrirNuevoFamiliar(relacion: string, apoderado: boolean) {
+    setFormularioContacto(formFamiliarNuevo("familia", relacion, apoderado));
+    setErrorFormularioContacto(null);
+  }
+
+  function abrirEdicionContacto(contacto: ContactoFamiliar, origen: FormFamiliar["origen"] = "contactos") {
+    setFormularioContacto(formFamiliarDe(contacto, origen));
     setErrorFormularioContacto(null);
   }
 
@@ -918,21 +923,11 @@ export default function FichaAlumnoPage() {
     setErrorFormularioContacto(null);
     try {
       if (formularioContacto.id === null) {
-        const payload: ContactoFamiliarCreate = {
-          nombre: formularioContacto.nombre,
-          telefono: formularioContacto.telefono || null,
-          relacion: formularioContacto.relacion || null,
-          email: formularioContacto.email || null,
-        };
+        const payload: ContactoFamiliarCreate = payloadFamiliar(formularioContacto);
         const nuevo = await apiClient.post<ContactoFamiliar>(`/admin/personas/${personaId}/contactos`, payload);
         setContactos((prev) => [...prev, nuevo]);
       } else {
-        const payload: ContactoFamiliarUpdate = {
-          nombre: formularioContacto.nombre,
-          telefono: formularioContacto.telefono || null,
-          relacion: formularioContacto.relacion || null,
-          email: formularioContacto.email || null,
-        };
+        const payload: ContactoFamiliarUpdate = payloadFamiliar(formularioContacto);
         const actualizado = await apiClient.patch<ContactoFamiliar>(
           `/admin/personas/contactos/${formularioContacto.id}`,
           payload,
@@ -1463,6 +1458,10 @@ export default function FichaAlumnoPage() {
     sesion?.rol === "psicologo" || sesion?.rol === "admin" || sesion?.rol === "superadmin";
   // Mismo criterio (staff clínico) que POST /personas/{id}/aplicacion-individual.
   const puedeAplicarPrueba = puedeEscribirDatosPrincipales;
+  // 🆕 Contactos familiares = los familiares marcados como contacto (las
+  // filas anteriores a la composición familiar lo son todas).
+  const contactosVisibles = contactos.filter((c) => c.es_contacto);
+  const apoderadosRegistrados = contactos.filter((c) => c.activo && c.es_apoderado);
 
   // A lo sumo una fila con fecha_fin null (índice único parcial en el
   // backend) — esa es la matrícula vigente; el resto es historial.
@@ -1717,6 +1716,32 @@ export default function FichaAlumnoPage() {
         </BloqueFicha>
         </div>
 
+        {/* --- 🆕 Composición familiar (ContactoFamiliar, registro único por
+            familiar): parte de los datos familiares, a lo ancho para que
+            entren varias tarjetas. --- */}
+        <BloqueFicha
+          icono={UsersRound}
+          titulo="Composición familiar"
+          descripcion="Padres, hermanos y apoderado. Quien esté marcado como contacto aparece también en Contactos familiares."
+        >
+          {formularioContacto?.origen === "familia" && (
+            <FormularioFamiliar
+              valor={formularioContacto}
+              onCambio={setFormularioContacto}
+              onGuardar={guardarContacto}
+              onCancelar={() => setFormularioContacto(null)}
+              guardando={guardandoContacto}
+              error={errorFormularioContacto}
+            />
+          )}
+          <ComposicionFamiliar
+            familiares={contactos}
+            puedeEditar={puedeEscribirDatosPrincipales && !formularioContacto}
+            onAgregar={abrirNuevoFamiliar}
+            onEditar={(c) => abrirEdicionContacto(c, "familia")}
+          />
+        </BloqueFicha>
+
         {/* --- Antecedentes clínicos externos (PersonaAntecedentesClinicos, 1:1) --- */}
         <BloqueFicha
           id="antecedentes-clinicos"
@@ -1824,6 +1849,7 @@ export default function FichaAlumnoPage() {
           titulo="Contactos familiares"
           descripcion="A quién llamar por este estudiante."
           acciones={
+            puedeEscribirDatosPrincipales &&
             !formularioContacto && (
               <BotonAccionFicha icono={Plus} onClick={abrirNuevoContacto}>
                 Agregar contacto
@@ -1833,54 +1859,18 @@ export default function FichaAlumnoPage() {
         >
           <TextoError className="mb-3">{errorContactos}</TextoError>
 
-          {formularioContacto && (
-            <form onSubmit={guardarContacto} className="grid sm:grid-cols-2 gap-4 text-sm border-b border-border dark:border-border-dark pb-4 mb-4">
-              <CampoEditable etiqueta="Nombre">
-                <Input
-                  required
-                  value={formularioContacto.nombre}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, nombre: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Relación">
-                <Input
-                  placeholder="madre, padre, tutor legal..."
-                  value={formularioContacto.relacion}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, relacion: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Teléfono">
-                <Input
-                  value={formularioContacto.telefono}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, telefono: e.target.value })}
-                />
-              </CampoEditable>
-              <CampoEditable etiqueta="Email">
-                <Input
-                  type="email"
-                  value={formularioContacto.email}
-                  onChange={(e) => setFormularioContacto({ ...formularioContacto, email: e.target.value })}
-                />
-              </CampoEditable>
-
-              <TextoError className="sm:col-span-2">{errorFormularioContacto}</TextoError>
-
-              <div className="sm:col-span-2 flex items-center gap-3 pt-1">
-                <Boton type="submit" disabled={guardandoContacto}>
-                  {guardandoContacto ? "Guardando..." : formularioContacto.id === null ? "Agregar contacto" : "Guardar cambios"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={() => setFormularioContacto(null)}
-                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            </form>
+          {formularioContacto?.origen === "contactos" && (
+            <FormularioFamiliar
+              valor={formularioContacto}
+              onCambio={setFormularioContacto}
+              onGuardar={guardarContacto}
+              onCancelar={() => setFormularioContacto(null)}
+              guardando={guardandoContacto}
+              error={errorFormularioContacto}
+            />
           )}
 
-          {contactos.length === 0 ? (
+          {contactosVisibles.length === 0 ? (
             <VacioFicha icono={Phone} texto="No hay contactos familiares registrados." />
           ) : (
             <div className="overflow-x-auto rounded-lg border border-border dark:border-border-dark">
@@ -1896,13 +1886,20 @@ export default function FichaAlumnoPage() {
                   </TheadFila>
                 </thead>
                 <tbody>
-                  {contactos.map((contacto) => (
+                  {contactosVisibles.map((contacto) => (
                     <tr
                       key={contacto.id}
                       className={`border-t border-border dark:border-border-dark ${contacto.activo ? "" : "opacity-40"}`}
                     >
-                      <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{contacto.nombre}</td>
-                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">{contacto.relacion || "—"}</td>
+                      <td className="px-3.5 py-2.5 font-medium text-ink dark:text-ink-dark">{nombreFamiliar(contacto)}</td>
+                      <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
+                        {contacto.relacion || "—"}
+                        {contacto.es_apoderado && (
+                          <span className="ml-1.5 rounded-full bg-teal-600/10 px-1.5 py-0.5 text-[11px] font-semibold text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                            Apoderado
+                          </span>
+                        )}
+                      </td>
                       <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
                         {contacto.telefono ? (
                           <span className="inline-flex items-center gap-1.5">
@@ -1933,13 +1930,15 @@ export default function FichaAlumnoPage() {
                         </span>
                       </td>
                       <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                        {puedeEscribirDatosPrincipales && (
                         <button
                           onClick={() => abrirEdicionContacto(contacto)}
                           className="text-teal-600 dark:text-teal-accent-dark hover:underline font-medium mr-3"
                         >
                           Editar
                         </button>
-                        {contacto.activo && (
+                        )}
+                        {puedeEscribirDatosPrincipales && contacto.activo && (
                           <button
                             onClick={() => desactivarContacto(contacto.id)}
                             disabled={desactivandoContactoId === contacto.id}
@@ -3296,6 +3295,33 @@ export default function FichaAlumnoPage() {
                 <form onSubmit={registrarConsentimiento} className="grid sm:grid-cols-2 gap-4 text-sm">
                   {tipo === "apoderado" && (
                     <>
+                      {/* 🆕 (2026-11-16) Atajo: rellenar con un apoderado ya
+                          registrado en la composición familiar. Solo copia los
+                          datos al formulario; se pueden corregir antes de guardar. */}
+                      {apoderadosRegistrados.length > 0 && (
+                        <div className="sm:col-span-2 flex flex-wrap items-center gap-2 rounded-lg border border-border dark:border-border-dark bg-surface/60 dark:bg-surface-dark/40 px-3.5 py-2.5">
+                          <span className="text-[12.5px] font-medium text-ink/60 dark:text-ink-dark/60">Usar datos de:</span>
+                          {apoderadosRegistrados.map((a) => (
+                            <button
+                              key={a.id}
+                              type="button"
+                              onClick={() =>
+                                setFormularioConsentimiento({
+                                  ...formularioAbiertoAqui,
+                                  otorgado_por_nombre: a.nombre,
+                                  otorgante_apellidos: a.apellidos ?? "",
+                                  otorgante_relacion: (a.relacion ?? "").toLowerCase(),
+                                  tipo_otorgante: "apoderado",
+                                })
+                              }
+                              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink/75 hover:border-teal-400 hover:text-teal-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/75 dark:hover:text-teal-accent-dark"
+                            >
+                              {nombreFamiliar(a)}
+                              {a.relacion ? ` (${a.relacion.toLowerCase()})` : ""}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       <CampoEditable etiqueta="Nombres de quien otorga (obligatorio)">
                         <Input
                           required

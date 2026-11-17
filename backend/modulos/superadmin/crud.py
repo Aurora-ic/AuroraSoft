@@ -1078,6 +1078,37 @@ def obtener_ficha_completa(db: Session, persona: models.Persona, usuario_actual)
 # ==========================================
 # 🆕 ARCO — DERECHO DE ACCESO (exportar_datos_persona_arco)
 # ==========================================
+# Columnas internas que nunca salen en un export, aunque estén en la fila:
+# claves de almacenamiento (ver ConsentimientoResponse.evidencia_ruta) y
+# secretos de autenticación.
+_COLUMNAS_INTERNAS_ARCO = {"evidencia_ruta", "storage_key", "hashed_password", "token"}
+
+
+def _filas_arco_a_dict(valor):
+    """Recorre el resultado del export y convierte cada fila ORM en un dict
+    con sus columnas (sin _COLUMNAS_INTERNAS_ARCO). Lo que ya es dict, lista o
+    valor simple queda igual."""
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy.orm.exc import UnmappedInstanceError
+
+    if isinstance(valor, dict):
+        return {k: _filas_arco_a_dict(v) for k, v in valor.items()}
+    if isinstance(valor, (list, tuple)):
+        return [_filas_arco_a_dict(v) for v in valor]
+    try:
+        estado = sa_inspect(valor)
+    except (UnmappedInstanceError, Exception):  # no es una fila ORM
+        return valor
+    mapper = getattr(estado, "mapper", None)
+    if mapper is None:
+        return valor
+    return {
+        col.key: getattr(valor, col.key)
+        for col in mapper.column_attrs
+        if col.key not in _COLUMNAS_INTERNAS_ARCO
+    }
+
+
 def exportar_datos_persona_arco(
     db: Session, persona: models.Persona, usuario_actual,
     ip_solicitante: Optional[str] = None, referencia_solicitud: Optional[str] = None,
@@ -1319,6 +1350,14 @@ def exportar_datos_persona_arco(
                 models.RegistroAuditoriaArco.persona_id == persona.id,
             ).order_by(models.RegistroAuditoriaArco.fecha.desc()).all(),
         })
+
+    # 🔧 (2026-11-16) Las filas ORM del resultado (datos familiares,
+    # antecedentes, familiares, sesiones, citas, historial de cambios...) se
+    # pasan a dict ANTES de registrar la auditoría: ese commit expira todos los
+    # objetos de la sesión y FastAPI los serializaba como `{}` — el export
+    # ARCO salía con esas secciones vacías (hallado al agregar la
+    # composición familiar).
+    resultado = _filas_arco_a_dict(resultado)
 
     registrar_auditoria_arco(
         db, accion="acceso_datos_persona", ejecutado_por=usuario_actual,
@@ -2930,15 +2969,42 @@ def agregar_version_expediente(
 # ContactoFamiliar — soft-delete, nunca borrado físico (EntradaExpediente
 # puede seguir apuntando a un contacto ya retirado).
 # ------------------------------------------
+# Booleanos NOT NULL del familiar (ver models.ContactoFamiliar).
+CAMPOS_FAMILIAR_NO_NULOS = {"es_apoderado", "es_contacto"}
+
+# 🆕 (2026-11-16) Datos del ENTORNO familiar que el rol `colegio` (dirección)
+# no ve: le sirven a la psicóloga para el informe, no a la dirección para
+# ubicar a la familia. La dirección sí ve nombre, apellidos, parentesco,
+# apoderado, teléfono y correo, como ya veía los contactos.
+CAMPOS_FAMILIAR_SOLO_STAFF = (
+    "vive_con_estudiante", "ocupacion", "grado_instruccion", "estado_civil",
+    "direccion", "distrito", "fecha_nacimiento",
+)
+
+
+def contacto_para_rol(contacto, rol: str) -> dict:
+    """La respuesta de un familiar según quién la pide: completa para el
+    staff, sin CAMPOS_FAMILIAR_SOLO_STAFF para `colegio`."""
+    datos = schemas.ContactoFamiliarResponse.model_validate(contacto).model_dump()
+    if rol == "colegio":
+        for campo in CAMPOS_FAMILIAR_SOLO_STAFF:
+            datos[campo] = None
+    return datos
+
+
 def crear_contacto_familiar(db: Session, persona: models.Persona, datos: schemas.ContactoFamiliarCreate, usuario_id: Optional[int] = None):
+    # 🆕 Composición familiar: el resto de campos (apellidos, apoderado,
+    # ocupación...) entra tal cual. Un booleano obligatorio enviado como null
+    # se omite para que tome su default (es_apoderado=False, es_contacto=True).
+    campos = {
+        k: v for k, v in datos.model_dump().items()
+        if not (k in CAMPOS_FAMILIAR_NO_NULOS and v is None)
+    }
     nuevo = models.ContactoFamiliar(
         persona_id=persona.id,
         institucion_id=persona.institucion_id,
-        nombre=datos.nombre,
-        telefono=datos.telefono,
-        relacion=datos.relacion,
-        email=datos.email,
         registrado_por_usuario_id=usuario_id,
+        **campos,
     )
     db.add(nuevo)
     db.commit()
@@ -2958,6 +3024,8 @@ def actualizar_contacto_familiar(db: Session, contacto_id: int, datos: schemas.C
     if not contacto:
         return None
     for campo, valor in datos.model_dump(exclude_unset=True).items():
+        if campo in CAMPOS_FAMILIAR_NO_NULOS and valor is None:
+            continue  # columna NOT NULL: null = "no lo cambies"
         setattr(contacto, campo, valor)
     db.commit()
     db.refresh(contacto)

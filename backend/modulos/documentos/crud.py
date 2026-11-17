@@ -1233,6 +1233,55 @@ def _resolver_datos_familiares(db: Session, estudiantes: List[models.DocumentoIn
         "recibe_atencion_psiquiatrica_externa": antecedentes.recibe_atencion_psiquiatrica_externa if antecedentes else None,
         "detalle_atencion_psiquiatrica_externa": antecedentes.detalle_atencion_psiquiatrica_externa if antecedentes else None,
         "diagnostico_reportado": antecedentes.diagnostico_reportado if antecedentes else None,
+        # 🆕 (2026-11-16) Composición familiar: los familiares ACTIVOS de la
+        # ficha (models.ContactoFamiliar, registro único por familiar). Queda
+        # congelada en el snapshot de la versión como el resto de la sección:
+        # editar la familia después nunca reescribe un documento ya emitido.
+        "composicion_familiar": [
+            _familiar_para_documento(f)
+            for f in sorted(
+                superadmin_crud.listar_contactos_de_persona(db, persona_id),
+                key=_orden_parentesco,
+            )
+        ],
+    }
+
+
+# Orden de la composición familiar en el documento: padres, apoderados,
+# hermanos y luego el resto, cada grupo en el orden en que se registró.
+_ORDEN_PARENTESCO = (("padre", 0), ("madre", 0), ("herman", 2))
+
+
+def _orden_parentesco(familiar) -> tuple:
+    relacion = (familiar.relacion or "").strip().lower()
+    for clave, orden in _ORDEN_PARENTESCO:
+        if relacion.startswith(clave):
+            return (orden, familiar.fecha_registro or datetime.min.replace(tzinfo=timezone.utc))
+    orden = 1 if familiar.es_apoderado else 3
+    return (orden, familiar.fecha_registro or datetime.min.replace(tzinfo=timezone.utc))
+
+
+def _edad_en_anios(fecha_nacimiento, hoy=None) -> Optional[int]:
+    if not fecha_nacimiento:
+        return None
+    hoy = hoy or datetime.now(timezone.utc).date()
+    anios = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
+    return anios if anios >= 0 else None
+
+
+def _familiar_para_documento(familiar) -> dict:
+    """Solo lo que un informe usa de un familiar — nunca teléfono, correo ni
+    domicilio: un documento puede compartirse con la dirección del colegio."""
+    nombre = " ".join(p for p in (familiar.nombre, familiar.apellidos) if p).strip()
+    return {
+        "parentesco": familiar.relacion,
+        "nombre": nombre,
+        "edad": _edad_en_anios(familiar.fecha_nacimiento),
+        "ocupacion": familiar.ocupacion,
+        "grado_instruccion": familiar.grado_instruccion,
+        "estado_civil": familiar.estado_civil,
+        "vive_con_estudiante": familiar.vive_con_estudiante,
+        "es_apoderado": bool(familiar.es_apoderado),
     }
 
 

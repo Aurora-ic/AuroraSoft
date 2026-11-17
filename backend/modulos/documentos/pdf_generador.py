@@ -251,6 +251,40 @@ def _fila_etiqueta_valor(etiqueta: str, valor, estilos: dict) -> Paragraph:
     return Paragraph(f"<b>{escape(etiqueta)}:</b> {escape(str(valor))}", estilos["normal"])
 
 
+def _tabla_composicion_familiar(familiares: list, estilos: dict) -> Table:
+    def celda(valor):
+        return Paragraph(escape(str(valor)), estilos["celda"]) if valor not in (None, "") else Paragraph("—", estilos["celda"])
+
+    def si_no(valor):
+        return None if valor is None else ("Sí" if valor else "No")
+
+    encabezado = [Paragraph(t, estilos["celda_bold"]) for t in
+                  ("Parentesco", "Nombre", "Edad", "Ocupación", "Instrucción", "Estado civil", "Vive con el estudiante")]
+    cuerpo = []
+    for f in familiares:
+        parentesco = f.get("parentesco") or "Familiar"
+        if f.get("es_apoderado"):
+            parentesco = f"{parentesco} (apoderado)"
+        edad = f.get("edad")
+        cuerpo.append([
+            celda(parentesco), celda(f.get("nombre")), celda(f"{edad} años" if edad is not None else None),
+            celda(f.get("ocupacion")), celda(f.get("grado_instruccion")), celda(f.get("estado_civil")),
+            celda(si_no(f.get("vive_con_estudiante"))),
+        ])
+    tabla = Table([encabezado] + cuerpo, repeatRows=1,
+                  colWidths=[2.6 * cm, 3.6 * cm, 1.5 * cm, 2.6 * cm, 2.2 * cm, 2 * cm, 2.2 * cm])
+    tabla.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, BORDER),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#f1f5f9")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+    ]))
+    return tabla
+
+
 def _renderizar_datos_familiares(datos: dict, estilos: dict) -> list:
     datos = datos or {}
     if not datos.get("aplica"):
@@ -271,6 +305,18 @@ def _renderizar_datos_familiares(datos: dict, estilos: dict) -> list:
         elementos.extend(_fila_etiqueta_valor(e, v, estilos) for e, v in familiares if v not in (None, ""))
     else:
         elementos.append(_placeholder("Sin datos familiares registrados.", estilos))
+
+    # 🆕 (2026-11-16) Composición familiar. Un snapshot anterior a este
+    # cambio no trae la clave: entonces no se dibuja nada (ni un "sin datos"
+    # que ese documento nunca tuvo).
+    composicion = datos.get("composicion_familiar")
+    if composicion is not None:
+        elementos.append(Spacer(1, 4))
+        elementos.append(Paragraph("Composición familiar", estilos["etiqueta"]))
+        if composicion:
+            elementos.append(_tabla_composicion_familiar(composicion, estilos))
+        else:
+            elementos.append(_placeholder("Sin familiares registrados.", estilos))
 
     elementos.append(Spacer(1, 4))
     elementos.append(Paragraph("Tratamiento externo y diagnóstico reportado", estilos["etiqueta"]))
