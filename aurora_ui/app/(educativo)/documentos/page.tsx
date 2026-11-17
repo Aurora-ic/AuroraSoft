@@ -42,6 +42,7 @@ import type {
   RespuestaPaginada,
 } from "@/types/api";
 import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { GuiaDocumentos } from "@/components/documentos/GuiaDocumentos";
 
 const TAMANO_PAGINA = 50;
 const VIOLETA = ACENTOS.violeta;
@@ -382,6 +383,8 @@ export default function DocumentosPage() {
   return (
     <div className={CLASE_CONTENEDOR_SECCION}>
       {encabezado}
+
+      <GuiaDocumentos />
 
       <TextoError>{error}</TextoError>
 

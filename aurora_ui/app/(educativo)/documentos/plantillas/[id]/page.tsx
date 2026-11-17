@@ -18,6 +18,8 @@ import {
   Zap,
   CheckCircle2,
   Info,
+  Lightbulb,
+  Printer,
 } from "lucide-react";
 import { apiClient, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,10 +34,15 @@ import { BloqueFicha, VacioFicha } from "@/components/educativo/BloqueFicha";
 import { CabeceraInterna, Insignia, TarjetaLateral, CampoFormulario } from "@/components/documentos/PiezasDocumento";
 import {
   ETIQUETAS_TIPO_SECCION,
-  TIPOS_SECCION_ORDENADOS,
   TIPOS_CON_CONFIG_SIMPLE,
   DESCRIPCION_TIPO_SECCION,
+  EJEMPLO_TIPO_SECCION,
+  GRUPOS_CATALOGO,
+  MODO_TIPO_SECCION,
+  INFO_MODO,
+  instruccionPorDefecto,
 } from "@/lib/documentos-constantes";
+import { ChipModo, LeyendaModos, MiniaturaSeccion, ESTILO_MODO } from "@/components/documentos/ModoSeccion";
 import type {
   PlantillaDocumento,
   PlantillaDocumentoUpdate,
@@ -295,13 +302,33 @@ export default function ConstructorPlantillaPage() {
 
   // Config simple: encabezado / firma / grupo_campos (ver docstring de
   // PlantillaSeccion.config en el backend).
-  async function guardarConfigObjeto(seccion: PlantillaSeccion, config: Record<string, unknown>) {
+  async function guardarConfigObjeto(seccion: PlantillaSeccion, cambios: Record<string, unknown>) {
+    // 🆕 Se mezcla con la config ya guardada: algunos editores mandan solo su
+    // parte (p. ej. `campos`) y borraban la instrucción (`ayuda`).
+    const config = { ...((seccion.config as Record<string, unknown> | null) ?? {}), ...cambios };
     try {
       const actualizada = await apiClient.patch<PlantillaSeccion>(`/documentos/secciones/${seccion.id}`, { config });
       setSecciones(secciones.map((s) => (s.id === seccion.id ? actualizada : s)));
       setConfigTexto({ ...configTexto, [seccion.id]: JSON.stringify(config, null, 2) });
     } catch (err) {
       setError(mensajeDe(err) || "No se pudo guardar.");
+    }
+  }
+
+  // 🆕 (2026-11-17) Instrucción para quien llena el documento — se guarda en
+  // `config.ayuda` (el backend guarda la config tal cual) y se muestra encima
+  // del campo al llenar. Vacía = se usa la instrucción por defecto del tipo.
+  async function guardarAyuda(seccion: PlantillaSeccion, texto: string) {
+    const actual = ((seccion.config as Record<string, unknown> | null) ?? {}) as Record<string, unknown>;
+    if ((actual.ayuda ?? "") === texto.trim()) return;
+    const config = { ...actual };
+    if (texto.trim()) config.ayuda = texto.trim();
+    else delete config.ayuda;
+    try {
+      const actualizada = await apiClient.patch<PlantillaSeccion>(`/documentos/secciones/${seccion.id}`, { config });
+      setSecciones((prev) => prev.map((s) => (s.id === seccion.id ? actualizada : s)));
+    } catch (err) {
+      setError(mensajeDe(err) || "No se pudo guardar la instrucción.");
     }
   }
 
@@ -402,16 +429,19 @@ export default function ConstructorPlantillaPage() {
           acento="violeta"
           icono={ListOrdered}
           titulo="Secciones del documento"
-          descripcion="Saldrán en el PDF en este orden. Usa las flechas para reordenar."
+          descripcion="Saldrán en el PDF en este orden. Usa las flechas para reordenar. La etiqueta de color dice cómo se llena cada una."
           cuerpoClassName="space-y-2.5"
         >
           {secciones.length === 0 ? (
             <VacioFicha icono={ListOrdered} texto="Esta plantilla todavía no tiene secciones. Agrega la primera abajo." />
           ) : (
-            <ol className="m-0 p-0 list-none space-y-2">
+            <ol className="m-0 p-0 list-none space-y-2.5">
               {secciones.map((seccion, idx) => {
                 const configurable = TIPOS_CON_CONFIG_SIMPLE.includes(seccion.tipo_seccion);
                 const abierta = seccionAbierta === seccion.id;
+                const modo = MODO_TIPO_SECCION[seccion.tipo_seccion];
+                const conInstruccion = modo === "escribes" || modo === "eliges";
+                const ayuda = ((seccion.config as Record<string, unknown> | null)?.ayuda as string | undefined) ?? "";
                 return (
                   <li
                     key={seccion.id}
@@ -419,34 +449,69 @@ export default function ConstructorPlantillaPage() {
                       abierta ? "border-acento-violeta/40 dark:border-acento-violeta-dark/40" : "border-border dark:border-border-dark"
                     }`}
                   >
-                    {/* La etiqueta del tipo y el campo del título comparten
-                        esta fila a propósito (ver e2e/documentos.spec.ts). */}
-                    <div className="flex items-center gap-2 px-3 pt-2.5 flex-wrap sm:flex-nowrap">
-                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${VIOLETA.chip}`}>
+                    <div className="flex items-start gap-3 px-3.5 pt-3">
+                      <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${VIOLETA.chip}`}>
                         {idx + 1}
                       </span>
-                      <span className="shrink-0 rounded-md bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">
-                        {ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}
-                      </span>
-                      <Input
-                        value={seccion.titulo ?? ""}
-                        placeholder="(sin título propio)"
-                        onChange={(e) => setSecciones(secciones.map((s) => (s.id === seccion.id ? { ...s, titulo: e.target.value } : s)))}
-                        onBlur={(e) => guardarTitulo(seccion, e.target.value)}
-                        className="flex-1 min-w-[160px] !py-1.5 text-sm"
-                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>
+                          <ChipModo tipo={seccion.tipo_seccion} />
+                        </div>
+                        <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/50 dark:text-ink-dark/50">{DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}</p>
+                      </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <BotonIcono etiqueta="Subir" onClick={() => moverSeccion(seccion, -1)} disabled={idx === 0} icono={ChevronUp} />
                         <BotonIcono etiqueta="Bajar" onClick={() => moverSeccion(seccion, 1)} disabled={idx === secciones.length - 1} icono={ChevronDown} />
-                        {configurable && (
-                          <BotonIcono etiqueta={abierta ? "Cerrar configuración" : "Configurar"} onClick={() => abrirConfig(seccion)} icono={Settings2} activo={abierta} />
-                        )}
                         <BotonIcono etiqueta="Borrar sección" onClick={() => borrarSeccion(seccion)} icono={Trash2} peligro />
                       </div>
                     </div>
-                    <p className="m-0 px-3 pb-2.5 pt-1 pl-11 text-[12px] text-ink/45 dark:text-ink-dark/45">
-                      {DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}
-                    </p>
+
+                    <div className={`grid gap-2.5 px-3.5 pb-3 pt-2.5 pl-12 ${conInstruccion ? "sm:grid-cols-2" : ""}`}>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">Título que se imprime</span>
+                        <Input
+                          aria-label="Título que se imprime"
+                          value={seccion.titulo ?? ""}
+                          placeholder="Sin título: sale sin encabezado"
+                          onChange={(e) => setSecciones(secciones.map((s) => (s.id === seccion.id ? { ...s, titulo: e.target.value } : s)))}
+                          onBlur={(e) => guardarTitulo(seccion, e.target.value)}
+                          className="!py-1.5 text-sm"
+                        />
+                      </label>
+                      {conInstruccion && (
+                        <label className="flex flex-col gap-1">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">
+                            <Lightbulb size={12} className={VIOLETA.texto} aria-hidden="true" />
+                            Instrucción para quien llena
+                          </span>
+                          <Input
+                            aria-label="Instrucción para quien llena"
+                            defaultValue={ayuda}
+                            key={`ayuda-${seccion.id}-${ayuda}`}
+                            placeholder={instruccionPorDefecto(seccion.tipo_seccion, seccion.titulo)}
+                            onBlur={(e) => guardarAyuda(seccion, e.target.value)}
+                            className="!py-1.5 text-sm"
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {configurable && (
+                      <div className="px-3.5 pb-3 pl-12">
+                        <button
+                          type="button"
+                          onClick={() => abrirConfig(seccion)}
+                          aria-expanded={abierta}
+                          className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[12.5px] font-semibold transition-colors ${
+                            abierta ? VIOLETA.chipSolido : `${VIOLETA.chip} hover:brightness-95`
+                          }`}
+                        >
+                          {seccion.tipo_seccion === "ficha_imprimible" ? <Printer size={13} aria-hidden="true" /> : <Settings2 size={13} aria-hidden="true" />}
+                          {abierta ? "Cerrar" : TEXTO_CONFIGURAR[seccion.tipo_seccion] ?? "Configurar"}
+                        </button>
+                      </div>
+                    )}
 
                     {abierta && (
                       <div className="border-t border-border dark:border-border-dark p-3.5 bg-acento-violeta/[0.03] dark:bg-acento-violeta-dark/[0.04]">
@@ -466,22 +531,71 @@ export default function ConstructorPlantillaPage() {
             </ol>
           )}
 
-          {/* Agregar sección */}
-          <div className="rounded-lg border border-dashed border-acento-violeta/35 dark:border-acento-violeta-dark/35 bg-surface/60 dark:bg-surface-dark/60 p-3.5 space-y-2.5">
-            <p className="m-0 flex items-center gap-1.5 text-[12.5px] font-bold text-ink dark:text-ink-dark">
+          {/* Agregar sección — 🆕 catálogo agrupado por cómo se llena, con
+              miniatura del PDF (antes un desplegable de 14 nombres técnicos). */}
+          <div className="rounded-lg border border-dashed border-acento-violeta/35 dark:border-acento-violeta-dark/35 bg-surface/60 dark:bg-surface-dark/60 p-3.5 space-y-3.5">
+            <p className="m-0 flex items-center gap-1.5 text-[13px] font-bold text-ink dark:text-ink-dark">
               <Plus size={14} className={VIOLETA.texto} aria-hidden="true" />
               Agregar una sección
             </p>
+
+            <div role="radiogroup" aria-label="Tipo de sección" className="space-y-3">
+              {GRUPOS_CATALOGO.map((grupo) => (
+                <div key={grupo.modo}>
+                  <p className="m-0 mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                    {grupo.titulo}
+                    <ChipModo modo={grupo.modo} className="normal-case tracking-normal" />
+                  </p>
+                  <div className="grid gap-1.5 sm:grid-cols-2">
+                    {grupo.tipos.map((t) => {
+                      const elegido = nuevoTipo === t;
+                      const Icono = ESTILO_MODO[grupo.modo].icono;
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          role="radio"
+                          aria-checked={elegido}
+                          onClick={() => setNuevoTipo(t)}
+                          className={`flex items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors ${
+                            elegido
+                              ? "border-acento-violeta bg-acento-violeta/[0.07] ring-1 ring-acento-violeta dark:border-acento-violeta-dark dark:bg-acento-violeta-dark/10 dark:ring-acento-violeta-dark"
+                              : "border-border bg-surface hover:border-acento-violeta/50 dark:border-border-dark dark:bg-surface-dark"
+                          }`}
+                        >
+                          <Icono size={14} className={`mt-0.5 shrink-0 ${elegido ? VIOLETA.texto : "text-ink/35 dark:text-ink-dark/40"}`} aria-hidden="true" />
+                          <span className="min-w-0">
+                            <span className="block text-[13px] font-semibold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[t]}</span>
+                            <span className="block text-[12px] leading-snug text-ink/50 dark:text-ink-dark/50 line-clamp-2">{EJEMPLO_TIPO_SECCION[t]}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Lo elegido, explicado: cómo sale en el PDF y quién lo llena. */}
+            <div className="grid gap-3 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+              <div>
+                <p className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Así sale en el PDF</p>
+                <MiniaturaSeccion tipo={nuevoTipo} />
+              </div>
+              <div className="min-w-0 space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[nuevoTipo]}</span>
+                  <ChipModo tipo={nuevoTipo} />
+                </div>
+                <p className="m-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
+                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                  <span className="font-semibold">Ejemplo:</span> {EJEMPLO_TIPO_SECCION[nuevoTipo]}
+                </p>
+                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{INFO_MODO[MODO_TIPO_SECCION[nuevoTipo]].frase}</p>
+              </div>
+            </div>
+
             <div className="flex items-end gap-3 flex-wrap">
-              <CampoFormulario etiqueta="Tipo" className="min-w-[200px]">
-                <Select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value as TipoSeccionDocumento)}>
-                  {TIPOS_SECCION_ORDENADOS.map((t) => (
-                    <option key={t} value={t}>
-                      {ETIQUETAS_TIPO_SECCION[t]}
-                    </option>
-                  ))}
-                </Select>
-              </CampoFormulario>
               <CampoFormulario etiqueta="Título (opcional)" className="flex-1 min-w-[180px]">
                 <Input value={nuevoTitulo} onChange={(e) => setNuevoTitulo(e.target.value)} placeholder="Ej. Motivo de evaluación" />
               </CampoFormulario>
@@ -489,13 +603,23 @@ export default function ConstructorPlantillaPage() {
                 {agregando ? "Agregando..." : "+ Agregar sección"}
               </Boton>
             </div>
-            <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
             <TextoError>{errorAgregar}</TextoError>
           </div>
         </BloqueFicha>
 
         {/* ===== Columna lateral ===== */}
         <div className="flex flex-col gap-4">
+          {/* 🆕 Inducción: qué es una plantilla y cómo se llena cada parte. */}
+          <TarjetaLateral icono={Info} titulo="Cómo funciona una plantilla">
+            <p className="m-0 mb-3 text-[12.5px] leading-snug text-ink/65 dark:text-ink-dark/65">
+              La plantilla es el <strong>molde</strong>: aquí decides qué partes tiene el documento y en qué orden. Cada documento que generes con
+              ella se llena aparte, para un alumno.
+            </p>
+            <div className="[&_ul]:sm:grid-cols-1">
+              <LeyendaModos />
+            </div>
+          </TarjetaLateral>
+
           <TarjetaLateral icono={Type} titulo="Formato del documento">
             <form onSubmit={guardarForm} className="space-y-3.5">
               <CampoFormulario etiqueta="Nombre de la plantilla">
@@ -619,6 +743,16 @@ export default function ConstructorPlantillaPage() {
     </div>
   );
 }
+
+const TEXTO_CONFIGURAR: Partial<Record<TipoSeccionDocumento, string>> = {
+  ficha_imprimible: "Diseñar el formato en blanco",
+  grupo_campos: "Elegir las casillas",
+  tabla_dinamica: "Elegir las columnas",
+  encabezado: "Opciones del encabezado",
+  firma: "Líneas bajo la firma",
+  firma_doble: "Configurar las firmas",
+  firma_triple: "Configurar las firmas",
+};
 
 function BotonIcono({
   etiqueta,
@@ -744,7 +878,18 @@ function EditorConfigSeccion({
   }
 
   if (seccion.tipo_seccion === "ficha_imprimible") {
-    return <EditorFichaImprimibleConfig config={(seccion.config ?? {}) as ConfigFichaImprimible} onGuardar={onGuardarObjeto} />;
+    const config = (seccion.config ?? {}) as ConfigFichaImprimible;
+    return (
+      <div className="space-y-4">
+        <div>
+          <p className="m-0 mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+            Vista previa de la hoja impresa (se actualiza mientras editas)
+          </p>
+          <VistaPreviaFicha config={config} titulo={seccion.titulo} />
+        </div>
+        <EditorFichaImprimibleConfig config={config} onGuardar={onGuardarObjeto} />
+      </div>
+    );
   }
 
   return (
@@ -983,9 +1128,9 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
   }
   return (
     <div className="space-y-4 text-sm">
-      <p className="text-xs text-ink/50 dark:text-ink-dark/50">
-        Formulario EN BLANCO para imprimir y completar a mano — nunca se llena desde la app, lo que configurás acá es
-        exactamente lo que sale impreso.
+      <p className="m-0 rounded-lg bg-teal-600/[0.06] px-3 py-2 text-[12.5px] leading-snug text-ink/70 dark:bg-teal-accent-dark/10 dark:text-ink-dark/70">
+        Este formato sale <strong>vacío</strong> en el PDF para llenarlo a mano en papel. En el sistema no se escribe nada en él: lo que
+        pongas aquí son solo las etiquetas que se imprimen. Usa solo las partes que necesites; las vacías no salen.
       </p>
       <EditorListaTexto
         etiqueta="Campos del encabezado (línea en blanco para escribir, ej. «Estudiante»)"
@@ -1046,6 +1191,88 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
         valores={config.firmas_en_blanco ?? []}
         onCambiar={(v) => onGuardar({ ...config, firmas_en_blanco: v })}
       />
+    </div>
+  );
+}
+
+// 🆕 (2026-11-17) Cómo queda impreso el formato en blanco, mientras se diseña
+// — aproximado, pero con las mismas partes y en el mismo orden que dibuja
+// _renderizar_ficha_imprimible en el backend.
+function VistaPreviaFicha({ config, titulo }: { config: ConfigFichaImprimible; titulo: string | null }) {
+  const vacio =
+    !config.campos_encabezado?.length &&
+    !config.leyenda &&
+    !config.columnas?.length &&
+    !config.filas?.length &&
+    !config.listas_checkbox?.length &&
+    !config.preguntas_abiertas?.length &&
+    !config.firmas_en_blanco?.length;
+  return (
+    <div className="rounded-lg border border-border bg-white p-4 text-[11.5px] leading-snug text-neutral-800 shadow-sm dark:border-border-dark">
+      {titulo && <p className="m-0 mb-2 font-bold uppercase">{titulo}</p>}
+      {vacio && <p className="m-0 italic text-neutral-400">Agrega partes a la izquierda y aquí verás cómo queda la hoja.</p>}
+      {!!config.campos_encabezado?.length && (
+        <div className="mb-2.5 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+          {config.campos_encabezado.map((c, i) => (
+            <p key={i} className="m-0 flex min-w-0 items-end gap-1">
+              <span className="font-semibold break-words">{c}:</span>
+              <span className="mb-0.5 min-w-[3rem] flex-1 border-b border-neutral-400" />
+            </p>
+          ))}
+        </div>
+      )}
+      {config.leyenda && <p className="m-0 mb-2 italic text-neutral-600">{config.leyenda}</p>}
+      {!!config.columnas?.length && !!config.filas?.length && (
+        <table className="mb-2.5 w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="border border-neutral-400 bg-neutral-100 px-1.5 py-1 text-left font-semibold" />
+              {(config.columnas ?? []).map((c, i) => (
+                <th key={i} className="border border-neutral-400 bg-neutral-100 px-1.5 py-1 font-semibold">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(config.filas ?? []).map((f, i) => (
+              <tr key={i}>
+                <td className="border border-neutral-400 px-1.5 py-1">{f}</td>
+                {(config.columnas ?? []).map((_, j) => (
+                  <td key={j} className="border border-neutral-400 px-1.5 py-1" />
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {(config.listas_checkbox ?? []).map((l, i) => (
+        <div key={i} className="mb-2">
+          {l.titulo && <p className="m-0 font-semibold">{l.titulo}</p>}
+          <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+            {l.opciones.map((o, j) => (
+              <span key={j}>[&nbsp;&nbsp;] {o}</span>
+            ))}
+          </div>
+        </div>
+      ))}
+      {(config.preguntas_abiertas ?? []).map((p, i) => (
+        <div key={i} className="mb-2">
+          <p className="m-0 font-semibold">{p}</p>
+          <span className="mt-3 block border-b border-neutral-400" />
+          <span className="mt-3 block border-b border-neutral-400" />
+        </div>
+      ))}
+      {!!config.firmas_en_blanco?.length && (
+        <div className="mt-4 grid gap-4" style={{ gridTemplateColumns: `repeat(${Math.min(config.firmas_en_blanco.length, 3)}, minmax(0, 1fr))` }}>
+          {config.firmas_en_blanco.map((f, i) => (
+            <div key={i} className="pt-5 text-center">
+              <span className="block border-t border-neutral-500" />
+              <span className="mt-0.5 block">{f}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

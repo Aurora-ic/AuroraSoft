@@ -2,7 +2,7 @@
 
 import { useAvisoSinGuardar } from "@/lib/useAvisoSinGuardar";
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   FileText,
@@ -13,7 +13,6 @@ import {
   Send,
   CheckCircle2,
   Circle,
-  Wand2,
   Eye,
   Download,
   Lock,
@@ -21,7 +20,10 @@ import {
   Plus,
   X,
   ImagePlus,
-  Info,
+  Lightbulb,
+  ChevronDown,
+  Loader2,
+  ListChecks,
 } from "lucide-react";
 import { apiClient, descargarBlob, mensajeDe } from "@/lib/api-client";
 import { ACENTOS } from "@/lib/acentos";
@@ -33,7 +35,8 @@ import { CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { EsqueletoLista } from "@/components/ui/Esqueleto";
 import { VacioFicha } from "@/components/educativo/BloqueFicha";
 import { CabeceraInterna, Insignia, TarjetaLateral, BarraAvance, CampoFormulario } from "@/components/documentos/PiezasDocumento";
-import { ETIQUETAS_TIPO_SECCION, DESCRIPCION_TIPO_SECCION } from "@/lib/documentos-constantes";
+import { ETIQUETAS_TIPO_SECCION, ORIGEN_AUTOMATICA, MODO_TIPO_SECCION, instruccionPorDefecto } from "@/lib/documentos-constantes";
+import { ChipModo, MiniaturaSeccion } from "@/components/documentos/ModoSeccion";
 import { VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
 import type {
   DocumentoInstitucionalDetalle,
@@ -53,6 +56,14 @@ type ConfigSeccion = {
   filas_desde_lista_estudiantes?: boolean;
   campos?: { etiqueta: string }[];
   columnas?: { titulo: string }[];
+  // 🆕 (2026-11-17) Instrucción para quien llena, escrita en el constructor.
+  ayuda?: string;
+  // ficha_imprimible — solo para mostrar qué contiene el formato en blanco.
+  campos_encabezado?: string[];
+  listas_checkbox?: { titulo: string }[];
+  preguntas_abiertas?: string[];
+  firmas_en_blanco?: string[];
+  filas?: string[];
 };
 type ContenidoImagenAnexo = { storage_key?: string; nombre_archivo?: string };
 
@@ -281,9 +292,9 @@ export default function DetalleDocumentoPage() {
     }
   }
 
-  async function guardarSeccion(seccion: DocumentoInstitucionalSeccionContenido) {
+  async function guardarSeccion(seccion: DocumentoInstitucionalSeccionContenido): Promise<boolean> {
     const contenido = contenidoEditado(seccion);
-    if (!contenido) return;
+    if (!contenido) return true;
     setGuardandoSeccionId(seccion.plantilla_seccion_id);
     setError(null);
     try {
@@ -296,8 +307,10 @@ export default function DetalleDocumentoPage() {
           s.plantilla_seccion_id === seccion.plantilla_seccion_id ? { ...actualizado, inscripciones_vinculadas: s.inscripciones_vinculadas } : s,
         ),
       );
+      return true;
     } catch (err) {
       setError(mensajeDe(err) || "No se pudo guardar esta sección.");
+      return false;
     } finally {
       setGuardandoSeccionId(null);
     }
@@ -401,6 +414,13 @@ export default function DetalleDocumentoPage() {
     if (!documento) return;
     setGenerando(true);
     setError(null);
+    // 🆕 Lo que esté sin guardar se guarda antes de emitir: el PDF sale del
+    // contenido guardado, y antes había que acordarse de cada "Guardar".
+    if (!(await guardarPendientes.current())) {
+      setGenerando(false);
+      setError("No se pudo guardar todo antes de generar. Revisa la conexión e inténtalo otra vez.");
+      return;
+    }
     try {
       const nuevaVersion =
         documento.version_actual === null
@@ -449,6 +469,28 @@ export default function DetalleDocumentoPage() {
   }
 
   const ordenadas = useMemo(() => secciones.slice().sort((a, b) => a.orden - b.orden), [secciones]);
+
+  // 🆕 (2026-11-17) Guardado automático: 1,5 s después de dejar de escribir
+  // se guardan las secciones con cambios (antes había un "Guardar" por
+  // sección y era fácil olvidarlo). La función vive en una ref para que el
+  // temporizador use siempre el estado más reciente.
+  const guardarPendientes = useRef<() => Promise<boolean>>(async () => true);
+  useEffect(() => {
+    guardarPendientes.current = async () => {
+      let todoBien = true;
+      for (const s of ordenadas) {
+        if (!esAutomatica(s) && sinGuardar(s)) todoBien = (await guardarSeccion(s)) && todoBien;
+      }
+      return todoBien;
+    };
+  });
+  const firmaEdiciones = JSON.stringify([edicionesTexto, edicionesCampos, edicionesFiliacion, edicionesTablas, edicionesGrafico]);
+  useEffect(() => {
+    if (cargando) return;
+    const t = setTimeout(() => void guardarPendientes.current(), 1500);
+    return () => clearTimeout(t);
+  }, [firmaEdiciones, secciones, cargando]);
+  const [soloPendientes, setSoloPendientes] = useState(false);
   // 🆕 Aviso al salir con secciones sin guardar (punto 5 del análisis de UI/UX).
   useAvisoSinGuardar(
     ordenadas.some((s) => !esAutomatica(s) && sinGuardar(s)),
@@ -502,21 +544,59 @@ export default function DetalleDocumentoPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
         {/* ===== Secciones ===== */}
         <div className="flex flex-col gap-3 min-w-0">
-          {editables.length > 0 && (
-            <div className={`rounded-xl border px-4 py-3 ${VIOLETA.fondoSuave}`}>
-              <BarraAvance hechos={completas} total={editables.length} etiqueta="Secciones con contenido" />
-              {pendientesDeGuardar > 0 && (
-                <p className="m-0 mt-2 text-[12px] font-medium text-red-700 dark:text-red-300">
-                  {pendientesDeGuardar === 1 ? "1 sección tiene cambios sin guardar." : `${pendientesDeGuardar} secciones tienen cambios sin guardar.`}
-                </p>
-              )}
-              {!borrador && (
-                <p className="m-0 mt-2 text-[12px] text-ink/50 dark:text-ink-dark/50">
-                  Lo que cambies aquí se incluye en la próxima versión al reemitir; las versiones emitidas no cambian.
-                </p>
-              )}
-            </div>
-          )}
+          {/* 🆕 (2026-11-17) Guía corta + avance: qué se hace en esta pantalla. */}
+          <div className={`rounded-xl border px-4 py-3.5 ${VIOLETA.fondoSuave}`}>
+            <p className="m-0 flex items-center gap-1.5 text-[13.5px] font-bold text-ink dark:text-ink-dark">
+              <ListChecks size={15} className={VIOLETA.texto} aria-hidden="true" />
+              Cómo completar este documento
+            </p>
+            <ol className="m-0 mt-2 grid list-none gap-2 p-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70 sm:grid-cols-3">
+              <li className="flex gap-2">
+                <PasoGuia n={1} />
+                <span>
+                  Completa las partes marcadas <ChipModo modo="escribes" /> o <ChipModo modo="eliges" />. Cada una dice qué escribir.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <PasoGuia n={2} />
+                <span>
+                  Las partes <ChipModo modo="automatica" /> y <ChipModo modo="imprimir" /> no se tocan: salen solas en el PDF.
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <PasoGuia n={3} />
+                <span>Lo que escribes se guarda solo. Cuando termines, pulsa «{borrador ? "Generar versión 1" : "Reemitir"}» en el panel «{borrador ? "Emitir documento" : "Reemitir"}».</span>
+              </li>
+            </ol>
+            {editables.length > 0 && (
+              <div className="mt-3 border-t border-acento-violeta/15 pt-3 dark:border-acento-violeta-dark/20">
+                <BarraAvance hechos={completas} total={editables.length} etiqueta="Partes que completas tú" />
+                <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
+                  <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                    {guardandoSeccionId !== null
+                      ? "Guardando…"
+                      : pendientesDeGuardar > 0
+                      ? "Hay cambios por guardar (se guardan solos en un momento)."
+                      : "Todo lo escrito está guardado."}
+                  </p>
+                  <label className="inline-flex items-center gap-1.5 text-[12.5px] font-medium text-ink/70 dark:text-ink-dark/70 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={soloPendientes}
+                      onChange={(e) => setSoloPendientes(e.target.checked)}
+                      className="accent-[var(--color-acento-violeta)]"
+                    />
+                    Mostrar solo lo que me falta
+                  </label>
+                </div>
+              </div>
+            )}
+            {!borrador && (
+              <p className="m-0 mt-2 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                Lo que cambies aquí se incluye en la próxima versión al reemitir; las versiones ya emitidas no cambian.
+              </p>
+            )}
+          </div>
 
           {ordenadas.length === 0 && (
             <VacioFicha icono={FileText} texto="La plantilla de este documento no tiene secciones todavía." />
@@ -528,163 +608,199 @@ export default function DetalleDocumentoPage() {
             const completa = !automatica && estaCompleta(seccion);
             const pendiente = !automatica && sinGuardar(seccion);
             const guardando = guardandoSeccionId === id;
+            const config = definiciones[id]?.config as ConfigSeccion | null | undefined;
+            const titulo = seccion.titulo || ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion] || seccion.tipo_seccion;
+            if (soloPendientes && (automatica || completa)) return null;
+
+            // Partes que se llenan solas o se imprimen en blanco: una fila
+            // compacta que dice de dónde sale, nunca una tarjeta vacía.
+            if (automatica) {
+              return (
+                <SeccionAutomatica
+                  key={id}
+                  numero={idx + 1}
+                  titulo={titulo}
+                  tipo={seccion.tipo_seccion}
+                  origen={
+                    esTablaAutomatica(seccion)
+                      ? "Una fila por cada alumno del documento, con sus datos. Se llena sola."
+                      : ORIGEN_AUTOMATICA[seccion.tipo_seccion] ?? "Se completa sola al generar el PDF."
+                  }
+                  esTablaAutomatica={esTablaAutomatica(seccion)}
+                  config={config ?? null}
+                />
+              );
+            }
+
+            const instruccion = config?.ayuda?.trim() || instruccionPorDefecto(seccion.tipo_seccion, seccion.titulo);
             return (
-              <article key={id} className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden">
+              <article
+                key={id}
+                id={`seccion-${id}`}
+                className={`scroll-mt-24 rounded-xl border bg-surface dark:bg-surface-dark overflow-hidden ${
+                  completa ? "border-border dark:border-border-dark" : "border-acento-violeta/35 dark:border-acento-violeta-dark/35"
+                }`}
+              >
                 <header className="flex items-start gap-3 px-4 py-3 border-b border-border/70 dark:border-border-dark">
                   <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
-                      automatica ? "bg-mist text-ink/45 dark:bg-surface-raised-dark dark:text-ink-dark/50" : completa ? VIOLETA.chipSolido : VIOLETA.chip
-                    }`}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${completa ? VIOLETA.chipSolido : VIOLETA.chip}`}
                     aria-hidden="true"
                   >
                     {completa ? <CheckCircle2 size={14} /> : idx + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h3 className="m-0 text-[14px] font-bold text-ink dark:text-ink-dark leading-tight">
-                      {seccion.titulo || ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion] || seccion.tipo_seccion}
-                    </h3>
-                    <p className="m-0 mt-0.5 text-[12px] text-ink/45 dark:text-ink-dark/45">
-                      {seccion.titulo ? `${ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]} · ` : ""}
-                      {automatica && !esTablaAutomatica(seccion)
-                        ? DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]
-                        : esTablaAutomatica(seccion)
-                        ? "Una fila por cada alumno del documento. Se llena sola."
-                        : null}
-                    </p>
+                    <h3 className="m-0 text-[14.5px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h3>
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <ChipModo modo={MODO_TIPO_SECCION[seccion.tipo_seccion] === "automatica" ? "escribes" : MODO_TIPO_SECCION[seccion.tipo_seccion]} />
+                      {seccion.titulo && <span className="text-[12px] text-ink/40 dark:text-ink-dark/40">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>}
+                    </div>
                   </div>
-                  <EstadoSeccion automatica={automatica} completa={completa} pendiente={pendiente} />
+                  <EstadoSeccion completa={completa} pendiente={pendiente} guardando={guardando} />
                 </header>
 
-                {!automatica && (
-                  <div className="p-4 space-y-3">
-                    {seccion.tipo_seccion === "texto_libre" && (
-                      <>
-                        <Textarea
-                          rows={5}
-                          value={edicionesTexto[id] ?? ""}
-                          onChange={(e) => setEdicionesTexto({ ...edicionesTexto, [id]: e.target.value })}
-                          className="w-full leading-relaxed"
-                        />
-                        <div className="flex items-center justify-between gap-3 flex-wrap">
-                          <button
-                            type="button"
-                            title="Agrega una línea nueva que empieza con viñeta (•) — se imprime como punto en el PDF"
-                            onClick={() => {
-                              const actual = edicionesTexto[id] ?? "";
-                              const separador = actual && !actual.endsWith("\n") ? "\n" : "";
-                              setEdicionesTexto({ ...edicionesTexto, [id]: `${actual}${separador}• ` });
-                            }}
-                            className={`text-xs font-semibold hover:underline ${VIOLETA.texto}`}
-                          >
-                            • Agregar viñeta
-                          </button>
-                          <span className="text-[12px] text-ink/40 dark:text-ink-dark/40">
-                            <code className="font-mono">**así**</code> sale en <strong>negrita</strong> en el PDF
-                          </span>
-                        </div>
-                        <BotonGuardar onClick={() => guardarSeccion(seccion)} guardando={guardando} pendiente={pendiente} />
-                      </>
-                    )}
+                <div className="p-4 space-y-3">
+                  {instruccion && (
+                    <p className="m-0 flex items-start gap-2 rounded-lg bg-acento-violeta/[0.06] px-3 py-2 text-[13px] leading-snug text-ink/80 dark:bg-acento-violeta-dark/10 dark:text-ink-dark/80">
+                      <Lightbulb size={14} className={`mt-0.5 shrink-0 ${VIOLETA.texto}`} aria-hidden="true" />
+                      <span>{instruccion}</span>
+                    </p>
+                  )}
 
-                    {seccion.tipo_seccion === "grupo_campos" && (
-                      <>
-                        <div className="grid sm:grid-cols-2 gap-3">
-                          {((definiciones[id]?.config as ConfigSeccion | null | undefined)?.campos ?? []).map((c: { etiqueta: string }) => (
-                            <CampoFormulario key={c.etiqueta} etiqueta={c.etiqueta}>
-                              <Input
-                                value={edicionesCampos[id]?.[c.etiqueta] ?? ""}
-                                onChange={(e) => setEdicionesCampos({ ...edicionesCampos, [id]: { ...edicionesCampos[id], [c.etiqueta]: e.target.value } })}
-                              />
-                            </CampoFormulario>
-                          ))}
-                        </div>
-                        <BotonGuardar onClick={() => guardarSeccion(seccion)} guardando={guardando} pendiente={pendiente} />
-                      </>
-                    )}
-
-                    {seccion.tipo_seccion === "datos_filiacion" && (
-                      <EditorDatosFiliacion
-                        valores={edicionesFiliacion[id] ?? FILIACION_VACIA}
-                        onCambiar={(v) => setEdicionesFiliacion({ ...edicionesFiliacion, [id]: v })}
-                        onGuardar={() => guardarSeccion(seccion)}
-                        guardando={guardando}
-                        pendiente={pendiente}
+                  {seccion.tipo_seccion === "texto_libre" && (
+                    <>
+                      <Textarea
+                        rows={6}
+                        aria-label={titulo}
+                        placeholder="Escribe aquí…"
+                        value={edicionesTexto[id] ?? ""}
+                        onChange={(e) => setEdicionesTexto({ ...edicionesTexto, [id]: e.target.value })}
+                        onBlur={() => pendiente && guardarSeccion(seccion)}
+                        className="w-full leading-relaxed"
                       />
-                    )}
-
-                    {seccion.tipo_seccion === "tabla_dinamica" && (
-                      <EditorTablaLibre
-                        columnas={((definiciones[id]?.config as ConfigSeccion | null | undefined)?.columnas ?? []).map((c) => c.titulo)}
-                        filas={edicionesTablas[id] ?? []}
-                        onCambiar={(filas) => setEdicionesTablas({ ...edicionesTablas, [id]: filas })}
-                        onGuardar={() => guardarSeccion(seccion)}
-                        guardando={guardando}
-                        pendiente={pendiente}
-                      />
-                    )}
-
-                    {(seccion.tipo_seccion === "grafico_barras" || seccion.tipo_seccion === "resultados_prueba") && (
-                      <EditorResultadoVinculable
-                        tipo={seccion.tipo_seccion}
-                        puedeVincular={puedeVincular}
-                        historial={historialAlumno}
-                        vinculadas={seccion.inscripciones_vinculadas ?? []}
-                        vinculando={vinculandoSeccionId === id}
-                        onVincular={(inscripcionId) => vincularAplicacion(seccion, inscripcionId)}
-                        onDesvincular={() => desvincularAplicacion(seccion)}
-                        valoresManual={edicionesGrafico[id] ?? []}
-                        onCambiarManual={(v) => setEdicionesGrafico({ ...edicionesGrafico, [id]: v })}
-                        onGuardarManual={() => guardarSeccion(seccion)}
-                        guardando={guardando}
-                        pendiente={pendiente}
-                      />
-                    )}
-
-                    {seccion.tipo_seccion === "resultados_prueba_multiple" && (
-                      <EditorResultadosMultiplesVinculables
-                        puedeVincular={puedeVincular}
-                        historial={historialAlumno}
-                        guardando={guardando}
-                        seleccionados={edicionesResultadosMultiples[id] ?? []}
-                        onGuardar={(ids) => guardarResultadosMultiples(seccion, ids)}
-                      />
-                    )}
-
-                    {seccion.tipo_seccion === "imagen_anexo" && (
-                      <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg border border-dashed border-border dark:border-border-dark px-3.5 py-3">
-                        <div className="min-w-0 text-sm">
-                          {(seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? (
-                            <p className={`m-0 font-medium ${VIOLETA.texto}`}>{(seccion.contenido as ContenidoImagenAnexo | null)?.nombre_archivo ?? "Imagen cargada"}</p>
-                          ) : (
-                            <p className="m-0 text-ink/50 dark:text-ink-dark/50">Sin imagen todavía.</p>
-                          )}
-                          <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
-                        </div>
-                        <label
-                          className={claseBoton("secundario", "inline-flex items-center gap-1.5 !py-1.5 cursor-pointer")}
-                          onPaste={(e) => {
-                            const archivo = Array.from(e.clipboardData.files ?? []).find((f) => f.type.startsWith("image/"));
-                            if (archivo) subirImagen(seccion, archivo);
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <button
+                          type="button"
+                          title="Agrega una línea nueva que empieza con viñeta (•) — se imprime como punto en el PDF"
+                          onClick={() => {
+                            const actual = edicionesTexto[id] ?? "";
+                            const separador = actual && !actual.endsWith("\n") ? "\n" : "";
+                            setEdicionesTexto({ ...edicionesTexto, [id]: `${actual}${separador}• ` });
                           }}
-                          tabIndex={0}
+                          className={`text-xs font-semibold hover:underline ${VIOLETA.texto}`}
                         >
-                          <ImagePlus size={14} aria-hidden="true" />
-                          {subiendoImagenId === id ? "Subiendo..." : (seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? "Cambiar imagen" : "Subir imagen"}
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png"
-                            className="sr-only"
-                            disabled={subiendoImagenId === id}
-                            onChange={(e) => e.target.files?.[0] && subirImagen(seccion, e.target.files[0])}
-                          />
-                        </label>
+                          • Agregar viñeta
+                        </button>
+                        <span className="text-[12px] text-ink/40 dark:text-ink-dark/40">
+                          <code className="font-mono">**así**</code> sale en <strong>negrita</strong> en el PDF
+                        </span>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <BotonGuardar onClick={() => guardarSeccion(seccion)} guardando={guardando} pendiente={pendiente} />
+                    </>
+                  )}
+
+                  {seccion.tipo_seccion === "grupo_campos" && (
+                    <>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {(config?.campos ?? []).map((c: { etiqueta: string }) => (
+                          <CampoFormulario key={c.etiqueta} etiqueta={c.etiqueta}>
+                            <Input
+                              value={edicionesCampos[id]?.[c.etiqueta] ?? ""}
+                              placeholder={`Escribe ${c.etiqueta.toLowerCase()}`}
+                              onChange={(e) => setEdicionesCampos({ ...edicionesCampos, [id]: { ...edicionesCampos[id], [c.etiqueta]: e.target.value } })}
+                            />
+                          </CampoFormulario>
+                        ))}
+                      </div>
+                      <BotonGuardar onClick={() => guardarSeccion(seccion)} guardando={guardando} pendiente={pendiente} />
+                    </>
+                  )}
+
+                  {seccion.tipo_seccion === "datos_filiacion" && (
+                    <EditorDatosFiliacion
+                      valores={edicionesFiliacion[id] ?? FILIACION_VACIA}
+                      onCambiar={(v) => setEdicionesFiliacion({ ...edicionesFiliacion, [id]: v })}
+                      onGuardar={() => guardarSeccion(seccion)}
+                      guardando={guardando}
+                      pendiente={pendiente}
+                    />
+                  )}
+
+                  {seccion.tipo_seccion === "tabla_dinamica" && (
+                    <EditorTablaLibre
+                      columnas={(config?.columnas ?? []).map((c) => c.titulo)}
+                      filas={edicionesTablas[id] ?? []}
+                      onCambiar={(filas) => setEdicionesTablas({ ...edicionesTablas, [id]: filas })}
+                      onGuardar={() => guardarSeccion(seccion)}
+                      guardando={guardando}
+                      pendiente={pendiente}
+                    />
+                  )}
+
+                  {(seccion.tipo_seccion === "grafico_barras" || seccion.tipo_seccion === "resultados_prueba") && (
+                    <EditorResultadoVinculable
+                      tipo={seccion.tipo_seccion}
+                      puedeVincular={puedeVincular}
+                      historial={historialAlumno}
+                      vinculadas={seccion.inscripciones_vinculadas ?? []}
+                      vinculando={vinculandoSeccionId === id}
+                      onVincular={(inscripcionId) => vincularAplicacion(seccion, inscripcionId)}
+                      onDesvincular={() => desvincularAplicacion(seccion)}
+                      valoresManual={edicionesGrafico[id] ?? []}
+                      onCambiarManual={(v) => setEdicionesGrafico({ ...edicionesGrafico, [id]: v })}
+                      onGuardarManual={() => guardarSeccion(seccion)}
+                      guardando={guardando}
+                      pendiente={pendiente}
+                    />
+                  )}
+
+                  {seccion.tipo_seccion === "resultados_prueba_multiple" && (
+                    <EditorResultadosMultiplesVinculables
+                      puedeVincular={puedeVincular}
+                      historial={historialAlumno}
+                      guardando={guardando}
+                      seleccionados={edicionesResultadosMultiples[id] ?? []}
+                      onGuardar={(ids) => guardarResultadosMultiples(seccion, ids)}
+                    />
+                  )}
+
+                  {seccion.tipo_seccion === "imagen_anexo" && (
+                    <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg border border-dashed border-border dark:border-border-dark px-3.5 py-3">
+                      <div className="min-w-0 text-sm">
+                        {(seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? (
+                          <p className={`m-0 font-medium ${VIOLETA.texto}`}>{(seccion.contenido as ContenidoImagenAnexo | null)?.nombre_archivo ?? "Imagen cargada"}</p>
+                        ) : (
+                          <p className="m-0 text-ink/50 dark:text-ink-dark/50">Sin imagen todavía.</p>
+                        )}
+                        <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
+                      </div>
+                      <label
+                        className={claseBoton("secundario", "inline-flex items-center gap-1.5 !py-1.5 cursor-pointer")}
+                        onPaste={(e) => {
+                          const archivo = Array.from(e.clipboardData.files ?? []).find((f) => f.type.startsWith("image/"));
+                          if (archivo) subirImagen(seccion, archivo);
+                        }}
+                        tabIndex={0}
+                      >
+                        <ImagePlus size={14} aria-hidden="true" />
+                        {subiendoImagenId === id ? "Subiendo..." : (seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? "Cambiar imagen" : "Subir imagen"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png"
+                          className="sr-only"
+                          disabled={subiendoImagenId === id}
+                          onChange={(e) => e.target.files?.[0] && subirImagen(seccion, e.target.files[0])}
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
               </article>
             );
           })}
+
+          {soloPendientes && editables.length > 0 && completas === editables.length && (
+            <VacioFicha icono={CheckCircle2} texto="No te falta nada: todas las partes que completas tú tienen contenido." />
+          )}
         </div>
 
         {/* ===== Columna lateral ===== */}
@@ -695,8 +811,27 @@ export default function DetalleDocumentoPage() {
                 <p className="m-0 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
                   Genera el PDF oficial con el contenido guardado. Después ya no se puede descartar; los cambios se emiten como una versión nueva.
                 </p>
-                {pendientesDeGuardar > 0 && (
-                  <p className="m-0 text-[12px] font-medium text-red-700 dark:text-red-300">Guarda los cambios pendientes antes de generar.</p>
+                {editables.length - completas > 0 && (
+                  <div className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
+                    <p className="m-0 text-[12px] font-semibold text-ink/70 dark:text-ink-dark/70">
+                      {editables.length - completas === 1 ? "Falta 1 parte por completar:" : `Faltan ${editables.length - completas} partes por completar:`}
+                    </p>
+                    <ul className="m-0 mt-1 list-none space-y-0.5 p-0">
+                      {editables
+                        .filter((s) => !estaCompleta(s))
+                        .map((s) => (
+                          <li key={s.plantilla_seccion_id}>
+                            <a
+                              href={`#seccion-${s.plantilla_seccion_id}`}
+                              className={`text-[12.5px] font-medium hover:underline ${VIOLETA.texto}`}
+                            >
+                              {s.titulo || ETIQUETAS_TIPO_SECCION[s.tipo_seccion]}
+                            </a>
+                          </li>
+                        ))}
+                    </ul>
+                    <p className="m-0 mt-1 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Puedes generar igual: las vacías salen en blanco.</p>
+                  </div>
                 )}
                 <Boton onClick={generarOReemitir} disabled={generando || descartando} className="w-full">
                   {generando ? "Generando..." : "Generar versión 1"}
@@ -794,18 +929,18 @@ export default function DetalleDocumentoPage() {
   );
 }
 
-function EstadoSeccion({ automatica, completa, pendiente }: { automatica: boolean; completa: boolean; pendiente: boolean }) {
-  if (automatica) {
+function EstadoSeccion({ completa, pendiente, guardando }: { completa: boolean; pendiente: boolean; guardando: boolean }) {
+  if (guardando) {
     return (
-      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/50 dark:text-ink-dark/55">
-        <Wand2 size={10} aria-hidden="true" />
-        Automática
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/55 dark:text-ink-dark/60">
+        <Loader2 size={10} className="animate-spin" aria-hidden="true" />
+        Guardando…
       </span>
     );
   }
   if (pendiente) {
     return (
-      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-500/15 px-2 py-0.5 text-[11.5px] font-semibold text-red-700 dark:text-red-300">
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/55 dark:text-ink-dark/60">
         Sin guardar
       </span>
     );
@@ -823,9 +958,87 @@ function EstadoSeccion({ automatica, completa, pendiente }: { automatica: boolea
   );
 }
 
-function BotonGuardar({ onClick, guardando, pendiente, texto = "Guardar" }: { onClick: () => void; guardando: boolean; pendiente: boolean; texto?: string }) {
+function PasoGuia({ n }: { n: number }) {
   return (
-    <Boton onClick={onClick} disabled={guardando} variante={pendiente ? "primario" : "secundario"} className="!py-1.5">
+    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${VIOLETA.chipSolido}`} aria-hidden="true">
+      {n}
+    </span>
+  );
+}
+
+// 🆕 (2026-11-17) Una parte que no se llena aquí: fila compacta con su
+// título, cómo se llena y de dónde sale. Para el formato en blanco, además,
+// se puede ver qué contiene (antes aparecía como una tarjeta más, con un
+// título como «Motivo de derivación» que invitaba a buscar dónde escribir).
+function SeccionAutomatica({
+  numero,
+  titulo,
+  tipo,
+  origen,
+  esTablaAutomatica,
+  config,
+}: {
+  numero: number;
+  titulo: string;
+  tipo: DocumentoInstitucionalSeccionContenido["tipo_seccion"];
+  origen: string;
+  esTablaAutomatica: boolean;
+  config: ConfigSeccion | null;
+}) {
+  const [abierta, setAbierta] = useState(false);
+  const esImprimible = tipo === "ficha_imprimible";
+  const partes = esImprimible
+    ? [
+        ...(config?.campos_encabezado ?? []).map((c) => `${c}: ______`),
+        ...((config?.filas ?? []).length ? [`Tabla de ${(config?.filas ?? []).length} indicadores para marcar`] : []),
+        ...(config?.listas_checkbox ?? []).map((l) => `Casilleros: ${l.titulo || "lista de opciones"}`),
+        ...(config?.preguntas_abiertas ?? []).map((q) => `Pregunta: ${q}`),
+        ...(config?.firmas_en_blanco ?? []).map((f) => `Firma: ${f}`),
+      ]
+    : [];
+  return (
+    <div className="rounded-xl border border-dashed border-border dark:border-border-dark bg-surface/50 dark:bg-surface-dark/40">
+      <div className="flex items-start gap-3 px-4 py-2.5">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mist text-[11.5px] font-bold text-ink/40 dark:bg-surface-raised-dark dark:text-ink-dark/45" aria-hidden="true">
+          {numero}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[13.5px] font-semibold text-ink/75 dark:text-ink-dark/75">{titulo}</span>
+            <ChipModo modo={esTablaAutomatica ? "automatica" : MODO_TIPO_SECCION[tipo]} />
+          </div>
+          <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/50 dark:text-ink-dark/50">{origen}</p>
+          {esImprimible && partes.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setAbierta((v) => !v)}
+              aria-expanded={abierta}
+              className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-teal-700 hover:underline dark:text-teal-accent-dark"
+            >
+              <ChevronDown size={12} className={`transition-transform ${abierta ? "rotate-180" : ""}`} aria-hidden="true" />
+              {abierta ? "Ocultar qué contiene" : "Ver qué contiene el formato"}
+            </button>
+          )}
+          {abierta && (
+            <ul className="m-0 mt-1.5 list-disc space-y-0.5 pl-5 text-[12px] text-ink/60 dark:text-ink-dark/60">
+              {partes.map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <MiniaturaSeccion tipo={tipo} className="hidden w-24 shrink-0 sm:block" />
+      </div>
+    </div>
+  );
+}
+
+// 🆕 Con el guardado automático, el botón solo aparece mientras hay algo
+// sin guardar (para quien prefiere guardar al instante).
+function BotonGuardar({ onClick, guardando, pendiente, texto = "Guardar" }: { onClick: () => void; guardando: boolean; pendiente: boolean; texto?: string }) {
+  if (!pendiente && !guardando) return null;
+  return (
+    <Boton onClick={onClick} disabled={guardando} variante="secundario" className="!py-1.5">
       {guardando ? "Guardando..." : texto}
     </Boton>
   );
@@ -849,10 +1062,6 @@ function EditorDatosFiliacion({
 }) {
   return (
     <>
-      <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
-        <Info size={12} className="mt-px shrink-0" aria-hidden="true" />
-        Nombre, edad, documento y grado salen solos de la ficha del alumno. Aquí completas solo estos campos.
-      </p>
       <CampoFormulario etiqueta="Diagnóstico presuntivo">
         <Textarea rows={2} value={valores.diagnostico_presuntivo} onChange={(e) => onCambiar({ ...valores, diagnostico_presuntivo: e.target.value })} />
       </CampoFormulario>

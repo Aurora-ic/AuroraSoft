@@ -55,7 +55,7 @@ test.describe("Documento con un resultado de prueba vinculado", () => {
     await page.goto(`/documentos/${documento.id}`);
     // Primera carga del documento: en el entorno de desarrollo cada consulta
     // tarda cientos de ms, así que se le da más margen que el de 5 s.
-    await expect(page.getByText("Resultado psicométrico")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "Resultado psicométrico" })).toBeVisible({ timeout: 30_000 });
 
     // Sin vínculo todavía: se elige la aplicación real del alumno.
     await expect(page.getByText("Ninguna todavía. Elige una:")).toBeVisible();

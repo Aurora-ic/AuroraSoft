@@ -512,3 +512,31 @@ El usuario pidió dos cosas: priorizar el salón al crear una campaña y que no 
 - **Vínculo manual de resultados en documentos:** ya existía (ver docs/gaps-pendientes.md). `e2e/documento-resultado-vinculado.spec.ts` es su primer recorrido real en el navegador.
 - **🔧 Bug del paso de sesiones, encontrado por la suite:** `AuthContext` confirmaba la sesión con `/auth/me` y la reemplazaba SIEMPRE por un objeto nuevo, aunque fuera idéntica. Cada pantalla con `sesion` en las dependencias de su efecto de carga (la ficha del alumno, entre otras) volvía a pedir todo, y esa segunda carga, lenta, podía terminar después de que el usuario guardara un cambio y pisarlo en pantalla con datos viejos. `agenda-citas-seguimiento.spec.ts` lo atrapó: la sesión editada quedaba bien en la base, pero la ficha volvía a mostrar la versión anterior. Ahora solo se reemplaza si cambió el email, el rol o el colegio. De paso, la ficha carga una sola vez: ese spec bajó de ~43 s a ~17 s.
 - **Playwright espera 15 s por aserción** (`expect.timeout` en `playwright.config.ts`, antes los 5 s por defecto). La base de desarrollo es **Neon en AWS São Paulo (sa-east-1)**, y cada consulta hace un viaje de ida y vuelta de ~85-90 ms desde el backend local: la ficha completa del alumno tarda 2,5-5 s sola. Es también la causa del punto «Lentitud del entorno» del backlog. En producción, el backend debe correr en la misma región que la base (o la base junto al backend), y la ficha hace decenas de consultas que convendría agrupar.
+
+## 🆕 Documentos en lenguaje llano: cómo se llena cada parte, guía y guardado automático (sesión 2026-11-17)
+
+Observación de la psicóloga del piloto: editar plantillas y llenar documentos costaba entender. No se distinguía «Texto libre» de «Ficha imprimible en blanco», y al llenar aparecían secciones marcadas «Automática» con títulos como «Motivo de derivación» que invitaban a buscar dónde escribir. Solo frontend: ni el backend ni los datos cambian.
+
+- **4 modos de llenado**, iguales en las tres pantallas (`lib/documentos-constantes.ts` → `MODO_TIPO_SECCION`/`INFO_MODO`; `components/documentos/ModoSeccion.tsx` → `ChipModo`, `LeyendaModos`, `MiniaturaSeccion`):
+  - **Lo completas tú** (violeta)
+  - **Eliges una prueba** (azul)
+  - **Se llena solo** (pizarra)
+  - **Para imprimir en blanco** (teal)
+
+  Ámbar sigue reservado a riesgo clínico. Los tipos tienen nombres llanos («Texto para redactar», «Formato en blanco para imprimir», «Casillas de datos cortos»…), con una línea de qué hacen (`DESCRIPCION_TIPO_SECCION`) y un ejemplo (`EJEMPLO_TIPO_SECCION`). Los `tipo_seccion` del backend no cambian.
+- **Constructor** (`documentos/plantillas/[id]`):
+  - El desplegable de 14 tipos pasó a ser un **catálogo agrupado por modo**, con miniatura de cómo sale en el PDF.
+  - Cada sección muestra su modo, «Título que se imprime» (vacío = la sección sale sin encabezado, como hace `pdf_generador`) y, si se llena, **«Instrucción para quien llena»**. Se guarda en `PlantillaSeccion.config.ayuda`: el backend guarda la config tal cual, sin migración, y el clonado la copia.
+  - `guardarConfigObjeto` ahora mezcla con la config guardada; antes el editor de casillas la reemplazaba y habría borrado `ayuda`.
+  - El formato en blanco tiene **vista previa de la hoja impresa**, en el mismo orden que `_renderizar_ficha_imprimible`.
+- **Llenar** (`documentos/[id]`):
+  - Guía de 3 pasos con avance y el filtro «Mostrar solo lo que me falta».
+  - Las partes automáticas e imprimibles son **filas compactas** que dicen de dónde salen (`ORIGEN_AUTOMATICA`). El formato en blanco se puede desplegar con «Ver qué contiene».
+  - Cada parte a completar muestra su instrucción (`config.ayuda` o `instruccionPorDefecto`).
+  - **Guardado automático** 1,5 s después de dejar de escribir; «Generar» guarda antes lo pendiente. El botón «Guardar» solo aparece mientras hay algo sin guardar.
+  - La columna de emitir lista las partes que faltan, con enlace a cada una.
+- **Nuevo documento**: al elegir la plantilla, `PartesDePlantilla` muestra qué partes vas a completar y cuáles salen solas.
+- **`/documentos`**: `GuiaDocumentos` explica en tres pasos Catálogo → Mis plantillas → Nuevo documento, más los 4 modos. Se oculta y queda recordado en el navegador (`localStorage`, solo preferencia de vista).
+- **Pruebas**:
+  - `e2e/documentos.spec.ts` se ajustó a los textos nuevos y espera «Todo lo escrito está guardado.» en vez de pulsar «Guardar».
+  - `e2e/documento-resultado-vinculado.spec.ts` busca el título por su encabezado, porque ahora también aparece en la lista de pendientes.

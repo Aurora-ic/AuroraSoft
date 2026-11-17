@@ -43,19 +43,20 @@ test.describe("Motor de documentos institucionales", () => {
     await page.waitForURL(/\/documentos\/plantillas\/\d+/);
     await expect(page.getByRole("heading", { name: /nueva plantilla/i })).toBeVisible();
     const tituloSeccion = `Motivo de evaluación ${fixtures.sello}`;
-    // "Tipo" ya nace en "Texto libre" (el default del formulario) -- no hace
-    // falta tocar el <select>, solo el título y agregar.
+    // El tipo ya nace en "Texto para redactar" (antes "Texto libre", el
+    // default del catálogo) -- solo falta el título y agregar.
+    await expect(page.getByRole("radio", { name: /Texto para redactar/ })).toHaveAttribute("aria-checked", "true");
     await page.getByLabel("Título (opcional)").fill(tituloSeccion);
     await page.getByRole("button", { name: "+ Agregar sección" }).click();
-    // El título de la sección se edita inline (su nombre accesible queda
-    // fijo como "(sin título propio)" — lo que cambia es el VALOR del
-    // campo, nunca texto estático), por eso se verifica con toHaveValue,
-    // no con getByText.
-    const filaSeccion = page.getByRole("textbox", { name: "(sin título propio)" }).locator("..");
-    await expect(filaSeccion.getByRole("textbox", { name: "(sin título propio)" })).toHaveValue(tituloSeccion);
-    // Acotado a la fila de la sección -- "Texto libre" a secas también
-    // matchea la <option> del <select> "Tipo" en el resto de la pantalla.
-    await expect(filaSeccion.getByText("Texto libre")).toBeVisible();
+    // El título de la sección se edita inline: su nombre accesible es fijo
+    // ("Título que se imprime") y lo que cambia es el VALOR del campo.
+    const campoTitulo = page.getByRole("textbox", { name: "Título que se imprime" });
+    await expect(campoTitulo).toHaveValue(tituloSeccion);
+    // Acotado a la fila de la sección (el catálogo de abajo también dice
+    // "Texto para redactar").
+    const filaSeccion = page.locator("li", { has: campoTitulo });
+    await expect(filaSeccion.getByText("Texto para redactar", { exact: true })).toBeVisible();
+    await expect(filaSeccion.getByText("Lo completas tú")).toBeVisible();
 
     // 🔧 (sesión 2026-11-02) Una plantilla nueva nace INACTIVA y solo las
     // activas aparecen al crear un documento: se activa aquí.
@@ -83,11 +84,13 @@ test.describe("Motor de documentos institucionales", () => {
     await page.waitForURL(/\/documentos\/\d+$/);
     await expect(page.getByRole("heading", { name: tituloDocumento })).toBeVisible();
     await expect(page.getByText(nombreAlumno)).toBeVisible();
-    await expect(page.getByText(tituloSeccion)).toBeVisible();
+    await expect(page.getByRole("heading", { name: tituloSeccion })).toBeVisible();
 
+    // 🆕 (2026-11-17) Se guarda solo al dejar de escribir (ya no hace falta
+    // pulsar "Guardar"); se espera la confirmación antes de emitir.
     const contenidoTexto = `El estudiante fue evaluado el ${fixtures.sello} en el marco de la campaña de tamizaje institucional.`;
-    await page.getByRole("textbox").first().fill(contenidoTexto);
-    await page.getByRole("button", { name: "Guardar" }).click();
+    await page.getByRole("textbox", { name: tituloSeccion }).fill(contenidoTexto);
+    await expect(page.getByText("Todo lo escrito está guardado.")).toBeVisible({ timeout: 15_000 });
 
     await page.getByRole("button", { name: "Generar versión 1" }).click();
     await expect(page.getByText(/^v1 —/)).toBeVisible();

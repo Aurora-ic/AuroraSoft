@@ -14,6 +14,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { EsqueletoLista } from "@/components/ui/Esqueleto";
 import { CabeceraInterna, PasoFormulario, TarjetaLateral, CampoFormulario } from "@/components/documentos/PiezasDocumento";
+import { PartesDePlantilla } from "@/components/documentos/PartesDePlantilla";
 import type {
   TipoDocumento,
   PlantillaDocumento,
@@ -327,6 +328,7 @@ export default function NuevoDocumentoPage() {
                 {tipoElegido.requiere_consentimiento_individual && " · requiere consentimiento vigente del apoderado para emitirse"}
               </p>
             )}
+            {plantillaElegida && <PartesDePlantilla plantillaId={plantillaElegida.id} />}
             {plantillas.length === 0 && (
               <p className="m-0 mt-2 text-[12px] text-ink/55 dark:text-ink-dark/55">
                 Tu institución todavía no tiene ninguna plantilla activa.{" "}
