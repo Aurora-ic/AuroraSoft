@@ -33,8 +33,17 @@ const TIPOS_BRANDING = ["encabezado", "pie", "fondo"] as const;
 type TipoBranding = (typeof TIPOS_BRANDING)[number];
 
 const ETIQUETAS_BRANDING: Record<TipoBranding, { titulo: string; descripcion: string }> = {
-  encabezado: { titulo: "Logo de encabezado", descripcion: "Encabezado de los documentos e informes generados." },
-  pie: { titulo: "Pie de página", descripcion: "Franja en el pie de página de los documentos." },
+  // 🆕 (2026-11-17) En los documentos el membrete y el pie van pegados al
+  // borde de la hoja, a todo el ancho: se explica qué imagen subir.
+  encabezado: {
+    titulo: "Membrete (encabezado)",
+    descripcion:
+      "Va pegado al borde superior de cada hoja, a todo el ancho. Sube una franja ancha (ej. 2480 × 350 px); un logo cuadrado sale centrado y pequeño. También es el logo de la barra lateral.",
+  },
+  pie: {
+    titulo: "Pie de página",
+    descripcion: "Va pegado al borde inferior de cada hoja, a todo el ancho. Sube una franja ancha (ej. 2480 × 250 px).",
+  },
   fondo: { titulo: "Fondo de página completa", descripcion: "Solo se usa en plantillas que lo activen explícitamente." },
 };
 

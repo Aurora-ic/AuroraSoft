@@ -706,7 +706,8 @@ export default function ConstructorPlantillaPage() {
           {puedeEditarBranding && (
             <TarjetaLateral icono={ImageIcon} titulo="Membrete, pie y fondo">
               <p className="m-0 mb-3 text-[12px] text-ink/50 dark:text-ink-dark/50">
-                Valen para todos los documentos de tu institución, no solo esta plantilla.
+                Valen para todos los documentos de tu institución, no solo esta plantilla. El membrete y el pie van pegados al borde
+                superior e inferior de cada hoja, a todo el ancho: sube franjas anchas (ej. 2480 × 350 px).
               </p>
               <TextoError>{errorBranding}</TextoError>
               <ul className="m-0 p-0 list-none space-y-2">

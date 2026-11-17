@@ -125,8 +125,22 @@ def _construir_estilos(plantilla: dict) -> dict:
     }, fuente, fuente_bold
 
 
-ALTO_BANDA_ENCABEZADO = 2.6 * cm
-ALTO_BANDA_PIE = 1.6 * cm
+# 🆕 (2026-11-17, observación del piloto) El membrete y el pie van PEGADOS al
+# borde superior e inferior de la hoja, a todo el ancho, como un membrete
+# impreso de verdad — antes quedaban dentro de los márgenes (2 cm a los
+# lados, 1,1 cm del borde) y el membrete parecía un logo suelto encima del
+# título. La imagen se ajusta al ancho de la hoja sin deformarse; estos son
+# solo los topes de alto. Una franja ancha (membrete de verdad, proporción
+# >= 3:1) llega hasta 4,5 cm para cubrir todo el ancho; un logo cuadrado o
+# vertical se queda en 3 cm, centrado, para no ocupar media página.
+ALTO_MAX_MEMBRETE = 4.5 * cm
+ALTO_MAX_PIE = 3.0 * cm
+ALTO_MAX_LOGO = 3.0 * cm
+ALTO_MAX_LOGO_PIE = 2.0 * cm
+PROPORCION_FRANJA = 3.0
+# Aire entre la imagen y el texto, y margen cuando no hay imagen.
+SEPARACION_TEXTO = 0.6 * cm
+MARGEN_SIN_IMAGEN = 2.5 * cm
 
 
 def _dibujar_imagen_contenida(canvas_obj, reader: ImageReader, x: float, y_arriba: float, ancho_max: float, alto_max: float) -> float:
@@ -143,6 +157,36 @@ def _dibujar_imagen_contenida(canvas_obj, reader: ImageReader, x: float, y_arrib
         mask="auto", preserveAspectRatio=True,
     )
     return h
+
+
+def _tope_de_alto(reader: ImageReader, es_pie: bool) -> float:
+    iw, ih = reader.getSize()
+    franja = ih and iw / ih >= PROPORCION_FRANJA
+    if es_pie:
+        return ALTO_MAX_PIE if franja else ALTO_MAX_LOGO_PIE
+    return ALTO_MAX_MEMBRETE if franja else ALTO_MAX_LOGO
+
+
+def _alto_a_todo_el_ancho(reader: ImageReader | None, es_pie: bool = False) -> float:
+    """Alto con que se dibuja la imagen ajustada al ancho de la hoja (sin
+    pasar de su tope); 0 si no hay imagen."""
+    if reader is None:
+        return 0.0
+    iw, ih = reader.getSize()
+    if not iw or not ih:
+        return 0.0
+    ancho, _ = A4
+    return ih * min(ancho / iw, _tope_de_alto(reader, es_pie) / ih)
+
+
+def margenes_por_membrete(imagen_encabezado: ImageReader | None, imagen_pie: ImageReader | None) -> tuple[float, float]:
+    """(margen superior, margen inferior) del texto: justo debajo del
+    membrete y justo encima del pie, o el margen normal si no hay imagen."""
+    alto_membrete = _alto_a_todo_el_ancho(imagen_encabezado)
+    alto_pie = _alto_a_todo_el_ancho(imagen_pie, es_pie=True)
+    arriba = alto_membrete + SEPARACION_TEXTO if alto_membrete else MARGEN_SIN_IMAGEN
+    abajo = alto_pie + SEPARACION_TEXTO if alto_pie else MARGEN_SIN_IMAGEN
+    return max(arriba, 1.5 * cm), max(abajo, 1.5 * cm)
 
 
 def _dibujar_marco_pagina(
@@ -163,8 +207,6 @@ def _dibujar_marco_pagina(
     siempre encima, nunca tapado por el fondo."""
     canvas_obj.saveState()
     ancho, alto = A4
-    margen_x = 2 * cm
-    ancho_contenido = ancho - 2 * margen_x
 
     if imagen_fondo is not None:
         iw, ih = imagen_fondo.getSize()
@@ -175,14 +217,13 @@ def _dibujar_marco_pagina(
                 imagen_fondo, (ancho - w) / 2, (alto - h) / 2, width=w, height=h, mask="auto",
             )
 
+    # Membrete: su borde superior coincide con el borde de la hoja.
     if imagen_encabezado is not None:
-        _dibujar_imagen_contenida(
-            canvas_obj, imagen_encabezado, margen_x, alto - 1.1 * cm, ancho_contenido, ALTO_BANDA_ENCABEZADO,
-        )
+        _dibujar_imagen_contenida(canvas_obj, imagen_encabezado, 0, alto, ancho, _tope_de_alto(imagen_encabezado, False))
+    # Pie: su borde inferior coincide con el borde de la hoja.
     if imagen_pie is not None:
-        _dibujar_imagen_contenida(
-            canvas_obj, imagen_pie, margen_x, 1.1 * cm + ALTO_BANDA_PIE, ancho_contenido, ALTO_BANDA_PIE,
-        )
+        alto_pie = _alto_a_todo_el_ancho(imagen_pie, es_pie=True)
+        _dibujar_imagen_contenida(canvas_obj, imagen_pie, 0, alto_pie, ancho, _tope_de_alto(imagen_pie, True))
 
     canvas_obj.restoreState()
 
@@ -874,11 +915,12 @@ def generar_pdf_documento(contenido: dict) -> io.BytesIO:
         elementos.append(Spacer(1, 6))
 
     buffer = io.BytesIO()
+    margen_superior, margen_inferior = margenes_por_membrete(imagen_encabezado, imagen_pie)
     doc = SimpleDocTemplate(
         buffer, pagesize=A4,
         rightMargin=2 * cm, leftMargin=2 * cm,
-        topMargin=1.1 * cm + ALTO_BANDA_ENCABEZADO + 0.9 * cm,
-        bottomMargin=1.6 * cm + ALTO_BANDA_PIE + 0.9 * cm,
+        topMargin=margen_superior,
+        bottomMargin=margen_inferior,
     )
     marco = lambda canvas_obj, doc_obj: _dibujar_marco_pagina(  # noqa: E731
         canvas_obj, doc_obj, imagen_encabezado, imagen_pie, imagen_fondo,
