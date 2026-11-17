@@ -14,7 +14,6 @@ import {
   LogOut,
   KeyRound,
   X,
-  School,
   type LucideIcon,
 } from "lucide-react";
 import { type Acento } from "@/lib/acentos";
@@ -23,6 +22,7 @@ import { apiClient } from "@/lib/api-client";
 import type { BandejaCasosRiesgo, Cita, Institucion } from "@/types/api";
 import { ETIQUETA_ROL, useUsuarioActual } from "@/lib/usuario";
 import { DialogoCambiarPassword } from "@/components/auth/DialogoCambiarPassword";
+import { BloqueInstitucion } from "@/components/educativo/BloqueInstitucion";
 
 // 🆕 `soloStaff` (sesión 2026-11-01, punto 4 del análisis de UI/UX): el rol
 // `colegio` (dirección) no ve enlaces a pantallas cuyo backend le responde
@@ -108,14 +108,6 @@ const CHIP_GRUPO: Record<Acento, string> = {
   pizarra: "bg-acento-pizarra-dark/25 text-acento-pizarra-dark",
   riesgo: "bg-amber/20 text-amber",
 };
-
-function inicialesInstitucion(nombre: string): string {
-  const palabras = nombre
-    .replace(/[^\p{L}\s]/gu, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 2 || /^[A-ZÁÉÍÓÚÑ]/.test(w));
-  return (palabras.slice(0, 2).map((w) => w[0]).join("") || nombre.slice(0, 2)).toUpperCase();
-}
 
 // 🆕 Responsive (sesión 2026-10-29, a pedido del usuario) — antes la barra
 // lateral era fija en todo ancho y se comía el espacio del contenido en
@@ -241,7 +233,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
       }`}
     >
       <div>
-        <div className="relative px-5 pt-6 pb-5">
+        <div className="relative px-3 pt-4 pb-4">
           <button
             type="button"
             onClick={onCerrar}
@@ -250,28 +242,10 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
           >
             <X size={18} strokeWidth={2} aria-hidden="true" />
           </button>
-          {/* Logo + nombre de la institución. El logo va sobre una
-              pastilla blanca: cualquier logo (fondo blanco o transparente,
-              a color) se lee igual sobre el verde oscuro. */}
-          <div className="flex items-center gap-3 pr-6">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-white/20">
-              {institucion?.logo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element -- URL externa configurada por la institución (mismo <img> que Configuración)
-                <img src={institucion.logo_url} alt="" className="h-full w-full object-contain p-1" />
-              ) : institucion ? (
-                <span className="font-display text-[15px] font-bold text-teal-900">{inicialesInstitucion(institucion.nombre)}</span>
-              ) : (
-                <School size={20} className="text-teal-900/60" aria-hidden="true" />
-              )}
-            </span>
-            <div className="min-w-0">
-              <p className="m-0 font-display text-[15px] font-bold leading-tight text-white line-clamp-2" title={institucion?.nombre}>
-                {institucion?.nombre ?? "Mi institución"}
-              </p>
-              <p className="m-0 mt-0.5 text-[12px] text-white/55 truncate">
-                {institucion?.anio_escolar_activo ? `Año escolar ${institucion.anio_escolar_activo}` : institucion?.tipo || "Institución educativa"}
-              </p>
-            </div>
+          {/* Logo + nombre de la institución: bloque que toma los colores y
+              la forma del logo de cada colegio (components/educativo/BloqueInstitucion). */}
+          <div className="pr-7 lg:pr-0">
+            <BloqueInstitucion institucion={institucion} />
           </div>
         </div>
 
