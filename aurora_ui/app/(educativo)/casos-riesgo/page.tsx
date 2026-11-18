@@ -19,7 +19,7 @@ import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { Select } from "@/components/ui/Select";
-import { EsqueletoLista } from "@/components/ui/Esqueleto";
+import { EsqueletoLineas, EsqueletoLista } from "@/components/ui/Esqueleto";
 import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { VacioFicha } from "@/components/educativo/BloqueFicha";
 import {
@@ -483,7 +483,7 @@ function HistorialCaso({ casoId }: { casoId: number }) {
     queryKey: ["caso-historial", casoId],
     queryFn: () => apiClient.get<EventoCasoRiesgo[]>(`/educativo/casos-riesgo/${casoId}/historial`),
   });
-  if (consulta.isPending) return <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">Cargando historial…</p>;
+  if (consulta.isPending) return <EsqueletoLineas cantidad={3} />;
   if (consulta.error) return <TextoError className="text-xs">No se pudo cargar el historial.</TextoError>;
   return (
     <ol className="m-0 flex flex-col gap-1.5 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 p-3 list-none">

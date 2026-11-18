@@ -16,6 +16,7 @@ import type {
 } from "@/types/api";
 import { useCargaDiferida } from "@/lib/useCargaDiferida";
 import { PautasLecturaFacil } from "@/components/educativo/PautasLecturaFacil";
+import { EsqueletoBloque } from "@/components/ui/Esqueleto";
 
 // Modelos de CONSENTIMIENTO (lo firma el apoderado) y ASENTIMIENTO (lo
 // acepta el propio alumno) de cada colegio — versionados, nunca editados.
@@ -247,7 +248,7 @@ function ConsentimientoYAsentimientoPageContenido() {
       <TextoError>{error}</TextoError>
 
       {cargando ? (
-        <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+        <EsqueletoBloque lineas={6} />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[16rem_1fr] items-start">
           {/* ---------------- Ámbitos ---------------- */}

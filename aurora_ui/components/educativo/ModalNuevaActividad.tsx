@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import type { CitaCreate, Persona } from "@/types/api";
 import { usePadronPaginado, useResumenPadron, useValorDiferido } from "@/lib/padron";
+import { EsqueletoLineas } from "@/components/ui/Esqueleto";
 
 // 🆕 (sesión 2026-10-31, a pedido del usuario) Un solo modal para lo que se
 // agenda desde la Agenda, con dos modos:
@@ -483,7 +484,7 @@ export function ModalNuevaActividad({
               <div className="p-3">
                 <TextoError>{errorPersonas}</TextoError>
                 {cargandoPersonas ? (
-                  <p className="m-0 text-xs text-ink/40 dark:text-ink-dark/40">Cargando padrón...</p>
+                  <EsqueletoLineas cantidad={3} />
                 ) : resumen !== null && resumen.activos === 0 ? (
                   <p className="m-0 text-xs italic text-ink/40 dark:text-ink-dark/40">No hay estudiantes activos en el padrón todavía.</p>
                 ) : pestana === "salon" ? (

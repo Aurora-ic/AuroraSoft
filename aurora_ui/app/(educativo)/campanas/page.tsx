@@ -4,13 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { Flag, Plus, UserRound } from "lucide-react";
 import { EncabezadoPagina, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
-import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 import type { RespuestaPaginada } from "@/types/api";
 import { estadoVisibleCampana, etiquetaEstadoCampana, claseBadgeEstadoCampana } from "@/lib/campanas";
-import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { useConsultaApi } from "@/lib/consultas";
 
 // Refleja schemas.EvaluacionResponse tal cual está en el backend —
 // no tiene "nombre_grupo" separado de nombre de prueba, ni conteo de
@@ -45,47 +44,29 @@ const TAMANO_PAGINA = 50;
 
 export default function CampanasPage() {
   const { sesion } = useAuth();
-  const [campanas, setCampanas] = useState<Campana[]>([]);
-  const [total, setTotal] = useState(0);
   const [pagina, setPagina] = useState(0);
   const [tipo, setTipo] = useState<TipoLista>("grupal");
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useCargaDiferida(() => {
-    if (!sesion) return;
-    let vigente = true;
-    setCargando(true);
-    // Nota: si sesion.rol es "superadmin", institucionId puede venir null
-    // (el backend lo exige para ese rol) — en ese caso esta pantalla
-    // no debería usarse igual, un superadmin no opera desde (educativo).
-    //
-    // 🆕 Esta llamada no tenía .catch(): un fallo de red/servidor dejaba
-    // `campanas=[]` sin ningún aviso, idéntico a "todavía no hay campañas
-    // creadas". Un 401 ya se resuelve aparte (ver lib/api-client.ts/
-    // AuthContext.tsx: cierra sesión y redirige); este mensaje cubre el
-    // resto de fallas.
-    //
-    // 🆕 Paginación real (docs/gaps-pendientes.md) — antes pedía toda
-    // campaña creada sin tope; ahora pide de a 50 con skip/limit.
-    apiClient
-      .get<RespuestaPaginada<Campana>>(
-        `/educativo/campanas/?institucion_id=${sesion.institucionId}&tipo=${tipo}&skip=${pagina * TAMANO_PAGINA}&limit=${TAMANO_PAGINA}`,
-      )
-      .then((res) => {
-        if (!vigente) return;
-        setCampanas(res.items);
-        setTotal(res.total);
-      })
-      .catch((err) => vigente && setError(err.message || "No se pudieron cargar las campañas."))
-      .finally(() => vigente && setCargando(false));
-    // 🔧 (sesión 2026-11-01) Al cambiar de pestaña, una respuesta lenta de la
-    // pestaña anterior pisaba la lista nueva (se veían grupales en
-    // "Individuales"): se descarta toda respuesta que ya no corresponde.
-    return () => {
-      vigente = false;
-    };
-  }, [sesion, pagina, tipo]);
+  // Nota: si sesion.rol es "superadmin", institucionId puede venir null (el
+  // backend lo exige para ese rol) — esta pantalla no se usa para ese rol.
+  //
+  // 🆕 Paginación real (docs/gaps-pendientes.md): de a 50 con skip/limit.
+  // 🆕 (2026-11-17, plan de UX fase 1) Con memoria entre pantallas
+  // (lib/consultas.ts): al volver desde el dashboard de una campaña, la
+  // lista se ve al instante. La clave incluye tipo y página, así que una
+  // respuesta lenta de la otra pestaña nunca pisa la que se está viendo
+  // (el bug de la sesión 2026-11-01). Un error se muestra (antes de la
+  // auditoría 2026-10-16 un fallo quedaba igual a "no hay campañas").
+  const consulta = useConsultaApi<RespuestaPaginada<Campana>>(
+    sesion
+      ? `/educativo/campanas/?institucion_id=${sesion.institucionId}&tipo=${tipo}&skip=${pagina * TAMANO_PAGINA}&limit=${TAMANO_PAGINA}`
+      : null,
+    { mensajeError: "No se pudieron cargar las campañas." },
+  );
+  const campanas = consulta.datos?.items ?? [];
+  const total = consulta.datos?.total ?? 0;
+  const cargando = consulta.cargando;
+  const error = consulta.error;
 
   // STAFF_CLINICO del backend (superadmin/admin/psicologo) — "colegio"
   // puede ver el listado pero nunca crear campañas (ver campanas/nueva/page.tsx).

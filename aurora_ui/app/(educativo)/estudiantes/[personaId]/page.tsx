@@ -91,6 +91,7 @@ import type {
   RespuestaPaginada,
 } from "@/types/api";
 import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
+import { AvisoCargando, EsqueletoBloque, EsqueletoLineas } from "@/components/ui/Esqueleto";
 
 // Debe coincidir con crud.TIPOS_ENTRADA_CON_CONTENIDO_PROPIO del backend:
 // los otros 2 tipos son puente (enlazan a SesionSeguimiento/Informe, sin
@@ -452,6 +453,7 @@ export default function FichaAlumnoPage() {
           resEntradas,
           resAutorizaciones,
           resConsentimientos,
+          resDocumentosAnticipados,
         ] = await Promise.all([
           apiClient.get<Persona>(`/admin/personas/${personaId}/detalle`),
           apiClient.get<Cita[]>(`/admin/personas/${personaId}/citas`).catch(() => []),
@@ -496,6 +498,20 @@ export default function FichaAlumnoPage() {
               setErrorConsentimientos(err.message || "No se pudieron cargar los consentimientos.");
               return null;
             }),
+          // 🆕 (2026-11-17, plan de UX fase 1) Si la sesión ya trae la
+          // institución (todo rol menos superadmin), los documentos se piden
+          // junto con lo demás en vez de después: una espera menos al abrir
+          // la ficha. Si no, se piden abajo con la del alumno, como antes.
+          sesion?.institucionId
+            ? apiClient
+                .get<RespuestaPaginada<DocumentoInstitucional>>(
+                  `/documentos/?institucion_id=${sesion.institucionId}&persona_id=${personaId}`,
+                )
+                .catch((err) => {
+                  setErrorDocumentos(err.message || "No se pudieron cargar los documentos institucionales.");
+                  return { total: 0, items: [] } as RespuestaPaginada<DocumentoInstitucional>;
+                })
+            : Promise.resolve(null),
         ]);
 
         setAlumno(datosAlumno);
@@ -513,12 +529,16 @@ export default function FichaAlumnoPage() {
         // alumno (datosAlumno.institucion_id), no de la sesión — así
         // funciona igual para superadmin (que no tiene institucion_id
         // propio) como para admin/psicólogo/colegio de esa institución.
-        await apiClient
-          .get<RespuestaPaginada<DocumentoInstitucional>>(
-            `/documentos/?institucion_id=${datosAlumno.institucion_id}&persona_id=${personaId}`,
-          )
-          .then((res) => setDocumentos(res.items))
-          .catch((err) => setErrorDocumentos(err.message || "No se pudieron cargar los documentos institucionales."));
+        if (resDocumentosAnticipados && sesion?.institucionId === datosAlumno.institucion_id) {
+          setDocumentos(resDocumentosAnticipados.items);
+        } else {
+          await apiClient
+            .get<RespuestaPaginada<DocumentoInstitucional>>(
+              `/documentos/?institucion_id=${datosAlumno.institucion_id}&persona_id=${personaId}`,
+            )
+            .then((res) => setDocumentos(res.items))
+            .catch((err) => setErrorDocumentos(err.message || "No se pudieron cargar los documentos institucionales."));
+        }
       } catch (err) {
         setError(mensajeDe(err) || "Error al cargar la información del alumno.");
       } finally {
@@ -1469,8 +1489,22 @@ export default function FichaAlumnoPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-teal-900 dark:text-ink-dark font-medium">
-        Cargando expediente clínico del alumno...
+      // 🆕 (2026-11-17, plan de UX fase 1) Silueta de la ficha en vez de una
+      // línea de texto: cabecera del alumno y los primeros bloques.
+      <div className="max-w-7xl mx-auto space-y-6">
+        <AvisoCargando texto="Cargando la ficha del alumno…" />
+        <div aria-hidden="true" className="rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-5 flex items-center gap-4">
+          <div className="h-16 w-16 shrink-0 animate-pulse rounded-full bg-border/70 dark:bg-border-dark" />
+          <div className="flex-1 space-y-2.5">
+            <div className="h-5 w-64 max-w-full animate-pulse rounded bg-border/70 dark:bg-border-dark" />
+            <div className="h-3 w-80 max-w-full animate-pulse rounded bg-border/70 dark:bg-border-dark" />
+          </div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <EsqueletoBloque lineas={4} />
+          <EsqueletoBloque lineas={4} />
+        </div>
+        <EsqueletoBloque lineas={5} />
       </div>
     );
   }
@@ -1618,7 +1652,7 @@ export default function FichaAlumnoPage() {
           {mostrarHistorial && (
             <div className="border-t border-border dark:border-border-dark pt-4 mt-4">
               <h4 className="text-sm font-semibold text-teal-900 dark:text-ink-dark mb-2">Historial de cambios</h4>
-              {cargandoHistorial && <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando historial...</p>}
+              {cargandoHistorial && <EsqueletoLineas cantidad={3} />}
               <TextoError>{errorHistorial}</TextoError>
               {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
                 <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin cambios registrados todavía.</p>
@@ -2003,7 +2037,7 @@ export default function FichaAlumnoPage() {
         )}
 
         {pruebasAplicadas === null ? (
-          <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</p>
+          <EsqueletoLineas cantidad={3} />
         ) : pruebasAplicadas.length === 0 ? (
           <VacioFicha icono={ClipboardList} texto="Este estudiante todavía no tiene pruebas aplicadas." />
         ) : (
@@ -2069,7 +2103,7 @@ export default function FichaAlumnoPage() {
                 {inscripcionExpandida === fila.inscripcion_id && (
                   <div className="border-t border-border dark:border-border-dark p-4 space-y-4 bg-mist/30 dark:bg-surface-raised-dark/40">
                     {cargandoDetalleInforme ? (
-                      <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</p>
+                      <EsqueletoLineas cantidad={3} />
                     ) : detalleInforme ? (
                       <div className="lg:flex lg:gap-6 lg:items-start">
                         {/* 🆕 Vista previa del PDF embebida (react-pdf, ver
@@ -2790,7 +2824,7 @@ export default function FichaAlumnoPage() {
 
                   {expandida && (
                     <div className="border-t border-border dark:border-border-dark p-4 space-y-3">
-                      {cargandoDetalle && <p className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando contenido...</p>}
+                      {cargandoDetalle && <EsqueletoLineas cantidad={4} />}
                       <TextoError>{errorDetalle}</TextoError>
 
                       {!cargandoDetalle && detalleEntrada && detalleEntrada.id === entrada.id && (

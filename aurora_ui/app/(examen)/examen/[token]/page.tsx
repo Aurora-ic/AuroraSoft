@@ -77,6 +77,11 @@ export default function ExamenPage() {
   const [cargandoIntakePrevio, setCargandoIntakePrevio] = useState(true);
   const [enviandoIntake, setEnviandoIntake] = useState(false);
   const [errorIntake, setErrorIntake] = useState<string | null>(null);
+  // 🆕 (2026-11-17, plan de UX fase 1) Mientras se bajan las preguntas tras
+  // "Comenzar"/"Continuar": antes solo cambiaba el texto del botón y la
+  // pantalla saltaba de golpe; si fallaba, el error no se veía (se pintaba
+  // solo en la fase de preguntas, a la que nunca se llegaba).
+  const [preparandoPreguntas, setPreparandoPreguntas] = useState(false);
 
   // 🆕 Texto real del asentimiento informado (ver GET .../asentimiento-texto
   // en el backend) -- reemplaza la constante fija que vivía acá antes,
@@ -265,6 +270,7 @@ export default function ExamenPage() {
 
   async function cargarPreguntas() {
     setErrorPreguntas(null);
+    setPreparandoPreguntas(true);
     try {
       const [listaPreguntas, progreso] = await Promise.all([
         apiClient.get<PreguntaExamen[]>(`/educativo/examen/${token}/preguntas`),
@@ -299,6 +305,8 @@ export default function ExamenPage() {
       setFase("preguntas");
     } catch (err) {
       setErrorPreguntas(mensajeDe(err) || "No se pudieron cargar las preguntas.");
+    } finally {
+      setPreparandoPreguntas(false);
     }
   }
 
@@ -469,6 +477,17 @@ export default function ExamenPage() {
     refTituloVista.current?.focus();
   }, [fase, vista, indiceActual]);
 
+  // 🆕 (2026-11-17, plan de UX fase 1) Mientras se finaliza, el navegador
+  // pregunta antes de cerrar o recargar la pestaña.
+  useEffect(() => {
+    if (!finalizando) return;
+    function avisar(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", avisar);
+    return () => window.removeEventListener("beforeunload", avisar);
+  }, [finalizando]);
+
   // La pantalla de revisión hace de confirmación (antes, window.confirm).
   async function finalizar() {
     if (faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0) return;
@@ -523,12 +542,23 @@ export default function ExamenPage() {
 
   if (fase === "intake") {
     if (cargandoIntakePrevio) {
+      // 🆕 (2026-11-17) Silueta de la cabecera del colegio y del formulario,
+      // en vez de un "Cargando..." suelto.
       return (
-        <div className="bg-white rounded-card border border-border p-8">
-          <p className="text-sm text-ink/60">Cargando...</p>
+        <div className="bg-white rounded-card border border-border p-8 space-y-5">
+          <div aria-hidden="true" className="flex items-center gap-3 border-b border-border pb-4">
+            <div className="h-12 w-12 shrink-0 animate-pulse rounded-lg bg-mist" />
+            <div className="h-4 w-48 animate-pulse rounded bg-mist" />
+          </div>
+          <EsperaExamen texto="Preparando tu evaluación…" />
+          <div aria-hidden="true" className="space-y-3">
+            <div className="h-10 w-full animate-pulse rounded-lg bg-mist" />
+            <div className="h-10 w-2/3 animate-pulse rounded-lg bg-mist" />
+          </div>
         </div>
       );
     }
+    if (preparandoPreguntas) return <TarjetaPreparando />;
 
     const nombreConocido = intakePrevio?.nombre_conocido ?? false;
     const edadConocida = intakePrevio?.edad != null;
@@ -656,7 +686,11 @@ export default function ExamenPage() {
           ) : errorAsentimientoTexto ? (
             <TextoError>{errorAsentimientoTexto}</TextoError>
           ) : (
-            <p className="text-ink/50 text-xs">Cargando...</p>
+            <div aria-hidden="true" className="space-y-2 py-1">
+              <div className="h-3 w-full animate-pulse rounded bg-white" />
+              <div className="h-3 w-5/6 animate-pulse rounded bg-white" />
+              <div className="h-3 w-2/3 animate-pulse rounded bg-white" />
+            </div>
           )}
         </div>
 
@@ -674,6 +708,7 @@ export default function ExamenPage() {
 
         <TextoError>{errorIntake}</TextoError>
 
+        <ErrorPreguntasConReintento error={errorPreguntas} onReintentar={cargarPreguntas} />
         <Boton type="submit" disabled={enviandoIntake || !asentimientoTexto}>
           {enviandoIntake ? "Comenzando..." : "Comenzar"}
         </Boton>
@@ -682,6 +717,7 @@ export default function ExamenPage() {
   }
 
   if (fase === "socio") {
+    if (preparandoPreguntas) return <TarjetaPreparando />;
     return (
       <form onSubmit={enviarSocio} className="bg-white rounded-card border border-border p-8 space-y-4">
         <h1 className="font-display text-xl text-teal-900 mb-2">Algunos datos más</h1>
@@ -717,6 +753,7 @@ export default function ExamenPage() {
           </label>
         ))}
         <TextoError>{errorSocio}</TextoError>
+        <ErrorPreguntasConReintento error={errorPreguntas} onReintentar={cargarPreguntas} />
         <Boton type="submit" disabled={enviandoSocio}>
           {enviandoSocio ? "Guardando..." : "Continuar"}
         </Boton>
@@ -782,7 +819,7 @@ export default function ExamenPage() {
 
         {/* ===== Una pregunta por pantalla ===== */}
         {vista === "pregunta" && actual && (
-          <section className="bg-white rounded-card border border-border p-5 sm:p-7">
+          <section key={actual.id} className="bg-white rounded-card border border-border p-5 sm:p-7 animar-aparecer">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
                 Pregunta {indiceActual + 1} de {total}
@@ -903,29 +940,42 @@ export default function ExamenPage() {
               </p>
             )}
             <TextoError>{errorFinalizar}</TextoError>
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <button type="button" onClick={() => irAPregunta(indiceActual)} className={BOTON_SECUNDARIO}>
-                <ArrowLeft className="h-4 w-4" aria-hidden />
-                Volver a las preguntas
-              </button>
-              <button
-                type="button"
-                onClick={finalizar}
-                disabled={finalizando || faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0}
-                className={BOTON_PRIMARIO}
-              >
-                {finalizando
-                  ? "Finalizando..."
-                  : guardandoPreguntaIds.size > 0
-                    ? "Guardando respuestas..."
-                    : "Finalizar evaluación"}
-              </button>
-            </div>
+            {/* 🆕 (2026-11-17, plan de UX fase 1) Al finalizar, el servidor
+                califica la prueba y puede tardar unos segundos. Antes solo
+                cambiaba el texto del botón: con mala señal parecía colgado y
+                el alumno cerraba la pestaña a mitad. */}
+            {finalizando ? (
+              <div className="rounded-xl border border-teal-100 bg-teal-50 p-5">
+                <EsperaExamen texto="Estamos guardando tu evaluación…" />
+                <p className="m-0 mt-2 text-sm text-ink/75">
+                  No cierres esta pestaña. Puede tardar unos segundos.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button type="button" onClick={() => irAPregunta(indiceActual)} className={BOTON_SECUNDARIO}>
+                  <ArrowLeft className="h-4 w-4" aria-hidden />
+                  Volver a las preguntas
+                </button>
+                <button
+                  type="button"
+                  onClick={finalizar}
+                  disabled={finalizando || faltanPreguntas.length > 0 || guardandoPreguntaIds.size > 0}
+                  className={BOTON_PRIMARIO}
+                >
+                  {finalizando
+                    ? "Finalizando..."
+                    : guardandoPreguntaIds.size > 0
+                      ? "Guardando respuestas..."
+                      : "Finalizar evaluación"}
+                </button>
+              </div>
+            )}
           </section>
         )}
 
         {/* Mapa de preguntas: saltar a cualquiera (respondida = llena). */}
-        {vista !== "instrucciones" && total > 1 && (
+        {vista !== "instrucciones" && total > 1 && !finalizando && (
           <details className="bg-white rounded-card border border-border p-4 sm:p-5">
             <summary className="cursor-pointer text-sm font-medium text-ink/75">Ver todas las preguntas</summary>
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -992,6 +1042,45 @@ export default function ExamenPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// 🆕 (2026-11-17, plan de UX fase 1) Piezas de espera del examen. Siempre en
+// modo claro, como todo el examen (ver layout.tsx).
+function EsperaExamen({ texto }: { texto: string }) {
+  return (
+    <div role="status" className="space-y-2.5">
+      <p className="m-0 text-sm font-medium text-teal-900">{texto}</p>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-mist" aria-hidden="true">
+        <div className="h-full w-1/3 rounded-full bg-teal-600 animate-[deslizar_1.2s_ease-in-out_infinite]" />
+      </div>
+    </div>
+  );
+}
+
+function TarjetaPreparando() {
+  return (
+    <div className="bg-white rounded-card border border-border p-8 space-y-5">
+      <EsperaExamen texto="Preparando tus preguntas…" />
+      <div aria-hidden="true" className="space-y-2.5">
+        <div className="h-5 w-3/4 animate-pulse rounded bg-mist" />
+        <div className="h-12 w-full animate-pulse rounded-xl bg-mist" />
+        <div className="h-12 w-full animate-pulse rounded-xl bg-mist" />
+        <div className="h-12 w-full animate-pulse rounded-xl bg-mist" />
+      </div>
+    </div>
+  );
+}
+
+function ErrorPreguntasConReintento({ error, onReintentar }: { error: string | null; onReintentar: () => void }) {
+  if (!error) return null;
+  return (
+    <div className="space-y-2">
+      <TextoError>{`${error} Revisa tu conexión a internet y vuelve a intentar.`}</TextoError>
+      <button type="button" onClick={onReintentar} className={BOTON_SECUNDARIO}>
+        Reintentar
+      </button>
     </div>
   );
 }

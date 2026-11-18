@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import type { Institucion } from "@/types/api";
+import { EsqueletoSeccion } from "@/components/ui/PantallaCarga";
 
 const TIPOS_BRANDING = ["encabezado", "pie", "fondo"] as const;
 type TipoBranding = (typeof TIPOS_BRANDING)[number];
@@ -148,7 +149,11 @@ export default function ConfiguracionPage() {
     }
   }
 
-  if (cargando) return <div className="text-sm text-ink/60 dark:text-ink-dark/60">Cargando...</div>;
+  if (cargando)
+    return (
+      // Misma silueta que al llegar desde el menú (franja de la sección).
+      <EsqueletoSeccion />
+    );
   if (!institucion) return <TextoError>{error || "No se pudo cargar la institución."}</TextoError>;
 
   // Estado de la licencia, solo para mostrar — el dato y su gestión siguen

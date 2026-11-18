@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { LIMITE_MS, estaBloqueado, leerUltimaActividad, olvidarInactividad } from "@/lib/inactividad";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   apiClient,
   borrarSesionPublica,
@@ -15,6 +16,7 @@ import {
   type SesionPublica,
 } from "@/lib/api-client";
 import type { Rol } from "@/types/api";
+import { PantallaCargaMarca } from "@/components/ui/PantallaCarga";
 
 type SesionActual = SesionPublica | null;
 
@@ -43,6 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [sesion, setSesion] = useState<SesionActual>(null);
   const [cargando, setCargando] = useState(true);
   const router = useRouter();
+  // 🆕 (2026-11-17) Memoria de lecturas (lib/consultas.ts): se vacía al
+  // entrar y al salir, para que en una PC compartida nadie vea datos de la
+  // sesión anterior.
+  const queryClient = useQueryClient();
 
   // 🆕 (sesión 2026-11-02) El token vive en una cookie httpOnly que este
   // código no puede leer. Se pinta la interfaz con la sesión pública guardada
@@ -120,6 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // backend; aquí solo llega la sesión pública.
     const nuevaSesion = await loginApi(correo, pass, captcha);
 
+    queryClient.clear();
     setSesion(nuevaSesion);
 
     // Redireccionar según el rol del usuario
@@ -139,6 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void cerrarSesionEnServidor();
     borrarSesionPublica();
     olvidarInactividad(); // 🆕 sin sesión no hay nada que bloquear
+    queryClient.clear();
     setSesion(null);
     router.push("/");
   }
@@ -176,7 +184,8 @@ export function RequireAuth({
   }, [cargando, sesion, rolesPermitidos, router, cerrarSesion]);
 
   if (cargando || !sesion || !rolesPermitidos.includes(sesion.rol)) {
-    return <div className="min-h-screen flex items-center justify-center bg-mist text-ink/40">Cargando…</div>;
+    // 🆕 (2026-11-17) Con marca y modo oscuro, en vez de un "Cargando…" gris.
+    return <PantallaCargaMarca />;
   }
 
   return <>{children}</>;

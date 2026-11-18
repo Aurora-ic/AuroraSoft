@@ -12,6 +12,7 @@
 // actualiza react-pdf/pdfjs-dist, hay que volver a copiarlo para que
 // coincida la versión exacta del worker con la del paquete.
 import { Document, Page, pdfjs } from "react-pdf";
+import { EsqueletoHoja } from "@/components/ui/Esqueleto";
 
 pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
@@ -33,7 +34,7 @@ export default function PaginaPdf({
       file={archivo}
       onLoadSuccess={({ numPages }) => onCargado(numPages)}
       onLoadError={onError}
-      loading={<p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando documento...</p>}
+      loading={<EsqueletoHoja />}
     >
       <Page pageNumber={pagina} scale={zoom} renderTextLayer={false} renderAnnotationLayer={false} />
     </Document>

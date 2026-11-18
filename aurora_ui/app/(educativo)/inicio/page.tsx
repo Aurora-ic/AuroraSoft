@@ -10,7 +10,6 @@
 // alumnos con seguimiento ESTE MES, campañas activas. Nada de fotos de
 // stock ni contenido de relleno: cada número de esta pantalla viene de
 // una consulta real a la base de datos de la institución.
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -26,7 +25,7 @@ import {
   Clock,
   BarChart3,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
+import { useConsultaApi } from "@/lib/consultas";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
 import { ACENTOS, type Acento } from "@/lib/acentos";
@@ -35,6 +34,7 @@ import { CLASE_URGENCIA, ETIQUETA_URGENCIA } from "@/lib/casos-riesgo";
 import { primerNombre, useUsuarioActual } from "@/lib/usuario";
 import { AvanceCampanas, GraficoEvaluacionesMes, GraficoSeguimientoMes } from "@/components/educativo/GraficosInicio";
 import { CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
+import { EsqueletoLineas } from "@/components/ui/Esqueleto";
 
 
 function esHoy(fechaIso: string): boolean {
@@ -166,60 +166,47 @@ export default function InicioPage() {
   const vePerfilClinico = sesion?.rol === "psicologo" || sesion?.rol === "admin";
   // 🆕 Saludo con el nombre real (GET /auth/me), no con el usuario del correo.
   const usuario = useUsuarioActual(!!sesion);
-  const saludo = primerNombre(usuario?.nombre_completo) ?? sesion?.email?.split("@")[0] ?? null;
+  // 🆕 (2026-11-17) Mientras llega el nombre se dice solo "Hola" (antes se
+  // veía un instante el usuario del correo, p. ej. "Hola, mvera.psi").
+  const saludo = usuario ? (primerNombre(usuario.nombre_completo) ?? sesion?.email?.split("@")[0] ?? null) : null;
 
-  const [resumen, setResumen] = useState<ResumenInicio | null>(null);
-  const [errorResumen, setErrorResumen] = useState<string | null>(null);
-
-  const [casos, setCasos] = useState<CasoRiesgo[] | null>(null);
-  const [errorCasos, setErrorCasos] = useState<string | null>(null);
-
-  const [citas, setCitas] = useState<Cita[] | null>(null);
-  const [errorCitas, setErrorCitas] = useState<string | null>(null);
-
-  const [campanas, setCampanas] = useState<Evaluacion[] | null>(null);
-
+  // 🆕 (2026-11-17, plan de UX fase 1) Con memoria entre pantallas
+  // (lib/consultas.ts): al volver al Inicio se ve al instante lo último y se
+  // actualiza por detrás. Cada tarjeta sigue mostrando su propio error.
+  const consultaResumen = useConsultaApi<ResumenInicio>(vePerfilClinico ? "/educativo/inicio/resumen" : null, {
+    mensajeError: "No se pudo cargar el resumen del mes.",
+  });
+  // 🆕 (sesión 2026-11-01) La bandeja con urgencia (GET /casos-riesgo), que
+  // ya viene ordenada: urgentes primero. Un alumno puede tener más de un caso
+  // abierto; la tarjeta lista alumnos, cada uno con su caso más urgente.
+  const consultaCasos = useConsultaApi<BandejaCasosRiesgo, CasoRiesgo[]>(vePerfilClinico ? "/educativo/casos-riesgo" : null, {
+    seleccionar: ({ casos: lista }) => lista.filter((c, i) => lista.findIndex((o) => o.persona_id === c.persona_id) === i),
+    mensajeError: "No se pudieron cargar los casos pendientes.",
+  });
   // 🆕 Gráficos (sesión 2026-10-30) — GET /educativo/inicio/series.
-  const [series, setSeries] = useState<SeriesInicio | null>(null);
-  const [errorSeries, setErrorSeries] = useState<string | null>(null);
-  const [errorCampanas, setErrorCampanas] = useState<string | null>(null);
+  const consultaSeries = useConsultaApi<SeriesInicio>(vePerfilClinico ? "/educativo/inicio/series?meses=6" : null, {
+    mensajeError: "No se pudieron cargar los gráficos.",
+  });
+  const consultaCitas = useConsultaApi<Cita[]>("/admin/personas/citas/mi-agenda", {
+    mensajeError: "No se pudo cargar la agenda.",
+  });
+  // El staff clínico ve el avance de campañas desde /inicio/series; la lista
+  // completa solo hace falta para la tarjeta de 'colegio'.
+  const consultaCampanas = useConsultaApi<RespuestaPaginada<Evaluacion>, Evaluacion[]>(
+    !vePerfilClinico && sesion?.institucionId ? `/educativo/campanas/?institucion_id=${sesion.institucionId}&limit=200` : null,
+    { seleccionar: (r) => r.items, mensajeError: "No se pudieron cargar las campañas." },
+  );
 
-  useEffect(() => {
-    if (vePerfilClinico) {
-      // 🆕 (sesión 2026-11-01) La bandeja con urgencia (GET /casos-riesgo),
-      // que ya viene ordenada: urgentes primero. Un alumno puede tener más
-      // de un caso abierto; la tarjeta lista alumnos, cada uno con su caso
-      // más urgente.
-      apiClient
-        .get<BandejaCasosRiesgo>("/educativo/casos-riesgo")
-        .then(({ casos: lista }) => setCasos(lista.filter((c, i) => lista.findIndex((o) => o.persona_id === c.persona_id) === i)))
-        .catch((err) => setErrorCasos(err.message || "No se pudieron cargar los casos pendientes."));
-
-      apiClient
-        .get<ResumenInicio>("/educativo/inicio/resumen")
-        .then(setResumen)
-        .catch((err) => setErrorResumen(err.message || "No se pudo cargar el resumen del mes."));
-
-      apiClient
-        .get<SeriesInicio>("/educativo/inicio/series?meses=6")
-        .then(setSeries)
-        .catch((err) => setErrorSeries(err.message || "No se pudieron cargar los gráficos."));
-    }
-
-    apiClient
-      .get<Cita[]>("/admin/personas/citas/mi-agenda")
-      .then(setCitas)
-      .catch((err) => setErrorCitas(err.message || "No se pudo cargar la agenda."));
-
-    // El staff clínico ve el avance de campañas desde /inicio/series; la
-    // lista completa solo hace falta para la tarjeta de 'colegio'.
-    if (!vePerfilClinico && sesion?.institucionId) {
-      apiClient
-        .get<RespuestaPaginada<Evaluacion>>(`/educativo/campanas/?institucion_id=${sesion.institucionId}&limit=200`)
-        .then((r) => setCampanas(r.items))
-        .catch((err) => setErrorCampanas(err.message || "No se pudieron cargar las campañas."));
-    }
-  }, [vePerfilClinico, sesion?.institucionId]);
+  const resumen = consultaResumen.datos ?? null;
+  const errorResumen = consultaResumen.error;
+  const casos = consultaCasos.datos ?? null;
+  const errorCasos = consultaCasos.error;
+  const series = consultaSeries.datos ?? null;
+  const errorSeries = consultaSeries.error;
+  const citas = consultaCitas.datos ?? null;
+  const errorCitas = consultaCitas.error;
+  const campanas = consultaCampanas.datos ?? null;
+  const errorCampanas = consultaCampanas.error;
 
   const citasHoy = (citas ?? []).filter((c) => c.estado === "Programada" && esHoy(c.fecha_hora));
   const campanasActivas = (campanas ?? []).filter((c) => c.estado === "activa");
@@ -329,7 +316,7 @@ export default function InicioPage() {
             </TarjetaResumen>
             <TarjetaResumen icono={AlertTriangle} titulo="Casos en riesgo" enlace="/casos-riesgo" acento="riesgo">
               {casos === null ? (
-                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+                <EsqueletoLineas cantidad={3} />
               ) : casos.length === 0 ? (
                 <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin casos pendientes.</p>
               ) : (
@@ -351,7 +338,7 @@ export default function InicioPage() {
             </TarjetaResumen>
             <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="pizarra">
               {citas === null ? (
-                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+                <EsqueletoLineas cantidad={3} />
               ) : citasHoy.length === 0 ? (
                 <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
               ) : (
@@ -379,7 +366,7 @@ export default function InicioPage() {
         <div className="grid gap-3.5 sm:grid-cols-2">
           <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="pizarra">
             {citas === null ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+              <EsqueletoLineas cantidad={3} />
             ) : citasHoy.length === 0 ? (
               <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
             ) : (
@@ -402,7 +389,7 @@ export default function InicioPage() {
           </TarjetaResumen>
           <TarjetaResumen icono={Flag} titulo="Campañas activas" enlace="/campanas" acento="azul">
             {campanas === null ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+              <EsqueletoLineas cantidad={3} />
             ) : campanasActivas.length === 0 ? (
               <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin campañas activas.</p>
             ) : (

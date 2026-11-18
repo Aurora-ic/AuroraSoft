@@ -5,6 +5,7 @@ import { apiClient } from "@/lib/api-client";
 import { ETIQUETAS_TIPO_SECCION, MODO_TIPO_SECCION, type ModoSeccion } from "@/lib/documentos-constantes";
 import { ChipModo } from "@/components/documentos/ModoSeccion";
 import type { PlantillaSeccion } from "@/types/api";
+import { EsqueletoLineas } from "@/components/ui/Esqueleto";
 
 // 🆕 (2026-11-17) Al crear un documento: qué partes tiene la plantilla
 // elegida y cuáles vas a tener que completar tú — antes se descubría recién
@@ -15,7 +16,12 @@ export function PartesDePlantilla({ plantillaId }: { plantillaId: number }) {
     queryFn: () => apiClient.get<PlantillaSeccion[]>(`/documentos/plantillas/${plantillaId}/secciones`),
     staleTime: 60 * 1000,
   });
-  if (consulta.isLoading) return <p className="m-0 mt-3 text-[12px] text-ink/45 dark:text-ink-dark/45">Cargando las partes de la plantilla…</p>;
+  if (consulta.isLoading)
+    return (
+      <div className="mt-3 rounded-lg border border-border bg-surface p-3 dark:border-border-dark dark:bg-surface-dark">
+        <EsqueletoLineas cantidad={3} />
+      </div>
+    );
   const partes = (consulta.data ?? []).slice().sort((a, b) => a.orden - b.orden);
   if (partes.length === 0) return null;
 

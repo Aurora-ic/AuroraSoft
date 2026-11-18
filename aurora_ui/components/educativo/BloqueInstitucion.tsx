@@ -114,7 +114,7 @@ export function inicialesInstitucion(nombre: string): string {
   return (palabras.slice(0, 2).map((w) => w[0]).join("") || nombre.slice(0, 2)).toUpperCase();
 }
 
-export function BloqueInstitucion({ institucion }: { institucion: Institucion | null }) {
+export function BloqueInstitucion({ institucion, cargando = false }: { institucion: Institucion | null; cargando?: boolean }) {
   const logo = institucion?.logo_url || null;
   const lectura = useLecturaLogo(logo);
   const paleta = lectura?.paleta.length ? lectura.paleta : PALETA_RESPALDO;
@@ -141,6 +141,8 @@ export function BloqueInstitucion({ institucion }: { institucion: Institucion | 
         <span className="font-display text-[18px] font-bold" style={{ color: c3 === c1 ? "#0E4A44" : c3 }}>
           {inicialesInstitucion(nombre)}
         </span>
+      ) : cargando ? (
+        <span className="h-full w-full animate-pulse bg-mist" aria-hidden="true" />
       ) : (
         <School size={22} className="text-teal-900/60" aria-hidden="true" />
       )}
@@ -157,6 +159,14 @@ export function BloqueInstitucion({ institucion }: { institucion: Institucion | 
 
       <div className={`relative p-3.5 ${ancho ? "space-y-3" : "flex items-center gap-3"}`}>
         {marco}
+        {/* 🆕 (2026-11-17) Mientras llega la institución, silueta en vez de
+            "Mi institución" (que parecía un colegio sin configurar). */}
+        {cargando ? (
+          <div className="min-w-0 flex-1 space-y-2" aria-hidden="true">
+            <div className="h-3.5 w-28 animate-pulse rounded bg-white/15" />
+            <div className="h-4 w-20 animate-pulse rounded-full bg-white/10" />
+          </div>
+        ) : (
         <div className="min-w-0">
           <p className="m-0 font-display text-[14.5px] font-bold leading-snug text-white line-clamp-2" title={nombre}>
             {nombre}
@@ -166,6 +176,7 @@ export function BloqueInstitucion({ institucion }: { institucion: Institucion | 
             <span className="truncate">{detalle}</span>
           </p>
         </div>
+        )}
       </div>
 
       {/* Cinta con los colores del colegio, en el orden de su peso en el logo. */}

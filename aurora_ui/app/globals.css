@@ -119,3 +119,23 @@ h1, h2, h3, h4 {
 @media (prefers-reduced-motion: reduce) {
   .animar-sacudida { animation: none; }
 }
+
+/* 🆕 (2026-11-17, plan de UX fase 1) Barra que va y viene en las pantallas
+   de carga (PantallaCargaMarca, examen). Con "reducir movimiento" queda
+   quieta: la silueta y el texto ya dicen que algo está cargando. */
+@keyframes deslizar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+/* Entrada suave de cada pregunta del examen y de los paneles que aparecen. */
+@keyframes aparecer {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animar-aparecer {
+  animation: aparecer 0.22s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animar-aparecer { animation: none; }
+  [class*="animate-[deslizar"] { animation: none; }
+}

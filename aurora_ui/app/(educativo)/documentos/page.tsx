@@ -41,7 +41,8 @@ import type {
   PlantillaDocumentoClonarRequest,
   RespuestaPaginada,
 } from "@/types/api";
-import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { claveApi, invalidarApi, useConsultaApi, LISTA_VACIA } from "@/lib/consultas";
+import { useQueryClient } from "@tanstack/react-query";
 import { GuiaDocumentos } from "@/components/documentos/GuiaDocumentos";
 
 const TAMANO_PAGINA = 50;
@@ -77,14 +78,7 @@ export default function DocumentosPage() {
 
   const [tab, setTab] = useState<Tab>("plantillas");
 
-  const [tipos, setTipos] = useState<TipoDocumento[]>([]);
-  const [plantillas, setPlantillas] = useState<PlantillaDocumento[]>([]);
-  const [predeterminadas, setPredeterminadas] = useState<PlantillaDocumento[]>([]);
-  const [documentos, setDocumentos] = useState<DocumentoInstitucional[]>([]);
-  const [totalDocumentos, setTotalDocumentos] = useState(0);
   const [paginaDocumentos, setPaginaDocumentos] = useState(0);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [searchPlantillas, setSearchPlantillas] = useState("");
   const [searchCatalogo, setSearchCatalogo] = useState("");
@@ -94,10 +88,6 @@ export default function DocumentosPage() {
   // manda 300 ms después de dejar de escribir, no en cada tecla.
   const [busquedaAplicada, setBusquedaAplicada] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("todos");
-  const [cargandoDocumentos, setCargandoDocumentos] = useState(false);
-  // Total SIN filtros, para la tarjeta de la pestaña (con un filtro puesto,
-  // `totalDocumentos` es el total filtrado).
-  const [totalSinFiltro, setTotalSinFiltro] = useState(0);
 
   const [tipoNuevaPlantilla, setTipoNuevaPlantilla] = useState("");
   const [crearDesdeCeroAbierto, setCrearDesdeCeroAbierto] = useState(false);
@@ -108,30 +98,34 @@ export default function DocumentosPage() {
   const [errorClonar, setErrorClonar] = useState<string | null>(null);
 
   const [descartandoId, setDescartandoId] = useState<number | null>(null);
-  const [errorDocumentos, setErrorDocumentos] = useState<string | null>(null);
-  const [recarga, setRecarga] = useState(0);
+  const [errorAccionDocumentos, setErrorDocumentos] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const [activandoId, setActivandoId] = useState<number | null>(null);
   const [eliminandoId, setEliminandoId] = useState<number | null>(null);
 
-  // Catálogo y plantillas: una vez (y tras clonar/eliminar, vía recarga).
-  // 🆕 `cantidad_secciones` ya viene en el listado de plantillas (antes una
-  // consulta extra por plantilla solo para contarlas).
-  useEffect(() => {
-    if (!sesion?.institucionId) return;
-    Promise.all([
-      apiClient.get<TipoDocumento[]>("/documentos/tipos?solo_activos=true"),
-      apiClient.get<PlantillaDocumento[]>(`/documentos/plantillas?institucion_id=${sesion.institucionId}`),
-      apiClient.get<PlantillaDocumento[]>("/documentos/plantillas/predeterminadas"),
-    ])
-      .then(([t, p, pred]) => {
-        setTipos(t);
-        setPlantillas(p);
-        setPredeterminadas(pred);
-      })
-      .catch((err) => setError(err.message || "No se pudieron cargar los documentos."))
-      .finally(() => setCargando(false));
-  }, [sesion?.institucionId]);
+  // Catálogo y plantillas. 🆕 `cantidad_secciones` ya viene en el listado de
+  // plantillas (antes una consulta extra por plantilla solo para contarlas).
+  // 🆕 (2026-11-17, plan de UX fase 1) Con memoria entre pantallas
+  // (lib/consultas.ts): al volver de un documento o del constructor, la
+  // pantalla se ve al instante y se actualiza por detrás.
+  const urlPlantillas = sesion?.institucionId ? `/documentos/plantillas?institucion_id=${sesion.institucionId}` : null;
+  const consultaTipos = useConsultaApi<TipoDocumento[]>(sesion?.institucionId ? "/documentos/tipos?solo_activos=true" : null);
+  const consultaPlantillas = useConsultaApi<PlantillaDocumento[]>(urlPlantillas);
+  const consultaPredeterminadas = useConsultaApi<PlantillaDocumento[]>(
+    sesion?.institucionId ? "/documentos/plantillas/predeterminadas" : null,
+  );
+  const tipos = consultaTipos.datos ?? LISTA_VACIA;
+  const plantillas = consultaPlantillas.datos ?? LISTA_VACIA;
+  const predeterminadas = consultaPredeterminadas.datos ?? LISTA_VACIA;
+  const cargando = consultaTipos.cargando || consultaPlantillas.cargando || consultaPredeterminadas.cargando;
+  const error =
+    consultaTipos.error || consultaPlantillas.error || consultaPredeterminadas.error
+      ? "No se pudieron cargar los documentos."
+      : null;
+  function cambiarPlantillas(f: (prev: PlantillaDocumento[]) => PlantillaDocumento[]) {
+    if (urlPlantillas) queryClient.setQueryData<PlantillaDocumento[]>(claveApi(urlPlantillas), (prev) => (prev ? f(prev) : prev));
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setBusquedaAplicada(searchDocumentos.trim()), 300);
@@ -139,32 +133,28 @@ export default function DocumentosPage() {
   }, [searchDocumentos]);
 
   // Documentos: paginados y filtrados en el servidor (docs/gaps-pendientes.md).
-  useCargaDiferida(() => {
-    if (!sesion?.institucionId) return;
-    let vigente = true;
-    const params = new URLSearchParams({
-      institucion_id: String(sesion.institucionId),
-      skip: String(paginaDocumentos * TAMANO_PAGINA),
-      limit: String(TAMANO_PAGINA),
-    });
-    if (busquedaAplicada) params.set("q", busquedaAplicada);
-    if (filtroEstado !== "todos") params.set("estado", filtroEstado === "borradores" ? "borrador" : "emitido");
-    const sinFiltro = !busquedaAplicada && filtroEstado === "todos";
-    setCargandoDocumentos(true);
-    apiClient
-      .get<RespuestaPaginada<DocumentoInstitucional>>(`/documentos/?${params.toString()}`)
-      .then((d) => {
-        if (!vigente) return;
-        setDocumentos(d.items);
-        setTotalDocumentos(d.total);
-        if (sinFiltro) setTotalSinFiltro(d.total);
-      })
-      .catch((err) => vigente && setErrorDocumentos(err.message || "No se pudieron cargar los documentos."))
-      .finally(() => vigente && setCargandoDocumentos(false));
-    return () => {
-      vigente = false;
-    };
-  }, [sesion?.institucionId, paginaDocumentos, recarga, busquedaAplicada, filtroEstado]);
+  const paramsDocumentos = new URLSearchParams({
+    institucion_id: String(sesion?.institucionId ?? ""),
+    skip: String(paginaDocumentos * TAMANO_PAGINA),
+    limit: String(TAMANO_PAGINA),
+  });
+  if (busquedaAplicada) paramsDocumentos.set("q", busquedaAplicada);
+  if (filtroEstado !== "todos") paramsDocumentos.set("estado", filtroEstado === "borradores" ? "borrador" : "emitido");
+  const consultaDocumentos = useConsultaApi<RespuestaPaginada<DocumentoInstitucional>>(
+    sesion?.institucionId ? `/documentos/?${paramsDocumentos.toString()}` : null,
+    { mantenerAnterior: true, mensajeError: "No se pudieron cargar los documentos." },
+  );
+  // Total SIN filtros, para la tarjeta de la pestaña (con un filtro puesto,
+  // el total de arriba es el filtrado). Es la misma lectura que la vista por
+  // defecto, así que sin filtros no agrega ninguna petición.
+  const consultaSinFiltro = useConsultaApi<RespuestaPaginada<DocumentoInstitucional>>(
+    sesion?.institucionId ? `/documentos/?institucion_id=${sesion.institucionId}&skip=0&limit=${TAMANO_PAGINA}` : null,
+  );
+  const documentos = consultaDocumentos.datos?.items ?? [];
+  const totalDocumentos = consultaDocumentos.datos?.total ?? 0;
+  const totalSinFiltro = consultaSinFiltro.datos?.total ?? 0;
+  const cargandoDocumentos = consultaDocumentos.cargando;
+  const errorDocumentos = errorAccionDocumentos ?? consultaDocumentos.error;
 
   // Cambiar un filtro vuelve a la página 1 (en el handler, no en un efecto).
   function cambiarBusquedaDocumentos(v: string) {
@@ -194,7 +184,7 @@ export default function DocumentosPage() {
     setErrorPlantilla(null);
     try {
       await apiClient.delete(`/documentos/plantillas/${p.id}`);
-      setPlantillas((prev) => prev.filter((x) => x.id !== p.id));
+      cambiarPlantillas((prev) => prev.filter((x) => x.id !== p.id));
     } catch (err) {
       setErrorPlantilla(mensajeDe(err) || "No se pudo eliminar la plantilla.");
     } finally {
@@ -209,7 +199,7 @@ export default function DocumentosPage() {
       const actualizada = await apiClient.patch<PlantillaDocumento>(`/documentos/plantillas/${p.id}`, { activa: true });
       // 🆕 (sesión 2026-11-01) Sin exclusividad por tipo: activar esta no
       // apaga ninguna otra, solo cambia ella.
-      setPlantillas((prev) => prev.map((x) => (x.id === actualizada.id ? actualizada : x)));
+      cambiarPlantillas((prev) => prev.map((x) => (x.id === actualizada.id ? actualizada : x)));
     } catch (err) {
       setErrorPlantilla(mensajeDe(err) || "No se pudo activar la plantilla.");
     } finally {
@@ -278,7 +268,7 @@ export default function DocumentosPage() {
       await apiClient.delete(`/documentos/${d.id}`);
       // Si era el último de la página, retrocede una para no quedar en blanco.
       if (documentos.length === 1 && paginaDocumentos > 0) setPaginaDocumentos((p) => p - 1);
-      else setRecarga((n) => n + 1);
+      void invalidarApi(queryClient, "/documentos/?");
     } catch (err) {
       setErrorDocumentos(mensajeDe(err) || "No se pudo descartar el borrador.");
     } finally {

@@ -22,6 +22,7 @@ import type {
   ConteosEstructuraAcademica,
 } from "@/types/api";
 import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { EsqueletoChips } from "@/components/ui/Esqueleto";
 
 function FilaSeleccionable({
   activo,
@@ -768,7 +769,7 @@ export default function EstructuraAcademicaPage() {
           <TextoError>{errorNiveles}</TextoError>
 
           {cargandoNiveles ? (
-            <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando…</p>
+            <EsqueletoChips cantidad={4} />
           ) : niveles.length === 0 ? (
             <VacioColumna texto="Todavía no hay niveles creados." />
           ) : (
@@ -855,7 +856,7 @@ export default function EstructuraAcademicaPage() {
               <TextoError>{errorGrados}</TextoError>
 
               {cargandoGrados ? (
-                <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando…</p>
+                <EsqueletoChips cantidad={4} />
               ) : grados.length === 0 ? (
                 <VacioColumna texto="Todavía no hay grados en este nivel." />
               ) : (
@@ -953,7 +954,7 @@ export default function EstructuraAcademicaPage() {
               <TextoError>{errorSecciones}</TextoError>
 
               {cargandoSecciones ? (
-                <p className="text-sm text-ink/40 dark:text-ink-dark/40">Cargando…</p>
+                <EsqueletoChips cantidad={4} />
               ) : secciones.length === 0 ? (
                 <VacioColumna texto="Todavía no hay secciones en este grado." />
               ) : (

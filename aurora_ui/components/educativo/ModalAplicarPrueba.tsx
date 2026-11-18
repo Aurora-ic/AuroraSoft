@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { siglaPrueba } from "@/lib/pruebas";
 import { ahoraParaInputLocal, fechaCierreEsPasada, MENSAJE_FECHA_CIERRE_PASADA } from "@/lib/campanas";
 import type { AplicacionIndividual, ElegibilidadPrueba, Prueba } from "@/types/api";
+import { EsqueletoLineas } from "@/components/ui/Esqueleto";
 
 // 🆕 (sesión 2026-11-01) "Aplicar prueba" desde el perfil del estudiante,
 // sin armar una campaña a mano. Por detrás, POST
@@ -160,7 +161,7 @@ export function ModalAplicarPrueba({
             </div>
 
             <div role="radiogroup" aria-label="Prueba" className="grid max-h-64 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
-              {pruebas.isPending && <p className="m-0 text-ink/50 dark:text-ink-dark/50">Cargando pruebas…</p>}
+              {pruebas.isPending && <EsqueletoLineas cantidad={4} />}
               {visibles.map((p) => {
                 const elegida = p.id === pruebaId;
                 return (

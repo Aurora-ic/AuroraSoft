@@ -2,6 +2,7 @@
 
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users, UserCheck, UserX, FileWarning, School, Search, Upload, Plus, ChevronLeft, ChevronRight, Stethoscope } from "lucide-react";
@@ -13,7 +14,7 @@ import { Select } from "@/components/ui/Select";
 import { TheadFila, Th } from "@/components/ui/Tabla";
 import { EsqueletoFilasTabla } from "@/components/ui/Esqueleto";
 import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
-import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { claveApi, invalidarApi, useConsultaApi } from "@/lib/consultas";
 
 // 🆕 (sesión 2026-10-31) "con-dx" = activos con diagnóstico — derivado en
 // el backend (Persona.con_diagnostico) de los antecedentes clínicos externos
@@ -54,9 +55,6 @@ export default function PadronPage() {
   const confirmar = useConfirmar();
   const { sesion } = useAuth();
   const router = useRouter();
-  const [personas, setPersonas] = useState<Persona[]>([]);
-  const [totalFiltrado, setTotalFiltrado] = useState(0);
-  const [resumen, setResumen] = useState<ResumenPadron | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [busquedaAplicada, setBusquedaAplicada] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<FiltroEstado>("activos");
@@ -64,12 +62,9 @@ export default function PadronPage() {
   const [filtroSeccionId, setFiltroSeccionId] = useState<string>("todas");
   const [soloIncompletos, setSoloIncompletos] = useState(false);
   const [pagina, setPagina] = useState(0);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actualizandoId, setActualizandoId] = useState<number | null>(null);
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
-  // Sube tras activar/desactivar a alguien: recarga página y tarjetas.
-  const [recarga, setRecarga] = useState(0);
+  const queryClient = useQueryClient();
 
   const TAMANO_PAGINA = 50;
 
@@ -94,17 +89,13 @@ export default function PadronPage() {
   // - las 5 tarjetas y el desplegable de secciones salen de
   //   /resumen-padron (agregados SQL sobre TODO el padrón, nunca sobre la
   //   página visible — mismo significado que antes).
-  useEffect(() => {
-    if (!sesion?.institucionId) return;
-    let vigente = true;
-    apiClient
-      .get<ResumenPadron>(`/admin/personas/${sesion.institucionId}/resumen-padron`)
-      .then((r) => vigente && setResumen(r))
-      .catch((err) => vigente && setError(err.message));
-    return () => {
-      vigente = false;
-    };
-  }, [sesion?.institucionId, recarga]);
+  // 🆕 (2026-11-17, plan de UX fase 1) Con memoria entre pantallas
+  // (lib/consultas.ts): al volver desde la ficha de un alumno, el padrón se
+  // ve al instante y se actualiza por detrás.
+  const consultaResumen = useConsultaApi<ResumenPadron>(
+    sesion?.institucionId ? `/admin/personas/${sesion.institucionId}/resumen-padron` : null,
+  );
+  const resumen = consultaResumen.datos ?? null;
 
   // La búsqueda se manda 300 ms después de dejar de escribir.
   useEffect(() => {
@@ -115,33 +106,23 @@ export default function PadronPage() {
     return () => clearTimeout(t);
   }, [busqueda]);
 
-  useCargaDiferida(() => {
-    if (!sesion?.institucionId) return;
-    let vigente = true;
-    const params = new URLSearchParams({
-      estado: filtroEstado === "con-dx" ? "con_dx" : filtroEstado,
-      skip: String(pagina * TAMANO_PAGINA),
-      limit: String(TAMANO_PAGINA),
-    });
-    if (busquedaAplicada) params.set("busqueda", busquedaAplicada);
-    if (filtroSeccionId === "sin-matricula") params.set("sin_matricula", "true");
-    else if (filtroSeccionId !== "todas") params.set("seccion_id", filtroSeccionId);
-    if (soloIncompletos) params.set("datos_incompletos", "true");
-    setCargando(true);
-    setError(null);
-    apiClient
-      .get<RespuestaPaginada<Persona>>(`/admin/personas/${sesion.institucionId}?${params.toString()}`)
-      .then((r) => {
-        if (!vigente) return;
-        setPersonas(r.items);
-        setTotalFiltrado(r.total);
-      })
-      .catch((err) => vigente && setError(err.message))
-      .finally(() => vigente && setCargando(false));
-    return () => {
-      vigente = false;
-    };
-  }, [sesion?.institucionId, busquedaAplicada, filtroEstado, filtroSeccionId, soloIncompletos, pagina, recarga]);
+  const params = new URLSearchParams({
+    estado: filtroEstado === "con-dx" ? "con_dx" : filtroEstado,
+    skip: String(pagina * TAMANO_PAGINA),
+    limit: String(TAMANO_PAGINA),
+  });
+  if (busquedaAplicada) params.set("busqueda", busquedaAplicada);
+  if (filtroSeccionId === "sin-matricula") params.set("sin_matricula", "true");
+  else if (filtroSeccionId !== "todas") params.set("seccion_id", filtroSeccionId);
+  if (soloIncompletos) params.set("datos_incompletos", "true");
+  const urlPagina = sesion?.institucionId ? `/admin/personas/${sesion.institucionId}?${params.toString()}` : null;
+  // Al cambiar de página o filtro se deja la tabla anterior (atenuada)
+  // mientras llega la nueva, en vez de vaciarla.
+  const consultaPagina = useConsultaApi<RespuestaPaginada<Persona>>(urlPagina, { mantenerAnterior: true });
+  const personas = consultaPagina.datos?.items ?? [];
+  const totalFiltrado = consultaPagina.datos?.total ?? 0;
+  const cargando = consultaPagina.cargando;
+  const error = consultaPagina.error ?? consultaResumen.error;
 
   // Cambiar un filtro vuelve a la página 1 — si no, "página 3" de un filtro
   // nuevo podría quedar vacía sin que sea obvio por qué. (En el handler, no
@@ -193,9 +174,13 @@ export default function PadronPage() {
       const actualizado = await apiClient.patch<Persona>(`/admin/personas/${persona.id}`, {
         activo: !persona.activo,
       });
-      setPersonas((prev) => prev.map((p) => (p.id === persona.id ? { ...p, ...actualizado } : p)));
-      // Tarjetas y filtro (p. ej. "Activos") cambian: se vuelven a pedir.
-      setRecarga((n) => n + 1);
+      // La fila cambia al instante; tarjetas y filtro (p. ej. "Activos")
+      // cambian también: se vuelven a pedir todas las lecturas del padrón.
+      if (urlPagina)
+        queryClient.setQueryData<RespuestaPaginada<Persona>>(claveApi(urlPagina), (prev) =>
+          prev ? { ...prev, items: prev.items.map((p) => (p.id === persona.id ? { ...p, ...actualizado } : p)) } : prev,
+        );
+      void invalidarApi(queryClient, `/admin/personas/${sesion?.institucionId}`);
     } catch (err) {
       setErrorAccion(mensajeDe(err) || "No se pudo cambiar el estado del alumno.");
     } finally {
@@ -354,7 +339,10 @@ export default function PadronPage() {
                 {esAdmin && <Th className="px-4 py-2.5"></Th>}
               </TheadFila>
             </thead>
-            <tbody>
+            <tbody
+              aria-busy={consultaPagina.mostrandoAnterior || undefined}
+              className={`transition-opacity ${consultaPagina.mostrandoAnterior ? "opacity-50" : ""}`}
+            >
               {cargando && <EsqueletoFilasTabla filas={8} columnas={esAdmin ? 5 : 4} />}
               {!cargando && totalFiltrado === 0 && (
                 <tr>

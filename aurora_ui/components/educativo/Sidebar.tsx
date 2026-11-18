@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -19,6 +19,7 @@ import {
 import { type Acento } from "@/lib/acentos";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiClient } from "@/lib/api-client";
+import { useConsultaApi } from "@/lib/consultas";
 import type { BandejaCasosRiesgo, Cita, Institucion } from "@/types/api";
 import { ETIQUETA_ROL, useUsuarioActual } from "@/lib/usuario";
 import { DialogoCambiarPassword } from "@/components/auth/DialogoCambiarPassword";
@@ -119,12 +120,10 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
   const pathname = usePathname();
   const { sesion, cerrarSesion } = useAuth();
   const [cambiandoPassword, setCambiandoPassword] = useState(false);
-  const [institucion, setInstitucion] = useState<Institucion | null>(null);
   // "Recordatorio" dentro de la app (docs/frontend.md): un contador de
   // citas programadas para HOY, leído del mismo GET que /agenda ya usa —
   // nunca una notificación push ni nada en tiempo real, solo visible la
   // próxima vez que se carga el sidebar.
-  const [citasHoy, setCitasHoy] = useState<number | null>(null);
 
   // Grupo(s) expandido(s) — se inicializa con el que contiene la ruta
   // activa (ajuste de estado derivado durante el render, no en un efecto,
@@ -167,30 +166,26 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
     });
   }
 
-  useEffect(() => {
-    apiClient
-      .get<Institucion>("/instituciones/me")
-      .then(setInstitucion)
-      .catch(() => setInstitucion(null)); // informativo, nunca bloquea el sidebar
-
-    apiClient
-      .get<Cita[]>("/admin/personas/citas/mi-agenda")
-      .then((citas) => {
+  // 🆕 (2026-11-17, plan de UX fase 1) Con memoria (lib/consultas.ts): la
+  // agenda es la misma lectura que usan el Inicio y /agenda, así que se
+  // comparte. La institución es informativa: un fallo nunca bloquea el menú.
+  const consultaInstitucion = useConsultaApi<Institucion>("/instituciones/me");
+  const institucion = consultaInstitucion.datos ?? null;
+  const citasHoy =
+    useConsultaApi<Cita[], number>("/admin/personas/citas/mi-agenda", {
+      seleccionar: (citas) => {
         const hoy = new Date();
-        setCitasHoy(
-          citas.filter((c) => {
-            if (c.estado !== "Programada") return false;
-            const fecha = new Date(c.fecha_hora);
-            return (
-              fecha.getFullYear() === hoy.getFullYear() &&
-              fecha.getMonth() === hoy.getMonth() &&
-              fecha.getDate() === hoy.getDate()
-            );
-          }).length,
-        );
-      })
-      .catch(() => setCitasHoy(null));
-  }, []);
+        return citas.filter((c) => {
+          if (c.estado !== "Programada") return false;
+          const fecha = new Date(c.fecha_hora);
+          return (
+            fecha.getFullYear() === hoy.getFullYear() &&
+            fecha.getMonth() === hoy.getMonth() &&
+            fecha.getDate() === hoy.getDate()
+          );
+        }).length;
+      },
+    }).datos ?? null;
 
   function renderEnlace(enlace: Enlace, indentado: boolean) {
     const activo = pathname?.startsWith(enlace.href);
@@ -245,7 +240,7 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
           {/* Logo + nombre de la institución: bloque que toma los colores y
               la forma del logo de cada colegio (components/educativo/BloqueInstitucion). */}
           <div className="pr-7 lg:pr-0">
-            <BloqueInstitucion institucion={institucion} />
+            <BloqueInstitucion institucion={institucion} cargando={consultaInstitucion.cargando} />
           </div>
         </div>
 

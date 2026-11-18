@@ -13,10 +13,11 @@
 // porqué y la nota sobre el worker de pdf.js en /public).
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { EsqueletoHoja } from "@/components/ui/Esqueleto";
 
 const PaginaPdf = dynamic(() => import("./PaginaPdf"), {
   ssr: false,
-  loading: () => <p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando documento...</p>,
+  loading: () => <EsqueletoHoja />,
 });
 
 export type ArchivoParaVisor = {
@@ -109,7 +110,7 @@ export function ContenidoVisorArchivo({
       )}
 
       <div className={`${alturaClase} overflow-auto rounded-card border border-border dark:border-border-dark bg-mist/20 dark:bg-surface-raised-dark flex items-start justify-center p-3`}>
-        {cargando && <p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8">Cargando vista previa...</p>}
+        {cargando && <EsqueletoHoja />}
         {!cargando && errorAMostrar && <p className="text-sm text-red-700 dark:text-red-300 py-8 px-4 text-center">{errorAMostrar}</p>}
 
         {!cargando && !errorAMostrar && archivo && tipo === "pdf" && (

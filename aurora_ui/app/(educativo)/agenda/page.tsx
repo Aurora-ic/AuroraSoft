@@ -28,7 +28,8 @@ import { Cita, CitaUpdate } from "@/types/api";
 import { usePadronPaginado, useValorDiferido } from "@/lib/padron";
 import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { ModalNuevaActividad, type InicialActividad } from "@/components/educativo/ModalNuevaActividad";
-import { useCargaDiferida } from "@/lib/useCargaDiferida";
+import { useConsultaApi, LISTA_VACIA } from "@/lib/consultas";
+import { AvisoCargando, EsqueletoLineas, EsqueletoSemana } from "@/components/ui/Esqueleto";
 
 const TIPOS_ACTIVIDAD = ["Taller", "Charla", "Reunión", "Otro"];
 
@@ -157,9 +158,6 @@ export default function AgendaPage() {
   // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
   const confirmar = useConfirmar();
   const { sesion } = useAuth();
-  const [citas, setCitas] = useState<Cita[]>([]);
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [semanaOffset, setSemanaOffset] = useState(0);
 
   // Mes que muestra el mini calendario — se mueve solo con sus flechas, o
@@ -185,17 +183,21 @@ export default function AgendaPage() {
   const [modal, setModal] = useState<InicialActividad | null>(null);
   const [busquedaCita, setBusquedaCita] = useState("");
 
+  // 🆕 (2026-11-17, plan de UX fase 1) Con memoria entre pantallas
+  // (lib/consultas.ts) — la misma lectura que la tarjeta de citas del Inicio,
+  // así que al llegar desde allí la semana ya está pintada. Tras guardar,
+  // `cargar()` la vuelve a pedir dejando a la vista lo que había.
+  const consultaCitas = useConsultaApi<Cita[]>("/admin/personas/citas/mi-agenda", {
+    mensajeError: "No se pudo cargar la agenda.",
+  });
+  const citas = consultaCitas.datos ?? LISTA_VACIA;
+  const cargando = consultaCitas.cargando;
+  // Errores de una acción (cancelar, reprogramar) o, si no hay, de la carga.
+  const [errorAccion, setError] = useState<string | null>(null);
+  const error = errorAccion ?? consultaCitas.error;
   function cargar() {
-    setCargando(true);
-    setError(null);
-    apiClient
-      .get<Cita[]>("/admin/personas/citas/mi-agenda")
-      .then(setCitas)
-      .catch((err) => setError(err.message || "No se pudo cargar la agenda."))
-      .finally(() => setCargando(false));
+    void consultaCitas.recargar();
   }
-
-  useCargaDiferida(cargar, []);
 
   const inicioSemanaVisible = useMemo(() => {
     const hoy = inicioDeSemana(new Date());
@@ -561,7 +563,7 @@ export default function AgendaPage() {
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
             <p className="m-0 mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas</p>
             {cargando ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+              <EsqueletoLineas cantidad={3} />
             ) : proximas.length === 0 ? (
               <p className="m-0 text-[12px] italic text-ink/40 dark:text-ink-dark/40">Nada agendado de aquí en adelante.</p>
             ) : (
@@ -626,7 +628,10 @@ export default function AgendaPage() {
           <TextoError className="px-4 pt-3">{error}</TextoError>
 
           {cargando ? (
-            <p className="m-0 p-4 text-sm text-ink/40 dark:text-ink-dark/40">Cargando...</p>
+            <>
+              <AvisoCargando texto="Cargando la agenda…" />
+              <EsqueletoSemana />
+            </>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-7 md:divide-x divide-border dark:divide-border-dark">
               {diasVisibles.map((dia, i) => {

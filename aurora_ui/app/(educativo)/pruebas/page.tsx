@@ -26,7 +26,7 @@ import { TextoError } from "@/components/ui/TextoError";
 import { DimensionBar } from "@/components/ui/DimensionBar";
 import { ResumenEstadisticoPrueba } from "@/components/ui/ResumenEstadisticoPrueba";
 import { GraficoTendenciaDimension } from "@/components/ui/GraficoTendenciaDimension";
-import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
+import { EsqueletoLineas, EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { PanelDimensiones } from "@/components/educativo/PanelDimensiones";
 import { VacioFicha } from "@/components/educativo/BloqueFicha";
@@ -466,7 +466,7 @@ export default function PruebasPage() {
 
                       {expandida && (
                         <div className="border-t border-acento-azul/15 dark:border-border-dark bg-acento-azul/[0.04] dark:bg-surface-raised-dark px-4 py-3 space-y-2">
-                          {cargandoDetalle && <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">Cargando...</p>}
+                          {cargandoDetalle && <EsqueletoLineas cantidad={4} />}
                           <TextoError className="text-xs">{errorDetalle}</TextoError>
                           {p.instrucciones && (
                             <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/65 italic line-clamp-4">{p.instrucciones}</p>
