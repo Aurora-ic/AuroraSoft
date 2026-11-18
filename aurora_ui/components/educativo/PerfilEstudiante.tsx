@@ -69,7 +69,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   const vacio = valor === null || valor === undefined || valor === "";
   return (
     <div className="min-w-0">
-      <dt className="text-[12px] text-ink/50 dark:text-ink-dark/50">{etiqueta}</dt>
+      <dt className="text-[12px] text-ink/65 dark:text-ink-dark/55">{etiqueta}</dt>
       <dd className={`m-0 mt-1 text-[14px] font-semibold break-words ${vacio ? "text-ink/30 dark:text-ink-dark/30" : "text-ink dark:text-ink-dark"}`}>
         {vacio ? "—" : valor}
       </dd>
@@ -145,7 +145,7 @@ export function TarjetaPerfil({
             <h1 className="m-0 font-display text-[21px] font-bold leading-tight text-seccion-900 dark:text-ink-dark break-words">
               {alumno.nombres} {alumno.apellidos}
             </h1>
-            <div className="mt-1 flex flex-col gap-0.5 text-[12.5px] text-ink/55 dark:text-ink-dark/55">
+            <div className="mt-1 flex flex-col gap-0.5 text-[12.5px] text-ink/65 dark:text-ink-dark/55">
               {alumno.documento_identidad && (
                 <span className="inline-flex items-center gap-1.5">
                   <IdCard size={13} aria-hidden="true" className="shrink-0" />
@@ -163,7 +163,7 @@ export function TarjetaPerfil({
               className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                 alumno.activo
                   ? "bg-surface text-seccion-900 ring-1 ring-seccion-600/20 dark:bg-seccion-claro/15 dark:text-seccion-claro dark:ring-0"
-                  : "bg-surface text-ink/55 ring-1 ring-border dark:bg-border-dark dark:text-ink-dark/55 dark:ring-0"
+                  : "bg-surface text-ink/65 ring-1 ring-border dark:bg-border-dark dark:text-ink-dark/55 dark:ring-0"
               }`}
             >
               <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${alumno.activo ? "bg-seccion-600 dark:bg-seccion-claro" : "bg-ink/30"}`} />
@@ -187,7 +187,7 @@ export function TarjetaPerfil({
               ubicacion ? (
                 <span className="text-seccion-900 dark:text-seccion-claro">{ubicacion}</span>
               ) : (
-                <span className="font-medium text-ink/45 dark:text-ink-dark/45">Sin matrícula</span>
+                <span className="font-medium text-ink/65 dark:text-ink-dark/55">Sin matrícula</span>
               )
             }
           />
@@ -291,7 +291,7 @@ function PendientesFicha({
   return (
     <div className="border-t border-seccion-600/15 dark:border-border-dark px-5 py-3.5">
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-        <p className="m-0 flex shrink-0 items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
+        <p className="m-0 flex shrink-0 items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
           <ListChecks size={14} aria-hidden="true" />
           Pendiente en esta ficha
         </p>
@@ -309,16 +309,16 @@ function PendientesFicha({
                 <it.icono
                   size={15}
                   aria-hidden="true"
-                  className={it.destacado ? "shrink-0 text-amber-700 dark:text-amber" : "shrink-0 text-ink/45 dark:text-ink-dark/50"}
+                  className={it.destacado ? "shrink-0 text-amber-800 dark:text-amber" : "shrink-0 text-ink/65 dark:text-ink-dark/55"}
                 />
                 <span className="leading-tight">
                   <span className="block text-[13px] font-semibold text-ink dark:text-ink-dark">{it.texto}</span>
-                  <span className="block text-[11.5px] text-ink/50 dark:text-ink-dark/50">{it.detalle}</span>
+                  <span className="block text-[11.5px] text-ink/65 dark:text-ink-dark/55">{it.detalle}</span>
                 </span>
                 <ArrowRight
                   size={14}
                   aria-hidden="true"
-                  className="shrink-0 text-ink/30 transition-transform group-hover:translate-x-0.5 dark:text-ink-dark/40"
+                  className="shrink-0 text-ink/30 transition-transform group-hover:translate-x-0.5 dark:text-ink-dark/55"
                 />
               </a>
             </li>
@@ -384,7 +384,7 @@ function SituacionRiesgo({
               {motivos.map((m) => (
                 <li key={m.etiqueta}>
                   <span className="font-semibold">{m.etiqueta}</span>
-                  {m.detalle ? <span className="text-ink/60 dark:text-ink-dark/60"> — {m.detalle}</span> : null}
+                  {m.detalle ? <span className="text-ink/65 dark:text-ink-dark/60"> — {m.detalle}</span> : null}
                 </li>
               ))}
               {antecedentes.diagnostico_reportado && (
@@ -394,7 +394,7 @@ function SituacionRiesgo({
                 </li>
               )}
             </ul>
-            <p className="m-0 mt-2 text-[12px] text-ink/55 dark:text-ink-dark/55">
+            <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
               Se marca automáticamente a partir de los antecedentes clínicos externos — aparece en amarillo en el Padrón y en la
               Estructura académica. {enlace}
             </p>
@@ -407,7 +407,7 @@ function SituacionRiesgo({
   // "sin-completar" ya no llega aquí: se muestra en PendientesFicha.
   return (
     <div className="border-t border-border dark:border-border-dark px-6 py-3">
-      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
         <ShieldCheck size={15} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
         <span className="font-semibold text-ink/75 dark:text-ink-dark/75">Sin diagnóstico externo registrado</span>
         <span>No recibe terapia psicológica ni atención psiquiátrica externa.</span>
@@ -422,9 +422,9 @@ function SituacionRiesgo({
 type Tono = "ok" | "alerta" | "problema" | "neutro";
 const CLASE_TONO: Record<Tono, string> = {
   ok: "text-seccion-700 dark:text-seccion-claro",
-  alerta: "text-amber-700 dark:text-amber",
+  alerta: "text-amber-800 dark:text-amber",
   problema: "text-red-700 dark:text-red-300",
-  neutro: "text-ink/50 dark:text-ink-dark/50",
+  neutro: "text-ink/65 dark:text-ink-dark/55",
 };
 
 function Indicador({
@@ -454,7 +454,7 @@ function Indicador({
       </div>
       <p className="m-0 flex items-baseline gap-1.5">
         <span className="font-display text-[28px] font-bold leading-none text-ink dark:text-ink-dark tabular-nums">{valor}</span>
-        {unidad && <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">{unidad}</span>}
+        {unidad && <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">{unidad}</span>}
       </p>
       <p className={`m-0 text-[12px] font-medium ${CLASE_TONO[tono]}`}>{estado}</p>
     </div>
@@ -554,7 +554,7 @@ export function TituloGrupoFicha({
       <span aria-hidden="true" className={`h-6 w-1 rounded-full ${ACENTOS[acento].solido}`} />
       <div className="min-w-0">
         <h2 className="m-0 font-display text-[18px] font-bold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
-        {descripcion && <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{descripcion}</p>}
+        {descripcion && <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
       </div>
     </div>
   );

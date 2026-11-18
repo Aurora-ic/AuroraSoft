@@ -62,7 +62,7 @@
   --color-acento-azul: #2A78D6;
   --color-acento-azul-dark: #5598E7;
   --color-acento-violeta: #A24FB0;
-  --color-acento-violeta-dark: #B86CC6;
+  --color-acento-violeta-dark: #C68ACF; /* (2026-11-17) antes #B86CC6: 3.8:1 sobre su tinte en oscuro */
   --color-acento-pizarra: #4F6475;
   --color-acento-pizarra-dark: #9AACBA;
 
@@ -70,6 +70,12 @@
      que la franja del encabezado vaya del oscuro al claro DEL MISMO color
      (antes todas arrancaban en teal-900 y mezclaban dos colores). */
   --color-acento-azul-900: #12345E;
+  /* 🆕 (2026-11-17, fase 4) Tono -700 de cada acento para TEXTO de acento y
+     fondos sólidos con texto blanco: el base daba 3.7–4.4:1 sobre su propio
+     tinte (debajo del 4.5:1 de WCAG AA, medido en la pasada final). */
+  --color-acento-azul-700: #1F5DAA;
+  --color-acento-violeta-700: #7E3A8A;
+  --color-acento-pizarra-700: #3E505E;
   --color-acento-violeta-900: #4A1F52;
   --color-acento-pizarra-900: #24313B;
   --color-amber-900: #5C3D0A;

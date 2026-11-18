@@ -50,7 +50,7 @@ export function BloqueFicha({
           </span>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-seccion-900 dark:text-ink-dark leading-tight">{titulo}</h3>
-            {descripcion && <p className="text-[12px] text-ink/50 dark:text-ink-dark/50 leading-tight mt-0.5">{descripcion}</p>}
+            {descripcion && <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 leading-tight mt-0.5">{descripcion}</p>}
           </div>
         </div>
         {acciones && <div className="flex items-center gap-1.5 flex-wrap">{acciones}</div>}
@@ -68,7 +68,7 @@ export function BloqueFicha({
 export function VacioFicha({ icono: Icono, texto, children }: { icono: LucideIcon; texto: string; children?: ReactNode }) {
   return (
     <div className="rounded-lg border border-dashed border-border dark:border-border-dark bg-surface/50 dark:bg-surface-dark/40 px-4 py-3.5 text-center">
-      <p className="m-0 inline-flex items-center justify-center gap-2 text-sm text-ink/50 dark:text-ink-dark/50">
+      <p className="m-0 inline-flex items-center justify-center gap-2 text-sm text-ink/65 dark:text-ink-dark/55">
         <Icono size={16} className="shrink-0 text-ink/30 dark:text-ink-dark/30" aria-hidden="true" />
         {texto}
       </p>
@@ -105,13 +105,13 @@ export function DatoFicha({
   const vacio = valor === null || valor === undefined || valor === "";
   return (
     <div className={`bg-surface dark:bg-surface-dark px-3.5 py-2.5 ${ancho ? "sm:col-span-full" : ""}`}>
-      <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+      <dt className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
         {Icono && <Icono size={12} aria-hidden="true" />}
         {etiqueta}
       </dt>
       {/* 🆕 (sesión 2026-11-07) "Sin registrar" en vez de "—": un guion no
           dice si el dato no existe, no aplica o falta llenarlo. */}
-      <dd className={`mt-0.5 break-words ${vacio ? "text-[13px] italic text-ink/35 dark:text-ink-dark/35" : "font-medium text-ink dark:text-ink-dark"}`}>
+      <dd className={`mt-0.5 break-words ${vacio ? "text-[13px] italic text-ink/65 dark:text-ink-dark/55" : "font-medium text-ink dark:text-ink-dark"}`}>
         {vacio ? "Sin registrar" : valor}
       </dd>
     </div>

@@ -181,7 +181,7 @@ function CasosRiesgoPageContenido() {
 
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative w-full lg:max-w-xs">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
           <input
             type="search"
             aria-label="Buscar alumno"
@@ -231,7 +231,7 @@ function CasosRiesgoPageContenido() {
       )}
 
       {!cargando && (filtroEstado !== "abiertos" || abiertos.length > 0) && visibles.length === 0 && (
-        <p className="m-0 text-sm text-ink/50 dark:text-ink-dark/50 italic">Ningún caso coincide con el filtro.</p>
+        <p className="m-0 text-sm text-ink/65 dark:text-ink-dark/55 italic">Ningún caso coincide con el filtro.</p>
       )}
 
       <div className="grid gap-3 xl:grid-cols-2">
@@ -309,7 +309,7 @@ function TarjetaCaso({
   }
 
   return (
-    <article className={`rounded-xl border border-l-4 p-4 flex flex-col gap-3 ${clases.tarjeta} ${caso.estado === "cerrado" ? "opacity-75" : ""}`}>
+    <article className={`min-w-0 rounded-xl border border-l-4 p-4 flex flex-col gap-3 ${clases.tarjeta} ${caso.estado === "cerrado" ? "opacity-75" : ""}`}>
       <div className="flex items-start gap-3">
         <span
           className={`shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-bold uppercase tracking-wide ${clases.insignia}`}
@@ -329,7 +329,10 @@ function TarjetaCaso({
           >
             {caso.nombre_completo}
           </Link>
-          <p className="m-0 mt-0.5 text-[12px] text-ink/55 dark:text-ink-dark/55">
+          {/* 🔧 (2026-11-17) En celular, un nombre técnico de prueba o campaña sin
+              espacios (p. ej. "COLEGIO-2026-PHQ9-1RO-A") estiraba la tarjeta
+              147 px fuera de la pantalla: se deja partir en cualquier punto. */}
+          <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55 [overflow-wrap:anywhere]">
             {caso.origen === "prueba"
               ? [caso.prueba, caso.campana, caso.fecha_evaluacion ? `evaluado el ${fecha(caso.fecha_evaluacion)}` : null]
                   .filter(Boolean)
@@ -341,7 +344,7 @@ function TarjetaCaso({
           className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-semibold ${
             esperaLarga
               ? "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300"
-              : "bg-surface/80 text-ink/60 dark:bg-surface-raised-dark dark:text-ink-dark/60"
+              : "bg-surface/80 text-ink/65 dark:bg-surface-raised-dark dark:text-ink-dark/60"
           }`}
           title={caso.ultimo_seguimiento ? `Último seguimiento: ${fecha(caso.ultimo_seguimiento)}` : "Sin sesiones de seguimiento"}
         >
@@ -376,7 +379,7 @@ function TarjetaCaso({
 
       {/* Estado y responsable, editables en el lugar. */}
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/55 dark:text-ink-dark/55">
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/65 dark:text-ink-dark/55">
           Estado
           <Select
             value={cerrando ? "cerrado" : (estadoPendiente ?? caso.estado)}
@@ -391,7 +394,7 @@ function TarjetaCaso({
             ))}
           </Select>
         </label>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/55 dark:text-ink-dark/55">
+        <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/65 dark:text-ink-dark/55">
           Responsable
           <Select
             value={responsablePendiente ?? (caso.responsable ? String(caso.responsable.id) : "")}
@@ -428,7 +431,7 @@ function TarjetaCaso({
             className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400"
           />
           <div className="flex items-center justify-end gap-3">
-            <button type="button" onClick={() => setCerrando(false)} className="text-[12.5px] text-ink/60 dark:text-ink-dark/60 hover:underline">
+            <button type="button" onClick={() => setCerrando(false)} className="text-[12.5px] text-ink/65 dark:text-ink-dark/60 hover:underline">
               Cancelar
             </button>
             <button
@@ -443,7 +446,7 @@ function TarjetaCaso({
       )}
 
       {caso.estado === "cerrado" && caso.motivo_cierre && (
-        <p className="m-0 text-[12px] text-ink/60 dark:text-ink-dark/60">
+        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/60">
           <strong className="font-semibold">Cerrado el {fecha(caso.cerrado_en)}:</strong> {caso.motivo_cierre}
         </p>
       )}
@@ -457,14 +460,14 @@ function TarjetaCaso({
           type="button"
           onClick={() => setVerHistorial((v) => !v)}
           aria-expanded={verHistorial}
-          className="mr-auto inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
+          className="mr-auto inline-flex items-center gap-1.5 text-ink/65 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
         >
           <History size={14} aria-hidden="true" />
           {verHistorial ? "Ocultar historial" : "Historial"}
         </button>
         <Link
           href={`/estudiantes/${caso.persona_id}/seguimiento/nuevo`}
-          className="inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
+          className="inline-flex items-center gap-1.5 text-ink/65 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
         >
           <HeartHandshake size={14} aria-hidden="true" />
           Registrar seguimiento
@@ -492,7 +495,7 @@ function HistorialCaso({ casoId }: { casoId: number }) {
     <ol className="m-0 flex flex-col gap-1.5 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 p-3 list-none">
       {(consulta.data ?? []).map((e) => (
         <li key={e.id} className="text-[12px] text-ink/70 dark:text-ink-dark/70">
-          <span className="text-ink/45 dark:text-ink-dark/45">{new Date(e.creado_en).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>{" "}
+          <span className="text-ink/65 dark:text-ink-dark/55">{new Date(e.creado_en).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>{" "}
           <span className="inline-flex items-center gap-1 font-semibold text-ink dark:text-ink-dark">
             <UserRound size={11} aria-hidden="true" />
             {e.usuario ?? "Sistema"}
@@ -510,7 +513,7 @@ function HistorialCaso({ casoId }: { casoId: number }) {
               <strong className="font-semibold">{e.responsable_nuevo ?? "sin responsable"}</strong>.
             </>
           )}
-          {e.nota && <span className="block pl-4 italic text-ink/55 dark:text-ink-dark/55">“{e.nota}”</span>}
+          {e.nota && <span className="block pl-4 italic text-ink/65 dark:text-ink-dark/55">“{e.nota}”</span>}
         </li>
       ))}
     </ol>

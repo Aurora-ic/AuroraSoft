@@ -63,7 +63,7 @@ export default function RecuperarPasswordPage() {
               Si <strong className="font-semibold text-ink dark:text-ink-dark">{email.trim()}</strong> corresponde a una
               cuenta activa de AuroraSoft, en unos minutos recibirás un enlace para crear una nueva contraseña.
             </p>
-            <ul className="mt-5 w-full space-y-2 rounded-xl bg-mist p-4 text-left text-xs text-ink/60 dark:bg-surface-raised-dark dark:text-ink-dark/60">
+            <ul className="mt-5 w-full space-y-2 rounded-xl bg-mist p-4 text-left text-xs text-ink/65 dark:bg-surface-raised-dark dark:text-ink-dark/60">
               <li>• El enlace vence en 1 hora y sirve una sola vez.</li>
               <li>• Si no lo ves, revisa la carpeta de spam o correo no deseado.</li>
               <li>• Puedes pedir hasta 3 enlaces por hora; siempre vale el último que no hayas usado.</li>
@@ -105,7 +105,7 @@ export default function RecuperarPasswordPage() {
               Correo electrónico
             </label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 dark:text-ink-dark/40" aria-hidden />
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden />
               <input
                 id="email"
                 type="email"
@@ -126,7 +126,7 @@ export default function RecuperarPasswordPage() {
             {errorCampo ? (
               <p id="email-error" className="text-xs text-red-700 dark:text-red-300">{errorCampo}</p>
             ) : (
-              <p id="email-ayuda" className="text-xs text-ink/45 dark:text-ink-dark/45">
+              <p id="email-ayuda" className="text-xs text-ink/65 dark:text-ink-dark/55">
                 El mismo correo con el que inicias sesión en AuroraSoft.
               </p>
             )}

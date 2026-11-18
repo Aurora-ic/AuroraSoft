@@ -45,7 +45,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
     return (
       <div className="py-2">
         <p className="text-sm font-semibold text-ink/80 dark:text-ink-dark/80">{nombreDimension}</p>
-        <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin datos suficientes para graficar.</p>
+        <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic">Sin datos suficientes para graficar.</p>
       </div>
     );
   }
@@ -81,7 +81,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
       {mostrarTabla ? (
         <table className="w-full text-xs">
           <thead>
-            <tr className="text-left text-ink/50 dark:text-ink-dark/50">
+            <tr className="text-left text-ink/65 dark:text-ink-dark/55">
               <th className="py-1 pr-2 font-medium">Campaña</th>
               <th className="py-1 pr-2 font-medium">Fecha</th>
               <th className="py-1 font-medium">Media</th>
@@ -91,7 +91,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
             {puntos.map((p) => (
               <tr key={p.evaluacionId} className="border-t border-border/60 dark:border-border-dark">
                 <td className="py-1 pr-2 text-ink dark:text-ink-dark">{p.nombreGrupo}</td>
-                <td className="py-1 pr-2 text-ink/60 dark:text-ink-dark/60">{formatearFechaCorta(p.fecha)}</td>
+                <td className="py-1 pr-2 text-ink/65 dark:text-ink-dark/60">{formatearFechaCorta(p.fecha)}</td>
                 <td className="py-1 text-ink/80 dark:text-ink-dark/80 font-mono">{fmt(p.media)}</td>
               </tr>
             ))}
@@ -142,7 +142,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
               style={{ left: `${(activo.cx / ANCHO) * 100}%`, top: `${(activo.cy / ALTO) * 100 - 4}%` }}
             >
               <p className="font-medium text-ink dark:text-ink-dark">{activo.nombreGrupo}</p>
-              <p className="text-ink/60 dark:text-ink-dark/60">
+              <p className="text-ink/65 dark:text-ink-dark/60">
                 {formatearFechaCorta(activo.fecha)} · Media: {fmt(activo.media)}
               </p>
             </div>

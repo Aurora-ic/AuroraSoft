@@ -62,7 +62,7 @@ function BotonEditar({ onClick, etiqueta }: { onClick: () => void; etiqueta: str
       onClick={onClick}
       aria-label={etiqueta}
       title={etiqueta}
-      className="shrink-0 rounded-lg p-1.5 text-ink/35 dark:text-ink-dark/35 hover:bg-mist dark:hover:bg-surface-raised-dark hover:text-seccion-700 dark:hover:text-seccion-claro transition-colors"
+      className="shrink-0 rounded-lg p-1.5 text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-raised-dark hover:text-seccion-700 dark:hover:text-seccion-claro transition-colors"
     >
       <Pencil size={14} aria-hidden="true" />
     </button>
@@ -76,7 +76,7 @@ function BotonEliminar({ onClick, etiqueta }: { onClick: () => void; etiqueta: s
       onClick={onClick}
       aria-label={etiqueta}
       title={etiqueta}
-      className="shrink-0 rounded-lg p-1.5 text-ink/35 dark:text-ink-dark/35 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+      className="shrink-0 rounded-lg p-1.5 text-ink/65 dark:text-ink-dark/55 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-700 dark:hover:text-red-300 transition-colors"
     >
       <Trash2 size={14} aria-hidden="true" />
     </button>
@@ -110,7 +110,7 @@ function ConfirmarEliminar({
         <button
           type="button"
           onClick={onCancelar}
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/60 dark:text-ink-dark/60 hover:bg-white dark:hover:bg-surface-dark"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/65 dark:text-ink-dark/60 hover:bg-white dark:hover:bg-surface-dark"
         >
           Cancelar
         </button>
@@ -175,7 +175,7 @@ function EditorEnLinea({
         <button
           type="button"
           onClick={onCancelar}
-          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/60 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-raised-dark"
+          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-ink/65 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-raised-dark"
         >
           <X size={13} aria-hidden="true" />
           Cancelar
@@ -231,13 +231,13 @@ function Columna({
             <h2 className="m-0 text-sm font-semibold text-seccion-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
               {titulo}
               {cantidad !== null && (
-                <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[11.5px] font-bold text-ink/55 dark:text-ink-dark/60">
+                <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[11.5px] font-bold text-ink/65 dark:text-ink-dark/60">
                   {cantidad}
                 </span>
               )}
             </h2>
             {(subtitulo || (totalEstudiantes !== null && totalEstudiantes !== undefined)) && (
-              <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50 truncate">
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 truncate">
                 {[
                   subtitulo,
                   totalEstudiantes !== null && totalEstudiantes !== undefined
@@ -302,7 +302,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
               nDx === 0
                 ? activo
                   ? "bg-white/10 text-white/60"
-                  : "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
+                  : "bg-border/60 text-ink/65 dark:bg-border-dark dark:text-ink-dark/55"
                 : activo
                   ? "bg-amber text-seccion-900"
                   : "bg-amber/20 text-amber-800 dark:bg-amber/15 dark:text-amber"
@@ -311,7 +311,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
             <span className="sr-only">Con diagnóstico: </span>
             {nDx}
           </span>
-          <span aria-hidden="true" className={`text-[12px] font-bold ${activo ? "text-white/70" : "text-ink/35 dark:text-ink-dark/35"}`}>=</span>
+          <span aria-hidden="true" className={`text-[12px] font-bold ${activo ? "text-white/70" : "text-ink/65 dark:text-ink-dark/55"}`}>=</span>
         </>
       )}
       <span
@@ -320,7 +320,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
           activo
             ? "bg-white/20 text-white dark:bg-mist-dark/25 dark:text-mist-dark"
             : n === 0
-              ? "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
+              ? "bg-border/60 text-ink/65 dark:bg-border-dark dark:text-ink-dark/55"
               : "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
         }`}
       >
@@ -334,7 +334,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
 
 function VacioColumna({ texto }: { texto: string }) {
   return (
-    <p className="m-0 rounded-lg border border-dashed border-border dark:border-border-dark px-3 py-5 text-center text-[12.5px] text-ink/45 dark:text-ink-dark/45">
+    <p className="m-0 rounded-lg border border-dashed border-border dark:border-border-dark px-3 py-5 text-center text-[12.5px] text-ink/65 dark:text-ink-dark/55">
       {texto}
     </p>
   );
@@ -697,7 +697,7 @@ export default function EstructuraAcademicaPage() {
       </div>
 
       {/* 🆕 Leyenda del recuento de cada fila: sin Dx + con Dx = total. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink/60 dark:text-ink-dark/60">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink/65 dark:text-ink-dark/60">
         <span className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-seccion-600/30 dark:bg-seccion-claro/40" />
           Sin diagnóstico
@@ -728,7 +728,7 @@ export default function EstructuraAcademicaPage() {
         {ruta.map((parte, i) => (
           <span key={parte + i} className="flex items-center gap-1.5">
             <ChevronRight size={13} className="text-ink/30 dark:text-ink-dark/30" aria-hidden="true" />
-            <span className={i === ruta.length - 1 ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/60 dark:text-ink-dark/60"}>
+            <span className={i === ruta.length - 1 ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/65 dark:text-ink-dark/60"}>
               {parte}
             </span>
           </span>
@@ -985,7 +985,7 @@ export default function EstructuraAcademicaPage() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <div className="text-sm text-ink dark:text-ink-dark font-semibold truncate">Sección {seccion.nombre}</div>
-                          <div className="text-[12px] text-ink/50 dark:text-ink-dark/50">
+                          <div className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                             Año {seccion.anio_escolar}
                             {seccion.turno ? ` · Turno ${seccion.turno}` : ""}
                           </div>

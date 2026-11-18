@@ -27,12 +27,12 @@ export function DimensionBar({ nombre, puntajeDirecto, minimo, maximo, nivel, es
     <div className="w-full">
       <div className="flex items-baseline justify-between mb-1">
         <span className="text-sm text-ink dark:text-ink-dark">{nombre}</span>
-        <span className="text-xs font-mono text-ink/60 dark:text-ink-dark/60">{puntajeDirecto} / {maximo}</span>
+        <span className="text-xs font-mono text-ink/65 dark:text-ink-dark/60">{puntajeDirecto} / {maximo}</span>
       </div>
       <div className="relative h-2 rounded-full bg-border dark:bg-border-dark">
         <div className={`absolute -top-1 h-4 w-1 rounded-full ${color}`} style={{ left: `calc(${posicion}% - 2px)` }} title={`${nivel} — ${puntajeDirecto}`} />
       </div>
-      <span className="text-xs font-mono text-ink/50 dark:text-ink-dark/50 capitalize">{nivel}</span>
+      <span className="text-xs font-mono text-ink/65 dark:text-ink-dark/55 capitalize">{nivel}</span>
     </div>
   );
 }

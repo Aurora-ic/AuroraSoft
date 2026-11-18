@@ -133,7 +133,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar"
-            className="text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:hover:text-ink-dark p-1 rounded-lg"
+            className="text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark p-1 rounded-lg"
           >
             <X size={18} strokeWidth={2.2} aria-hidden="true" />
           </button>
@@ -142,7 +142,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
           {orden.map((grupo) => (
             <section key={grupo.clave} className="flex flex-col gap-2.5">
-              <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">{grupo.titulo}</h3>
+              <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{grupo.titulo}</h3>
               {PREGUNTAS.filter((p) => p.grupo === grupo.clave).map((item) => {
                 const abiertaEsta = preguntaAbierta === item.pregunta;
                 return (
@@ -158,7 +158,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
                         size={14}
                         strokeWidth={2.4}
                         aria-hidden="true"
-                        className={`flex-shrink-0 text-ink/50 dark:text-ink-dark/50 transition-transform ${abiertaEsta ? "rotate-180" : ""}`}
+                        className={`flex-shrink-0 text-ink/65 dark:text-ink-dark/55 transition-transform ${abiertaEsta ? "rotate-180" : ""}`}
                       />
                     </button>
                     {abiertaEsta && (
@@ -171,7 +171,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
           ))}
 
           <section className="flex flex-col gap-2.5">
-            <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Glosario</h3>
+            <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Glosario</h3>
             <div className="border border-border dark:border-border-dark rounded-xl overflow-hidden">
               <button
                 type="button"
@@ -184,7 +184,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
                   size={14}
                   strokeWidth={2.4}
                   aria-hidden="true"
-                  className={`flex-shrink-0 text-ink/50 dark:text-ink-dark/50 transition-transform ${glosarioAbierto ? "rotate-180" : ""}`}
+                  className={`flex-shrink-0 text-ink/65 dark:text-ink-dark/55 transition-transform ${glosarioAbierto ? "rotate-180" : ""}`}
                 />
               </button>
               {glosarioAbierto && (
@@ -200,7 +200,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
             </div>
           </section>
 
-          <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-ink/40 dark:text-ink-dark/40">
+          <p className="mt-1 px-0.5 text-[12px] leading-relaxed text-ink/65 dark:text-ink-dark/55">
             ¿No encontraste lo que buscabas? Escríbenos a auroraintegratedconsulting@gmail.com.
           </p>
         </div>

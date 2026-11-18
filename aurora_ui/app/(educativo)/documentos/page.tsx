@@ -443,7 +443,7 @@ export default function DocumentosPage() {
               <Boton onClick={crearPlantilla} disabled={!tipoNuevaPlantilla || creandoPlantilla}>
                 {creandoPlantilla ? "Creando..." : "Crear y abrir el constructor"}
               </Boton>
-              <p className="basis-full m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+              <p className="basis-full m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 ¿Prefieres partir de un formato ya armado? Usa el{" "}
                 <button type="button" onClick={() => setTab("catalogo")} className={`font-semibold hover:underline ${VIOLETA.texto}`}>
                   catálogo para clonar
@@ -454,7 +454,7 @@ export default function DocumentosPage() {
           )}
           <TextoError>{errorPlantilla}</TextoError>
           {tipos.length === 0 && (
-            <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">
+            <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic">
               Todavía no hay ningún tipo de documento en el catálogo (lo arma superadmin).
             </p>
           )}
@@ -486,13 +486,13 @@ export default function DocumentosPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <h3 className="m-0 text-sm font-semibold text-ink dark:text-ink-dark leading-snug">{p.nombre}</h3>
-                        <p className="m-0 mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50">{nombreTipo(p.tipo_documento_id)}</p>
+                        <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{nombreTipo(p.tipo_documento_id)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <PildoraEstado activa={p.activa} />
                         {duplicadas.has(p.id) && (
                           <span
-                            className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink/30 dark:border-ink-dark/30 px-2 py-0.5 text-[11.5px] font-semibold text-ink/60 dark:text-ink-dark/60"
+                            className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink/30 dark:border-ink-dark/30 px-2 py-0.5 text-[11.5px] font-semibold text-ink/65 dark:text-ink-dark/60"
                             title="Hay otra plantilla tuya del mismo tipo con el mismo nombre. Si la clonaste dos veces por accidente, elimina la que sobre."
                           >
                             <CopyCheck size={10} aria-hidden="true" />
@@ -502,7 +502,7 @@ export default function DocumentosPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[12px] text-ink/50 dark:text-ink-dark/50">
+                    <div className="flex items-center gap-x-3 gap-y-1 flex-wrap text-[12px] text-ink/65 dark:text-ink-dark/55">
                       {n !== undefined && n >= 0 && (
                         <span className={n === 0 ? "text-red-700 dark:text-red-300 font-medium" : ""}>
                           {n} {n === 1 ? "sección" : "secciones"}
@@ -556,7 +556,7 @@ export default function DocumentosPage() {
                         disabled={eliminandoId === p.id}
                         title="Eliminar plantilla"
                         aria-label={`Eliminar plantilla ${p.nombre}`}
-                        className="shrink-0 rounded-lg border border-border dark:border-border-dark px-2.5 text-ink/45 hover:text-red-700 hover:border-red-300 hover:bg-red-50 dark:text-ink-dark/45 dark:hover:text-red-300 dark:hover:bg-red-500/10 disabled:opacity-40 transition-colors"
+                        className="shrink-0 rounded-lg border border-border dark:border-border-dark px-2.5 text-ink/65 hover:text-red-700 hover:border-red-300 hover:bg-red-50 dark:text-ink-dark/55 dark:hover:text-red-300 dark:hover:bg-red-500/10 disabled:opacity-40 transition-colors"
                       >
                         <Trash2 size={14} aria-hidden="true" />
                       </button>
@@ -588,7 +588,7 @@ export default function DocumentosPage() {
           ) : (
             gruposCatalogo.map((g) => (
               <div key={g.tipo.id}>
-                <h3 className="m-0 mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                <h3 className="m-0 mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                   <span className={`h-1.5 w-1.5 rounded-full ${VIOLETA.solido}`} aria-hidden="true" />
                   {g.tipo.nombre}
                   <span className="font-semibold text-ink/30 dark:text-ink-dark/30">{g.items.length}</span>
@@ -607,7 +607,7 @@ export default function DocumentosPage() {
                       </div>
                       <div className="flex items-center justify-between gap-2 mt-auto">
                         {yaClonada(item) ? (
-                          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-ink/50 dark:text-ink-dark/50">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-medium text-ink/65 dark:text-ink-dark/55">
                             <CheckCircle2 size={12} aria-hidden="true" />
                             Ya en tus plantillas
                           </span>
@@ -678,7 +678,7 @@ export default function DocumentosPage() {
                   <li key={d.id} className="flex items-center gap-3 px-3.5 py-3 hover:bg-mist/50 dark:hover:bg-surface-raised-dark transition-colors">
                     <span
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                        borrador ? "bg-border/60 text-ink/50 dark:bg-border-dark dark:text-ink-dark/60" : VIOLETA.chip
+                        borrador ? "bg-border/60 text-ink/65 dark:bg-border-dark dark:text-ink-dark/60" : VIOLETA.chip
                       }`}
                     >
                       {borrador ? <FilePen size={16} aria-hidden="true" /> : <FileCheck2 size={16} aria-hidden="true" />}
@@ -686,11 +686,11 @@ export default function DocumentosPage() {
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/documentos/${d.id}`}
-                        className="block truncate text-sm font-semibold text-ink dark:text-ink-dark hover:text-acento-violeta dark:hover:text-acento-violeta-dark"
+                        className="block truncate text-sm font-semibold text-ink dark:text-ink-dark hover:text-acento-violeta-700 dark:hover:text-acento-violeta-dark"
                       >
                         {d.titulo}
                       </Link>
-                      <p className="m-0 mt-0.5 flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-[12px] text-ink/50 dark:text-ink-dark/50">
+                      <p className="m-0 mt-0.5 flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-[12px] text-ink/65 dark:text-ink-dark/55">
                         {alumnos.length > 0 && (
                           <span className="inline-flex items-center gap-1 text-ink/70 dark:text-ink-dark/70 font-medium" title={alumnos.join(", ")}>
                             <Users size={11} aria-hidden="true" />
@@ -703,7 +703,7 @@ export default function DocumentosPage() {
                     </div>
                     <span
                       className={`hidden sm:inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
-                        borrador ? "border border-dashed border-ink/25 text-ink/55 dark:border-ink-dark/25 dark:text-ink-dark/55" : VIOLETA.chipSolido
+                        borrador ? "border border-dashed border-ink/25 text-ink/65 dark:border-ink-dark/25 dark:text-ink-dark/55" : VIOLETA.chipSolido
                       }`}
                     >
                       {borrador ? "Borrador" : `Emitido v${d.version_actual}`}
@@ -716,7 +716,7 @@ export default function DocumentosPage() {
                           disabled={descartandoId === d.id}
                           title="Descartar borrador"
                           aria-label={`Descartar borrador ${d.titulo}`}
-                          className="rounded-lg p-1.5 text-ink/40 hover:text-red-700 hover:bg-red-50 dark:text-ink-dark/40 dark:hover:text-red-300 dark:hover:bg-red-500/10 disabled:opacity-40 transition-colors"
+                          className="rounded-lg p-1.5 text-ink/65 hover:text-red-700 hover:bg-red-50 dark:text-ink-dark/55 dark:hover:text-red-300 dark:hover:bg-red-500/10 disabled:opacity-40 transition-colors"
                         >
                           <Trash2 size={15} aria-hidden="true" />
                         </button>
@@ -737,7 +737,7 @@ export default function DocumentosPage() {
 
           {totalDocumentos > TAMANO_PAGINA && (
             <div className="flex items-center justify-between pt-1">
-              <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
                 {paginaDocumentos * TAMANO_PAGINA + 1}–{Math.min((paginaDocumentos + 1) * TAMANO_PAGINA, totalDocumentos)} de {totalDocumentos}{" "}
                 documentos
               </p>
@@ -820,7 +820,7 @@ function TarjetaPestana({
           <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark truncate">{titulo}</span>
           <span className={`font-display text-[17px] font-bold leading-none ${VIOLETA.texto}`}>{valor}</span>
         </span>
-        <span className="block mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50 truncate">{descripcion}</span>
+        <span className="block mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55 truncate">{descripcion}</span>
       </span>
     </button>
   );
@@ -830,7 +830,7 @@ function PildoraEstado({ activa }: { activa: boolean }) {
   return (
     <span
       className={`shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap ${
-        activa ? VIOLETA.chipSolido : "border border-border dark:border-border-dark text-ink/50 dark:text-ink-dark/50"
+        activa ? VIOLETA.chipSolido : "border border-border dark:border-border-dark text-ink/65 dark:text-ink-dark/55"
       }`}
     >
       {activa ? "Activa" : "Inactiva"}
@@ -841,7 +841,7 @@ function PildoraEstado({ activa }: { activa: boolean }) {
 function CampoBusqueda({ valor, onCambiar, placeholder }: { valor: string; onCambiar: (v: string) => void; placeholder: string }) {
   return (
     <div className="relative">
-      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
       <input
         type="search"
         aria-label={placeholder}

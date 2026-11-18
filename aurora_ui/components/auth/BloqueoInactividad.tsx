@@ -217,12 +217,12 @@ function PantallaBloqueo({
           <h1 id="titulo-bloqueo" className="mt-3 font-display text-xl font-semibold text-teal-900 dark:text-ink-dark">
             Sesión bloqueada
           </h1>
-          <p className="mt-1.5 text-sm text-ink/60 dark:text-ink-dark/60">
+          <p className="mt-1.5 text-sm text-ink/65 dark:text-ink-dark/60">
             Pasaron {MINUTOS_INACTIVIDAD} minutos sin actividad. Para proteger los datos de los estudiantes, ingresa tu contraseña.
             Lo que estabas haciendo sigue abierto.
           </p>
         </div>
-        <p className="mb-1.5 text-xs font-medium text-ink/55 dark:text-ink-dark/55">Cuenta</p>
+        <p className="mb-1.5 text-xs font-medium text-ink/65 dark:text-ink-dark/55">Cuenta</p>
         <p className="mb-4 truncate rounded-xl bg-mist dark:bg-surface-raised-dark px-3.5 py-2.5 text-sm text-ink dark:text-ink-dark">{email}</p>
         <label htmlFor="password-bloqueo" className="mb-1.5 block text-sm font-medium text-ink/75 dark:text-ink-dark/75">
           Contraseña
@@ -264,7 +264,7 @@ function PantallaBloqueo({
           {enviando && <Loader2 size={16} className="animate-spin" aria-hidden="true" />}
           {enviando ? "Verificando…" : "Desbloquear"}
         </button>
-        <button type="button" onClick={onCerrarSesion} className="mt-4 w-full text-center text-[13px] text-ink/55 dark:text-ink-dark/55 hover:underline">
+        <button type="button" onClick={onCerrarSesion} className="mt-4 w-full text-center text-[13px] text-ink/65 dark:text-ink-dark/55 hover:underline">
           Cerrar sesión e ingresar con otra cuenta
         </button>
       </form>

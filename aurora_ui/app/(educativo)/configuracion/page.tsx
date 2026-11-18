@@ -200,7 +200,7 @@ export default function ConfiguracionPage() {
       />
 
       {!puedeEditar && (
-        <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50 italic">
+        <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55 italic">
           Estás viendo esta pantalla en modo lectura — solo el admin del colegio puede cambiar estas opciones.
         </p>
       )}
@@ -238,15 +238,15 @@ export default function ConfiguracionPage() {
           >
             <div className="flex items-end justify-between gap-3 flex-wrap">
               <div>
-                <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Actual</p>
+                <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Actual</p>
                 <p className="m-0 font-display text-[28px] font-bold leading-none text-seccion-900 dark:text-ink-dark">
-                  {institucion.anio_escolar_activo ?? <span className="text-base text-ink/40 dark:text-ink-dark/40">No configurado</span>}
+                  {institucion.anio_escolar_activo ?? <span className="text-base text-ink/65 dark:text-ink-dark/55">No configurado</span>}
                 </p>
               </div>
               {puedeEditar && (
                 <form onSubmit={guardarAnioEscolar} className="flex items-end gap-2">
                   <label className="flex flex-col gap-1 text-[12px]">
-                    <span className="text-ink/60 dark:text-ink-dark/60 font-medium">Nuevo año escolar</span>
+                    <span className="text-ink/65 dark:text-ink-dark/60 font-medium">Nuevo año escolar</span>
                     <Input
                       type="number"
                       value={anioForm}
@@ -262,7 +262,7 @@ export default function ConfiguracionPage() {
                 </form>
               )}
             </div>
-            <p className="m-0 mt-3 text-[12px] text-ink/50 dark:text-ink-dark/50">
+            <p className="m-0 mt-3 text-[12px] text-ink/65 dark:text-ink-dark/55">
               Cambiarlo es una acción explícita — nunca se activa solo al confirmar una promoción de estudiantes.
             </p>
             <TextoError className="mt-2">{errorAnio}</TextoError>
@@ -274,7 +274,7 @@ export default function ConfiguracionPage() {
                 <p id="etiqueta-asentimiento" className="m-0 text-sm font-semibold text-ink dark:text-ink-dark">
                   Exigir también el asentimiento del propio estudiante
                 </p>
-                <p className="m-0 mt-1 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                <p className="m-0 mt-1 text-[12px] text-ink/65 dark:text-ink-dark/55">
                   El consentimiento del apoderado siempre es obligatorio. Esta opción exige, además, el asentimiento vigente del
                   estudiante para matricularlo o para que siga rindiendo un examen ya empezado.
                 </p>
@@ -326,7 +326,7 @@ export default function ConfiguracionPage() {
                       className="max-h-full max-w-full object-contain"
                     />
                   ) : (
-                    <span className="flex flex-col items-center gap-1 text-xs text-ink/35 dark:text-ink-dark/35">
+                    <span className="flex flex-col items-center gap-1 text-xs text-ink/65 dark:text-ink-dark/55">
                       <ImageIcon size={20} aria-hidden="true" />
                       Sin imagen
                     </span>
@@ -335,7 +335,7 @@ export default function ConfiguracionPage() {
                 <div className="p-3 flex flex-col gap-2 flex-1">
                   <div>
                     <p className="m-0 text-[13px] font-semibold text-ink dark:text-ink-dark">{ETIQUETAS_BRANDING[tipo].titulo}</p>
-                    <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{ETIQUETAS_BRANDING[tipo].descripcion}</p>
+                    <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{ETIQUETAS_BRANDING[tipo].descripcion}</p>
                   </div>
                   {puedeEditar && (
                     <>

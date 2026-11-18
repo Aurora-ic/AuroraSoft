@@ -80,7 +80,7 @@ export function EncabezadoPagina({
         </span>
         <div className="min-w-0">
           <h1 className="m-0 font-display text-[22px] font-bold text-seccion-900 dark:text-ink-dark leading-tight">{titulo}</h1>
-          {descripcion && <p className="m-0 mt-0.5 text-[12.5px] text-ink/55 dark:text-ink-dark/55">{descripcion}</p>}
+          {descripcion && <p className="m-0 mt-0.5 text-[12.5px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </div>
       {acciones && <div className="flex items-center gap-2 flex-wrap">{acciones}</div>}
@@ -116,7 +116,7 @@ export function TarjetaKpi({
   // 🆕 (sesión 2026-10-31) Fondo tintado del tono + ícono en cuadro sólido,
   // mismo estilo que los bloques del Inicio. "neutro" sigue en blanco.
   const claseIcono =
-    tono === "neutro" ? "bg-border/70 text-ink/55 dark:bg-border-dark dark:text-ink-dark/60" : ACENTOS[tono].chipSolido;
+    tono === "neutro" ? "bg-border/70 text-ink/65 dark:bg-border-dark dark:text-ink-dark/60" : ACENTOS[tono].chipSolido;
   const claseFondo =
     tono === "neutro" ? "bg-surface dark:bg-surface-dark border-border dark:border-border-dark" : ACENTOS[tono].fondo;
   return (
@@ -133,8 +133,8 @@ export function TarjetaKpi({
       </span>
       <span className="min-w-0">
         <span className="block font-display text-[22px] font-bold leading-none text-ink dark:text-ink-dark">{valor}</span>
-        <span className="block mt-1 text-[12px] font-medium text-ink/55 dark:text-ink-dark/55 truncate">{etiqueta}</span>
-        {detalle && <span className="block text-[12px] text-ink/40 dark:text-ink-dark/40 truncate">{detalle}</span>}
+        <span className="block mt-1 text-[12px] font-medium text-ink/65 dark:text-ink-dark/55 truncate">{etiqueta}</span>
+        {detalle && <span className="block text-[12px] text-ink/65 dark:text-ink-dark/55 truncate">{detalle}</span>}
       </span>
     </Elemento>
   );
@@ -175,7 +175,7 @@ export function ControlSegmentado<T extends string>({
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
               activo
                 ? "bg-accion text-white dark:bg-seccion-claro dark:text-mist-dark"
-                : "text-ink/60 hover:text-ink hover:bg-mist dark:text-ink-dark/60 dark:hover:text-ink-dark dark:hover:bg-surface-raised-dark"
+                : "text-ink/65 hover:text-ink hover:bg-mist dark:text-ink-dark/60 dark:hover:text-ink-dark dark:hover:bg-surface-raised-dark"
             }`}
           >
             {Icono && <Icono size={13} aria-hidden="true" />}

@@ -672,7 +672,7 @@ export default function ExamenPage() {
           <h2 className="font-display text-base text-teal-900">Asentimiento informado</h2>
           {asentimientoTexto ? (
             <>
-              <p className="text-ink/40 italic text-xs">Versión {asentimientoTexto.version}</p>
+              <p className="text-ink/65 italic text-xs">Versión {asentimientoTexto.version}</p>
               <ul className="list-disc pl-5 space-y-1 text-ink/80">
                 {asentimientoTexto.contenido
                   .split("\n")
@@ -775,7 +775,7 @@ export default function ExamenPage() {
         <div className="bg-white rounded-card border border-border p-5 sm:p-6">
           <div className="flex items-baseline justify-between gap-3">
             <h1 className="font-display text-xl text-teal-900">Evaluación</h1>
-            <p className="text-sm text-ink/60">
+            <p className="text-sm text-ink/65">
               {respondidas} de {total} respondidas
             </p>
           </div>
@@ -792,7 +792,7 @@ export default function ExamenPage() {
               style={{ width: `${total ? (respondidas / total) * 100 : 0}%` }}
             />
           </div>
-          <p className="mt-2 text-xs text-ink/50">Tus respuestas se guardan automáticamente.</p>
+          <p className="mt-2 text-xs text-ink/65">Tus respuestas se guardan automáticamente.</p>
         </div>
 
         <TextoError>{errorPreguntas}</TextoError>
@@ -824,7 +824,7 @@ export default function ExamenPage() {
               <p className="text-xs font-semibold uppercase tracking-wide text-teal-700">
                 Pregunta {indiceActual + 1} de {total}
               </p>
-              <span aria-live="polite" className="text-xs text-ink/45">
+              <span aria-live="polite" className="text-xs text-ink/65">
                 {guardandoActual ? "Guardando…" : respuestas[actual.id] !== undefined ? "Guardada" : ""}
               </span>
             </div>
@@ -1014,7 +1014,7 @@ export default function ExamenPage() {
           Ya terminaste
         </h1>
         <p className="text-base text-ink/80">Gracias. Tus respuestas quedaron registradas.</p>
-        <p className="text-sm text-ink/60">Tus resultados los verá el equipo de orientación de tu institución.</p>
+        <p className="text-sm text-ink/65">Tus resultados los verá el equipo de orientación de tu institución.</p>
       </div>
 
       <div className="mx-auto max-w-md rounded-xl border border-teal-100 bg-teal-50 p-5 text-left space-y-3">

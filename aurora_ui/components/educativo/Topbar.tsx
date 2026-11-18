@@ -44,7 +44,7 @@ export function Topbar({ onAbrirMenu }: { onAbrirMenu?: () => void }) {
           type="button"
           onClick={() => setAyudaAbierta(true)}
           aria-label="Centro de ayuda"
-          className="text-ink/60 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:bg-mist dark:hover:bg-surface-dark p-2 rounded-lg transition-colors"
+          className="text-ink/65 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:bg-mist dark:hover:bg-surface-dark p-2 rounded-lg transition-colors"
         >
           <HelpCircle size={18} strokeWidth={1.9} aria-hidden="true" />
         </button>

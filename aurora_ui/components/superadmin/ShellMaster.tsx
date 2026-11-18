@@ -68,7 +68,7 @@ export function ShellMaster({ children }: { children: React.ReactNode }) {
               type="button"
               onClick={() => setMenuAbierto(false)}
               aria-label="Cerrar menú"
-              className="absolute top-5 right-3 p-1.5 rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-dark"
+              className="absolute top-5 right-3 p-1.5 rounded-lg text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-dark"
             >
               <X size={18} strokeWidth={2} aria-hidden="true" />
             </button>
@@ -97,7 +97,7 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
             <Image src="/logo.png" alt="" width={140} height={99} className="h-7 w-auto" />
             <span className="font-display text-[17px] font-bold text-ink dark:text-ink-dark">AuroraSoft</span>
           </div>
-          <p className="mt-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">Panel interno · Superadmin</p>
+          <p className="mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Panel interno · Superadmin</p>
         </div>
 
         <nav className="flex flex-col gap-0.5 px-3">
@@ -143,14 +143,14 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
             <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark truncate" title={sesion?.email}>
               {sesion?.email}
             </p>
-            <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45 capitalize">{sesion?.rol}</p>
+            <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 capitalize">{sesion?.rol}</p>
           </div>
           <button
             type="button"
             onClick={() => setCambiandoPassword(true)}
             aria-label="Cambiar contraseña"
             title="Cambiar contraseña"
-            className="shrink-0 text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:hover:text-ink-dark p-1.5 rounded-lg hover:bg-mist dark:hover:bg-surface-dark"
+            className="shrink-0 text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark p-1.5 rounded-lg hover:bg-mist dark:hover:bg-surface-dark"
           >
             <KeyRound size={15} strokeWidth={2} aria-hidden="true" />
           </button>
@@ -159,7 +159,7 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
             onClick={cerrarSesion}
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
-            className="shrink-0 text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:hover:text-ink-dark p-1.5 rounded-lg hover:bg-mist dark:hover:bg-surface-dark"
+            className="shrink-0 text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark p-1.5 rounded-lg hover:bg-mist dark:hover:bg-surface-dark"
           >
             <LogOut size={15} strokeWidth={2} aria-hidden="true" />
           </button>

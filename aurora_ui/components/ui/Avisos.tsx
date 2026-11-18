@@ -70,7 +70,7 @@ function ItemAviso({ aviso, onCerrar }: { aviso: Aviso; onCerrar: (id: number) =
         type="button"
         onClick={() => onCerrar(aviso.id)}
         aria-label="Cerrar aviso"
-        className="shrink-0 rounded-md p-1 text-ink/40 hover:bg-ink/5 hover:text-ink/70 dark:text-ink-dark/40 dark:hover:bg-white/5"
+        className="shrink-0 rounded-md p-1 text-ink/65 hover:bg-ink/5 hover:text-ink/70 dark:text-ink-dark/55 dark:hover:bg-white/5"
       >
         <X size={13} aria-hidden="true" />
       </button>

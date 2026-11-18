@@ -26,7 +26,7 @@ export const CLASE_URGENCIA: Record<UrgenciaCaso, { insignia: string; tarjeta: s
     tarjeta: "border-amber/35 border-l-amber bg-amber/[0.05] dark:bg-amber/[0.05]",
   },
   seguimiento: {
-    insignia: "bg-acento-pizarra/15 text-acento-pizarra dark:bg-acento-pizarra-dark/20 dark:text-acento-pizarra-dark",
+    insignia: "bg-acento-pizarra/15 text-acento-pizarra-700 dark:bg-acento-pizarra-dark/20 dark:text-acento-pizarra-dark",
     tarjeta:
       "border-acento-pizarra/25 border-l-acento-pizarra bg-acento-pizarra/[0.04] dark:border-acento-pizarra-dark/30 dark:border-l-acento-pizarra-dark dark:bg-acento-pizarra-dark/[0.05]",
   },

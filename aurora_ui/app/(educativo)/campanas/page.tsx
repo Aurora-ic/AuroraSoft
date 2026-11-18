@@ -99,7 +99,7 @@ export default function CampanasPage() {
           { icono: BarChart3, titulo: "3. Revisa los resultados", texto: "En la campaña ves el avance. Si un resultado indica riesgo, el informe queda retenido hasta que lo revises." },
         ]}
       >
-        <p className="m-0 mt-3 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+        <p className="m-0 mt-3 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
           Para evaluar a un solo alumno, usa «Aplicar prueba» desde su ficha.
         </p>
       </GuiaSeccion>
@@ -120,7 +120,7 @@ export default function CampanasPage() {
           ]}
         />
         {tipo === "individual" && (
-          <p className="m-0 text-xs text-ink/55 dark:text-ink-dark/55">
+          <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
             Se crean desde el perfil del estudiante con «Aplicar prueba». No cuentan en las estadísticas por salón.
           </p>
         )}
@@ -136,7 +136,7 @@ export default function CampanasPage() {
           >
             <div className="flex items-center justify-between gap-3 mb-2">
               <h2 className="flex min-w-0 items-center gap-2.5 font-display text-base text-ink dark:text-ink-dark">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-acento-azul-700 text-white dark:bg-acento-azul-dark dark:text-mist-dark">
                   {campana.tipo === "individual" ? <UserRound size={15} aria-hidden="true" /> : <Flag size={15} aria-hidden="true" />}
                 </span>
                 <span className="truncate">{campana.nombre_grupo}</span>
@@ -150,7 +150,7 @@ export default function CampanasPage() {
                 );
               })()}
             </div>
-            <p className="pl-[2.6rem] text-xs text-ink/60 dark:text-ink-dark/60 font-mono">
+            <p className="pl-[2.6rem] text-xs text-ink/65 dark:text-ink-dark/60 font-mono">
               Creada {campana.fecha_creacion.slice(0, 10)}
               {campana.fecha_fin ? ` — cierra ${campana.fecha_fin.slice(0, 10)}` : ""}
             </p>
@@ -159,7 +159,7 @@ export default function CampanasPage() {
       </div>
 
       {!cargando && !error && campanas.length === 0 && (
-        <p className="text-sm text-ink/40 dark:text-ink-dark/40 mt-4">
+        <p className="text-sm text-ink/65 dark:text-ink-dark/55 mt-4">
           {tipo === "individual"
             ? "Todavía no hay aplicaciones individuales. Se crean desde el perfil del estudiante."
             : "Todavía no hay campañas creadas."}
@@ -168,7 +168,7 @@ export default function CampanasPage() {
 
       {!cargando && !error && total > 0 && (
         <div className="flex items-center justify-between mt-4">
-          <p className="text-xs text-ink/50 dark:text-ink-dark/50">
+          <p className="text-xs text-ink/65 dark:text-ink-dark/55">
             {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, total)} de {total} campañas
           </p>
           <div className="flex items-center gap-2">

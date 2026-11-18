@@ -22,7 +22,7 @@ export function PantallaCargaMarca({ texto = "Preparando tu espacio…" }: { tex
       <div className="h-1 w-40 overflow-hidden rounded-full bg-border dark:bg-border-dark" aria-hidden="true">
         <div className="h-full w-1/3 rounded-full bg-seccion-600 dark:bg-seccion-claro animate-[deslizar_1.2s_ease-in-out_infinite]" />
       </div>
-      <p role="status" className="m-0 text-[13px] text-ink/55 dark:text-ink-dark/55">
+      <p role="status" className="m-0 text-[13px] text-ink/65 dark:text-ink-dark/55">
         {texto}
       </p>
     </div>

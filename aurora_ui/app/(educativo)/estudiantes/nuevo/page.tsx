@@ -83,12 +83,12 @@ function Bloque({
           <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
             {titulo}
             {opcional && (
-              <span className="rounded-full bg-border/70 dark:bg-border-dark px-2 py-px text-[11.5px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
+              <span className="rounded-full bg-border/70 dark:bg-border-dark px-2 py-px text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                 Opcional
               </span>
             )}
           </h2>
-          <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{descripcion}</p>
+          <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>
         </div>
       </header>
       <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">{children}</div>
@@ -99,7 +99,7 @@ function Bloque({
 function ItemCompleto({ hecho, texto }: { hecho: boolean; texto: string }) {
   const Icono = hecho ? CheckCircle2 : Circle;
   return (
-    <li className={`flex items-center gap-2 ${hecho ? "text-seccion-900 dark:text-seccion-claro" : "text-ink/45 dark:text-ink-dark/45"}`}>
+    <li className={`flex items-center gap-2 ${hecho ? "text-seccion-900 dark:text-seccion-claro" : "text-ink/65 dark:text-ink-dark/55"}`}>
       <Icono size={14} aria-hidden="true" className="shrink-0" />
       <span>{texto}</span>
       <span className="sr-only">{hecho ? "(completo)" : "(pendiente)"}</span>
@@ -284,7 +284,7 @@ export default function RegistrarAlumnoPage() {
                 autoComplete="off"
               />
             </CampoEditable>
-            <p className="m-0 sm:col-span-2 text-[12px] text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 sm:col-span-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
               <span className="text-red-600 dark:text-red-300">*</span> Nombres, apellidos y documento son obligatorios. El documento y el
               código no pueden repetirse dentro del colegio.
             </p>
@@ -311,7 +311,7 @@ export default function RegistrarAlumnoPage() {
 
           <Bloque icono={GraduationCap} titulo="Matrícula" descripcion="Asígnalo ya a su sección, o hazlo luego desde su ficha." opcional>
             {niveles.length === 0 ? (
-              <p className="m-0 sm:col-span-2 flex items-start gap-2 text-[12.5px] text-ink/55 dark:text-ink-dark/55">
+              <p className="m-0 sm:col-span-2 flex items-start gap-2 text-[12.5px] text-ink/65 dark:text-ink-dark/55">
                 <Info size={14} aria-hidden="true" className="mt-0.5 shrink-0" />
                 <span>
                   Tu institución todavía no tiene niveles creados.{" "}
@@ -363,7 +363,7 @@ export default function RegistrarAlumnoPage() {
           <div className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
             <div className="h-1.5 bg-gradient-to-r from-seccion-900 via-seccion-600 to-seccion-400 dark:from-seccion-claro/60 dark:to-seccion-claro/20" />
             <div className="p-4">
-              <p className="m-0 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Vista previa en el padrón</p>
+              <p className="m-0 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Vista previa en el padrón</p>
               <div className="mt-3 flex items-center gap-3">
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-seccion-900 to-seccion-600 font-display text-[16px] font-bold text-white dark:from-seccion-claro/40 dark:to-seccion-claro/10 dark:text-seccion-claro">
                   {iniciales || <UserRound size={20} aria-hidden="true" />}
@@ -372,10 +372,10 @@ export default function RegistrarAlumnoPage() {
                   <p className={`m-0 font-display text-[16px] font-bold leading-tight break-words ${form.nombres || form.apellidos ? "text-seccion-900 dark:text-ink-dark" : "text-ink/30 dark:text-ink-dark/30"}`}>
                     {form.nombres || form.apellidos ? `${form.nombres} ${form.apellidos}`.trim() : "Nombre del alumno"}
                   </p>
-                  <p className="m-0 mt-0.5 font-mono text-[12px] text-ink/50 dark:text-ink-dark/50">{form.documento_identidad || "Sin documento"}</p>
+                  <p className="m-0 mt-0.5 font-mono text-[12px] text-ink/65 dark:text-ink-dark/55">{form.documento_identidad || "Sin documento"}</p>
                 </div>
               </div>
-              <p className={`m-0 mt-3 rounded-lg px-2.5 py-1.5 text-[12px] ${ubicacion ? "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro" : "bg-mist dark:bg-surface-raised-dark text-ink/50 dark:text-ink-dark/50"}`}>
+              <p className={`m-0 mt-3 rounded-lg px-2.5 py-1.5 text-[12px] ${ubicacion ? "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro" : "bg-mist dark:bg-surface-raised-dark text-ink/65 dark:text-ink-dark/55"}`}>
                 <GraduationCap size={12} aria-hidden="true" className="inline -mt-0.5 mr-1" />
                 {ubicacion ?? "Sin matrícula"}
               </p>
@@ -387,7 +387,7 @@ export default function RegistrarAlumnoPage() {
                 <ItemCompleto hecho={completitud.matricula} texto="Matrícula en una sección" />
               </ul>
               {completitud.identidad && (!completitud.fecha || !completitud.genero) && (
-                <p className="m-0 mt-2 text-[12px] text-ink/45 dark:text-ink-dark/45">Aparecerá en el filtro “Datos incompletos” del padrón.</p>
+                <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">Aparecerá en el filtro “Datos incompletos” del padrón.</p>
               )}
             </div>
           </div>

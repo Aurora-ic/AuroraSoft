@@ -302,7 +302,7 @@ export default function PruebasPage() {
   const pruebaElegida = (pruebas ?? []).find((p) => String(p.id) === dashPruebaId) ?? null;
 
   const etiquetaCampo = "flex flex-col gap-1 text-[12.5px]";
-  const textoEtiqueta = "text-ink/60 dark:text-ink-dark/60 font-semibold";
+  const textoEtiqueta = "text-ink/65 dark:text-ink-dark/60 font-semibold";
 
   return (
     <div className={CLASE_CONTENEDOR_SECCION}>
@@ -357,7 +357,7 @@ export default function PruebasPage() {
           )}
           {pruebas && pruebas.length > 0 && (
             <>
-              <p className="m-0 -mt-1 text-[12px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 -mt-1 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Cargar un instrumento nuevo (ítems, dimensiones, baremos) es trabajo de datos, no se hace desde aquí.
               </p>
               {/* 🆕 Rediseño de tarjetas (sesión 2026-10-31): cabecera con fondo
@@ -387,7 +387,7 @@ export default function PruebasPage() {
                             aria-hidden="true"
                             className={`flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-xl font-display font-bold leading-none shadow-sm ring-4 ${
                               p.activa
-                                ? "bg-acento-azul text-white ring-acento-azul/15 dark:bg-acento-azul-dark dark:text-surface-dark dark:ring-acento-azul-dark/15"
+                                ? "bg-acento-azul-700 text-white ring-acento-azul/15 dark:bg-acento-azul-dark dark:text-surface-dark dark:ring-acento-azul-dark/15"
                                 : "bg-ink/30 text-white ring-ink/10 dark:bg-ink-dark/30"
                             }`}
                           >
@@ -401,7 +401,7 @@ export default function PruebasPage() {
                             <p className="m-0 font-display text-[17px] font-bold leading-tight text-seccion-900 dark:text-ink-dark line-clamp-2 break-words">
                               {titulo}
                             </p>
-                            <p className="m-0 mt-1 text-[12px] font-semibold uppercase tracking-wide text-acento-azul dark:text-acento-azul-dark">
+                            <p className="m-0 mt-1 text-[12px] font-semibold uppercase tracking-wide text-acento-azul-700 dark:text-acento-azul-dark">
                               {p.modo_interpretacion === "perfil" ? "Interpretación por perfil" : "Interpretación por rangos"}
                             </p>
                           </div>
@@ -415,11 +415,11 @@ export default function PruebasPage() {
                         </p>
                         <dl className="m-0 grid grid-cols-2 gap-2 text-[12px]">
                           <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
-                            <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Cálculo</dt>
+                            <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Cálculo</dt>
                             <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaModo(p.modo_calculo)}</dd>
                           </div>
                           <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
-                            <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Responde</dt>
+                            <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Responde</dt>
                             <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80 truncate">{etiquetaInformante(p.informante_tipo)}</dd>
                           </div>
                           {/* 🆕 Cada cuánto se puede volver a aplicar al mismo
@@ -428,13 +428,13 @@ export default function PruebasPage() {
                               matricular. */}
                           {p.dias_reaplicacion != null && (
                             <div className="col-span-2 rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-2.5 py-1.5">
-                              <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Reaplicación</dt>
+                              <dt className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Reaplicación</dt>
                               <dd className="m-0 mt-0.5 font-semibold text-ink/80 dark:text-ink-dark/80">{textoReaplicacion(p.dias_reaplicacion)}</dd>
                             </div>
                           )}
                         </dl>
                         {!p.activa && (
-                          <span className="self-start rounded-full px-2 py-0.5 text-[11.5px] font-semibold bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60">
+                          <span className="self-start rounded-full px-2 py-0.5 text-[11.5px] font-semibold bg-border dark:bg-border-dark text-ink/65 dark:text-ink-dark/60">
                             Inactiva
                           </span>
                         )}
@@ -443,7 +443,7 @@ export default function PruebasPage() {
                             type="button"
                             onClick={() => toggle(p)}
                             aria-expanded={expandida}
-                            className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60 hover:text-acento-azul dark:hover:text-acento-azul-dark"
+                            className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink/65 dark:text-ink-dark/60 hover:text-acento-azul-700 dark:hover:text-acento-azul-dark"
                           >
                             <ChevronDown size={14} aria-hidden="true" className={`transition-transform ${expandida ? "rotate-180" : ""}`} />
                             {expandida ? "Ocultar detalle" : "Ver detalle"}
@@ -451,7 +451,7 @@ export default function PruebasPage() {
                           <button
                             type="button"
                             onClick={() => verResultadosDe(p)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-acento-azul/10 px-2.5 py-1 text-[12px] font-semibold text-acento-azul hover:bg-acento-azul hover:text-white dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark dark:hover:bg-acento-azul-dark dark:hover:text-surface-dark transition-colors"
+                            className="inline-flex items-center gap-1 rounded-lg bg-acento-azul/10 px-2.5 py-1 text-[12px] font-semibold text-acento-azul-700 hover:bg-acento-azul hover:text-white dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark dark:hover:bg-acento-azul-dark dark:hover:text-surface-dark transition-colors"
                           >
                             Ver resultados
                             <ArrowRight size={13} aria-hidden="true" />
@@ -468,11 +468,11 @@ export default function PruebasPage() {
                           )}
                           {!cargandoDetalle && detalle && detalle.id === p.id && (
                             <div>
-                              <p className="m-0 mb-1.5 text-[11.5px] font-bold text-ink/50 dark:text-ink-dark/50 uppercase tracking-wide">
+                              <p className="m-0 mb-1.5 text-[11.5px] font-bold text-ink/65 dark:text-ink-dark/55 uppercase tracking-wide">
                                 Dimensiones ({detalle.dimensiones.length})
                               </p>
                               {detalle.dimensiones.length === 0 ? (
-                                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50 italic">Sin dimensiones configuradas.</p>
+                                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin dimensiones configuradas.</p>
                               ) : (
                                 <div className="flex flex-wrap gap-1.5">
                                   {detalle.dimensiones.map((d) => (
@@ -522,7 +522,7 @@ export default function PruebasPage() {
                 ]}
               />
               {pruebaElegida && (
-                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50 truncate max-w-md" title={pruebaElegida.nombre_publico}>
+                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 truncate max-w-md" title={pruebaElegida.nombre_publico}>
                   {pruebaElegida.nombre_publico}
                 </p>
               )}
@@ -587,7 +587,7 @@ export default function PruebasPage() {
                   )}
                 </>
               ) : (
-                <p className="m-0 lg:col-span-3 text-[12px] text-ink/50 dark:text-ink-dark/50 pb-2.5">
+                <p className="m-0 lg:col-span-3 text-[12px] text-ink/65 dark:text-ink-dark/55 pb-2.5">
                   Se combinan todos los alumnos del colegio evaluados con esta prueba.
                 </p>
               )}
@@ -620,10 +620,10 @@ export default function PruebasPage() {
                 <div className="min-w-0">
                   <p className="m-0 font-display text-[19px] font-bold text-seccion-900 dark:text-ink-dark leading-tight">
                     {dashboard.nombre_corto_prueba || dashboard.nombre_prueba}
-                    <span className="text-ink/35 dark:text-ink-dark/35 font-semibold"> · </span>
+                    <span className="text-ink/65 dark:text-ink-dark/55 font-semibold"> · </span>
                     {dashboard.ambito.nombre}
                   </p>
-                  <p className="m-0 mt-0.5 text-[12px] text-ink/55 dark:text-ink-dark/55">
+                  <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
                     {dashboard.total_inscritos} inscrito(s) · {dashboard.total_finalizados} finalizado(s) · {dashboard.total_pendientes} pendiente(s)
                   </p>
                 </div>
@@ -675,7 +675,7 @@ export default function PruebasPage() {
                       <BarChart3 size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                       Resumen estadístico
                     </h2>
-                    <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">
+                    <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                       {dashboard.resumen_estadistico.dimensiones.length} dimensión(es)
                     </span>
                   </div>
@@ -700,14 +700,14 @@ export default function PruebasPage() {
                       </Boton>
                     </div>
                     {!tendencia && !errorTendencia && (
-                      <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                      <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                         Evolución de la media del salón campaña a campaña.
                       </p>
                     )}
                     <TextoError>{errorTendencia}</TextoError>
                     {tendencia &&
                       (tendencia.puntos.length < 2 ? (
-                        <p className="m-0 text-[12.5px] text-ink/60 dark:text-ink-dark/60 italic">
+                        <p className="m-0 text-[12.5px] text-ink/65 dark:text-ink-dark/60 italic">
                           Este salón solo tiene {tendencia.puntos.length} campaña(s) con resultados para esta prueba — hace falta al
                           menos dos para mostrar una evolución.
                         </p>
@@ -758,7 +758,7 @@ export default function PruebasPage() {
                       </div>
                       <TextoError>{errorComparacion}</TextoError>
                       {!dashboardComparado && !errorComparacion && (
-                        <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">Pon dos salones del mismo grado lado a lado.</p>
+                        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Pon dos salones del mismo grado lado a lado.</p>
                       )}
                     </section>
                   )}
@@ -775,7 +775,7 @@ export default function PruebasPage() {
                       }`}
                     >
                       <p className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">{dash.ambito.nombre}</p>
-                      <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55 mb-2">
+                      <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 mb-2">
                         {dash.total_finalizados} finalizado(s) de {dash.total_inscritos}
                       </p>
                       <ResumenEstadisticoPrueba resumen={dash.resumen_estadistico} />
@@ -790,13 +790,13 @@ export default function PruebasPage() {
                   <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
                     <Users size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                     Alumnos
-                    <span className="text-[12px] font-semibold text-ink/40 dark:text-ink-dark/40">
+                    <span className="text-[12px] font-semibold text-ink/65 dark:text-ink-dark/55">
                       {alumnosVisibles.length}/{dashboard.alumnos.length}
                     </span>
                   </h2>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="relative">
-                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                       <input
                         type="search"
                         aria-label="Buscar alumno"
@@ -821,9 +821,9 @@ export default function PruebasPage() {
 
                 <div className="max-h-[34rem] overflow-y-auto divide-y divide-border dark:divide-border-dark">
                   {dashboard.alumnos.length === 0 ? (
-                    <p className="m-0 text-sm text-ink/60 dark:text-ink-dark/60 italic p-4">Sin alumnos con esta prueba todavía.</p>
+                    <p className="m-0 text-sm text-ink/65 dark:text-ink-dark/60 italic p-4">Sin alumnos con esta prueba todavía.</p>
                   ) : alumnosVisibles.length === 0 ? (
-                    <p className="m-0 text-sm text-ink/50 dark:text-ink-dark/50 italic p-4">Ningún alumno coincide con el filtro.</p>
+                    <p className="m-0 text-sm text-ink/65 dark:text-ink-dark/55 italic p-4">Ningún alumno coincide con el filtro.</p>
                   ) : (
                     alumnosVisibles.map((a) => {
                       const enAlerta = alumnoEnAlerta(a);
@@ -836,11 +836,11 @@ export default function PruebasPage() {
                           <div className="flex items-center justify-between gap-2 flex-wrap">
                             <span className="font-semibold text-ink dark:text-ink-dark">
                               {a.nombre_completo}
-                              {a.seccion ? <span className="text-ink/40 dark:text-ink-dark/40 font-normal"> · {a.seccion}</span> : ""}
+                              {a.seccion ? <span className="text-ink/65 dark:text-ink-dark/55 font-normal"> · {a.seccion}</span> : ""}
                             </span>
                             <span className="flex items-center gap-1.5">
                               {enAlerta && (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-2 py-0.5 text-[11.5px] font-bold text-amber-700 dark:text-amber">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-amber/15 px-2 py-0.5 text-[11.5px] font-bold text-amber-800 dark:text-amber">
                                   <AlertTriangle size={10} strokeWidth={2.4} aria-hidden="true" />
                                   Alerta
                                 </span>
@@ -849,7 +849,7 @@ export default function PruebasPage() {
                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${
                                   finalizado
                                     ? "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
-                                    : "bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60"
+                                    : "bg-border dark:bg-border-dark text-ink/65 dark:text-ink-dark/60"
                                 }`}
                               >
                                 {finalizado && <CheckCircle2 size={10} aria-hidden="true" />}
@@ -871,7 +871,7 @@ export default function PruebasPage() {
                                     esAlerta={r.es_alerta ?? false}
                                   />
                                 ) : (
-                                  <span key={r.dimension} className="text-xs text-ink/60 dark:text-ink-dark/60">
+                                  <span key={r.dimension} className="text-xs text-ink/65 dark:text-ink-dark/60">
                                     {r.dimension}: {r.nivel ?? "—"}
                                   </span>
                                 ),

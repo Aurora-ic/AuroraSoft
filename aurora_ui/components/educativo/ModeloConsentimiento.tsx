@@ -97,7 +97,7 @@ export function ModeloConsentimiento({
 
   if (estado === "sin_modelo" || !modelo) {
     return (
-      <p className="m-0 flex items-center gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
+      <p className="m-0 flex items-center gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
         <FileText size={13} aria-hidden="true" />
         Tu colegio todavía no configuró el modelo de {tipo === "apoderado" ? "consentimiento" : "asentimiento"}.{" "}
         <Link href="/asentimiento" className="font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
@@ -144,7 +144,7 @@ export function ModeloConsentimiento({
               </p>
             ))}
           {expandido && (
-            <p className="m-0 pt-1 text-[12px] italic text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 pt-1 text-[12px] italic text-ink/65 dark:text-ink-dark/55">
               Al registrar, queda guardado que se usó esta versión del modelo.
             </p>
           )}

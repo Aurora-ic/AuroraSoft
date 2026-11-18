@@ -256,7 +256,7 @@ export function ModalNuevaActividad({
     `inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
       activa
         ? "bg-surface dark:bg-surface-dark text-[#1f63b8] dark:text-[#5598e7] shadow-sm"
-        : "text-ink/55 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark"
+        : "text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark"
     }`;
 
   return (
@@ -287,7 +287,7 @@ export function ModalNuevaActividad({
                   aria-checked={modo === m}
                   onClick={() => cambiarModo(m)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    modo === m ? "bg-surface dark:bg-surface-dark text-seccion-900 dark:text-ink-dark shadow-sm" : "text-ink/55 dark:text-ink-dark/55"
+                    modo === m ? "bg-surface dark:bg-surface-dark text-seccion-900 dark:text-ink-dark shadow-sm" : "text-ink/65 dark:text-ink-dark/55"
                   }`}
                 >
                   <span aria-hidden="true" className={`h-2 w-2 rounded-full ${COLOR_MODO[m]}`} />
@@ -298,7 +298,7 @@ export function ModalNuevaActividad({
             <button
               type="button"
               onClick={onCerrar}
-              className="rounded-lg p-1.5 text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-raised-dark"
+              className="rounded-lg p-1.5 text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-raised-dark"
               aria-label="Cerrar"
             >
               <X size={17} aria-hidden="true" />
@@ -320,7 +320,7 @@ export function ModalNuevaActividad({
                     <p className="m-0 font-semibold text-seccion-900 dark:text-ink-dark truncate">
                       {persona.nombres} {persona.apellidos}
                     </p>
-                    <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55">{ubicacionDe(persona) ?? "Sin matrícula"}</p>
+                    <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{ubicacionDe(persona) ?? "Sin matrícula"}</p>
                   </div>
                   <button
                     type="button"
@@ -333,7 +333,7 @@ export function ModalNuevaActividad({
               ) : (
                 <div>
                   <div className="relative">
-                    <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" />
+                    <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" />
                     <Input
                       autoFocus
                       aria-label="Buscar estudiante"
@@ -358,7 +358,7 @@ export function ModalNuevaActividad({
                             <span className="font-medium text-ink dark:text-ink-dark truncate">
                               {p.nombres} {p.apellidos}
                             </span>
-                            <span className="shrink-0 text-[12px] text-ink/45 dark:text-ink-dark/45">{ubicacionDe(p) ?? "Sin matrícula"}</span>
+                            <span className="shrink-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{ubicacionDe(p) ?? "Sin matrícula"}</span>
                           </button>
                         </li>
                       ))}
@@ -366,7 +366,7 @@ export function ModalNuevaActividad({
                   )}
                   <TextoError>{buscados.error}</TextoError>
                   {busquedaAlumno.trim() && resultadosAlumno.length === 0 && (
-                    <p className="m-0 mt-1.5 text-xs text-ink/45 dark:text-ink-dark/45">
+                    <p className="m-0 mt-1.5 text-xs text-ink/65 dark:text-ink-dark/55">
                       {buscados.cargando ? "Buscando..." : "Ningún estudiante activo coincide."}
                     </p>
                   )}
@@ -430,7 +430,7 @@ export function ModalNuevaActividad({
                     {textoDuracion(d)}
                   </button>
                 ))}
-                <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50">
+                <span className="flex items-center gap-1.5 text-xs text-ink/65 dark:text-ink-dark/55">
                   u otra:
                   <Input
                     type="number"
@@ -453,9 +453,9 @@ export function ModalNuevaActividad({
               <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 bg-mist/60 dark:bg-surface-raised-dark border-b border-border dark:border-border-dark">
                 <div className="min-w-0">
                   <p className="m-0 text-[12.5px] font-bold text-seccion-900 dark:text-ink-dark">
-                    Asistentes <span className="font-normal text-ink/50 dark:text-ink-dark/50">(opcional)</span>
+                    Asistentes <span className="font-normal text-ink/65 dark:text-ink-dark/55">(opcional)</span>
                   </p>
-                  <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55" aria-live="polite">
+                  <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55" aria-live="polite">
                     {seleccion.size === 0 ? (
                       "Nadie seleccionado — puedes crearla sin asistentes."
                     ) : (
@@ -489,10 +489,10 @@ export function ModalNuevaActividad({
                 {cargandoPersonas ? (
                   <EsqueletoLineas cantidad={3} />
                 ) : resumen !== null && resumen.activos === 0 ? (
-                  <p className="m-0 text-xs italic text-ink/40 dark:text-ink-dark/40">No hay estudiantes activos en el padrón todavía.</p>
+                  <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">No hay estudiantes activos en el padrón todavía.</p>
                 ) : pestana === "salon" ? (
                   grados.length === 0 ? (
-                    <p className="m-0 text-xs italic text-ink/45 dark:text-ink-dark/45">Ningún estudiante tiene matrícula vigente todavía — usa “Uno por uno”.</p>
+                    <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Ningún estudiante tiene matrícula vigente todavía — usa “Uno por uno”.</p>
                   ) : (
                     <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
                       {grados.map((g) => (
@@ -504,7 +504,7 @@ export function ModalNuevaActividad({
                             className="px-3 py-2 bg-mist/40 dark:bg-surface-raised-dark rounded-t-lg"
                           >
                             <span className="flex-1 text-[12.5px] font-semibold text-ink dark:text-ink-dark">{g.etiqueta} — grado completo</span>
-                            <span className="text-[12px] font-semibold text-ink/45 dark:text-ink-dark/45">{g.ids.length}</span>
+                            <span className="text-[12px] font-semibold text-ink/65 dark:text-ink-dark/55">{g.ids.length}</span>
                           </CasillaGrupo>
                           <div className="flex flex-wrap gap-1.5 px-3 py-2">
                             {g.secciones.map((s) => {
@@ -526,7 +526,7 @@ export function ModalNuevaActividad({
                                 >
                                   {todos && <Check size={12} strokeWidth={3} aria-hidden="true" />}
                                   Sección {s.nombre}
-                                  <span className={todos ? "opacity-80" : "text-ink/40 dark:text-ink-dark/40"}>
+                                  <span className={todos ? "opacity-80" : "text-ink/65 dark:text-ink-dark/55"}>
                                     {marcados > 0 && !todos ? `${marcados}/${s.ids.length}` : s.ids.length}
                                   </span>
                                 </button>
@@ -536,7 +536,7 @@ export function ModalNuevaActividad({
                         </div>
                       ))}
                       {sinMatricula > 0 && (
-                        <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">
+                        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                           {sinMatricula} estudiante(s) sin matrícula no aparecen aquí — búscalos en “Uno por uno”.
                         </p>
                       )}
@@ -551,7 +551,7 @@ export function ModalNuevaActividad({
                   >
                     <span className="flex-1">
                       <span className="block text-[13px] font-semibold text-ink dark:text-ink-dark">Todos los estudiantes activos</span>
-                      <span className="block text-[12px] text-ink/50 dark:text-ink-dark/50">
+                      <span className="block text-[12px] text-ink/65 dark:text-ink-dark/55">
                         {todosLosIds.length} estudiante(s) del padrón, de todos los niveles y grados.
                       </span>
                     </span>
@@ -559,7 +559,7 @@ export function ModalNuevaActividad({
                 ) : (
                   <div>
                     <div className="relative mb-2">
-                      <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" />
+                      <Search size={14} aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" />
                       <Input
                         aria-label="Filtrar estudiantes"
                         placeholder="Buscar…"
@@ -578,11 +578,11 @@ export function ModalNuevaActividad({
                           <span className="min-w-0 flex-1 truncate">
                             {p.nombres} {p.apellidos}
                           </span>
-                          <span className="shrink-0 text-[11.5px] text-ink/40 dark:text-ink-dark/40">{ubicacionDe(p) ?? "—"}</span>
+                          <span className="shrink-0 text-[11.5px] text-ink/65 dark:text-ink-dark/55">{ubicacionDe(p) ?? "—"}</span>
                         </label>
                       ))}
                       {listaUno.length === 0 && (
-                        <p className="m-0 px-3 py-3 text-xs text-ink/45 dark:text-ink-dark/45 sm:col-span-2">
+                        <p className="m-0 px-3 py-3 text-xs text-ink/65 dark:text-ink-dark/55 sm:col-span-2">
                           {uno.cargando ? "Buscando..." : "Ningún estudiante activo coincide."}
                         </p>
                       )}
@@ -608,7 +608,7 @@ export function ModalNuevaActividad({
         </div>
 
         <div className="flex items-center justify-end gap-3 px-5 py-3.5 border-t border-border dark:border-border-dark bg-mist/40 dark:bg-surface-raised-dark rounded-b-2xl">
-          <button type="button" onClick={onCerrar} className="text-sm font-medium text-ink/60 dark:text-ink-dark/60 hover:underline">
+          <button type="button" onClick={onCerrar} className="text-sm font-medium text-ink/65 dark:text-ink-dark/60 hover:underline">
             Cancelar
           </button>
           <Boton type="submit" disabled={guardando}>

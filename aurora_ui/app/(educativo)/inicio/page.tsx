@@ -107,11 +107,11 @@ function TarjetaKpi({
           ) : (
             <>
               {valor}
-              {sufijo && <span className="text-[15px] font-semibold text-ink/40 dark:text-ink-dark/40 ml-1">{sufijo}</span>}
+              {sufijo && <span className="text-[15px] font-semibold text-ink/65 dark:text-ink-dark/55 ml-1">{sufijo}</span>}
             </>
           )}
         </p>
-        <p className="m-0 mt-1 text-[12px] font-medium leading-snug text-ink/60 dark:text-ink-dark/60">{label}</p>
+        <p className="m-0 mt-1 text-[12px] font-medium leading-snug text-ink/65 dark:text-ink-dark/60">{label}</p>
       </div>
     </div>
   );
@@ -143,7 +143,7 @@ function TarjetaResumen({
             <Icono size={13} strokeWidth={2.2} aria-hidden="true" />
           </span>
           {titulo}
-          {subtitulo && <span className="font-medium text-ink/40 dark:text-ink-dark/40">· {subtitulo}</span>}
+          {subtitulo && <span className="font-medium text-ink/65 dark:text-ink-dark/55">· {subtitulo}</span>}
         </h2>
         <Link
           href={enlace}
@@ -246,7 +246,7 @@ export default function InicioPage() {
           su trabajo es llevar a cada sección, así que anticipan su color.
           Ámbar sigue solo en lo que es riesgo clínico. */}
       <div>
-        <h2 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">
+        <h2 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
           Accesos rápidos
         </h2>
         {/* 4 columnas solo cuando de verdad entran (xl) — antes `sm:grid-cols-4`
@@ -272,7 +272,7 @@ export default function InicioPage() {
       {/* ===== Resumen del mes (KPIs reales) ===== */}
       {vePerfilClinico && (
         <div>
-          <h2 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">
+          <h2 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
             Resumen de {nombreMes}
           </h2>
           <TextoError className="mb-2">{errorResumen}</TextoError>
@@ -322,7 +322,7 @@ export default function InicioPage() {
               {casos === null ? (
                 <EsqueletoLineas cantidad={3} />
               ) : casos.length === 0 ? (
-                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin casos pendientes.</p>
+                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin casos pendientes.</p>
               ) : (
                 <ul className="m-0 p-0 list-none flex flex-col gap-2">
                   {casos.slice(0, 4).map((c) => (
@@ -334,7 +334,7 @@ export default function InicioPage() {
                     </li>
                   ))}
                   {casos.length > 4 && (
-                    <li className="text-[12px] text-ink/40 dark:text-ink-dark/40">+{casos.length - 4} más</li>
+                    <li className="text-[12px] text-ink/65 dark:text-ink-dark/55">+{casos.length - 4} más</li>
                   )}
                 </ul>
               )}
@@ -344,12 +344,12 @@ export default function InicioPage() {
               {citas === null ? (
                 <EsqueletoLineas cantidad={3} />
               ) : citasHoy.length === 0 ? (
-                <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
+                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin citas agendadas para hoy.</p>
               ) : (
                 <ul className="m-0 p-0 list-none flex flex-col gap-2">
                   {citasHoy.slice(0, 4).map((c) => (
                     <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
-                      <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
+                      <Clock size={12} strokeWidth={2} className="text-ink/65 dark:text-ink-dark/55 flex-shrink-0" aria-hidden="true" />
                       <span className="font-mono text-[12px]">
                         {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                       </span>
@@ -357,7 +357,7 @@ export default function InicioPage() {
                     </li>
                   ))}
                   {citasHoy.length > 4 && (
-                    <li className="text-[12px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
+                    <li className="text-[12px] text-ink/65 dark:text-ink-dark/55">+{citasHoy.length - 4} más</li>
                   )}
                 </ul>
               )}
@@ -372,12 +372,12 @@ export default function InicioPage() {
             {citas === null ? (
               <EsqueletoLineas cantidad={3} />
             ) : citasHoy.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin citas agendadas para hoy.</p>
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin citas agendadas para hoy.</p>
             ) : (
               <ul className="m-0 p-0 list-none flex flex-col gap-2">
                 {citasHoy.slice(0, 4).map((c) => (
                   <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
-                    <Clock size={12} strokeWidth={2} className="text-ink/35 dark:text-ink-dark/35 flex-shrink-0" aria-hidden="true" />
+                    <Clock size={12} strokeWidth={2} className="text-ink/65 dark:text-ink-dark/55 flex-shrink-0" aria-hidden="true" />
                     <span className="font-mono text-[12px]">
                       {new Date(c.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                     </span>
@@ -385,7 +385,7 @@ export default function InicioPage() {
                   </li>
                 ))}
                 {citasHoy.length > 4 && (
-                  <li className="text-[12px] text-ink/40 dark:text-ink-dark/40">+{citasHoy.length - 4} más</li>
+                  <li className="text-[12px] text-ink/65 dark:text-ink-dark/55">+{citasHoy.length - 4} más</li>
                 )}
               </ul>
             )}
@@ -395,12 +395,12 @@ export default function InicioPage() {
             {campanas === null ? (
               <EsqueletoLineas cantidad={3} />
             ) : campanasActivas.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40 italic">Sin campañas activas.</p>
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin campañas activas.</p>
             ) : (
               <>
                 <p className="m-0 font-display text-2xl font-bold text-ink dark:text-ink-dark">{campanasActivas.length}</p>
                 {campanasPorCerrar.length > 0 && (
-                  <p className="m-0 text-[12px] text-ink/60 dark:text-ink-dark/60">
+                  <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/60">
                     <span className="font-semibold text-ink dark:text-ink-dark">{campanasPorCerrar.length}</span> cierra
                     {campanasPorCerrar.length === 1 ? "" : "n"} en los próximos 7 días.
                   </p>

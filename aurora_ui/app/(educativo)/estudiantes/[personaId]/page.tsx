@@ -146,7 +146,7 @@ function notaAccesoExpediente(rol?: string | null): string {
 // Clases del badge de estado de una cita — nunca ámbar (reservado para
 // alertas de riesgo clínico real, ver docs/frontend.md).
 function claseEstadoCita(estado: Cita["estado"]): string {
-  if (estado === "Cancelada") return "bg-ink/10 text-ink/50";
+  if (estado === "Cancelada") return "bg-ink/10 text-ink/65";
   if (estado === "Realizada") return "bg-seccion-400/20 text-seccion-900";
   return "bg-seccion-400/20 text-seccion-900"; // "Programada"
 }
@@ -1683,7 +1683,7 @@ export default function FichaAlumnoPage() {
                 <button
                   type="button"
                   onClick={() => setEditando(false)}
-                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                  className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
                 >
                   Cancelar
                 </button>
@@ -1697,7 +1697,7 @@ export default function FichaAlumnoPage() {
               {cargandoHistorial && <EsqueletoLineas cantidad={3} />}
               <TextoError>{errorHistorial}</TextoError>
               {!cargandoHistorial && !errorHistorial && historial && historial.length === 0 && (
-                <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin cambios registrados todavía.</p>
+                <p className="text-sm text-ink/65 dark:text-ink-dark/60 italic">Sin cambios registrados todavía.</p>
               )}
               {!cargandoHistorial && historial && historial.length > 0 && (
                 <div className="space-y-2">
@@ -1708,7 +1708,7 @@ export default function FichaAlumnoPage() {
                       <span className="text-ink/70 dark:text-ink-dark/70">{registro.valor_anterior ?? "(vacío)"}</span>
                       {" → "}
                       <span className="text-ink/90 dark:text-ink-dark/90 font-medium">{registro.valor_nuevo ?? "(vacío)"}</span>
-                      <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
+                      <div className="text-ink/65 dark:text-ink-dark/55 mt-0.5">
                         {new Date(registro.fecha).toLocaleString()} · rol: {registro.rol_modificador ?? "—"}
                       </div>
                     </div>
@@ -1782,7 +1782,7 @@ export default function FichaAlumnoPage() {
                 <button
                   type="button"
                   onClick={() => setEditandoDatosFamiliares(false)}
-                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                  className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
                 >
                   Cancelar
                 </button>
@@ -1910,7 +1910,7 @@ export default function FichaAlumnoPage() {
                 <button
                   type="button"
                   onClick={() => setEditandoAntecedentesClinicos(false)}
-                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                  className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
                 >
                   Cancelar
                 </button>
@@ -1979,7 +1979,7 @@ export default function FichaAlumnoPage() {
                       <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
                         {contacto.telefono ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <Phone size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                            <Phone size={12} className="text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                             {contacto.telefono}
                           </span>
                         ) : (
@@ -1989,7 +1989,7 @@ export default function FichaAlumnoPage() {
                       <td className="px-3.5 py-2.5 text-ink/80 dark:text-ink-dark/80">
                         {contacto.email ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <Mail size={12} className="text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                            <Mail size={12} className="text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                             {contacto.email}
                           </span>
                         ) : (
@@ -1999,7 +1999,7 @@ export default function FichaAlumnoPage() {
                       <td className="px-3.5 py-2.5">
                         <span
                           className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                            contacto.activo ? "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/20 dark:text-ink-dark" : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
+                            contacto.activo ? "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/20 dark:text-ink-dark" : "bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/55"
                           }`}
                         >
                           {contacto.activo ? "Activo" : "Inactivo"}
@@ -2090,7 +2090,7 @@ export default function FichaAlumnoPage() {
                 <div className="flex items-center justify-between gap-3 p-3 flex-wrap">
                   <div className="text-sm">
                     <p className="font-medium text-ink dark:text-ink-dark">{fila.prueba_nombre_publico}</p>
-                    <p className="text-ink/60 dark:text-ink-dark/60">
+                    <p className="text-ink/65 dark:text-ink-dark/60">
                       {fila.nombre_grupo}
                       {fila.fecha_aplicacion ? ` · ${formatearFecha(fila.fecha_aplicacion.slice(0, 10))}` : ""} · v
                       {fila.version_actual}
@@ -2115,7 +2115,7 @@ export default function FichaAlumnoPage() {
                       className={`text-xs font-medium px-2 py-1 rounded-full ${
                         fila.informe_liberado
                           ? "bg-seccion-100 text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro"
-                          : "bg-ink/10 text-ink/60 dark:bg-ink-dark/10 dark:text-ink-dark/60"
+                          : "bg-ink/10 text-ink/75 dark:bg-ink-dark/10 dark:text-ink-dark/70"
                       }`}
                     >
                       {fila.informe_liberado ? "Liberado" : "Retenido"}
@@ -2175,7 +2175,7 @@ export default function FichaAlumnoPage() {
                         </div>
 
                         <div className="flex-1 min-w-0 space-y-4">
-                        <p className="text-xs text-ink/60 dark:text-ink-dark/60">
+                        <p className="text-xs text-ink/65 dark:text-ink-dark/60">
                           Lo que se guarda aquí NO cambia el PDF ya emitido — hace falta reemitir (abajo) para que
                           una nueva versión lo refleje.
                         </p>
@@ -2309,13 +2309,13 @@ export default function FichaAlumnoPage() {
                         {detalleInforme.versiones && detalleInforme.versiones.length > 0 && (
                           <div className="border-t border-border dark:border-border-dark pt-4">
                             <p className="text-sm font-medium text-ink/70 dark:text-ink-dark/70 mb-1">Historial de versiones</p>
-                            <ul className="text-sm text-ink/60 dark:text-ink-dark/60 space-y-1">
+                            <ul className="text-sm text-ink/65 dark:text-ink-dark/60 space-y-1">
                               {detalleInforme.versiones.map((v) => (
                                 <li key={v.numero_version}>
                                   v{v.numero_version} — {new Date(v.generado_en).toLocaleString()}
                                   {v.motivo_version ? ` — ${v.motivo_version}` : ""} ({v.origen})
                                   {v.retracta_version_previa_liberada && (
-                                    <span className="text-amber-700 dark:text-amber">
+                                    <span className="text-amber-800 dark:text-amber">
                                       {" "}· retracta la v{v.numero_version - 1}, que ya estaba liberada y visible
                                       para el alumno (si ya fue descargada, esa copia sigue en su poder)
                                     </span>
@@ -2397,7 +2397,7 @@ export default function FichaAlumnoPage() {
                         <button
                           onClick={() => cancelarCita(cita.id)}
                           disabled={cancelandoCitaId === cita.id}
-                          className="text-xs text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline disabled:opacity-50"
+                          className="text-xs text-ink/65 dark:text-ink-dark/60 hover:text-ink hover:underline disabled:opacity-50"
                         >
                           Cancelar
                         </button>
@@ -2433,7 +2433,7 @@ export default function FichaAlumnoPage() {
                     <button
                       type="button"
                       onClick={() => setReprogramandoCitaId(null)}
-                      className="text-xs text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline"
+                      className="text-xs text-ink/65 dark:text-ink-dark/60 hover:text-ink hover:underline"
                     >
                       Cancelar edición
                     </button>
@@ -2550,7 +2550,7 @@ export default function FichaAlumnoPage() {
                       <button
                         type="button"
                         onClick={() => setEditandoSesionId(null)}
-                        className="text-xs text-ink/60 dark:text-ink-dark/60 hover:text-ink hover:underline"
+                        className="text-xs text-ink/65 dark:text-ink-dark/60 hover:text-ink hover:underline"
                       >
                         Cancelar edición
                       </button>
@@ -2691,7 +2691,7 @@ export default function FichaAlumnoPage() {
               <button
                 type="button"
                 onClick={() => setFormEvidencia(null)}
-                className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
               >
                 Cancelar
               </button>
@@ -2778,7 +2778,7 @@ export default function FichaAlumnoPage() {
               <button
                 type="button"
                 onClick={() => setFormEntrada(null)}
-                className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
               >
                 Cancelar
               </button>
@@ -2806,10 +2806,10 @@ export default function FichaAlumnoPage() {
                           Evidencia
                         </span>
                         {entrada.informe_id && (
-                          <span className="text-xs text-ink/50 dark:text-ink-dark/50">vinculada a informe #{entrada.informe_id}</span>
+                          <span className="text-xs text-ink/65 dark:text-ink-dark/55">vinculada a informe #{entrada.informe_id}</span>
                         )}
                       </div>
-                      <span className="text-xs text-ink/60 dark:text-ink-dark/60 whitespace-nowrap">
+                      <span className="text-xs text-ink/65 dark:text-ink-dark/60 whitespace-nowrap">
                         {new Date(entrada.fecha_entrada).toLocaleString()}
                       </span>
                     </div>
@@ -2860,16 +2860,16 @@ export default function FichaAlumnoPage() {
                       </span>
                       <span
                         className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                          narrativa ? "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/20 dark:text-ink-dark" : "bg-border text-ink/60 dark:bg-border-dark dark:text-ink-dark/60"
+                          narrativa ? "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/20 dark:text-ink-dark" : "bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/60"
                         }`}
                       >
                         {narrativa ? "Narrativa" : "Puente"}
                       </span>
                       {entrada.version_actual !== null && (
-                        <span className="text-xs text-ink/50 dark:text-ink-dark/50">v{entrada.version_actual}</span>
+                        <span className="text-xs text-ink/65 dark:text-ink-dark/55">v{entrada.version_actual}</span>
                       )}
                     </div>
-                    <span className="text-xs text-ink/60 dark:text-ink-dark/60 whitespace-nowrap">
+                    <span className="text-xs text-ink/65 dark:text-ink-dark/60 whitespace-nowrap">
                       {new Date(entrada.fecha_entrada).toLocaleString()}
                     </span>
                   </button>
@@ -2926,12 +2926,12 @@ export default function FichaAlumnoPage() {
                                       valor={detalleEntrada.version.motivo_version}
                                     />
                                   )}
-                                  <p className="text-xs text-ink/50 dark:text-ink-dark/50">
+                                  <p className="text-xs text-ink/65 dark:text-ink-dark/55">
                                     Registrado el {new Date(detalleEntrada.version.creado_en).toLocaleString()}
                                   </p>
                                 </div>
                               ) : (
-                                <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Esta versión no tiene contenido.</p>
+                                <p className="text-sm text-ink/65 dark:text-ink-dark/60 italic">Esta versión no tiene contenido.</p>
                               )}
 
                               {puedeEscribirExpediente && !mostrarFormularioVersion && (
@@ -2995,7 +2995,7 @@ export default function FichaAlumnoPage() {
                                     <button
                                       type="button"
                                       onClick={() => setMostrarFormularioVersion(false)}
-                                      className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                                      className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
                                     >
                                       Cancelar
                                     </button>
@@ -3045,7 +3045,7 @@ export default function FichaAlumnoPage() {
             )
           }
         >
-          <p className="text-xs text-ink/55 dark:text-ink-dark/55">
+          <p className="text-xs text-ink/65 dark:text-ink-dark/55">
             Es la única excepción a la confidencialidad por autor del expediente.
           </p>
 
@@ -3092,7 +3092,7 @@ export default function FichaAlumnoPage() {
                 <button
                   type="button"
                   onClick={() => setFormularioAutorizacion(null)}
-                  className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                  className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
                 >
                   Cancelar
                 </button>
@@ -3212,7 +3212,7 @@ export default function FichaAlumnoPage() {
               <button
                 type="button"
                 onClick={() => setEditandoMatricula(false)}
-                className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
               >
                 Cancelar
               </button>
@@ -3224,7 +3224,7 @@ export default function FichaAlumnoPage() {
           <div className="border-t border-border dark:border-border-dark pt-4">
             <h3 className="text-sm font-semibold text-seccion-900 dark:text-ink-dark mb-2">Historial académico</h3>
             {historialAcademico.length === 0 ? (
-              <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic">Sin matrículas registradas todavía.</p>
+              <p className="text-sm text-ink/65 dark:text-ink-dark/60 italic">Sin matrículas registradas todavía.</p>
             ) : (
               <div className="space-y-2">
                 {[...historialAcademico].reverse().map((h) => {
@@ -3232,8 +3232,8 @@ export default function FichaAlumnoPage() {
                   return (
                     <div key={h.matricula_id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
                       <span className="font-semibold text-seccion-900 dark:text-ink-dark">{f.linea}</span>
-                      {f.detalle && <span className="text-ink/60 dark:text-ink-dark/60"> — {f.detalle}</span>}
-                      <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
+                      {f.detalle && <span className="text-ink/65 dark:text-ink-dark/60"> — {f.detalle}</span>}
+                      <div className="text-ink/65 dark:text-ink-dark/55 mt-0.5">
                         {formatearFecha(h.fecha_inicio.slice(0, 10))} →{" "}
                         {h.fecha_fin ? formatearFecha(h.fecha_fin.slice(0, 10)) : "vigente"}
                       </div>
@@ -3263,7 +3263,7 @@ export default function FichaAlumnoPage() {
         descripcion="Sin consentimiento del apoderado vigente no se puede matricular en campañas ni rendir exámenes."
         cuerpoClassName="space-y-3"
       >
-        <p className="text-xs text-ink/55 dark:text-ink-dark/55">
+        <p className="text-xs text-ink/65 dark:text-ink-dark/55">
           Si tu institución además exige el asentimiento del propio estudiante, regístralo en el segundo bloque.
         </p>
 
@@ -3324,7 +3324,7 @@ export default function FichaAlumnoPage() {
                   </CuadriculaDatos>
 
                   <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border dark:border-border-dark bg-mist/30 dark:bg-surface-raised-dark/40 px-3 py-2">
-                    <Paperclip size={14} className="text-ink/40 dark:text-ink-dark/40" aria-hidden="true" />
+                    <Paperclip size={14} className="text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                     {vigente.evidencia_nombre_archivo ? (
                       <>
                         <span className="text-xs font-medium text-seccion-700 dark:text-seccion-claro break-all">
@@ -3339,7 +3339,7 @@ export default function FichaAlumnoPage() {
                         </button>
                       </>
                     ) : (
-                      <span className="text-xs text-ink/50 dark:text-ink-dark/50 italic">Sin evidencia adjunta todavía.</span>
+                      <span className="text-xs text-ink/65 dark:text-ink-dark/55 italic">Sin evidencia adjunta todavía.</span>
                     )}
                     {puedeEscribirDatosPrincipales && (
                       <label className="text-xs text-seccion-600 dark:text-seccion-claro hover:underline font-medium cursor-pointer">
@@ -3386,7 +3386,7 @@ export default function FichaAlumnoPage() {
                           datos al formulario; se pueden corregir antes de guardar. */}
                       {apoderadosRegistrados.length > 0 && (
                         <div className="sm:col-span-2 flex flex-wrap items-center gap-2 rounded-lg border border-border dark:border-border-dark bg-surface/60 dark:bg-surface-dark/40 px-3.5 py-2.5">
-                          <span className="text-[12.5px] font-medium text-ink/60 dark:text-ink-dark/60">Usar datos de:</span>
+                          <span className="text-[12.5px] font-medium text-ink/65 dark:text-ink-dark/60">Usar datos de:</span>
                           {apoderadosRegistrados.map((a) => (
                             <button
                               key={a.id}
@@ -3477,7 +3477,7 @@ export default function FichaAlumnoPage() {
                     <button
                       type="button"
                       onClick={() => setFormularioConsentimiento(null)}
-                      className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline"
+                      className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline"
                     >
                       Cancelar
                     </button>
@@ -3486,7 +3486,7 @@ export default function FichaAlumnoPage() {
               )}
 
               {!vigente && !formularioAbiertoAqui && (
-                <p className="text-sm text-ink/50 dark:text-ink-dark/50">
+                <p className="text-sm text-ink/65 dark:text-ink-dark/55">
                   {tipo === "apoderado"
                     ? "Sin consentimiento del apoderado vigente."
                     : "Sin asentimiento del propio estudiante vigente."}
@@ -3507,7 +3507,7 @@ export default function FichaAlumnoPage() {
                 <div className="space-y-2">
                   {[...bloque.historial].reverse().map((c) => (
                     <div key={c.id} className="text-xs bg-mist dark:bg-surface-raised-dark border border-border/50 dark:border-border-dark rounded p-2.5">
-                      <span className={`font-semibold ${c.estado === "vigente" ? "text-seccion-900 dark:text-ink-dark" : "text-ink/50 dark:text-ink-dark/50"}`}>
+                      <span className={`font-semibold ${c.estado === "vigente" ? "text-seccion-900 dark:text-ink-dark" : "text-ink/65 dark:text-ink-dark/55"}`}>
                         {c.estado === "vigente" ? "Vigente" : "Revocado"}
                       </span>
                       {tipo === "apoderado" && (
@@ -3516,7 +3516,7 @@ export default function FichaAlumnoPage() {
                           — {c.otorgado_por_nombre} {c.otorgante_apellidos}
                         </span>
                       )}
-                      <div className="text-ink/50 dark:text-ink-dark/50 mt-0.5">
+                      <div className="text-ink/65 dark:text-ink-dark/55 mt-0.5">
                         Otorgado el {new Date(c.fecha_otorgamiento).toLocaleString()}
                         {c.fecha_revocacion && ` · revocado el ${new Date(c.fecha_revocacion).toLocaleString()}`}
                       </div>
@@ -3573,7 +3573,7 @@ export default function FichaAlumnoPage() {
                   <FileText size={14} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                   {documento.titulo}
                 </span>
-                <span className="text-xs text-ink/50 dark:text-ink-dark/50">
+                <span className="text-xs text-ink/65 dark:text-ink-dark/55">
                   {documento.version_actual === null ? "Sin versión generada" : `v${documento.version_actual}`}
                 </span>
               </Link>

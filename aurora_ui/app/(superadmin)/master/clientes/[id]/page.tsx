@@ -232,7 +232,7 @@ export default function DetalleInstitucionPage() {
           <h1 className="font-display text-xl sm:text-2xl font-semibold text-teal-900 dark:text-ink-dark break-words">
             {institucion.nombre}
           </h1>
-          <p className="mt-0.5 text-sm text-ink/55 dark:text-ink-dark/55">
+          <p className="mt-0.5 text-sm text-ink/65 dark:text-ink-dark/55">
             {institucion.tipo || "Colegio"} · Cliente desde {formatearFecha(institucion.fecha_registro)}
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -250,11 +250,11 @@ export default function DetalleInstitucionPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 rounded-lg bg-mist dark:bg-surface-raised-dark px-4 py-3 sm:flex-col sm:items-end sm:gap-0">
-          <Users size={16} className="text-ink/45 dark:text-ink-dark/45 sm:hidden" aria-hidden="true" />
+          <Users size={16} className="text-ink/65 dark:text-ink-dark/55 sm:hidden" aria-hidden="true" />
           <p className="font-display text-xl font-semibold text-teal-900 dark:text-ink-dark">
             {cargandoUsuarios ? "…" : usuarios.length}
           </p>
-          <p className="text-xs text-ink/55 dark:text-ink-dark/55">
+          <p className="text-xs text-ink/65 dark:text-ink-dark/55">
             {cargandoUsuarios ? "usuarios" : `usuarios · ${activos} activos`}
           </p>
         </div>
@@ -269,7 +269,7 @@ export default function DetalleInstitucionPage() {
           <form onSubmit={guardarInstitucion}>
             <div className="p-5 space-y-6 text-sm">
               <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                   Información general
                 </legend>
                 <CampoEditable etiqueta="Nombre" className="sm:col-span-2">
@@ -290,7 +290,7 @@ export default function DetalleInstitucionPage() {
               </fieldset>
 
               <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                <legend className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                   Plan y licencia
                 </legend>
                 <CampoEditable etiqueta="Vencimiento de licencia (opcional)">
@@ -311,7 +311,7 @@ export default function DetalleInstitucionPage() {
                 <label className="sm:col-span-2 flex items-center justify-between gap-4 rounded-card border border-border dark:border-border-dark px-4 py-3 cursor-pointer">
                   <span>
                     <span className="block font-medium text-ink dark:text-ink-dark">Plan activo</span>
-                    <span className="block text-xs text-ink/50 dark:text-ink-dark/50">
+                    <span className="block text-xs text-ink/65 dark:text-ink-dark/55">
                       Si se desactiva, el colegio deja de poder usar la plataforma.
                     </span>
                   </span>
@@ -372,7 +372,7 @@ export default function DetalleInstitucionPage() {
                     setErrorCrearUsuario(null);
                   }}
                   aria-label="Cerrar formulario"
-                  className="p-1 rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-dark"
+                  className="p-1 rounded-lg text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-dark"
                 >
                   <X size={16} aria-hidden="true" />
                 </button>
@@ -405,7 +405,7 @@ export default function DetalleInstitucionPage() {
                     type="button"
                     onClick={() => setVerPassword((v) => !v)}
                     aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ink/40 dark:text-ink-dark/40 hover:text-ink dark:hover:text-ink-dark"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark"
                   >
                     {verPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                   </button>
@@ -419,7 +419,7 @@ export default function DetalleInstitucionPage() {
                     </option>
                   ))}
                 </Select>
-                <span className="text-xs text-ink/50 dark:text-ink-dark/50">{INFO_ROL[formUsuario.rol].descripcion}</span>
+                <span className="text-xs text-ink/65 dark:text-ink-dark/55">{INFO_ROL[formUsuario.rol].descripcion}</span>
               </CampoEditable>
               <TextoError>{errorCrearUsuario}</TextoError>
               <Boton type="submit" disabled={creandoUsuario} className="w-full">
@@ -439,7 +439,7 @@ export default function DetalleInstitucionPage() {
               ))}
             </div>
           ) : usuarios.length === 0 ? (
-            <p className="px-5 pb-10 pt-6 text-center text-sm text-ink/50 dark:text-ink-dark/50">
+            <p className="px-5 pb-10 pt-6 text-center text-sm text-ink/65 dark:text-ink-dark/55">
               Esta institución todavía no tiene usuarios.
             </p>
           ) : (
@@ -471,12 +471,12 @@ export default function DetalleInstitucionPage() {
                         <button type="submit" disabled={guardandoEmail} className="rounded-lg px-2 py-1 text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:bg-teal-600/10">
                           Guardar
                         </button>
-                        <button type="button" onClick={() => setEditandoEmail(null)} className="rounded-lg px-2 py-1 text-xs text-ink/60 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-raised-dark">
+                        <button type="button" onClick={() => setEditandoEmail(null)} className="rounded-lg px-2 py-1 text-xs text-ink/65 dark:text-ink-dark/60 hover:bg-mist dark:hover:bg-surface-raised-dark">
                           Cancelar
                         </button>
                       </form>
                     ) : (
-                      <p className="text-xs text-ink/55 dark:text-ink-dark/55 truncate" title={u.email}>
+                      <p className="text-xs text-ink/65 dark:text-ink-dark/55 truncate" title={u.email}>
                         {u.email}{" "}
                         <button
                           type="button"
@@ -497,7 +497,7 @@ export default function DetalleInstitucionPage() {
                     onClick={() => alternarActivo(u)}
                     className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                       u.activo
-                        ? "text-ink/60 dark:text-ink-dark/60 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                        ? "text-ink/65 dark:text-ink-dark/60 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-500/10 dark:hover:text-red-300"
                         : "text-teal-700 dark:text-teal-accent-dark hover:bg-teal-600/10"
                     }`}
                   >

@@ -68,7 +68,7 @@ export function MarcoAuth({ titulo, subtitulo, children, pie }: Props) {
           onClick={alternarTema}
           aria-label={tema === "oscuro" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
           title={tema === "oscuro" ? "Modo claro" : "Modo oscuro"}
-          className="absolute right-4 top-4 rounded-full border border-border bg-surface p-2.5 text-ink/60 shadow-sm transition hover:text-accion focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/60 dark:hover:text-teal-accent-dark sm:right-6 sm:top-6"
+          className="absolute right-4 top-4 rounded-full border border-border bg-surface p-2.5 text-ink/65 shadow-sm transition hover:text-accion focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/60 dark:hover:text-teal-accent-dark sm:right-6 sm:top-6"
         >
           {tema === "oscuro" ? <Sun className="h-4 w-4" aria-hidden /> : <Moon className="h-4 w-4" aria-hidden />}
         </button>
@@ -77,14 +77,14 @@ export function MarcoAuth({ titulo, subtitulo, children, pie }: Props) {
           <div className="mb-8 flex flex-col items-center text-center">
             <Image src="/logo.png" alt="AuroraSoft" width={140} height={99} priority className="mb-5 h-16 w-auto" />
             <h1 className="font-display text-2xl font-semibold text-teal-900 dark:text-ink-dark">{titulo}</h1>
-            <p className="mt-1.5 text-sm text-ink/55 dark:text-ink-dark/55">{subtitulo}</p>
+            <p className="mt-1.5 text-sm text-ink/65 dark:text-ink-dark/55">{subtitulo}</p>
           </div>
 
           {children}
 
           {pie && <div className="mt-5 text-center text-sm">{pie}</div>}
 
-          <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-ink/45 dark:text-ink-dark/45">
+          <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-xs text-ink/65 dark:text-ink-dark/55">
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
             Conexión protegida · Datos tratados conforme a la Ley N.° 29733
           </p>

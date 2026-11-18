@@ -98,7 +98,7 @@ export function ContenidoVisorArchivo({
   return (
     <div className="flex flex-col gap-2">
       {tipo === "pdf" && archivo && !cargando && !errorAMostrar && (
-        <div className="flex items-center justify-end gap-3 text-xs text-ink/60 dark:text-ink-dark/60">
+        <div className="flex items-center justify-end gap-3 text-xs text-ink/65 dark:text-ink-dark/60">
           <button onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))} className="px-1.5 hover:text-ink">
             −
           </button>
@@ -129,13 +129,13 @@ export function ContenidoVisorArchivo({
         )}
 
         {!cargando && !errorAMostrar && archivo && tipo === "otro" && (
-          <p className="text-sm text-ink/60 dark:text-ink-dark/60 py-8 text-center">
+          <p className="text-sm text-ink/65 dark:text-ink-dark/60 py-8 text-center">
             Este tipo de archivo no se puede previsualizar. Descargalo para verlo.
           </p>
         )}
 
         {!cargando && !errorAMostrar && !archivo && (
-          <p className="text-sm text-ink/50 dark:text-ink-dark/50 italic py-8">Sin archivo generado todavía.</p>
+          <p className="text-sm text-ink/65 dark:text-ink-dark/55 italic py-8">Sin archivo generado todavía.</p>
         )}
       </div>
 
@@ -148,7 +148,7 @@ export function ContenidoVisorArchivo({
           >
             ← Anterior
           </button>
-          <span className="text-xs text-ink/60 dark:text-ink-dark/60">
+          <span className="text-xs text-ink/65 dark:text-ink-dark/60">
             Página {paginaActual} de {totalPaginas}
           </span>
           <button
@@ -203,7 +203,7 @@ export function VisorArchivoModal({
             >
               Descargar
             </button>
-            <button onClick={onCerrar} className="text-ink/60 dark:text-ink-dark/60 hover:text-ink text-xl leading-none px-1" aria-label="Cerrar">
+            <button onClick={onCerrar} className="text-ink/65 dark:text-ink-dark/60 hover:text-ink text-xl leading-none px-1" aria-label="Cerrar">
               ×
             </button>
           </div>

@@ -53,7 +53,7 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
         <BookOpenCheck size={15} aria-hidden="true" className="text-seccion-700 dark:text-seccion-claro" />
         Lectura fácil {destacado ? "— recomendada para este nivel" : ""}
       </p>
-      <p className="m-0 mt-1 text-ink/60 dark:text-ink-dark/60">
+      <p className="m-0 mt-1 text-ink/65 dark:text-ink-dark/60">
         El contenido lo decide el colegio. Estas pautas solo ayudan a que un estudiante pequeño lo entienda.
       </p>
       <ul className="m-0 mt-2 list-disc space-y-1 pl-4 text-ink/70 dark:text-ink-dark/70">
@@ -76,7 +76,7 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
             )}
           </p>
           {resultado.largas.length > 0 && (
-            <ul className="m-0 mt-1.5 list-disc space-y-1 pl-4 text-ink/60 dark:text-ink-dark/60">
+            <ul className="m-0 mt-1.5 list-disc space-y-1 pl-4 text-ink/65 dark:text-ink-dark/60">
               {resultado.largas.slice(0, 4).map((f) => (
                 <li key={f} className="line-clamp-2">
                   {f}
@@ -85,7 +85,7 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
             </ul>
           )}
           {resultado.palabrasLargas.length > 0 && (
-            <p className="m-0 mt-1.5 text-ink/60 dark:text-ink-dark/60">
+            <p className="m-0 mt-1.5 text-ink/65 dark:text-ink-dark/60">
               Palabras largas que quizá convenga explicar: {resultado.palabrasLargas.slice(0, 8).join(", ")}.
             </p>
           )}

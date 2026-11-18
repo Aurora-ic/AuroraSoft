@@ -267,7 +267,7 @@ export function FormularioFamiliar({
         <Boton type="submit" disabled={guardando}>
           {guardando ? "Guardando..." : valor.id === null ? "Agregar familiar" : "Guardar cambios"}
         </Boton>
-        <button type="button" onClick={onCancelar} className="text-sm text-ink/60 dark:text-ink-dark/60 hover:underline">
+        <button type="button" onClick={onCancelar} className="text-sm text-ink/65 dark:text-ink-dark/60 hover:underline">
           Cancelar
         </button>
       </div>
@@ -363,7 +363,7 @@ export function ComposicionFamiliar({
                   <ul className="m-0 mt-2.5 list-none space-y-1 p-0 text-[13px] text-ink/70 dark:text-ink-dark/70">
                     {detalles.map(({ icono: Icono, texto }) => (
                       <li key={texto} className="flex items-start gap-1.5">
-                        <Icono size={13} className="mt-0.5 shrink-0 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                        <Icono size={13} className="mt-0.5 shrink-0 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                         <span className="break-words">{texto}</span>
                       </li>
                     ))}
@@ -377,7 +377,7 @@ export function ComposicionFamiliar({
 
       {puedeEditar && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[12.5px] font-medium text-ink/55 dark:text-ink-dark/55">Agregar:</span>
+          <span className="text-[12.5px] font-medium text-ink/65 dark:text-ink-dark/55">Agregar:</span>
           {ATAJOS_FAMILIAR.map((a) => (
             <button
               key={a.etiqueta}
@@ -391,7 +391,7 @@ export function ComposicionFamiliar({
         </div>
       )}
       {hermanos > 0 && (
-        <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
           {hermanos === 1 ? "1 hermano/a registrado/a" : `${hermanos} hermanos/as registrados/as`} en la composición familiar.
         </p>
       )}

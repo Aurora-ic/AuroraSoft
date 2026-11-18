@@ -16,13 +16,13 @@ import type { TipoSeccionDocumento } from "@/types/api";
 // blanco, gris = sale solo (lo que menos atención pide).
 export const ESTILO_MODO: Record<ModoSeccion, { clase: string; icono: LucideIcon }> = {
   escribes: {
-    clase: "bg-acento-violeta text-white dark:bg-acento-violeta-dark dark:text-mist-dark",
+    clase: "bg-acento-violeta-700 text-white dark:bg-acento-violeta-dark dark:text-mist-dark",
     icono: PenLine,
   },
   eliges: { clase: ACENTOS.violeta.chip, icono: ClipboardCheck },
-  automatica: { clase: "bg-ink/[0.06] text-ink/60 dark:bg-white/[0.06] dark:text-ink-dark/60", icono: Wand2 },
+  automatica: { clase: "bg-ink/[0.06] text-ink/65 dark:bg-white/[0.06] dark:text-ink-dark/60", icono: Wand2 },
   imprimir: {
-    clase: "border border-acento-violeta/50 text-acento-violeta dark:border-acento-violeta-dark/50 dark:text-acento-violeta-dark",
+    clase: "border border-acento-violeta/50 text-acento-violeta-700 dark:border-acento-violeta-dark/50 dark:text-acento-violeta-dark",
     icono: Printer,
   },
 };

@@ -41,15 +41,15 @@ export function NivelSeguridad({ password }: { password: string }) {
           <span key={i} className={`h-1.5 flex-1 rounded-full ${password && puntos >= i ? nivel.color : "bg-border dark:bg-border-dark"}`} />
         ))}
       </div>
-      {password && <p className="text-xs text-ink/55 dark:text-ink-dark/55">Seguridad: {nivel.texto}</p>}
+      {password && <p className="text-xs text-ink/65 dark:text-ink-dark/55">Seguridad: {nivel.texto}</p>}
       <ul className="space-y-1">
         {REQUISITOS.map((r) => {
           const ok = r.cumple(password);
           return (
-            <li key={r.texto} className={`flex items-center gap-2 text-xs ${ok ? "text-emerald-700 dark:text-emerald-400" : "text-ink/50 dark:text-ink-dark/50"}`}>
+            <li key={r.texto} className={`flex items-center gap-2 text-xs ${ok ? "text-emerald-700 dark:text-emerald-400" : "text-ink/65 dark:text-ink-dark/55"}`}>
               <Check className={`h-3.5 w-3.5 ${ok ? "opacity-100" : "opacity-30"}`} aria-hidden />
               {r.texto}
-              {!r.obligatorio && <span className="text-ink/35 dark:text-ink-dark/35">(recomendado)</span>}
+              {!r.obligatorio && <span className="text-ink/65 dark:text-ink-dark/55">(recomendado)</span>}
             </li>
           );
         })}
@@ -77,7 +77,7 @@ export function CampoClave(props: {
         {etiqueta}
       </label>
       <div className="relative">
-        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 dark:text-ink-dark/40" aria-hidden />
+        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden />
         <input
           id={id}
           type={visible ? "text" : "password"}
@@ -95,7 +95,7 @@ export function CampoClave(props: {
           onClick={onAlternar}
           aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
           aria-pressed={visible}
-          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-ink/45 transition hover:bg-mist hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:text-ink-dark/50 dark:hover:bg-surface-raised-dark dark:hover:text-ink-dark"
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-ink/65 transition hover:bg-mist hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:text-ink-dark/55 dark:hover:bg-surface-raised-dark dark:hover:text-ink-dark"
         >
           {visible ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
         </button>

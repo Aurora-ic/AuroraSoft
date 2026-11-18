@@ -191,7 +191,7 @@ export default function NuevaCitaPage() {
                     {textoDuracion(d)}
                   </button>
                 ))}
-                <span className="flex items-center gap-1.5 text-xs text-ink/50 dark:text-ink-dark/50">
+                <span className="flex items-center gap-1.5 text-xs text-ink/65 dark:text-ink-dark/55">
                   u otra:
                   <Input
                     type="number"
@@ -211,11 +211,11 @@ export default function NuevaCitaPage() {
 
         <aside className="lg:sticky lg:top-4 space-y-4">
           <TarjetaAlumnoLateral personaId={personaId} alumno={alumno} seccion={seccion}>
-            <p className="m-0 mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas citas</p>
+            <p className="m-0 mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Próximas citas</p>
             {proximas === null ? (
-              <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">—</p>
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">—</p>
             ) : proximas.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">No tiene citas programadas.</p>
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">No tiene citas programadas.</p>
             ) : (
               <ul className="m-0 list-none p-0 space-y-2">
                 {proximas.map((c) => {
@@ -228,7 +228,7 @@ export default function NuevaCitaPage() {
                           {f.toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short" })} ·{" "}
                           {f.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                         </span>
-                        <span className="block truncate text-ink/55 dark:text-ink-dark/55" title={c.motivo}>
+                        <span className="block truncate text-ink/65 dark:text-ink-dark/55" title={c.motivo}>
                           {c.motivo}
                         </span>
                       </span>

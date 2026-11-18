@@ -346,7 +346,7 @@ export default function NuevaCampanaPage() {
               <div className="px-5 pb-5">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <div className="relative flex-1">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                     <Input
                       type="search"
                       value={busquedaPrueba}
@@ -365,7 +365,7 @@ export default function NuevaCampanaPage() {
                         aria-pressed={filtroInformante === valor}
                         className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                           filtroInformante === valor
-                            ? "bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark"
+                            ? "bg-acento-azul-700 text-white dark:bg-acento-azul-dark dark:text-mist-dark"
                             : "bg-mist text-ink/65 hover:bg-border dark:bg-surface-raised-dark dark:text-ink-dark/65 dark:hover:bg-border-dark"
                         }`}
                       >
@@ -403,8 +403,8 @@ export default function NuevaCampanaPage() {
                             <span
                               className={`flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg leading-none transition-colors ${
                                 elegida
-                                  ? "bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark"
-                                  : "bg-acento-azul/10 text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark"
+                                  ? "bg-acento-azul-700 text-white dark:bg-acento-azul-dark dark:text-mist-dark"
+                                  : "bg-acento-azul/10 text-acento-azul-700 dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark"
                               }`}
                               aria-hidden="true"
                             >
@@ -413,16 +413,16 @@ export default function NuevaCampanaPage() {
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block pr-6 text-sm font-semibold text-ink dark:text-ink-dark">{p.nombre_corto || p.nombre_tecnico}</span>
-                              <span className="mt-0.5 block text-xs leading-snug text-ink/55 dark:text-ink-dark/55 line-clamp-2">{p.nombre_publico}</span>
+                              <span className="mt-0.5 block text-xs leading-snug text-ink/65 dark:text-ink-dark/55 line-clamp-2">{p.nombre_publico}</span>
                               {informante && (
-                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-mist px-2 py-0.5 text-[12px] font-medium text-ink/60 dark:bg-surface-raised-dark dark:text-ink-dark/60">
+                                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-mist px-2 py-0.5 text-[12px] font-medium text-ink/65 dark:bg-surface-raised-dark dark:text-ink-dark/60">
                                   <informante.icono size={11} aria-hidden="true" />
                                   {informante.label}
                                 </span>
                               )}
                             </span>
                             {elegida && (
-                              <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
+                              <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-acento-azul-700 text-white dark:bg-acento-azul-dark dark:text-mist-dark">
                                 <Check size={13} strokeWidth={3} aria-hidden="true" />
                               </span>
                             )}
@@ -430,7 +430,7 @@ export default function NuevaCampanaPage() {
                         );
                       })}
                   {pruebas !== null && pruebasVisibles.length === 0 && (
-                    <p className="sm:col-span-2 py-8 text-center text-sm text-ink/50 dark:text-ink-dark/50">Ninguna prueba coincide con la búsqueda.</p>
+                    <p className="sm:col-span-2 py-8 text-center text-sm text-ink/65 dark:text-ink-dark/55">Ninguna prueba coincide con la búsqueda.</p>
                   )}
                 </div>
               </div>
@@ -446,11 +446,11 @@ export default function NuevaCampanaPage() {
               <div className="px-5 pb-5 space-y-3">
                 {padronVacio ? (
                   <div className="py-8 text-center">
-                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-ink/40 dark:text-ink-dark/40">
+                    <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-ink/65 dark:text-ink-dark/55">
                       <Users size={22} aria-hidden="true" />
                     </span>
                     <p className="mt-3 text-sm font-medium text-ink dark:text-ink-dark">Tu padrón todavía está vacío</p>
-                    <p className="mt-1 text-xs text-ink/50 dark:text-ink-dark/50">Registra o importa alumnos primero.</p>
+                    <p className="mt-1 text-xs text-ink/65 dark:text-ink-dark/55">Registra o importa alumnos primero.</p>
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       <Link href="/estudiantes/importar" className="rounded-card border border-border dark:border-border-dark px-4 py-2 text-sm font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark">
                         Importar Excel
@@ -501,7 +501,7 @@ export default function NuevaCampanaPage() {
                           />
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold text-ink dark:text-ink-dark">{etiquetaSalon(s)}</span>
-                            <span className="block text-xs text-ink/55 dark:text-ink-dark/55">
+                            <span className="block text-xs text-ink/65 dark:text-ink-dark/55">
                               {s.cantidad} alumno{s.cantidad === 1 ? "" : "s"}
                               {bloqueados > 0 && (
                                 <span className="text-red-700 dark:text-red-300">
@@ -517,7 +517,7 @@ export default function NuevaCampanaPage() {
                   </div>
                 )}
                 {cargandoElegibilidad && (
-                  <p className="flex items-center gap-2 text-xs text-ink/50 dark:text-ink-dark/50">
+                  <p className="flex items-center gap-2 text-xs text-ink/65 dark:text-ink-dark/55">
                     <span className="h-3 w-3 animate-spin rounded-full border-2 border-seccion-600 border-t-transparent" aria-hidden="true" />
                     Revisando quién puede rendir esta prueba...
                   </p>
@@ -556,7 +556,7 @@ export default function NuevaCampanaPage() {
                     <>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                         <div className="relative flex-1">
-                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                           <Input
                             type="search"
                             value={busquedaAlumno}
@@ -580,7 +580,7 @@ export default function NuevaCampanaPage() {
                       <TextoError>{lista.error}</TextoError>
 
                       <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden">
-                        <label className="flex items-center gap-3 bg-mist/70 dark:bg-surface-raised-dark px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink/55 dark:text-ink-dark/55 cursor-pointer">
+                        <label className="flex items-center gap-3 bg-mist/70 dark:bg-surface-raised-dark px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55 cursor-pointer">
                           <input
                             type="checkbox"
                             className="h-4 w-4 accent-seccion-600"
@@ -592,7 +592,7 @@ export default function NuevaCampanaPage() {
                         </label>
                         <div className="max-h-[24rem] overflow-y-auto divide-y divide-border dark:divide-border-dark">
                           {lista.items.length === 0 ? (
-                            <p className="px-4 py-8 text-center text-sm text-ink/50 dark:text-ink-dark/50">
+                            <p className="px-4 py-8 text-center text-sm text-ink/65 dark:text-ink-dark/55">
                               {lista.cargando ? "Cargando alumnos..." : "Ningún alumno coincide con el filtro."}
                             </p>
                           ) : (
@@ -622,10 +622,10 @@ export default function NuevaCampanaPage() {
                                     {`${p.nombres[0] ?? ""}${p.apellidos[0] ?? ""}`.toUpperCase()}
                                   </span>
                                   <span className="min-w-0 flex-1">
-                                    <span className={`block truncate font-medium ${bloqueo ? "text-ink/50 dark:text-ink-dark/50" : "text-ink dark:text-ink-dark"}`}>
+                                    <span className={`block truncate font-medium ${bloqueo ? "text-ink/65 dark:text-ink-dark/55" : "text-ink dark:text-ink-dark"}`}>
                                       {p.nombres} {p.apellidos}
                                     </span>
-                                    <span className="block truncate text-xs text-ink/50 dark:text-ink-dark/50">
+                                    <span className="block truncate text-xs text-ink/65 dark:text-ink-dark/55">
                                       {[seccion, p.codigo_institucional && `Cód. ${p.codigo_institucional}`].filter(Boolean).join(" · ") || "Sin sección"}
                                     </span>
                                   </span>
@@ -699,7 +699,7 @@ export default function NuevaCampanaPage() {
                     {fechaPasada ? (
                       <span className="text-xs font-medium text-red-700">{MENSAJE_FECHA_CIERRE_PASADA}</span>
                     ) : (
-                      <span className="text-xs text-ink/45 dark:text-ink-dark/45">Después de esta fecha los links dejan de funcionar.</span>
+                      <span className="text-xs text-ink/65 dark:text-ink-dark/55">Después de esta fecha los links dejan de funcionar.</span>
                     )}
                   </CampoEditable>
                 </div>
@@ -721,15 +721,15 @@ export default function NuevaCampanaPage() {
                   {pruebaElegida ? (
                     <>
                       <span className="font-semibold text-ink dark:text-ink-dark">{pruebaElegida.nombre_corto || pruebaElegida.nombre_tecnico}</span>
-                      <span className="block text-xs text-ink/50 dark:text-ink-dark/50">{pruebaElegida.nombre_publico}</span>
+                      <span className="block text-xs text-ink/65 dark:text-ink-dark/55">{pruebaElegida.nombre_publico}</span>
                       {elegibilidad.data && (
-                        <span className="block text-xs text-ink/50 dark:text-ink-dark/50">
+                        <span className="block text-xs text-ink/65 dark:text-ink-dark/55">
                           Se reaplica cada {elegibilidad.data.dias_minimos_entre_aplicaciones} días
                         </span>
                       )}
                     </>
                   ) : (
-                    <span className="italic text-ink/40 dark:text-ink-dark/40">Sin elegir</span>
+                    <span className="italic text-ink/65 dark:text-ink-dark/55">Sin elegir</span>
                   )}
                 </FilaResumen>
                 {pruebaElegida && (
@@ -743,11 +743,11 @@ export default function NuevaCampanaPage() {
                             </span>
                           ))}
                           {detalleElegida.dimensiones.length > 8 && (
-                            <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">+{detalleElegida.dimensiones.length - 8} más</span>
+                            <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">+{detalleElegida.dimensiones.length - 8} más</span>
                           )}
                         </span>
                       ) : (
-                        <span className="text-ink/50 dark:text-ink-dark/50">—</span>
+                        <span className="text-ink/65 dark:text-ink-dark/55">—</span>
                       )
                     ) : (
                       <span className="block h-4 w-32 animate-pulse rounded bg-border/70 dark:bg-border-dark" />
@@ -756,7 +756,7 @@ export default function NuevaCampanaPage() {
                 )}
                 <FilaResumen icono={Users} etiqueta="Estudiantes">
                   <span className="font-semibold text-ink dark:text-ink-dark">{efectivas.length}</span>
-                  <span className="text-ink/60 dark:text-ink-dark/60">
+                  <span className="text-ink/65 dark:text-ink-dark/60">
                     {" "}
                     {salonesElegidos.length > 0 ? `de ${salonesElegidos.length} salón${salonesElegidos.length === 1 ? "" : "es"}` : "elegidos"}
                   </span>
@@ -773,7 +773,7 @@ export default function NuevaCampanaPage() {
                       {new Date(form.fecha_fin).toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })}
                     </span>
                   ) : (
-                    <span className="italic text-ink/40 dark:text-ink-dark/40">Sin fecha límite</span>
+                    <span className="italic text-ink/65 dark:text-ink-dark/55">Sin fecha límite</span>
                   )}
                 </FilaResumen>
               </dl>
@@ -787,11 +787,11 @@ export default function NuevaCampanaPage() {
                   {creando ? "Creando..." : campana ? "Reintentar la matrícula" : "Crear campaña y generar links"}
                   {!creando && <ArrowRight size={16} aria-hidden="true" />}
                 </Boton>
-                {faltante && <p className="text-center text-xs text-ink/45 dark:text-ink-dark/45">{faltante}</p>}
+                {faltante && <p className="text-center text-xs text-ink/65 dark:text-ink-dark/55">{faltante}</p>}
               </div>
             </section>
 
-            <div className="rounded-2xl border border-dashed border-border dark:border-border-dark p-4 text-xs text-ink/60 dark:text-ink-dark/60">
+            <div className="rounded-2xl border border-dashed border-border dark:border-border-dark p-4 text-xs text-ink/65 dark:text-ink-dark/60">
               <p className="flex items-center gap-1.5 font-semibold text-ink/75 dark:text-ink-dark/75">
                 <Info size={14} aria-hidden="true" />
                 ¿Cómo funciona?
@@ -819,13 +819,13 @@ export default function NuevaCampanaPage() {
             <div className="grid grid-cols-2 divide-x divide-border dark:divide-border-dark">
               <div className="px-5 py-4 text-center">
                 <p className="font-display text-2xl font-semibold text-seccion-900 dark:text-ink-dark">{resultadoMatricula.generados.length}</p>
-                <p className="text-xs text-ink/55 dark:text-ink-dark/55">links generados</p>
+                <p className="text-xs text-ink/65 dark:text-ink-dark/55">links generados</p>
               </div>
               <div className="px-5 py-4 text-center">
                 <p className={`font-display text-2xl font-semibold ${resultadoMatricula.rechazados.length > 0 ? "text-red-700 dark:text-red-300" : "text-seccion-900 dark:text-ink-dark"}`}>
                   {resultadoMatricula.rechazados.length}
                 </p>
-                <p className="text-xs text-ink/55 dark:text-ink-dark/55">rechazados</p>
+                <p className="text-xs text-ink/65 dark:text-ink-dark/55">rechazados</p>
               </div>
             </div>
           </section>
@@ -850,7 +850,7 @@ export default function NuevaCampanaPage() {
             <section className={`${CLASE_TARJETA} overflow-hidden`}>
               <div className="flex flex-col gap-3 px-5 py-4 border-b border-border dark:border-border-dark sm:flex-row sm:items-center sm:justify-between">
                 <h3 className="flex items-center gap-2 font-display text-base font-semibold text-seccion-900 dark:text-ink-dark">
-                  <Link2 size={17} aria-hidden="true" className="text-acento-azul dark:text-acento-azul-dark" />
+                  <Link2 size={17} aria-hidden="true" className="text-acento-azul-700 dark:text-acento-azul-dark" />
                   Links de examen
                 </h3>
                 <Boton
@@ -874,7 +874,7 @@ export default function NuevaCampanaPage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-ink dark:text-ink-dark">{ins.nombre_completo}</p>
-                        <p className="truncate font-mono text-[12px] text-ink/40 dark:text-ink-dark/40">{url}</p>
+                        <p className="truncate font-mono text-[12px] text-ink/65 dark:text-ink-dark/55">{url}</p>
                       </div>
                       <button
                         type="button"
@@ -925,15 +925,15 @@ function IndicadorPasos({ actual }: { actual: number }) {
                   hecho
                     ? "bg-white/90 text-seccion-900 dark:bg-acento-azul-dark dark:text-mist-dark"
                     : activo
-                      ? "bg-white text-acento-azul ring-4 ring-white/25 dark:bg-acento-azul-dark dark:text-mist-dark dark:ring-acento-azul-dark/25"
-                      : "bg-white/10 text-white/70 ring-1 ring-white/30 dark:bg-surface-dark dark:text-ink-dark/40 dark:ring-border-dark"
+                      ? "bg-white text-acento-azul-700 ring-4 ring-white/25 dark:bg-acento-azul-dark dark:text-mist-dark dark:ring-acento-azul-dark/25"
+                      : "bg-white/10 text-white/70 ring-1 ring-white/30 dark:bg-surface-dark dark:text-ink-dark/55 dark:ring-border-dark"
                 }`}
               >
                 {hecho ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : i + 1}
               </span>
               <span
                 className={`text-[12.5px] font-semibold whitespace-nowrap ${
-                  activo ? "text-white dark:text-ink-dark" : "text-white/65 dark:text-ink-dark/45"
+                  activo ? "text-white dark:text-ink-dark" : "text-white/65 dark:text-ink-dark/55"
                 } ${activo ? "" : "hidden md:inline"}`}
               >
                 {paso}
@@ -954,12 +954,12 @@ function IndicadorPasos({ actual }: { actual: number }) {
 function EncabezadoSeccion({ numero, titulo, subtitulo }: { numero: number; titulo: string; subtitulo: string }) {
   return (
     <div className="mb-5 flex items-center gap-3 border-b px-5 py-3.5 border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.08] dark:bg-acento-azul-dark/[0.08]">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[13px] font-bold bg-acento-azul-700 text-white dark:bg-acento-azul-dark dark:text-mist-dark">
         {numero}
       </span>
       <div>
         <h2 className="m-0 font-display text-[15px] font-semibold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
-        <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">{subtitulo}</p>
+        <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">{subtitulo}</p>
       </div>
     </div>
   );
@@ -968,9 +968,9 @@ function EncabezadoSeccion({ numero, titulo, subtitulo }: { numero: number; titu
 function FilaResumen({ icono: Icono, etiqueta, children }: { icono: LucideIcon; etiqueta: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3 px-5 py-3.5">
-      <Icono size={16} className="mt-0.5 shrink-0 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+      <Icono size={16} className="mt-0.5 shrink-0 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <dt className="text-[12px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">{etiqueta}</dt>
+        <dt className="text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{etiqueta}</dt>
         <dd className="mt-0.5">{children}</dd>
       </div>
     </div>

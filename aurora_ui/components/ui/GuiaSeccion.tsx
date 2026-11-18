@@ -74,7 +74,7 @@ export function GuiaSeccion({
       <button
         type="button"
         onClick={() => guardar(clave, true)}
-        className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-ink/55 hover:bg-ink/5 dark:text-ink-dark/55 dark:hover:bg-white/5"
+        className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-md px-2 py-1 text-[12px] font-medium text-ink/65 hover:bg-ink/5 dark:text-ink-dark/55 dark:hover:bg-white/5"
       >
         <X size={12} aria-hidden="true" />
         Entendido, ocultar
@@ -91,7 +91,7 @@ export function GuiaSeccion({
             </span>
             <span className="min-w-0">
               <span className="block text-[13px] font-bold text-ink dark:text-ink-dark">{t}</span>
-              <span className="block text-[12.5px] leading-snug text-ink/60 dark:text-ink-dark/60">{texto}</span>
+              <span className="block text-[12.5px] leading-snug text-ink/65 dark:text-ink-dark/60">{texto}</span>
             </span>
           </li>
         ))}

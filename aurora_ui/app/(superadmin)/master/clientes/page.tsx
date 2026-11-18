@@ -124,7 +124,7 @@ function ClientesContenido() {
             <h1 className="font-display text-2xl sm:text-3xl font-semibold text-teal-900 dark:text-ink-dark">
               Instituciones cliente
             </h1>
-            <p className="mt-1 text-sm text-ink/55 dark:text-ink-dark/55">
+            <p className="mt-1 text-sm text-ink/65 dark:text-ink-dark/55">
               Colegios con acceso a AuroraSoft, su plan y su licencia.
             </p>
           </div>
@@ -151,7 +151,7 @@ function ClientesContenido() {
                 setErrorCrear(null);
               }}
               aria-label="Cerrar formulario"
-              className="p-1.5 rounded-lg text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-raised-dark"
+              className="p-1.5 rounded-lg text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-raised-dark"
             >
               <X size={18} aria-hidden="true" />
             </button>
@@ -199,7 +199,7 @@ function ClientesContenido() {
         {/* Buscador + filtros */}
         <div className="flex flex-col gap-3 p-4 border-b border-border dark:border-border-dark lg:flex-row lg:items-center">
           <div className="relative lg:w-80">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
             <Input
               type="search"
               value={busqueda}
@@ -242,7 +242,7 @@ function ClientesContenido() {
             ))}
           </div>
         ) : visibles.length === 0 ? (
-          <p className="px-5 py-12 text-center text-sm text-ink/50 dark:text-ink-dark/50">
+          <p className="px-5 py-12 text-center text-sm text-ink/65 dark:text-ink-dark/55">
             {instituciones.length === 0
               ? "Todavía no hay instituciones registradas."
               : "Ninguna institución coincide con la búsqueda o el filtro."}
@@ -253,7 +253,7 @@ function ClientesContenido() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-mist/70 dark:bg-surface-raised-dark text-left text-xs font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
+                  <tr className="bg-mist/70 dark:bg-surface-raised-dark text-left text-xs font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                     <th className="px-5 py-3">Institución</th>
                     <th className="px-5 py-3">Contacto</th>
                     <th className="px-5 py-3">Plan</th>
@@ -272,12 +272,12 @@ function ClientesContenido() {
                           <Iniciales nombre={inst.nombre} />
                           <div className="min-w-0">
                             <p className="font-medium text-ink dark:text-ink-dark">{inst.nombre}</p>
-                            <p className="text-xs text-ink/50 dark:text-ink-dark/50">{inst.tipo || "Colegio"}</p>
+                            <p className="text-xs text-ink/65 dark:text-ink-dark/55">{inst.tipo || "Colegio"}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-3 text-xs text-ink/70 dark:text-ink-dark/70">
-                        {inst.email_contacto || <span className="italic text-ink/40 dark:text-ink-dark/40">Sin correo</span>}
+                        {inst.email_contacto || <span className="italic text-ink/65 dark:text-ink-dark/55">Sin correo</span>}
                       </td>
                       <td className="px-5 py-3">
                         <Badge tono={inst.plan_activo ? "teal" : "neutro"}>{inst.plan_activo ? "Activo" : "Inactivo"}</Badge>
@@ -315,7 +315,7 @@ function ClientesContenido() {
                           <p className="font-medium text-ink dark:text-ink-dark">{inst.nombre}</p>
                           <Badge tono={inst.plan_activo ? "teal" : "neutro"}>{inst.plan_activo ? "Activo" : "Inactivo"}</Badge>
                         </div>
-                        <p className="text-xs text-ink/50 dark:text-ink-dark/50">{inst.tipo || "Colegio"}</p>
+                        <p className="text-xs text-ink/65 dark:text-ink-dark/55">{inst.tipo || "Colegio"}</p>
                         <div className="mt-2 space-y-1 text-xs text-ink/65 dark:text-ink-dark/65">
                           {inst.email_contacto && (
                             <p className="flex items-center gap-1.5 truncate">
@@ -343,14 +343,14 @@ function ClientesContenido() {
 
 function TextoLicencia({ inst }: { inst: Institucion }) {
   const estado = estadoLicencia(inst);
-  if (estado === "sin_caducidad") return <span className="italic text-ink/40 dark:text-ink-dark/40">Sin caducidad</span>;
+  if (estado === "sin_caducidad") return <span className="italic text-ink/65 dark:text-ink-dark/55">Sin caducidad</span>;
   const fecha = formatearFecha(inst.fecha_vencimiento_licencia);
   if (estado === "vencida") return <span className="font-medium text-red-700 dark:text-red-300">{fecha} (vencida)</span>;
   if (estado === "por_vencer") {
     const dias = diasParaVencer(inst);
     return (
       <span className="font-medium text-ink dark:text-ink-dark">
-        {fecha} <span className="text-ink/50 dark:text-ink-dark/50 font-normal">· vence en {dias} {dias === 1 ? "día" : "días"}</span>
+        {fecha} <span className="text-ink/65 dark:text-ink-dark/55 font-normal">· vence en {dias} {dias === 1 ? "día" : "días"}</span>
       </span>
     );
   }

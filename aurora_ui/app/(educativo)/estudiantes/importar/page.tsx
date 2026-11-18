@@ -108,12 +108,12 @@ function IndicadorPasos({ actual, terminado }: { actual: number; terminado: bool
                   ? "bg-seccion-600 text-white dark:bg-seccion-claro dark:text-mist-dark"
                   : enCurso
                     ? "bg-seccion-900 text-white dark:bg-seccion-claro/30 dark:text-seccion-claro"
-                    : "bg-border/70 text-ink/45 dark:bg-border-dark dark:text-ink-dark/45"
+                    : "bg-border/70 text-ink/65 dark:bg-border-dark dark:text-ink-dark/55"
               }`}
             >
               {hecho ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : n}
             </span>
-            <span className={`text-[12.5px] font-semibold ${enCurso || hecho ? "text-seccion-900 dark:text-ink-dark" : "text-ink/45 dark:text-ink-dark/45"}`}>
+            <span className={`text-[12.5px] font-semibold ${enCurso || hecho ? "text-seccion-900 dark:text-ink-dark" : "text-ink/65 dark:text-ink-dark/55"}`}>
               {paso}
             </span>
           </li>
@@ -146,10 +146,10 @@ function TarjetaPaso({
         </span>
         <div className="min-w-0">
           <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
-            <span className="text-ink/40 dark:text-ink-dark/40 mr-1">{numero}.</span>
+            <span className="text-ink/65 dark:text-ink-dark/55 mr-1">{numero}.</span>
             {titulo}
           </h2>
-          {descripcion && <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{descripcion}</p>}
+          {descripcion && <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </header>
       <div className="p-5 flex-1">{children}</div>
@@ -345,7 +345,7 @@ export default function ImportarEstudiantesPage() {
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="m-0 font-display text-[20px] font-bold text-seccion-900 dark:text-ink-dark">Importación aplicada</h2>
-              <p className="m-0 mt-1 text-sm text-ink/60 dark:text-ink-dark/60">
+              <p className="m-0 mt-1 text-sm text-ink/65 dark:text-ink-dark/60">
                 <strong className="text-seccion-900 dark:text-seccion-claro">{resultadoConfirmacion.resumen.nuevos}</strong> estudiante(s) nuevo(s) y{" "}
                 <strong className="text-seccion-900 dark:text-seccion-claro">{resultadoConfirmacion.resumen.actualizados}</strong> actualizado(s).
                 {resultadoConfirmacion.filas_con_datos_incompletos > 0 &&
@@ -412,15 +412,15 @@ export default function ImportarEstudiantesPage() {
                 <>
                   <FileSpreadsheet size={28} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
                   <span className="max-w-full truncate text-sm font-semibold text-seccion-900 dark:text-ink-dark">{archivo.name}</span>
-                  <span className="text-[12px] text-ink/50 dark:text-ink-dark/50">
+                  <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                     {tamanoLegible(archivo.size)} · {archivoValidado === archivo ? "validado" : "listo para validar"} · haz clic para cambiarlo
                   </span>
                 </>
               ) : (
                 <>
-                  <UploadCloud size={28} aria-hidden="true" className="text-ink/35 dark:text-ink-dark/35" />
+                  <UploadCloud size={28} aria-hidden="true" className="text-ink/65 dark:text-ink-dark/55" />
                   <span className="text-sm font-semibold text-ink/75 dark:text-ink-dark/75">Arrastra tu Excel aquí o haz clic para elegirlo</span>
-                  <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">Solo archivos .xlsx · hasta 2000 filas</span>
+                  <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">Solo archivos .xlsx · hasta 2000 filas</span>
                 </>
               )}
             </label>
@@ -431,7 +431,7 @@ export default function ImportarEstudiantesPage() {
                 {validando ? "Validando…" : resultado ? "Validar de nuevo" : "Validar archivo"}
               </Boton>
               {(archivo || resultado) && (
-                <button type="button" onClick={reiniciar} className="text-sm text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark hover:underline">
+                <button type="button" onClick={reiniciar} className="text-sm text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark hover:underline">
                   Empezar de nuevo
                 </button>
               )}
@@ -447,10 +447,10 @@ export default function ImportarEstudiantesPage() {
           <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08] border-b border-seccion-600/15 dark:border-seccion-claro/20">
             <div>
               <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
-                <span className="text-ink/40 dark:text-ink-dark/40 mr-1">3.</span>
+                <span className="text-ink/65 dark:text-ink-dark/55 mr-1">3.</span>
                 Revisa la vista previa
               </h2>
-              <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 {resultado.total_filas} filas leídas del archivo · toca una tarjeta para filtrar la tabla.
               </p>
             </div>
@@ -512,7 +512,7 @@ export default function ImportarEstudiantesPage() {
                 <tbody>
                   {filasVisibles.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-ink/40 dark:text-ink-dark/40">
+                      <td colSpan={6} className="px-4 py-8 text-center text-sm text-ink/65 dark:text-ink-dark/55">
                         Ninguna fila en esta categoría.
                       </td>
                     </tr>
@@ -544,7 +544,7 @@ export default function ImportarEstudiantesPage() {
                               : "border-l-transparent"
                         }`}
                       >
-                        <td className="px-4 py-2.5 font-mono text-xs text-ink/50 dark:text-ink-dark/50">{fila.fila}</td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-ink/65 dark:text-ink-dark/55">{fila.fila}</td>
                         <td className="px-4 py-2.5">
                           <BadgeAccion accion={fila.accion} />
                         </td>
@@ -569,7 +569,7 @@ export default function ImportarEstudiantesPage() {
                               ))}
                             </ul>
                           )}
-                          {incompleta && <span className="text-xs text-ink/50 dark:text-ink-dark/50">Faltan: {fila.datos_incompletos.join(", ")}</span>}
+                          {incompleta && <span className="text-xs text-ink/65 dark:text-ink-dark/55">Faltan: {fila.datos_incompletos.join(", ")}</span>}
                           {!bloqueante && !incompleta && <span className="text-xs text-ink/30 dark:text-ink-dark/30">—</span>}
                         </td>
                       </tr>
@@ -598,7 +598,7 @@ export default function ImportarEstudiantesPage() {
           <div className="sticky bottom-0 border-t border-border dark:border-border-dark bg-surface/95 dark:bg-surface-dark/95 backdrop-blur px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="text-[12.5px] text-ink/65 dark:text-ink-dark/65">
               <p className="m-0">
-                <span className="text-ink/40 dark:text-ink-dark/40 font-bold mr-1">4.</span>
+                <span className="text-ink/65 dark:text-ink-dark/55 font-bold mr-1">4.</span>
                 Se aplicarán <strong className="text-seccion-900 dark:text-seccion-claro">{filasAplicables}</strong> fila(s) en una sola operación
                 {filasDescartadas > 0 && (
                   <>

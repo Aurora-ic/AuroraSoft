@@ -42,7 +42,7 @@ function topeRedondo(max: number): number {
 
 function Leyenda({ items }: { items: { color: string; etiqueta: string }[] }) {
   return (
-    <div className="flex items-center gap-3.5 flex-wrap text-[12px] text-ink/60 dark:text-ink-dark/60">
+    <div className="flex items-center gap-3.5 flex-wrap text-[12px] text-ink/65 dark:text-ink-dark/60">
       {items.map((i) => (
         <span key={i.etiqueta} className="inline-flex items-center gap-1.5">
           <span aria-hidden="true" className={`h-2.5 w-2.5 rounded-[3px] ${i.color}`} />
@@ -56,7 +56,7 @@ function Leyenda({ items }: { items: { color: string; etiqueta: string }[] }) {
 function SinDatos({ texto }: { texto: string }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <p className="m-0 rounded-lg bg-surface/90 dark:bg-surface-dark/90 px-3 py-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">{texto}</p>
+      <p className="m-0 rounded-lg bg-surface/90 dark:bg-surface-dark/90 px-3 py-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{texto}</p>
     </div>
   );
 }
@@ -83,7 +83,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
         <div className="absolute inset-x-0 top-0 pointer-events-none" style={{ height: ALTO }} aria-hidden="true">
           {[1, 0.5, 0].map((f) => (
             <div key={f} className="absolute inset-x-0 flex items-center gap-2" style={{ top: `${(1 - f) * 100}%` }}>
-              <span className="w-6 -translate-y-1/2 text-right text-[11.5px] tabular-nums text-ink/35 dark:text-ink-dark/35">
+              <span className="w-6 -translate-y-1/2 text-right text-[11.5px] tabular-nums text-ink/65 dark:text-ink-dark/55">
                 {Math.round(tope * f)}
               </span>
               <span className={`flex-1 -translate-y-1/2 border-t ${f === 0 ? "border-border dark:border-border-dark" : "border-dashed border-border/70 dark:border-border-dark/70"}`} />
@@ -126,7 +126,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
                     )}
                   </div>
                 </div>
-                <span className={`mt-1.5 text-[12px] capitalize ${activo ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/50 dark:text-ink-dark/50"}`}>
+                <span className={`mt-1.5 text-[12px] capitalize ${activo ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/65 dark:text-ink-dark/55"}`}>
                   {mesCorto(m.mes)}
                 </span>
 
@@ -309,7 +309,7 @@ function diasHasta(iso: string | null): number | null {
 
 export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }) {
   if (campanas.length === 0) {
-    return <p className="m-0 text-[12.5px] italic text-ink/45 dark:text-ink-dark/45">Sin campañas activas.</p>;
+    return <p className="m-0 text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin campañas activas.</p>;
   }
   return (
     <ul className="m-0 p-0 list-none flex flex-col gap-3.5">
@@ -324,14 +324,14 @@ export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }
                 <span className="truncate text-[12.5px] font-semibold text-ink dark:text-ink-dark group-hover:text-seccion-700 dark:group-hover:text-seccion-claro">
                   {c.nombre_grupo}
                 </span>
-                <span className="shrink-0 text-[12px] tabular-nums text-ink/55 dark:text-ink-dark/55">
+                <span className="shrink-0 text-[12px] tabular-nums text-ink/65 dark:text-ink-dark/55">
                   {c.finalizados}/{c.inscritos} · <strong className="text-ink dark:text-ink-dark">{pct}%</strong>
                 </span>
               </div>
               <div className="mt-1.5 h-1.5 rounded-full bg-border dark:bg-border-dark overflow-hidden">
                 <div className="h-full rounded-full bg-seccion-600 dark:bg-seccion-claro transition-all" style={{ width: `${Math.max(pct, c.finalizados > 0 ? 3 : 0)}%` }} />
               </div>
-              <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+              <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-ink/65 dark:text-ink-dark/55">
                 <span className="truncate">{c.prueba ?? ""}</span>
                 {dias !== null && (
                   <span className={`inline-flex items-center gap-1 shrink-0 ${urgente ? "font-semibold text-red-700 dark:text-red-300" : ""}`}>

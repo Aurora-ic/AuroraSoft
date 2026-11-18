@@ -17,7 +17,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    // suppressHydrationWarning: el script de abajo pone data-tema antes de
+    // que React hidrate, a propósito.
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* 🆕 (2026-11-17) Tema oscuro aplicado ANTES del primer pintado (sin
+            destello claro). La CSP ya permite scripts en línea
+            ('unsafe-inline', next.config.ts). Ver contexts/ThemeContext.tsx. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{if(localStorage.getItem('aurora_tema')==='oscuro')document.documentElement.setAttribute('data-tema','oscuro')}catch(e){}",
+          }}
+        />
+      </head>
       <body>
         {/* 🆕 Fase 5 — QueryProvider por fuera de AuthProvider: no depende
             de la sesión, así que una pantalla nueva puede usar React Query

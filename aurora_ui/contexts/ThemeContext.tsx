@@ -28,27 +28,42 @@ const ThemeContext = createContext<ThemeContextValue>({
 const CLAVE_STORAGE = "aurora_tema";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [tema, setTema] = useState<Tema>("claro");
+  // 🔧 (2026-11-17, plan de UX fase 4) `null` = todavía sin leer la
+  // preferencia. Antes el estado arrancaba en "claro" y el efecto que lo
+  // aplicaba lo GUARDABA en localStorage en el mismo ciclo en que otro efecto
+  // lo leía: en desarrollo (efectos dobles) la preferencia oscura se perdía,
+  // y en producción quien usa modo oscuro veía un destello claro en cada
+  // carga. Ahora: el <script> de app/layout.tsx pone `data-tema` antes del
+  // primer pintado, aquí solo se lee, y localStorage se escribe únicamente
+  // cuando la persona cambia el tema.
+  const [tema, setTema] = useState<Tema | null>(null);
 
   useEffect(() => {
-    const guardado = localStorage.getItem(CLAVE_STORAGE);
-    // localStorage no existe en el servidor (no puede ir en el valor inicial
-    // de useState) y esto NO se puede diferir con setTimeout: el efecto de
-    // abajo escribiría "claro" antes de leer la preferencia y la perdería.
+    let guardado: string | null = null;
+    try {
+      guardado = localStorage.getItem(CLAVE_STORAGE);
+    } catch {
+      // Sin almacenamiento (modo privado): claro.
+    }
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (guardado === "oscuro" || guardado === "claro") setTema(guardado);
+    setTema(guardado === "oscuro" ? "oscuro" : "claro");
   }, []);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-tema", tema);
-    localStorage.setItem(CLAVE_STORAGE, tema);
+    if (tema) document.documentElement.setAttribute("data-tema", tema);
   }, [tema]);
 
   function alternarTema() {
-    setTema((actual) => (actual === "claro" ? "oscuro" : "claro"));
+    const siguiente: Tema = (tema ?? "claro") === "claro" ? "oscuro" : "claro";
+    setTema(siguiente);
+    try {
+      localStorage.setItem(CLAVE_STORAGE, siguiente);
+    } catch {
+      // Sin almacenamiento: dura esta visita.
+    }
   }
 
-  return <ThemeContext.Provider value={{ tema, alternarTema }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ tema: tema ?? "claro", alternarTema }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

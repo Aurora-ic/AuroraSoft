@@ -37,7 +37,7 @@ export function PartesDePlantilla({ plantillaId }: { plantillaId: number }) {
           Vas a completar {tuyas.length === 1 ? "1 parte" : `${tuyas.length} partes`}
         </p>
         {tuyas.length === 0 ? (
-          <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">Ninguna: este documento sale completo solo.</p>
+          <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Ninguna: este documento sale completo solo.</p>
         ) : (
           <ul className="m-0 list-none space-y-1 p-0">
             {tuyas.map((p) => (
@@ -54,12 +54,12 @@ export function PartesDePlantilla({ plantillaId }: { plantillaId: number }) {
           {solas.length === 1 ? "1 parte sale sola" : `${solas.length} partes salen solas`}
         </p>
         {solas.length === 0 ? (
-          <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">Ninguna.</p>
+          <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Ninguna.</p>
         ) : (
           <ul className="m-0 list-none space-y-1 p-0">
             {solas.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 text-[12.5px]">
-                <span className="min-w-0 truncate text-ink/60 dark:text-ink-dark/60">{p.titulo || ETIQUETAS_TIPO_SECCION[p.tipo_seccion]}</span>
+                <span className="min-w-0 truncate text-ink/65 dark:text-ink-dark/60">{p.titulo || ETIQUETAS_TIPO_SECCION[p.tipo_seccion]}</span>
                 <ChipModo modo={modoDe(p)} />
               </li>
             ))}

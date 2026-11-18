@@ -428,7 +428,7 @@ export default function AgendaPage() {
                 <button
                   type="button"
                   onClick={() => setMesMini((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-                  className="rounded-md p-1 text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-raised-dark"
+                  className="rounded-md p-1 text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-raised-dark"
                   aria-label="Mes anterior"
                 >
                   <ChevronLeft size={15} aria-hidden="true" />
@@ -439,7 +439,7 @@ export default function AgendaPage() {
                 <button
                   type="button"
                   onClick={() => setMesMini((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-                  className="rounded-md p-1 text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-raised-dark"
+                  className="rounded-md p-1 text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-raised-dark"
                   aria-label="Mes siguiente"
                 >
                   <ChevronRight size={15} aria-hidden="true" />
@@ -447,7 +447,7 @@ export default function AgendaPage() {
               </div>
               <div className="grid grid-cols-7 text-center">
                 {INICIALES_DIA.map((d, i) => (
-                  <span key={i} className="py-1 text-[11.5px] font-semibold text-ink/40 dark:text-ink-dark/40">
+                  <span key={i} className="py-1 text-[11.5px] font-semibold text-ink/65 dark:text-ink-dark/55">
                     {d}
                   </span>
                 ))}
@@ -488,7 +488,7 @@ export default function AgendaPage() {
 
             {/* --- Filtros por tipo (muestra de color + ícono + conteo) --- */}
             <div className="mt-4 pt-4 border-t border-border dark:border-border-dark space-y-1">
-              <p className="m-0 mb-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Mostrar</p>
+              <p className="m-0 mb-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Mostrar</p>
               {filtrosTipo.map((f) => (
                 <label
                   key={f.cat}
@@ -505,7 +505,7 @@ export default function AgendaPage() {
                   </span>
                   <f.icono size={13} className={ESTILO_CATEGORIA[f.cat].texto} aria-hidden="true" />
                   <span className="flex-1">{f.etiqueta}</span>
-                  <span className="text-[12px] font-semibold text-ink/40 dark:text-ink-dark/40">{f.n}</span>
+                  <span className="text-[12px] font-semibold text-ink/65 dark:text-ink-dark/55">{f.n}</span>
                 </label>
               ))}
             </div>
@@ -513,13 +513,13 @@ export default function AgendaPage() {
 
           {/* --- 🆕 Agendar cita individual sin salir de la agenda --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
-            <p className="m-0 mb-1 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 mb-1 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
               <User size={12} aria-hidden="true" className={ESTILO_CATEGORIA.individual.texto} />
               Agendar cita individual
             </p>
-            <p className="m-0 mb-2.5 text-[12px] text-ink/50 dark:text-ink-dark/50">Busca al estudiante y agenda sin entrar a su ficha.</p>
+            <p className="m-0 mb-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Busca al estudiante y agenda sin entrar a su ficha.</p>
             <div className="relative">
-              <Search size={13} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" />
+              <Search size={13} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" />
               <input
                 type="search"
                 aria-label="Buscar estudiante para una cita"
@@ -546,7 +546,7 @@ export default function AgendaPage() {
                         <span className="block truncate text-[12.5px] font-medium text-ink dark:text-ink-dark">
                           {p.nombres} {p.apellidos}
                         </span>
-                        <span className="block truncate text-[11.5px] text-ink/45 dark:text-ink-dark/45">
+                        <span className="block truncate text-[11.5px] text-ink/65 dark:text-ink-dark/55">
                           {p.seccion_actual
                             ? [p.seccion_actual.nivel_educativo, p.seccion_actual.grado, p.seccion_actual.seccion].filter(Boolean).join(" · ")
                             : "Sin matrícula"}
@@ -559,17 +559,17 @@ export default function AgendaPage() {
               </ul>
             )}
             {busquedaCita.trim() && !cargandoPersonas && personasCargadas && resultadosCita.length === 0 && (
-              <p className="m-0 mt-2 text-[12px] text-ink/45 dark:text-ink-dark/45">Ningún estudiante activo coincide.</p>
+              <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">Ningún estudiante activo coincide.</p>
             )}
           </div>
 
           {/* --- Próximas --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
-            <p className="m-0 mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Próximas</p>
+            <p className="m-0 mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Próximas</p>
             {cargando ? (
               <EsqueletoLineas cantidad={3} />
             ) : proximas.length === 0 ? (
-              <p className="m-0 text-[12px] italic text-ink/40 dark:text-ink-dark/40">Nada agendado de aquí en adelante.</p>
+              <p className="m-0 text-[12px] italic text-ink/65 dark:text-ink-dark/55">Nada agendado de aquí en adelante.</p>
             ) : (
               <ul className="m-0 p-0 list-none flex flex-col gap-1">
                 {proximas.map((c) => {
@@ -584,7 +584,7 @@ export default function AgendaPage() {
                         className="w-full text-left flex items-start gap-2.5 rounded-lg px-2 py-2 hover:bg-mist dark:hover:bg-surface-raised-dark"
                       >
                         <span className="flex w-9 shrink-0 flex-col items-center rounded-md border border-border dark:border-border-dark py-0.5">
-                          <span className="text-[11px] font-bold uppercase text-ink/45 dark:text-ink-dark/45">
+                          <span className="text-[11px] font-bold uppercase text-ink/65 dark:text-ink-dark/55">
                             {NOMBRES_DIA_CORTO[(f.getDay() + 6) % 7]}
                           </span>
                           <span className="font-display text-[15px] font-bold leading-none text-ink dark:text-ink-dark">{f.getDate()}</span>
@@ -612,7 +612,7 @@ export default function AgendaPage() {
           <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark">
             <div className="min-w-0">
               <p className="m-0 text-[15px] font-semibold text-seccion-700 dark:text-seccion-claro">{rangoSemana}</p>
-              <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Citas individuales: búscalas en el panel lateral o desde la ficha del alumno. Talleres y charlas los ve todo tu equipo.
               </p>
             </div>
@@ -665,7 +665,7 @@ export default function AgendaPage() {
                       </span>
                       <span
                         className={`text-[12px] font-bold uppercase tracking-wider md:mt-1 ${
-                          esHoy ? "text-seccion-700 dark:text-seccion-claro" : "text-ink/45 dark:text-ink-dark/45"
+                          esHoy ? "text-seccion-700 dark:text-seccion-claro" : "text-ink/65 dark:text-ink-dark/55"
                         }`}
                       >
                         <span className="md:hidden">{NOMBRES_DIA[i]}</span>
@@ -679,7 +679,7 @@ export default function AgendaPage() {
                         onClick={() => abrirModal({ modo: "grupal", fecha: fechaInputLocal(dia) })}
                         aria-label={`Nueva actividad el ${NOMBRES_DIA[i].toLowerCase()} ${dia.getDate()}`}
                         title="Nueva actividad este día"
-                        className={`${citasDelDia.length === 0 ? "" : "ml-auto"} md:ml-0 md:absolute md:top-2 md:right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink/40 dark:text-ink-dark/40 hover:bg-accion hover:text-white dark:hover:bg-seccion-claro dark:hover:text-mist-dark md:opacity-0 md:group-hover/dia:opacity-100 focus:opacity-100 transition-all`}
+                        className={`${citasDelDia.length === 0 ? "" : "ml-auto"} md:ml-0 md:absolute md:top-2 md:right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink/65 dark:text-ink-dark/55 hover:bg-accion hover:text-white dark:hover:bg-seccion-claro dark:hover:text-mist-dark md:opacity-0 md:group-hover/dia:opacity-100 focus:opacity-100 transition-all`}
                       >
                         <Plus size={15} aria-hidden="true" />
                       </button>
@@ -703,7 +703,7 @@ export default function AgendaPage() {
                             cancelada ? "border-l-border dark:border-l-border-dark bg-mist/60 dark:bg-surface-raised-dark" : `${estilo.borde} ${estilo.fondo}`
                           }`}
                         >
-                          <p className="m-0 flex items-center gap-1 font-mono text-[12px] text-ink/60 dark:text-ink-dark/60">
+                          <p className="m-0 flex items-center gap-1 font-mono text-[12px] text-ink/65 dark:text-ink-dark/60">
                             <Clock size={10} aria-hidden="true" className="shrink-0" />
                             {rangoHorario(cita)}
                           </p>
@@ -715,14 +715,14 @@ export default function AgendaPage() {
                           )}
                           <p
                             className={`m-0 flex items-start gap-1 font-semibold leading-snug ${
-                              cancelada ? "text-ink/40 dark:text-ink-dark/40 line-through" : estilo.texto
+                              cancelada ? "text-ink/65 dark:text-ink-dark/55 line-through" : estilo.texto
                             }`}
                           >
                             <Icono size={12} aria-hidden="true" className="mt-px shrink-0" />
                             <span className="min-w-0 break-words">{esGrupal ? cita.titulo : cita.motivo}</span>
                           </p>
                           {!esGrupal && cita.persona_nombre && (
-                            <p className="m-0 text-ink/60 dark:text-ink-dark/60 leading-snug">
+                            <p className="m-0 text-ink/65 dark:text-ink-dark/60 leading-snug">
                               con{" "}
                               <Link
                                 href={`/estudiantes/${cita.persona_id}`}
@@ -733,19 +733,19 @@ export default function AgendaPage() {
                             </p>
                           )}
                           {esGrupal && (
-                            <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                            <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                               {cita.tipo_actividad || "Actividad"}
                             </p>
                           )}
                           {esGrupal && cita.lugar && (
-                            <p className="m-0 flex items-center gap-1 text-ink/55 dark:text-ink-dark/55">
+                            <p className="m-0 flex items-center gap-1 text-ink/65 dark:text-ink-dark/55">
                               <MapPin size={10} aria-hidden="true" className="shrink-0" />
                               {cita.lugar}
                             </p>
                           )}
                           {esGrupal && cita.participantes.length > 0 && (
                             <p
-                              className="m-0 flex items-center gap-1 text-ink/55 dark:text-ink-dark/55"
+                              className="m-0 flex items-center gap-1 text-ink/65 dark:text-ink-dark/55"
                               title={cita.participantes.map((p) => p.nombre_completo).join(", ")}
                             >
                               <UsersRound size={10} aria-hidden="true" className="shrink-0" />
@@ -757,13 +757,13 @@ export default function AgendaPage() {
                               <button onClick={() => abrirReprogramar(cita)} className="text-seccion-700 dark:text-seccion-claro hover:underline">
                                 {esGrupal ? "Editar" : "Reprogramar"}
                               </button>
-                              <button onClick={() => cancelar(cita.id)} className="text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark hover:underline">
+                              <button onClick={() => cancelar(cita.id)} className="text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark hover:underline">
                                 Cancelar
                               </button>
                             </div>
                           )}
                           {cita.estado !== "Programada" && (
-                            <p className="m-0 text-ink/40 dark:text-ink-dark/40 italic">{cita.estado}</p>
+                            <p className="m-0 text-ink/65 dark:text-ink-dark/55 italic">{cita.estado}</p>
                           )}
 
                           {reprogramandoId === cita.id && (
@@ -848,7 +848,7 @@ export default function AgendaPage() {
                                 <button
                                   type="button"
                                   onClick={() => setReprogramandoId(null)}
-                                  className="text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark hover:underline"
+                                  className="text-ink/65 dark:text-ink-dark/55 hover:text-ink dark:hover:text-ink-dark hover:underline"
                                 >
                                   Cancelar
                                 </button>

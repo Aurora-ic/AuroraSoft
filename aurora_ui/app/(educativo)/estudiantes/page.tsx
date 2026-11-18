@@ -281,7 +281,7 @@ export default function PadronPage() {
         {/* Barra de herramientas — dentro de la misma tarjeta que la tabla */}
         <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08]">
           <div className="relative w-full md:max-w-sm">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
             <input
               type="text"
               placeholder="Buscar por nombre, apellido o documento…"
@@ -349,7 +349,7 @@ export default function PadronPage() {
               {cargando && <EsqueletoFilasTabla filas={8} columnas={esAdmin ? 5 : 4} />}
               {!cargando && totalFiltrado === 0 && (
                 <tr>
-                  <td colSpan={esAdmin ? 5 : 4} className="px-4 py-10 text-center text-sm text-ink/40 dark:text-ink-dark/40">
+                  <td colSpan={esAdmin ? 5 : 4} className="px-4 py-10 text-center text-sm text-ink/65 dark:text-ink-dark/55">
                     No se encontraron alumnos.
                   </td>
                 </tr>
@@ -377,7 +377,7 @@ export default function PadronPage() {
                                 ? "bg-amber/25 text-amber-800 dark:bg-amber/20 dark:text-amber"
                                 : persona.activo
                                 ? "bg-seccion-600/10 text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro"
-                                : "bg-border text-ink/45 dark:bg-border-dark dark:text-ink-dark/45"
+                                : "bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/55"
                             }`}
                           >
                             {iniciales(persona)}
@@ -408,11 +408,11 @@ export default function PadronPage() {
                           <div>
                             <div className="text-ink dark:text-ink-dark">{seccion.linea}</div>
                             {seccion.detalle && (
-                              <div className="text-xs text-ink/40 dark:text-ink-dark/40 mt-0.5">{seccion.detalle}</div>
+                              <div className="text-xs text-ink/65 dark:text-ink-dark/55 mt-0.5">{seccion.detalle}</div>
                             )}
                           </div>
                         ) : (
-                          <span className="text-ink/40 dark:text-ink-dark/40">Sin matrícula</span>
+                          <span className="text-ink/65 dark:text-ink-dark/55">Sin matrícula</span>
                         )}
                       </td>
                       <td className="px-4 py-2.5">
@@ -420,7 +420,7 @@ export default function PadronPage() {
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             persona.activo
                               ? "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
-                              : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
+                              : "bg-border text-ink/65 dark:bg-border-dark dark:text-ink-dark/55"
                           }`}
                         >
                           <span
@@ -435,7 +435,7 @@ export default function PadronPage() {
                           <button
                             onClick={(e) => alternarActivo(persona, e)}
                             disabled={actualizandoId === persona.id}
-                            className="text-xs font-medium text-ink/60 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:underline disabled:opacity-50"
+                            className="text-xs font-medium text-ink/65 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:underline disabled:opacity-50"
                           >
                             {actualizandoId === persona.id
                               ? "Actualizando…"
@@ -454,7 +454,7 @@ export default function PadronPage() {
 
         {!cargando && totalFiltrado > 0 && (
           <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.06] dark:bg-seccion-claro/[0.06]">
-            <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">
+            <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
               {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, totalFiltrado)} de{" "}
               {totalFiltrado} alumnos
             </p>

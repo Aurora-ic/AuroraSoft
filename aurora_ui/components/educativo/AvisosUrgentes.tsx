@@ -108,7 +108,7 @@ export function AvisosUrgentes() {
           }}
           aria-expanded={abierto}
           aria-label={total > 0 ? `Casos urgentes sin atender: ${total}` : "Casos urgentes: ninguno sin atender"}
-          className="relative text-ink/60 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:bg-mist dark:hover:bg-surface-dark p-2 rounded-lg transition-colors"
+          className="relative text-ink/65 dark:text-ink-dark/60 hover:text-ink dark:hover:text-ink-dark hover:bg-mist dark:hover:bg-surface-dark p-2 rounded-lg transition-colors"
         >
           <Bell size={18} strokeWidth={1.9} aria-hidden="true" />
           {total > 0 && (
@@ -124,7 +124,7 @@ export function AvisosUrgentes() {
               Casos urgentes sin atender
             </p>
             {casos.length === 0 ? (
-              <p className="m-0 px-4 py-4 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+              <p className="m-0 px-4 py-4 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
                 No hay casos urgentes nuevos para ti. Te avisaremos aquí cuando entre uno.
               </p>
             ) : (
@@ -139,7 +139,7 @@ export function AvisosUrgentes() {
                       <Siren size={15} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
                       <span className="min-w-0">
                         <span className="block truncate text-[13px] font-semibold text-ink dark:text-ink-dark">{c.nombre_completo}</span>
-                        <span className="block text-[12px] text-ink/55 dark:text-ink-dark/55">
+                        <span className="block text-[12px] text-ink/65 dark:text-ink-dark/55">
                           {c.asignado_a_mi ? "Asignado a ti" : "Sin responsable"} · {new Date(c.creado_en).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}
                         </span>
                       </span>
@@ -180,7 +180,7 @@ export function AvisosUrgentes() {
               type="button"
               onClick={() => marcarVistos(nuevos.map((c) => c.id))}
               aria-label="Cerrar aviso"
-              className="shrink-0 rounded p-0.5 text-ink/40 hover:text-ink dark:text-ink-dark/40 dark:hover:text-ink-dark"
+              className="shrink-0 rounded p-0.5 text-ink/65 hover:text-ink dark:text-ink-dark/55 dark:hover:text-ink-dark"
             >
               <X size={15} aria-hidden="true" />
             </button>

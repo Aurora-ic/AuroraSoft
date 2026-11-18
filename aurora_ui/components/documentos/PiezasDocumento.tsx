@@ -40,7 +40,7 @@ export function CabeceraInterna({
           <div className="min-w-0">
             <h1 className="m-0 font-display text-[21px] font-bold leading-tight text-ink dark:text-ink-dark break-words">{titulo}</h1>
             {(subtitulo || insignias) && (
-              <div className="mt-1 flex items-center gap-2 flex-wrap text-[12.5px] text-ink/55 dark:text-ink-dark/55">
+              <div className="mt-1 flex items-center gap-2 flex-wrap text-[12.5px] text-ink/65 dark:text-ink-dark/55">
                 {subtitulo}
                 {insignias}
               </div>
@@ -61,7 +61,7 @@ export function Insignia({ children, variante = "contorno", icono: Icono }: { ch
       ? VIOLETA.chipSolido
       : variante === "suave"
       ? VIOLETA.chip
-      : "border border-dashed border-ink/25 text-ink/60 dark:border-ink-dark/25 dark:text-ink-dark/60";
+      : "border border-dashed border-ink/25 text-ink/65 dark:border-ink-dark/25 dark:text-ink-dark/60";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[12px] font-semibold whitespace-nowrap ${clase}`}>
       {Icono && <Icono size={11} aria-hidden="true" />}
@@ -98,7 +98,7 @@ export function PasoFormulario({
         </span>
         <div className="min-w-0">
           <h2 className="m-0 text-[14px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h2>
-          {descripcion && <p className="m-0 mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50">{descripcion}</p>}
+          {descripcion && <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </header>
       {children}
@@ -158,7 +158,7 @@ export function CampoFormulario({ etiqueta, ayuda, children, className = "" }: {
     <label className={`flex flex-col gap-1 text-sm ${className}`}>
       <span className="text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">{etiqueta}</span>
       {children}
-      {ayuda && <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">{ayuda}</span>}
+      {ayuda && <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">{ayuda}</span>}
     </label>
   );
 }

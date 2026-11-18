@@ -151,7 +151,7 @@ export default function LoginPage() {
               Correo electrónico
             </label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 dark:text-ink-dark/40" aria-hidden />
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden />
               <input
                 ref={refUsuario}
                 id="usuario"
@@ -186,7 +186,7 @@ export default function LoginPage() {
               </Link>
             </div>
             <div className="relative">
-              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 dark:text-ink-dark/40" aria-hidden />
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden />
               <input
                 ref={refPassword}
                 id="password"
@@ -211,7 +211,7 @@ export default function LoginPage() {
                 aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 aria-pressed={verPassword}
                 title={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-ink/45 transition hover:bg-mist hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:text-ink-dark/50 dark:hover:bg-surface-raised-dark dark:hover:text-ink-dark"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg p-2 text-ink/65 transition hover:bg-mist hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:text-ink-dark/55 dark:hover:bg-surface-raised-dark dark:hover:text-ink-dark"
               >
                 {verPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
               </button>
@@ -219,7 +219,7 @@ export default function LoginPage() {
             {errores.password ? (
               <p id="password-error" className="text-xs text-red-700 dark:text-red-300">{errores.password}</p>
             ) : (
-              mayusculas && <p className="text-xs text-amber-700 dark:text-amber-300">Bloq Mayús está activado.</p>
+              mayusculas && <p className="text-xs text-amber-800 dark:text-amber-300">Bloq Mayús está activado.</p>
             )}
           </div>
 

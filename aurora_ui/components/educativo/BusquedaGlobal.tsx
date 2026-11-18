@@ -109,7 +109,7 @@ export function BusquedaGlobal() {
     <>
       <button
         onClick={() => setAbierto(true)}
-        className="w-full flex items-center justify-between gap-2 rounded-card border border-border dark:border-border-dark bg-mist dark:bg-surface-dark px-3 py-2 text-sm text-ink/50 dark:text-ink-dark/50 hover:bg-mist/80 dark:hover:bg-surface-raised-dark transition-colors"
+        className="w-full flex items-center justify-between gap-2 rounded-card border border-border dark:border-border-dark bg-mist dark:bg-surface-dark px-3 py-2 text-sm text-ink/65 dark:text-ink-dark/55 hover:bg-mist/80 dark:hover:bg-surface-raised-dark transition-colors"
       >
         <span>Buscar alumno...</span>
         <kbd className="hidden sm:inline text-[11.5px] font-mono bg-surface dark:bg-surface-raised-dark border border-border dark:border-border-dark rounded px-1.5 py-0.5">Ctrl K</kbd>
@@ -132,13 +132,13 @@ export function BusquedaGlobal() {
               className="w-full px-4 py-3 text-sm text-ink dark:text-ink-dark bg-transparent border-b border-border dark:border-border-dark outline-none"
             />
             <div className="max-h-80 overflow-auto">
-              {buscando && <p className="text-sm text-ink/50 dark:text-ink-dark/50 px-4 py-6 text-center">Buscando...</p>}
+              {buscando && <p className="text-sm text-ink/65 dark:text-ink-dark/55 px-4 py-6 text-center">Buscando...</p>}
               {isError && <p className="text-sm text-red-700 px-4 py-6 text-center">No se pudo buscar en el padrón.</p>}
               {!buscando && !isError && texto.trim() && resultados.length === 0 && (
-                <p className="text-sm text-ink/50 dark:text-ink-dark/50 px-4 py-6 text-center">Sin resultados.</p>
+                <p className="text-sm text-ink/65 dark:text-ink-dark/55 px-4 py-6 text-center">Sin resultados.</p>
               )}
               {!texto.trim() && (
-                <p className="text-xs text-ink/40 dark:text-ink-dark/40 px-4 py-6 text-center">
+                <p className="text-xs text-ink/65 dark:text-ink-dark/55 px-4 py-6 text-center">
                   Escribí para buscar un alumno por nombre, apellido, documento o código.
                 </p>
               )}
@@ -154,12 +154,12 @@ export function BusquedaGlobal() {
                       <p className="text-sm text-ink dark:text-ink-dark truncate">
                         {p.nombres} {p.apellidos}
                       </p>
-                      <p className="text-xs text-ink/50 dark:text-ink-dark/50 truncate">
+                      <p className="text-xs text-ink/65 dark:text-ink-dark/55 truncate">
                         {[p.documento_identidad, p.codigo_institucional, seccion].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </div>
                     {!p.activo && (
-                      <span className="text-[11.5px] font-medium px-1.5 py-0.5 rounded-full bg-ink/10 dark:bg-ink-dark/10 text-ink/50 dark:text-ink-dark/50 shrink-0">
+                      <span className="text-[11.5px] font-medium px-1.5 py-0.5 rounded-full bg-ink/10 dark:bg-ink-dark/10 text-ink/65 dark:text-ink-dark/55 shrink-0">
                         Inactivo
                       </span>
                     )}

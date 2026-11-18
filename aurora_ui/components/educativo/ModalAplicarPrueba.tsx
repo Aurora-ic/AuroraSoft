@@ -107,7 +107,7 @@ export function ModalAplicarPrueba({
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar"
-            className="rounded-lg p-1.5 text-ink/50 dark:text-ink-dark/50 hover:bg-mist dark:hover:bg-surface-raised-dark"
+            className="rounded-lg p-1.5 text-ink/65 dark:text-ink-dark/55 hover:bg-mist dark:hover:bg-surface-raised-dark"
           >
             <X size={17} aria-hidden="true" />
           </button>
@@ -134,7 +134,7 @@ export function ModalAplicarPrueba({
             <div className="flex flex-wrap items-center justify-end gap-3">
               <Link
                 href={`/campanas/${resultado.evaluacion.id}/dashboard`}
-                className="text-[13px] font-semibold text-ink/60 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
+                className="text-[13px] font-semibold text-ink/65 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
               >
                 Ver la aplicación
               </Link>
@@ -152,7 +152,7 @@ export function ModalAplicarPrueba({
         ) : (
           <form onSubmit={aplicar} className="space-y-4 px-5 py-5">
             <div className="relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
               <input
                 type="search"
                 aria-label="Buscar prueba"
@@ -185,7 +185,7 @@ export function ModalAplicarPrueba({
                     </span>
                     <span className="min-w-0">
                       <span className="block truncate font-semibold text-ink dark:text-ink-dark">{p.nombre_corto || p.nombre_tecnico}</span>
-                      <span className="block truncate text-[12px] text-ink/50 dark:text-ink-dark/50">{p.nombre_publico}</span>
+                      <span className="block truncate text-[12px] text-ink/65 dark:text-ink-dark/55">{p.nombre_publico}</span>
                     </span>
                   </button>
                 );
@@ -195,7 +195,7 @@ export function ModalAplicarPrueba({
             {pruebaId !== null && (
               <div aria-live="polite">
                 {elegibilidad.isPending ? (
-                  <p className="m-0 text-ink/50 dark:text-ink-dark/50">Revisando si puede rendirla…</p>
+                  <p className="m-0 text-ink/65 dark:text-ink-dark/55">Revisando si puede rendirla…</p>
                 ) : bloqueo ? (
                   <p className="m-0 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-800 dark:border-red-400/30 dark:bg-red-950/40 dark:text-red-200">
                     <CircleAlert size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
@@ -214,7 +214,7 @@ export function ModalAplicarPrueba({
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">
+              <label className="flex flex-col gap-1 text-[12px] font-semibold text-ink/65 dark:text-ink-dark/60">
                 Fecha de cierre (opcional)
                 <Input type="datetime-local" min={ahoraParaInputLocal()} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} aria-invalid={fechaPasada} />
                 {fechaPasada && <span className="font-medium text-red-700 dark:text-red-300">{MENSAJE_FECHA_CIERRE_PASADA}</span>}
@@ -224,7 +224,7 @@ export function ModalAplicarPrueba({
             <TextoError>{error}</TextoError>
 
             <div className="flex items-center justify-end gap-3 border-t border-border dark:border-border-dark pt-4">
-              <button type="button" onClick={onCerrar} className="text-[13px] text-ink/60 dark:text-ink-dark/60 hover:underline">
+              <button type="button" onClick={onCerrar} className="text-[13px] text-ink/65 dark:text-ink-dark/60 hover:underline">
                 Cancelar
               </button>
               <button

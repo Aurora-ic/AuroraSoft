@@ -572,7 +572,7 @@ export default function DetalleDocumentoPage() {
               <div className="mt-3 border-t border-acento-violeta/15 pt-3 dark:border-acento-violeta-dark/20">
                 <BarraAvance hechos={completas} total={editables.length} etiqueta="Partes que completas tú" />
                 <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
-                  <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                  <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                     {guardandoSeccionId !== null
                       ? "Guardando…"
                       : pendientesDeGuardar > 0
@@ -592,7 +592,7 @@ export default function DetalleDocumentoPage() {
               </div>
             )}
             {!borrador && (
-              <p className="m-0 mt-2 text-[12px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Lo que cambies aquí se incluye en la próxima versión al reemitir; las versiones ya emitidas no cambian.
               </p>
             )}
@@ -652,7 +652,7 @@ export default function DetalleDocumentoPage() {
                     <h3 className="m-0 text-[14.5px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h3>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                       <ChipModo modo={MODO_TIPO_SECCION[seccion.tipo_seccion] === "automatica" ? "escribes" : MODO_TIPO_SECCION[seccion.tipo_seccion]} />
-                      {seccion.titulo && <span className="text-[12px] text-ink/40 dark:text-ink-dark/40">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>}
+                      {seccion.titulo && <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>}
                     </div>
                   </div>
                   <EstadoSeccion completa={completa} pendiente={pendiente} guardando={guardando} />
@@ -690,7 +690,7 @@ export default function DetalleDocumentoPage() {
                         >
                           • Agregar viñeta
                         </button>
-                        <span className="text-[12px] text-ink/40 dark:text-ink-dark/40">
+                        <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                           <code className="font-mono">**así**</code> sale en <strong>negrita</strong> en el PDF
                         </span>
                       </div>
@@ -769,9 +769,9 @@ export default function DetalleDocumentoPage() {
                         {(seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? (
                           <p className={`m-0 font-medium ${VIOLETA.texto}`}>{(seccion.contenido as ContenidoImagenAnexo | null)?.nombre_archivo ?? "Imagen cargada"}</p>
                         ) : (
-                          <p className="m-0 text-ink/50 dark:text-ink-dark/50">Sin imagen todavía.</p>
+                          <p className="m-0 text-ink/65 dark:text-ink-dark/55">Sin imagen todavía.</p>
                         )}
-                        <p className="m-0 text-[12px] text-ink/40 dark:text-ink-dark/40">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
+                        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
                       </div>
                       <label
                         className={claseBoton("secundario", "inline-flex items-center gap-1.5 !py-1.5 cursor-pointer")}
@@ -808,7 +808,7 @@ export default function DetalleDocumentoPage() {
           <TarjetaLateral icono={Send} titulo={borrador ? "Emitir documento" : "Reemitir"}>
             {borrador ? (
               <div className="space-y-3">
-                <p className="m-0 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+                <p className="m-0 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
                   Genera el PDF oficial con el contenido guardado. Después ya no se puede descartar; los cambios se emiten como una versión nueva.
                 </p>
                 {editables.length - completas > 0 && (
@@ -830,7 +830,7 @@ export default function DetalleDocumentoPage() {
                           </li>
                         ))}
                     </ul>
-                    <p className="m-0 mt-1 text-[11.5px] text-ink/45 dark:text-ink-dark/45">Puedes generar igual: las vacías salen en blanco.</p>
+                    <p className="m-0 mt-1 text-[11.5px] text-ink/65 dark:text-ink-dark/55">Puedes generar igual: las vacías salen en blanco.</p>
                   </div>
                 )}
                 <Boton onClick={generarOReemitir} disabled={generando || descartando} className="w-full">
@@ -859,14 +859,14 @@ export default function DetalleDocumentoPage() {
                 <button
                   type="button"
                   onClick={() => setMostrarReemision(false)}
-                  className="w-full text-center text-[12.5px] text-ink/55 dark:text-ink-dark/55 hover:underline"
+                  className="w-full text-center text-[12.5px] text-ink/65 dark:text-ink-dark/55 hover:underline"
                 >
                   Cancelar
                 </button>
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="m-0 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+                <p className="m-0 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
                   Para corregir algo, edita las secciones y reemite: se crea una versión nueva con su motivo y las anteriores se conservan.
                 </p>
                 <Boton onClick={() => setMostrarReemision(true)} className="w-full">
@@ -884,7 +884,7 @@ export default function DetalleDocumentoPage() {
                     <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">
                       v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
                     </p>
-                    {v.motivo_version && <p className="m-0 mt-0.5 text-[12px] text-ink/50 dark:text-ink-dark/50">{v.motivo_version}</p>}
+                    {v.motivo_version && <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{v.motivo_version}</p>}
                     <div className="mt-1.5 flex items-center gap-3">
                       <button type="button" onClick={() => ver(v)} className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${VIOLETA.texto}`}>
                         <Eye size={12} aria-hidden="true" />
@@ -908,18 +908,18 @@ export default function DetalleDocumentoPage() {
 
           <TarjetaLateral icono={Users} titulo={documento.estudiantes.length === 1 ? "Alumno" : `Alumnos (${documento.estudiantes.length})`}>
             {documento.estudiantes.length === 0 ? (
-              <p className="m-0 text-[12.5px] italic text-ink/50 dark:text-ink-dark/50">Sin estudiantes vinculados.</p>
+              <p className="m-0 text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin estudiantes vinculados.</p>
             ) : (
               <ul className="m-0 p-0 list-none space-y-1.5 max-h-64 overflow-y-auto">
                 {documento.estudiantes.map((e) => (
                   <li key={e.persona_id} className="flex items-center justify-between gap-2 text-[13px]">
                     <span className="min-w-0 truncate font-medium text-ink dark:text-ink-dark">{e.nombre_completo_historico}</span>
-                    {e.grado_seccion_historico && <span className="shrink-0 text-[12px] text-ink/45 dark:text-ink-dark/45">{e.grado_seccion_historico}</span>}
+                    {e.grado_seccion_historico && <span className="shrink-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{e.grado_seccion_historico}</span>}
                   </li>
                 ))}
               </ul>
             )}
-            <p className="m-0 mt-2.5 text-[12px] text-ink/40 dark:text-ink-dark/40">Lista congelada al crear el documento.</p>
+            <p className="m-0 mt-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Lista congelada al crear el documento.</p>
           </TarjetaLateral>
         </div>
       </div>
@@ -932,7 +932,7 @@ export default function DetalleDocumentoPage() {
 function EstadoSeccion({ completa, pendiente, guardando }: { completa: boolean; pendiente: boolean; guardando: boolean }) {
   if (guardando) {
     return (
-      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/55 dark:text-ink-dark/60">
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/65 dark:text-ink-dark/60">
         <Loader2 size={10} className="animate-spin" aria-hidden="true" />
         Guardando…
       </span>
@@ -940,7 +940,7 @@ function EstadoSeccion({ completa, pendiente, guardando }: { completa: boolean; 
   }
   if (pendiente) {
     return (
-      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/55 dark:text-ink-dark/60">
+      <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-mist dark:bg-surface-raised-dark px-2 py-0.5 text-[11.5px] font-semibold text-ink/65 dark:text-ink-dark/60">
         Sin guardar
       </span>
     );
@@ -951,7 +951,7 @@ function EstadoSeccion({ completa, pendiente, guardando }: { completa: boolean; 
       Lista
     </span>
   ) : (
-    <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-dashed border-ink/25 dark:border-ink-dark/25 px-2 py-0.5 text-[11.5px] font-semibold text-ink/50 dark:text-ink-dark/55">
+    <span className="shrink-0 inline-flex items-center gap-1 rounded-full border border-dashed border-ink/25 dark:border-ink-dark/25 px-2 py-0.5 text-[11.5px] font-semibold text-ink/65 dark:text-ink-dark/55">
       <Circle size={9} aria-hidden="true" />
       Por completar
     </span>
@@ -999,7 +999,7 @@ function SeccionAutomatica({
   return (
     <div className="rounded-xl border border-dashed border-border dark:border-border-dark bg-surface/50 dark:bg-surface-dark/40">
       <div className="flex items-start gap-3 px-4 py-2.5">
-        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mist text-[11.5px] font-bold text-ink/40 dark:bg-surface-raised-dark dark:text-ink-dark/45" aria-hidden="true">
+        <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mist text-[11.5px] font-bold text-ink/65 dark:bg-surface-raised-dark dark:text-ink-dark/55" aria-hidden="true">
           {numero}
         </span>
         <div className="min-w-0 flex-1">
@@ -1007,7 +1007,7 @@ function SeccionAutomatica({
             <span className="text-[13.5px] font-semibold text-ink/75 dark:text-ink-dark/75">{titulo}</span>
             <ChipModo modo={esTablaAutomatica ? "automatica" : MODO_TIPO_SECCION[tipo]} />
           </div>
-          <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/50 dark:text-ink-dark/50">{origen}</p>
+          <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55">{origen}</p>
           {esImprimible && partes.length > 0 && (
             <button
               type="button"
@@ -1020,7 +1020,7 @@ function SeccionAutomatica({
             </button>
           )}
           {abierta && (
-            <ul className="m-0 mt-1.5 list-disc space-y-0.5 pl-5 text-[12px] text-ink/60 dark:text-ink-dark/60">
+            <ul className="m-0 mt-1.5 list-disc space-y-0.5 pl-5 text-[12px] text-ink/65 dark:text-ink-dark/60">
               {partes.map((p, i) => (
                 <li key={i}>{p}</li>
               ))}
@@ -1100,7 +1100,7 @@ function EditorTablaLibre({
   pendiente: boolean;
 }) {
   if (columnas.length === 0) {
-    return <p className="m-0 text-xs italic text-ink/50 dark:text-ink-dark/50">Esta tabla no tiene columnas configuradas en la plantilla.</p>;
+    return <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Esta tabla no tiene columnas configuradas en la plantilla.</p>;
   }
   return (
     <div className="space-y-2.5">
@@ -1134,7 +1134,7 @@ function EditorTablaLibre({
                     type="button"
                     aria-label="Quitar fila"
                     onClick={() => onCambiar(filas.filter((_, i) => i !== idxFila))}
-                    className="rounded p-1 text-ink/35 hover:text-red-700 dark:text-ink-dark/35 dark:hover:text-red-300"
+                    className="rounded p-1 text-ink/65 hover:text-red-700 dark:text-ink-dark/55 dark:hover:text-red-300"
                   >
                     <X size={13} aria-hidden="true" />
                   </button>
@@ -1143,7 +1143,7 @@ function EditorTablaLibre({
             ))}
             {filas.length === 0 && (
               <tr>
-                <td colSpan={columnas.length + 1} className="px-3 py-3 text-center italic text-ink/40 dark:text-ink-dark/40">
+                <td colSpan={columnas.length + 1} className="px-3 py-3 text-center italic text-ink/65 dark:text-ink-dark/55">
                   Sin filas todavía.
                 </td>
               </tr>
@@ -1171,13 +1171,13 @@ function FilaAplicacion({ h, derecha, marcada }: { h: HistorialInformePersona; d
     >
       <span className="min-w-0">
         <span className="font-semibold text-ink dark:text-ink-dark">{h.prueba_nombre_publico}</span>
-        <span className="text-ink/50 dark:text-ink-dark/50">
+        <span className="text-ink/65 dark:text-ink-dark/55">
           {" "}
           · {h.nombre_grupo}
           {h.fecha_aplicacion && ` · ${new Date(h.fecha_aplicacion).toLocaleDateString("es-PE")}`}
         </span>
         {/* Retenido = informe en riesgo aún sin revisar: ámbar, semántica clínica. */}
-        {!h.informe_liberado && <span className="text-amber-700 dark:text-amber"> · retenido (no saldrá hasta liberarlo)</span>}
+        {!h.informe_liberado && <span className="text-amber-800 dark:text-amber"> · retenido (no saldrá hasta liberarlo)</span>}
       </span>
       {derecha}
     </div>
@@ -1219,7 +1219,7 @@ function EditorResultadoVinculable({
   return (
     <div className="space-y-3 text-sm">
       {!puedeVincular ? (
-        <p className="m-0 text-xs italic text-ink/50 dark:text-ink-dark/50">
+        <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">
           Solo se puede vincular una prueba cuando el documento es de un único alumno.
         </p>
       ) : (
@@ -1230,17 +1230,17 @@ function EditorResultadoVinculable({
               h={vinculada}
               marcada
               derecha={
-                <button type="button" disabled={vinculando} onClick={onDesvincular} className="shrink-0 text-xs font-semibold text-ink/55 dark:text-ink-dark/55 hover:text-red-700 hover:underline">
+                <button type="button" disabled={vinculando} onClick={onDesvincular} className="shrink-0 text-xs font-semibold text-ink/65 dark:text-ink-dark/55 hover:text-red-700 hover:underline">
                   Quitar
                 </button>
               }
             />
           ) : (
-            <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">{historial.length === 0 ? "Este alumno todavía no tiene ninguna prueba aplicada." : "Ninguna todavía. Elige una:"}</p>
+            <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">{historial.length === 0 ? "Este alumno todavía no tiene ninguna prueba aplicada." : "Ninguna todavía. Elige una:"}</p>
           )}
           {otras.length > 0 && (
             <div className="space-y-1.5">
-              {vinculada && <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">Otras aplicaciones del alumno:</p>}
+              {vinculada && <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Otras aplicaciones del alumno:</p>}
               {otras.map((h) => (
                 <FilaAplicacion
                   key={h.inscripcion_id}
@@ -1285,7 +1285,7 @@ function EditorResultadoVinculable({
                 type="button"
                 aria-label="Quitar punto"
                 onClick={() => onCambiarManual(valoresManual.filter((_, j) => j !== i))}
-                className="rounded p-1 text-ink/35 hover:text-red-700 dark:text-ink-dark/35 dark:hover:text-red-300"
+                className="rounded p-1 text-ink/65 hover:text-red-700 dark:text-ink-dark/55 dark:hover:text-red-300"
               >
                 <X size={14} aria-hidden="true" />
               </button>
@@ -1339,7 +1339,7 @@ function EditorResultadosMultiplesVinculables({
   }
 
   if (!puedeVincular) {
-    return <p className="m-0 text-xs italic text-ink/50 dark:text-ink-dark/50">Solo se puede usar cuando el documento es de un único alumno.</p>;
+    return <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Solo se puede usar cuando el documento es de un único alumno.</p>;
   }
 
   function alternar(inscripcionId: number) {
@@ -1351,10 +1351,10 @@ function EditorResultadosMultiplesVinculables({
   return (
     <div className="space-y-2 text-sm">
       <p className="m-0 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">
-        Pruebas a consolidar <span className="font-normal text-ink/45 dark:text-ink-dark/45">({marcados.length} elegidas)</span>
+        Pruebas a consolidar <span className="font-normal text-ink/65 dark:text-ink-dark/55">({marcados.length} elegidas)</span>
       </p>
       {historial.length === 0 ? (
-        <p className="m-0 text-xs italic text-ink/50 dark:text-ink-dark/50">Este alumno todavía no tiene ninguna prueba aplicada.</p>
+        <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Este alumno todavía no tiene ninguna prueba aplicada.</p>
       ) : (
         <div className="space-y-1.5">
           {historial.map((h) => (

@@ -408,7 +408,7 @@ export default function ConstructorPlantillaPage() {
 
       {/* Qué significa "activa" + aviso de plantilla vacía. */}
       <div className="flex flex-col gap-1.5 -mt-1">
-        <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/55 dark:text-ink-dark/55">
+        <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
           <Info size={13} className="mt-px shrink-0" aria-hidden="true" />
           {esPredeterminada
             ? "Plantilla predeterminada del catálogo global: las instituciones la clonan, nunca la usan directo."
@@ -458,7 +458,7 @@ export default function ConstructorPlantillaPage() {
                           <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>
                           <ChipModo tipo={seccion.tipo_seccion} />
                         </div>
-                        <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/50 dark:text-ink-dark/50">{DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}</p>
+                        <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55">{DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}</p>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <BotonIcono etiqueta="Subir" onClick={() => moverSeccion(seccion, -1)} disabled={idx === 0} icono={ChevronUp} />
@@ -469,7 +469,7 @@ export default function ConstructorPlantillaPage() {
 
                     <div className={`grid gap-2.5 px-3.5 pb-3 pt-2.5 pl-12 ${conInstruccion ? "sm:grid-cols-2" : ""}`}>
                       <label className="flex flex-col gap-1">
-                        <span className="text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">Título que se imprime</span>
+                        <span className="text-[12px] font-semibold text-ink/65 dark:text-ink-dark/60">Título que se imprime</span>
                         <Input
                           aria-label="Título que se imprime"
                           value={seccion.titulo ?? ""}
@@ -481,7 +481,7 @@ export default function ConstructorPlantillaPage() {
                       </label>
                       {conInstruccion && (
                         <label className="flex flex-col gap-1">
-                          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink/60 dark:text-ink-dark/60">
+                          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink/65 dark:text-ink-dark/60">
                             <Lightbulb size={12} className={VIOLETA.texto} aria-hidden="true" />
                             Instrucción para quien llena
                           </span>
@@ -542,7 +542,7 @@ export default function ConstructorPlantillaPage() {
             <div role="radiogroup" aria-label="Tipo de sección" className="space-y-3">
               {GRUPOS_CATALOGO.map((grupo) => (
                 <div key={grupo.modo}>
-                  <p className="m-0 mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+                  <p className="m-0 mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                     {grupo.titulo}
                     <ChipModo modo={grupo.modo} className="normal-case tracking-normal" />
                   </p>
@@ -563,10 +563,10 @@ export default function ConstructorPlantillaPage() {
                               : "border-border bg-surface hover:border-acento-violeta/50 dark:border-border-dark dark:bg-surface-dark"
                           }`}
                         >
-                          <Icono size={14} className={`mt-0.5 shrink-0 ${elegido ? VIOLETA.texto : "text-ink/35 dark:text-ink-dark/40"}`} aria-hidden="true" />
+                          <Icono size={14} className={`mt-0.5 shrink-0 ${elegido ? VIOLETA.texto : "text-ink/65 dark:text-ink-dark/55"}`} aria-hidden="true" />
                           <span className="min-w-0">
                             <span className="block text-[13px] font-semibold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[t]}</span>
-                            <span className="block text-[12px] leading-snug text-ink/50 dark:text-ink-dark/50 line-clamp-2">{EJEMPLO_TIPO_SECCION[t]}</span>
+                            <span className="block text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55 line-clamp-2">{EJEMPLO_TIPO_SECCION[t]}</span>
                           </span>
                         </button>
                       );
@@ -579,7 +579,7 @@ export default function ConstructorPlantillaPage() {
             {/* Lo elegido, explicado: cómo sale en el PDF y quién lo llena. */}
             <div className="grid gap-3 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-3 sm:grid-cols-[150px_minmax(0,1fr)]">
               <div>
-                <p className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">Así sale en el PDF</p>
+                <p className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Así sale en el PDF</p>
                 <MiniaturaSeccion tipo={nuevoTipo} />
               </div>
               <div className="min-w-0 space-y-1.5">
@@ -588,10 +588,10 @@ export default function ConstructorPlantillaPage() {
                   <ChipModo tipo={nuevoTipo} />
                 </div>
                 <p className="m-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
-                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                   <span className="font-semibold">Ejemplo:</span> {EJEMPLO_TIPO_SECCION[nuevoTipo]}
                 </p>
-                <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{INFO_MODO[MODO_TIPO_SECCION[nuevoTipo]].frase}</p>
+                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{INFO_MODO[MODO_TIPO_SECCION[nuevoTipo]].frase}</p>
               </div>
             </div>
 
@@ -705,7 +705,7 @@ export default function ConstructorPlantillaPage() {
           {/* Membrete / pie / fondo de página del colegio */}
           {puedeEditarBranding && (
             <TarjetaLateral icono={ImageIcon} titulo="Membrete, pie y fondo">
-              <p className="m-0 mb-3 text-[12px] text-ink/50 dark:text-ink-dark/50">
+              <p className="m-0 mb-3 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Valen para todos los documentos de tu institución, no solo esta plantilla. El membrete y el pie van pegados al borde
                 superior e inferior de cada hoja, a todo el ancho: sube franjas anchas (ej. 2480 × 350 px).
               </p>
@@ -719,7 +719,7 @@ export default function ConstructorPlantillaPage() {
                     <li key={tipo} className="flex items-center justify-between gap-2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
                       <div className="min-w-0">
                         <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">{etiqueta}</p>
-                        <p className={`m-0 text-[12px] ${urlActual ? VIOLETA.texto : "text-ink/40 dark:text-ink-dark/40"}`}>
+                        <p className={`m-0 text-[12px] ${urlActual ? VIOLETA.texto : "text-ink/65 dark:text-ink-dark/55"}`}>
                           {subiendoBranding === tipo ? "Subiendo..." : urlActual ? "Imagen cargada" : "Sin imagen"}
                         </p>
                       </div>
@@ -779,10 +779,10 @@ function BotonIcono({
       disabled={disabled}
       className={`rounded-md p-1.5 transition-colors disabled:opacity-25 disabled:cursor-not-allowed ${
         peligro
-          ? "text-ink/40 hover:text-red-700 hover:bg-red-50 dark:text-ink-dark/40 dark:hover:text-red-300 dark:hover:bg-red-500/10"
+          ? "text-ink/65 hover:text-red-700 hover:bg-red-50 dark:text-ink-dark/55 dark:hover:text-red-300 dark:hover:bg-red-500/10"
           : activo
           ? `${VIOLETA.chip}`
-          : "text-ink/45 hover:text-acento-violeta hover:bg-acento-violeta/10 dark:text-ink-dark/45 dark:hover:text-acento-violeta-dark dark:hover:bg-acento-violeta-dark/15"
+          : "text-ink/65 hover:text-acento-violeta-700 hover:bg-acento-violeta/10 dark:text-ink-dark/55 dark:hover:text-acento-violeta-dark dark:hover:bg-acento-violeta-dark/15"
       }`}
     >
       <Icono size={15} aria-hidden="true" />
@@ -883,7 +883,7 @@ function EditorConfigSeccion({
     return (
       <div className="space-y-4">
         <div>
-          <p className="m-0 mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">
+          <p className="m-0 mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
             Vista previa de la hoja impresa (se actualiza mientras editas)
           </p>
           <VistaPreviaFicha config={config} titulo={seccion.titulo} />
@@ -895,7 +895,7 @@ function EditorConfigSeccion({
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-ink/50 dark:text-ink-dark/50">
+      <p className="text-xs text-ink/65 dark:text-ink-dark/55">
         Configuración avanzada en JSON — ver la sección &quot;{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}&quot; en
         docs/motor-documentos.md para el formato exacto.
       </p>

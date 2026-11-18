@@ -322,7 +322,7 @@ export default function NuevoDocumentoPage() {
               </Select>
             </CampoFormulario>
             {plantillaElegida && tipoElegido && (
-              <p className="m-0 mt-2 flex items-center gap-1.5 text-[12px] text-ink/55 dark:text-ink-dark/55">
+              <p className="m-0 mt-2 flex items-center gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 <LayoutTemplate size={13} className={VIOLETA.texto} aria-hidden="true" />
                 {tipoElegido.nombre}
                 {tipoElegido.requiere_consentimiento_individual && " · requiere consentimiento vigente del apoderado para emitirse"}
@@ -330,7 +330,7 @@ export default function NuevoDocumentoPage() {
             )}
             {plantillaElegida && <PartesDePlantilla plantillaId={plantillaElegida.id} />}
             {plantillas.length === 0 && (
-              <p className="m-0 mt-2 text-[12px] text-ink/55 dark:text-ink-dark/55">
+              <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Tu institución todavía no tiene ninguna plantilla activa.{" "}
                 <Link href="/documentos" className={`font-semibold hover:underline ${VIOLETA.texto}`}>
                   Clona una del catálogo →
@@ -390,7 +390,7 @@ export default function NuevoDocumentoPage() {
                     </ul>
                   )}
                   <div className="relative">
-                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
                     <Input
                       placeholder="Buscar por nombre o apellido..."
                       value={busqueda}
@@ -412,21 +412,21 @@ export default function NuevoDocumentoPage() {
                           <span className="flex-1 min-w-0 truncate text-ink dark:text-ink-dark">
                             {p.nombres} {p.apellidos}
                           </span>
-                          {p.grado_seccion && <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">{p.grado_seccion}</span>}
+                          {p.grado_seccion && <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">{p.grado_seccion}</span>}
                         </label>
                       );
                     })}
                     {!buscandoAlumnos && personasFiltradas.length === 0 && (
-                      <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50 italic px-3 py-3">
+                      <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55 italic px-3 py-3">
                         {busqueda.trim() ? "Ningún alumno coincide con la búsqueda." : "No hay alumnos en el padrón de tu institución."}
                       </p>
                     )}
                     {buscandoAlumnos && personasFiltradas.length === 0 && (
-                      <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50 italic px-3 py-3">Buscando...</p>
+                      <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55 italic px-3 py-3">Buscando...</p>
                     )}
                   </div>
                   {totalResultados > personasFiltradas.length && (
-                    <p className="m-0 text-[12px] text-ink/45 dark:text-ink-dark/45">
+                    <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
                       Mostrando {personasFiltradas.length} de {totalResultados}. Escribe nombre, apellido o DNI para afinar.
                     </p>
                   )}
@@ -466,7 +466,7 @@ export default function NuevoDocumentoPage() {
                     </Select>
                   </CampoFormulario>
                 </div>
-                <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
+                <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
                   <Info size={12} className="mt-px shrink-0" aria-hidden="true" />
                   Se usa lo más específico que elijas: una sección, o todo el grado/nivel si dejas la sección o el grado en blanco.
                 </p>
@@ -490,7 +490,7 @@ export default function NuevoDocumentoPage() {
               />
             </CampoFormulario>
             {tituloSugerido && plantillaElegida && titulo && (
-              <p className="m-0 mt-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">Sugerido a partir de la plantilla; puedes cambiarlo.</p>
+              <p className="m-0 mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Sugerido a partir de la plantilla; puedes cambiarlo.</p>
             )}
           </PasoFormulario>
         </div>
@@ -517,12 +517,12 @@ export default function NuevoDocumentoPage() {
                         <ArrowRight size={12} aria-hidden="true" />
                       </Link>
                       {d.estudiantes_resumen?.length ? (
-                        <span className="block text-[12px] text-ink/50 dark:text-ink-dark/50">{d.estudiantes_resumen.join(", ")}</span>
+                        <span className="block text-[12px] text-ink/65 dark:text-ink-dark/55">{d.estudiantes_resumen.join(", ")}</span>
                       ) : null}
                     </li>
                   ))}
                 </ul>
-                <p className="m-0 mt-1.5 text-[12px] text-ink/45 dark:text-ink-dark/45">Puedes crear otro igual si lo necesitas.</p>
+                <p className="m-0 mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Puedes crear otro igual si lo necesitas.</p>
               </div>
             )}
 
@@ -530,7 +530,7 @@ export default function NuevoDocumentoPage() {
             <Boton type="submit" disabled={!puedeCrear} className="mt-4 w-full">
               {creando ? "Creando..." : "Crear documento"}
             </Boton>
-            <p className="m-0 mt-2 text-[12px] text-center text-ink/45 dark:text-ink-dark/45">
+            <p className="m-0 mt-2 text-[12px] text-center text-ink/65 dark:text-ink-dark/55">
               Se crea como borrador: después completas el contenido y generas el PDF.
             </p>
           </TarjetaLateral>
@@ -548,8 +548,8 @@ function tituloDesdePlantilla(p: PlantillaDocumento): string {
 function FilaResumen({ etiqueta, valor }: { etiqueta: string; valor?: string }) {
   return (
     <div>
-      <dt className="text-[12px] font-semibold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">{etiqueta}</dt>
-      <dd className={`m-0 mt-0.5 break-words ${valor ? "font-medium text-ink dark:text-ink-dark" : "italic text-ink/35 dark:text-ink-dark/35"}`}>
+      <dt className="text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{etiqueta}</dt>
+      <dd className={`m-0 mt-0.5 break-words ${valor ? "font-medium text-ink dark:text-ink-dark" : "italic text-ink/65 dark:text-ink-dark/55"}`}>
         {valor || "Sin elegir"}
       </dd>
     </div>

@@ -55,7 +55,7 @@ export default function MasterPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm text-ink/50 dark:text-ink-dark/50">Hola{sesion?.email ? `, ${sesion.email}` : ""}</p>
+          <p className="text-sm text-ink/65 dark:text-ink-dark/55">Hola{sesion?.email ? `, ${sesion.email}` : ""}</p>
           <h1 className="font-display text-2xl sm:text-3xl font-semibold text-teal-900 dark:text-ink-dark mt-1">
             Resumen general
           </h1>
@@ -130,7 +130,7 @@ export default function MasterPage() {
                     <Iniciales nombre={inst.nombre} />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-ink dark:text-ink-dark truncate">{inst.nombre}</p>
-                      <p className="text-xs text-ink/50 dark:text-ink-dark/50">Desde {formatearFecha(inst.fecha_registro)}</p>
+                      <p className="text-xs text-ink/65 dark:text-ink-dark/55">Desde {formatearFecha(inst.fecha_registro)}</p>
                     </div>
                     <ChevronRight size={16} className="text-ink/30 dark:text-ink-dark/30 shrink-0" aria-hidden="true" />
                   </Link>
@@ -160,7 +160,7 @@ function TarjetaMetrica({
   return (
     <div className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4 sm:p-5 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[13px] font-medium text-ink/60 dark:text-ink-dark/60">{etiqueta}</p>
+        <p className="text-[13px] font-medium text-ink/65 dark:text-ink-dark/60">{etiqueta}</p>
         <span
           className={`flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg ${
             alerta
@@ -182,7 +182,7 @@ function TarjetaMetrica({
           {valor}
         </p>
       )}
-      <p className="mt-1 text-xs text-ink/45 dark:text-ink-dark/45">{detalle}</p>
+      <p className="mt-1 text-xs text-ink/65 dark:text-ink-dark/55">{detalle}</p>
     </div>
   );
 }
@@ -224,7 +224,7 @@ function FilaInstitucion({ inst }: { inst: Institucion }) {
           <Iniciales nombre={inst.nombre} />
           <div className="min-w-0">
             <p className="text-sm font-medium text-ink dark:text-ink-dark truncate">{inst.nombre}</p>
-            <p className="text-xs text-ink/50 dark:text-ink-dark/50">
+            <p className="text-xs text-ink/65 dark:text-ink-dark/55">
               {estado === "vencida" && `Licencia vencida el ${formatearFecha(inst.fecha_vencimiento_licencia)}`}
               {estado === "por_vencer" && `Vence en ${dias} ${dias === 1 ? "día" : "días"}`}
               {(estado === "vigente" || estado === "sin_caducidad") && "Licencia en regla"}
@@ -258,5 +258,5 @@ function FilasCargando() {
 }
 
 function Vacio({ texto }: { texto: string }) {
-  return <p className="px-5 py-8 text-center text-sm text-ink/50 dark:text-ink-dark/50">{texto}</p>;
+  return <p className="px-5 py-8 text-center text-sm text-ink/65 dark:text-ink-dark/55">{texto}</p>;
 }

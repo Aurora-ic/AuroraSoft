@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ThHTMLAttributes } from "react";
 
 // Fase 6 del plan de remodelación — <thead className="bg-mist/70"> + <th
-// className="text-xs font-semibold uppercase tracking-wide text-ink/50">
+// className="text-xs font-semibold uppercase tracking-wide text-ink/65">
 // se reescribió igual en estudiantes/page.tsx, estudiantes/importar/page.tsx
 // y el dashboard de campaña, cada uno con su propio padding (px-5 py-3,
 // px-4 py-2.5, px-2 py-1...). En vez de forzar un padding único (que
@@ -22,7 +22,7 @@ export function TheadFila({ className = "", children, ...props }: HTMLAttributes
 
 export function Th({ className = "", children, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
-    <th className={`text-xs font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50 ${className}`} {...props}>
+    <th className={`text-xs font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55 ${className}`} {...props}>
       {children}
     </th>
   );

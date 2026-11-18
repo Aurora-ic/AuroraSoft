@@ -56,14 +56,14 @@ export function CampoCaptcha({ captcha, cargando, errorCarga, valor, onCambio, o
           disabled={cargando || deshabilitado}
           title="Generar otro código"
           aria-label="Generar otro código de verificación"
-          className="flex w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-ink/60 transition hover:border-teal-400 hover:text-accion focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:opacity-40 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/60 dark:hover:text-teal-accent-dark"
+          className="flex w-12 shrink-0 items-center justify-center rounded-xl border border-border bg-surface text-ink/65 transition hover:border-teal-400 hover:text-accion focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 disabled:opacity-40 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/60 dark:hover:text-teal-accent-dark"
         >
           <RefreshCw className={`h-4.5 w-4.5 ${cargando ? "animate-spin" : ""}`} aria-hidden />
         </button>
       </div>
 
       <div className="relative">
-        <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35 dark:text-ink-dark/40" aria-hidden />
+        <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" aria-hidden />
         <input
           ref={inputRef}
           id="captcha"
@@ -91,7 +91,7 @@ export function CampoCaptcha({ captcha, cargando, errorCarga, valor, onCambio, o
       {error ? (
         <p id="captcha-error" className="text-xs text-red-700 dark:text-red-300">{error}</p>
       ) : (
-        <p id="captcha-ayuda" className="text-xs text-ink/45 dark:text-ink-dark/45">
+        <p id="captcha-ayuda" className="text-xs text-ink/65 dark:text-ink-dark/55">
           No distingue mayúsculas de minúsculas. ¿No se lee bien? Pide otro código.
         </p>
       )}

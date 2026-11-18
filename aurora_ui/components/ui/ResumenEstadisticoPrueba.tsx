@@ -36,7 +36,7 @@ const PATRON_DIMENSION_AREA = /^(Intereses|Aptitudes)\s+—\s+(.+?):\s*(.+)$/;
 
 function EstadisticasNumericas({ d }: { d: DimensionResumenEstadistico }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/60 dark:text-ink-dark/60">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink/65 dark:text-ink-dark/60">
       <span>n={d.n}</span>
       <span>Media: {fmt(d.media)}</span>
       <span>Mediana: {fmt(d.mediana)}</span>
@@ -53,7 +53,7 @@ function BadgeTipoCalculo({ tipoCalculo }: { tipoCalculo: DimensionResumenEstadi
     return <span className="rounded-full px-2 py-0.5 bg-seccion-900/10 dark:bg-seccion-claro/15 text-seccion-900 dark:text-seccion-claro text-[11.5px] font-semibold uppercase tracking-wide">Total</span>;
   }
   if (tipoCalculo === "conteo_sintomas") {
-    return <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60 text-[11.5px] font-semibold uppercase tracking-wide">Conteo</span>;
+    return <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/65 dark:text-ink-dark/60 text-[11.5px] font-semibold uppercase tracking-wide">Conteo</span>;
   }
   return null;
 }
@@ -70,7 +70,7 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
       </div>
 
       {d.n === 0 ? (
-        <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin datos todavía.</p>
+        <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic">Sin datos todavía.</p>
       ) : (
         <>
           <EstadisticasNumericas d={d} />
@@ -79,7 +79,7 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
             <div className="space-y-1">
               {d.distribucion.map((niv) => (
                 <div key={niv.nivel} className="flex items-center gap-2 text-xs">
-                  <span className={`w-28 shrink-0 truncate ${niv === mayoria ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/60 dark:text-ink-dark/60"}`}>
+                  <span className={`w-28 shrink-0 truncate ${niv === mayoria ? "font-semibold text-ink dark:text-ink-dark" : "text-ink/65 dark:text-ink-dark/60"}`}>
                     {niv.nivel}
                     {niv === mayoria ? " ◀" : ""}
                   </span>
@@ -89,13 +89,13 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
                       style={{ width: `${Math.max(niv.pct, 2)}%` }}
                     />
                   </div>
-                  <span className="w-20 shrink-0 text-right text-ink/50 dark:text-ink-dark/50 font-mono">
+                  <span className="w-20 shrink-0 text-right text-ink/65 dark:text-ink-dark/55 font-mono">
                     {niv.cantidad} ({niv.pct.toFixed(0)}%)
                   </span>
                 </div>
               ))}
               {mayoria && (
-                <p className="text-xs text-ink/50 dark:text-ink-dark/50">
+                <p className="text-xs text-ink/65 dark:text-ink-dark/55">
                   Mayoría: <span className="font-medium text-ink/70 dark:text-ink-dark/70">{mayoria.nivel}</span> ({mayoria.pct.toFixed(0)}%, {mayoria.cantidad} de{" "}
                   {totalConNivel})
                 </p>
@@ -105,7 +105,7 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
 
           {tieneAlertasPosibles && d.en_alerta !== null && (
             <p className="text-xs">
-              <span className={d.en_alerta > 0 ? "text-amber-700 font-medium" : "text-ink/40 dark:text-ink-dark/40"}>
+              <span className={d.en_alerta > 0 ? "text-amber-800 font-medium" : "text-ink/65 dark:text-ink-dark/55"}>
                 {d.en_alerta} de {d.n} en alerta ({d.n > 0 ? ((d.en_alerta / d.n) * 100).toFixed(0) : 0}%)
               </span>
             </p>
@@ -151,7 +151,7 @@ function VistaRango({ resumen }: { resumen: ResumenEstadisticoDashboard }) {
     <div className="space-y-4">
       {areas_compatibles.length > 0 && (
         <div className="rounded-card bg-mist/60 dark:bg-surface-raised-dark p-3 space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/60 dark:text-ink-dark/60">Áreas vocacionales compatibles más frecuentes</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/60">Áreas vocacionales compatibles más frecuentes</p>
           <div className="flex flex-wrap gap-2">
             {areas_compatibles.map((a) => (
               <span key={a.area} className="rounded-full px-2 py-0.5 bg-surface dark:bg-surface-dark border border-border dark:border-border-dark text-xs text-ink/70 dark:text-ink-dark/70">
@@ -191,7 +191,7 @@ function VistaPerfil({ dimensiones }: { dimensiones: DimensionResumenEstadistico
 
   return (
     <div className="space-y-2">
-      <p className="text-xs text-ink/50 dark:text-ink-dark/50 italic">
+      <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic">
         Esta prueba interpreta por ranking comparativo entre dimensiones, no por rango absoluto — nunca hay niveles de alerta que mostrar.
       </p>
       <div className="divide-y divide-border dark:divide-border-dark">
@@ -199,7 +199,7 @@ function VistaPerfil({ dimensiones }: { dimensiones: DimensionResumenEstadistico
           <div key={d.nombre} className="py-2 space-y-1">
             <p className="text-sm font-semibold text-ink/80 dark:text-ink-dark/80">{d.nombre}</p>
             {d.n === 0 ? (
-              <p className="text-xs text-ink/40 dark:text-ink-dark/40 italic">Sin datos todavía.</p>
+              <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic">Sin datos todavía.</p>
             ) : (
               <>
                 <EstadisticasNumericas d={d} />
@@ -212,7 +212,7 @@ function VistaPerfil({ dimensiones }: { dimensiones: DimensionResumenEstadistico
                       }}
                     />
                   </div>
-                  <span className="w-44 shrink-0 text-right text-ink/50 dark:text-ink-dark/50">
+                  <span className="w-44 shrink-0 text-right text-ink/65 dark:text-ink-dark/55">
                     {d.dominante_cantidad ?? 0} alumno{(d.dominante_cantidad ?? 0) === 1 ? "" : "s"} la tienen como 1ª
                   </span>
                 </div>
@@ -231,7 +231,7 @@ export function ResumenEstadisticoPrueba({ resumen }: Props) {
   // todavía — no hay nada que resumir, mismo criterio que el resto del
   // dashboard ("Sin alumnos matriculados todavía").
   if (resumen.dimensiones.length === 0 || resumen.dimensiones.every((d) => d.n === 0)) {
-    return <p className="text-sm text-ink/60 dark:text-ink-dark/60 italic py-2">Todavía no hay resultados suficientes para un resumen estadístico.</p>;
+    return <p className="text-sm text-ink/65 dark:text-ink-dark/60 italic py-2">Todavía no hay resultados suficientes para un resumen estadístico.</p>;
   }
 
   return resumen.modo_interpretacion === "perfil" ? (

@@ -60,12 +60,14 @@ export function etiquetaEstadoCampana(estado: EstadoVisibleCampana): string {
 // "advertencia": esto nunca es un riesgo clínico.
 export function claseBadgeEstadoCampana(estado: EstadoVisibleCampana): string {
   switch (estado) {
+    // 🔧 (2026-11-17) Con variante oscura: antes "Activa" quedaba en verde
+    // casi negro sobre la tarjeta oscura (pastilla vacía a la vista).
     case "activa":
-      return "bg-teal-400/20 text-teal-900";
+      return "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro";
     case "vencida":
     case "cancelada":
-      return "bg-red-100 text-red-700";
+      return "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300";
     case "cerrada":
-      return "bg-ink/10 text-ink/60";
+      return "bg-ink/10 text-ink/65 dark:bg-white/10 dark:text-ink-dark/60";
   }
 }
