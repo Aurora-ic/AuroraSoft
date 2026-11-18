@@ -111,11 +111,11 @@ export default function NuevaSesionSeguimientoPage() {
       <TextoError>{error}</TextoError>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-5 items-start">
-        <section className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
+        <section className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
           <CabeceraBloque icono={NotebookPen} titulo="Registro de la sesión" descripcion="Lo trabajado y lo que se decidió." />
           <div className="p-4 space-y-4 text-sm">
             <p className="m-0 inline-flex items-center gap-1.5 rounded-lg bg-mist dark:bg-surface-raised-dark px-2.5 py-1 text-[12px] text-ink/60 dark:text-ink-dark/60">
-              <CalendarCheck2 size={13} aria-hidden="true" className="text-teal-600 dark:text-teal-accent-dark" />
+              <CalendarCheck2 size={13} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
               <span className="capitalize">{hoy}</span> · se registra como <strong className="font-semibold">Atendido</strong>
             </p>
 

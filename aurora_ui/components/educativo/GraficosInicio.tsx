@@ -12,9 +12,10 @@ import type { CampanaAvanceInicio, MesSerieInicio } from "@/types/api";
 // Colores (validados con el validador de paleta, claro y oscuro):
 // - Evaluaciones: teal = sin alerta, ámbar = con alerta. El ámbar es el
 //   color semántico de riesgo clínico de toda la app — aquí también.
-// - Seguimiento: teal = sesiones de seguimiento, azul = citas (el mismo azul
-//   que las actividades de la Agenda). Teal↔pizarra no pasaba ni con visión
-//   normal (ΔE 8), teal↔azul sí (ΔE 17).
+// - Seguimiento: 🆕 (2026-11-17, "una pantalla, un color") dos tonos del
+//   color de la pantalla — sesiones en el tono profundo y línea continua,
+//   citas en el tono claro y línea DISCONTINUA: el trazo las distingue
+//   aunque los tonos se parezcan (antes teal frente a azul).
 // Hechos a mano (HTML/SVG) — sin librería de gráficos nueva, mismo criterio
 // que GraficoTendenciaDimension. Cada gráfico tiene una tabla sr-only.
 
@@ -73,7 +74,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
     <div className="flex flex-col gap-3">
       <Leyenda
         items={[
-          { color: "bg-teal-600 dark:bg-teal-accent-dark", etiqueta: "Sin alerta" },
+          { color: "bg-seccion-600 dark:bg-seccion-claro", etiqueta: "Sin alerta" },
           { color: "bg-amber", etiqueta: "Con alerta" },
         ]}
       />
@@ -119,7 +120,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
                     )}
                     {m.sin_alerta > 0 && (
                       <div
-                        className={`bg-teal-600 dark:bg-teal-accent-dark ${m.con_alerta > 0 ? "" : "rounded-t-[4px]"}`}
+                        className={`bg-seccion-600 dark:bg-seccion-claro ${m.con_alerta > 0 ? "" : "rounded-t-[4px]"}`}
                         style={{ height: Math.max(hSin, 3) }}
                       />
                     )}
@@ -140,7 +141,7 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
                     </p>
                     <p className="m-0 flex justify-between text-ink/70 dark:text-ink-dark/70">
                       <span className="inline-flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-sm bg-teal-600 dark:bg-teal-accent-dark" />
+                        <span className="h-2 w-2 rounded-sm bg-seccion-600 dark:bg-seccion-claro" />
                         Sin alerta
                       </span>
                       <span className="tabular-nums">{m.sin_alerta}</span>
@@ -193,8 +194,8 @@ export function GraficoSeguimientoMes({ meses }: { meses: MesSerieInicio[] }) {
   const y = (v: number) => PAD.sup + altoUtil - (v / tope) * altoUtil;
 
   const series = [
-    { clave: "sesiones_seguimiento" as const, etiqueta: "Sesiones", trazo: "stroke-teal-600 dark:stroke-teal-accent-dark", relleno: "fill-teal-600 dark:fill-teal-accent-dark", muestra: "bg-teal-600 dark:bg-teal-accent-dark" },
-    { clave: "citas" as const, etiqueta: "Citas", trazo: "stroke-acento-azul dark:stroke-acento-azul-dark", relleno: "fill-acento-azul dark:fill-acento-azul-dark", muestra: "bg-acento-azul dark:bg-acento-azul-dark" },
+    { clave: "sesiones_seguimiento" as const, etiqueta: "Sesiones", trazo: "stroke-seccion-900 dark:stroke-seccion-claro", relleno: "fill-seccion-900 dark:fill-seccion-claro", muestra: "bg-seccion-900 dark:bg-seccion-claro", guiones: undefined },
+    { clave: "citas" as const, etiqueta: "Citas", trazo: "stroke-seccion-400 dark:stroke-seccion-200", relleno: "fill-seccion-400 dark:fill-seccion-200", muestra: "bg-seccion-400 dark:bg-seccion-200", guiones: "5 4" },
   ];
   const activo = hover !== null ? meses[hover] : null;
 
@@ -228,6 +229,7 @@ export function GraficoSeguimientoMes({ meses }: { meses: MesSerieInicio[] }) {
               strokeLinejoin="round"
               strokeLinecap="round"
               className={s.trazo}
+              strokeDasharray={s.guiones}
               points={meses.map((m, i) => `${x(i)},${y(m[s.clave])}`).join(" ")}
             />
           ))}
@@ -319,7 +321,7 @@ export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }
           <li key={c.id}>
             <Link href={`/campanas/${c.id}/dashboard`} className="group block">
               <div className="flex items-baseline justify-between gap-2">
-                <span className="truncate text-[12.5px] font-semibold text-ink dark:text-ink-dark group-hover:text-acento-azul dark:group-hover:text-acento-azul-dark">
+                <span className="truncate text-[12.5px] font-semibold text-ink dark:text-ink-dark group-hover:text-seccion-700 dark:group-hover:text-seccion-claro">
                   {c.nombre_grupo}
                 </span>
                 <span className="shrink-0 text-[12px] tabular-nums text-ink/55 dark:text-ink-dark/55">
@@ -327,7 +329,7 @@ export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }
                 </span>
               </div>
               <div className="mt-1.5 h-1.5 rounded-full bg-border dark:bg-border-dark overflow-hidden">
-                <div className="h-full rounded-full bg-acento-azul dark:bg-acento-azul-dark transition-all" style={{ width: `${Math.max(pct, c.finalizados > 0 ? 3 : 0)}%` }} />
+                <div className="h-full rounded-full bg-seccion-600 dark:bg-seccion-claro transition-all" style={{ width: `${Math.max(pct, c.finalizados > 0 ? 3 : 0)}%` }} />
               </div>
               <div className="mt-1 flex items-center justify-between gap-2 text-[11.5px] text-ink/45 dark:text-ink-dark/45">
                 <span className="truncate">{c.prueba ?? ""}</span>
@@ -343,7 +345,7 @@ export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }
         );
       })}
       <li>
-        <Link href="/campanas" className="inline-flex items-center gap-1 text-[12px] font-semibold text-acento-azul dark:text-acento-azul-dark hover:underline">
+        <Link href="/campanas" className="inline-flex items-center gap-1 text-[12px] font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
           Ver todas las campañas
           <ArrowRight size={12} aria-hidden="true" />
         </Link>

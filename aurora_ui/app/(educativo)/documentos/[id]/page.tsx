@@ -1013,7 +1013,7 @@ function SeccionAutomatica({
               type="button"
               onClick={() => setAbierta((v) => !v)}
               aria-expanded={abierta}
-              className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-teal-700 hover:underline dark:text-teal-accent-dark"
+              className="mt-1 inline-flex items-center gap-1 text-[12px] font-semibold text-seccion-700 hover:underline dark:text-seccion-claro"
             >
               <ChevronDown size={12} className={`transition-transform ${abierta ? "rotate-180" : ""}`} aria-hidden="true" />
               {abierta ? "Ocultar qué contiene" : "Ver qué contiene el formato"}

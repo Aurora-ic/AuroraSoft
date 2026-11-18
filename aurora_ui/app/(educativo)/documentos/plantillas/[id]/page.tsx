@@ -903,7 +903,7 @@ function EditorConfigSeccion({
         rows={6}
         value={configTexto}
         onChange={(e) => onCambiarTexto(e.target.value)}
-        className={`w-full rounded-card border px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-teal-400 ${
+        className={`w-full rounded-card border px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-seccion-400 ${
           error ? "border-red-400" : "border-border dark:border-border-dark"
         }`}
       />
@@ -1129,7 +1129,7 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
   }
   return (
     <div className="space-y-4 text-sm">
-      <p className="m-0 rounded-lg bg-teal-600/[0.06] px-3 py-2 text-[12.5px] leading-snug text-ink/70 dark:bg-teal-accent-dark/10 dark:text-ink-dark/70">
+      <p className="m-0 rounded-lg bg-seccion-600/[0.06] px-3 py-2 text-[12.5px] leading-snug text-ink/70 dark:bg-seccion-claro/10 dark:text-ink-dark/70">
         Este formato sale <strong>vacío</strong> en el PDF para llenarlo a mano en papel. En el sistema no se escribe nada en él: lo que
         pongas aquí son solo las etiquetas que se imprimen. Usa solo las partes que necesites; las vacías no salen.
       </p>

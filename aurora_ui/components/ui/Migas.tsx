@@ -18,7 +18,7 @@ export function Migas({ items, sinMargen = false }: { items: MigaItem[]; sinMarg
         <span key={i} className="flex items-center gap-1.5">
           {i > 0 && <span className="text-ink/30 dark:text-ink-dark/30">/</span>}
           {item.href ? (
-            <Link href={item.href} className="hover:text-teal-700 dark:hover:text-teal-accent-dark hover:underline">
+            <Link href={item.href} className="hover:text-seccion-700 dark:hover:text-seccion-claro hover:underline">
               {item.label}
             </Link>
           ) : (

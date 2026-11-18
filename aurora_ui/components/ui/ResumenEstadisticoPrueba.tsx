@@ -50,7 +50,7 @@ function EstadisticasNumericas({ d }: { d: DimensionResumenEstadistico }) {
 
 function BadgeTipoCalculo({ tipoCalculo }: { tipoCalculo: DimensionResumenEstadistico["tipo_calculo"] }) {
   if (tipoCalculo === "suma_de_dimensiones") {
-    return <span className="rounded-full px-2 py-0.5 bg-teal-900/10 dark:bg-teal-accent-dark/15 text-teal-900 dark:text-teal-accent-dark text-[11.5px] font-semibold uppercase tracking-wide">Total</span>;
+    return <span className="rounded-full px-2 py-0.5 bg-seccion-900/10 dark:bg-seccion-claro/15 text-seccion-900 dark:text-seccion-claro text-[11.5px] font-semibold uppercase tracking-wide">Total</span>;
   }
   if (tipoCalculo === "conteo_sintomas") {
     return <span className="rounded-full px-2 py-0.5 bg-mist dark:bg-surface-raised-dark text-ink/60 dark:text-ink-dark/60 text-[11.5px] font-semibold uppercase tracking-wide">Conteo</span>;
@@ -85,7 +85,7 @@ function BloqueDimensionRango({ d, tieneAlertasPosibles }: { d: DimensionResumen
                   </span>
                   <div className="flex-1 h-2 rounded-full bg-border dark:bg-border-dark overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${niv.es_alerta ? "bg-amber" : "bg-teal-600 dark:bg-teal-accent-dark"}`}
+                      className={`h-full rounded-full ${niv.es_alerta ? "bg-amber" : "bg-seccion-600 dark:bg-seccion-claro"}`}
                       style={{ width: `${Math.max(niv.pct, 2)}%` }}
                     />
                   </div>
@@ -165,7 +165,7 @@ function VistaRango({ resumen }: { resumen: ResumenEstadisticoDashboard }) {
       <div className="divide-y divide-border dark:divide-border-dark">
         {Array.from(areas.values()).map((entrada) => (
           <div key={entrada.nombreArea} className="py-2">
-            <p className="text-sm font-semibold text-teal-900 dark:text-teal-accent-dark mb-1">{entrada.nombreArea}</p>
+            <p className="text-sm font-semibold text-seccion-900 dark:text-seccion-claro mb-1">{entrada.nombreArea}</p>
             <div className="divide-y divide-border/60 dark:divide-border-dark">
               {entrada.interes && <BloqueDimensionRango d={entrada.interes} tieneAlertasPosibles={tiene_alertas_posibles} />}
               {entrada.aptitud && <BloqueDimensionRango d={entrada.aptitud} tieneAlertasPosibles={tiene_alertas_posibles} />}
@@ -206,7 +206,7 @@ function VistaPerfil({ dimensiones }: { dimensiones: DimensionResumenEstadistico
                 <div className="flex items-center gap-2 text-xs">
                   <div className="flex-1 h-2 rounded-full bg-border dark:bg-border-dark overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-teal-600 dark:bg-teal-accent-dark"
+                      className="h-full rounded-full bg-seccion-600 dark:bg-seccion-claro"
                       style={{
                         width: `${totalDominante > 0 ? Math.max(((d.dominante_cantidad ?? 0) / totalDominante) * 100, (d.dominante_cantidad ?? 0) > 0 ? 2 : 0) : 0}%`,
                       }}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
+import { acentoDeRuta } from "@/lib/acentos";
 import { usePathname } from "next/navigation";
 import { SidebarEducativo } from "@/components/educativo/Sidebar";
 import { Topbar } from "@/components/educativo/Topbar";
@@ -26,6 +27,22 @@ export function ShellEducativo({ children }: { children: React.ReactNode }) {
   // los gráficos del Inicio) escapaban del scroll de <main> y alargaban
   // el documento — aparecía una SEGUNDA barra de scroll y la interfaz se
   // descuadraba al bajar.
+  // 🆕 (2026-11-17, plan de UX fase 2) "Una pantalla, un color": marca la
+  // sección en <html data-seccion> para que botones, enlaces, títulos y
+  // seleccionados tomen sus tonos (app/globals.css, clases `seccion-*` y
+  // `accion`). En <html> y no en este div para que también lo vean los
+  // diálogos que se pintan fuera (confirmación). Antes del pintado, así no
+  // parpadea el color de la sección anterior.
+  const seccion = acentoDeRuta(pathname);
+  useLayoutEffect(() => {
+    const raiz = document.documentElement;
+    if (seccion === "teal") delete raiz.dataset.seccion;
+    else raiz.dataset.seccion = seccion;
+    return () => {
+      delete raiz.dataset.seccion;
+    };
+  }, [seccion]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-mist dark:bg-mist-dark">
       <SidebarEducativo abierto={menuAbierto} onCerrar={() => setMenuAbierto(false)} />

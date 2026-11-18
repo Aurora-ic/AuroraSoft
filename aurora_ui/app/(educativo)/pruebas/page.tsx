@@ -385,8 +385,8 @@ export default function PruebasPage() {
                       } ${p.activa ? "" : "opacity-70"}`}
                     >
                       {/* Cabecera con fondo de color */}
-                      <div className="relative bg-gradient-to-br from-acento-azul/[0.13] via-acento-azul/[0.06] to-teal-600/[0.05] dark:from-acento-azul-dark/[0.16] dark:via-acento-azul-dark/[0.07] dark:to-transparent px-4 pt-5 pb-4">
-                        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-acento-azul to-teal-600 dark:from-acento-azul-dark dark:to-teal-accent-dark" />
+                      <div className="relative bg-gradient-to-br from-acento-azul/[0.13] via-acento-azul/[0.06] to-seccion-600/[0.05] dark:from-acento-azul-dark/[0.16] dark:via-acento-azul-dark/[0.07] dark:to-transparent px-4 pt-5 pb-4">
+                        <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-acento-azul to-seccion-600 dark:from-acento-azul-dark dark:to-seccion-claro" />
                         <div className="flex items-center gap-3.5">
                           <span
                             aria-hidden="true"
@@ -403,7 +403,7 @@ export default function PruebasPage() {
                             {/* Título corto arriba (nombre_corto curado, o nombre_tecnico de
                                 respaldo — ej. "PHQ-9") para no saturar la tarjeta; el nombre
                                 completo queda debajo como descripción secundaria. */}
-                            <p className="m-0 font-display text-[17px] font-bold leading-tight text-teal-900 dark:text-ink-dark line-clamp-2 break-words">
+                            <p className="m-0 font-display text-[17px] font-bold leading-tight text-seccion-900 dark:text-ink-dark line-clamp-2 break-words">
                               {titulo}
                             </p>
                             <p className="m-0 mt-1 text-[12px] font-semibold uppercase tracking-wide text-acento-azul dark:text-acento-azul-dark">
@@ -533,7 +533,10 @@ export default function PruebasPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto] gap-3 items-end">
+            {/* 🔧 (2026-11-17) minmax(0,…): con "1fr" a secas un <select> con una
+                opción larga no se encogía y empujaba el botón fuera de la
+                tarjeta. */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 items-end">
               <label className={etiquetaCampo}>
                 <span className={textoEtiqueta}>Prueba</span>
                 <Select required value={dashPruebaId} onChange={(e) => setDashPruebaId(e.target.value)}>
@@ -620,7 +623,7 @@ export default function PruebasPage() {
               {/* --- Cabecera del resultado --- */}
               <div className="flex items-end justify-between flex-wrap gap-3">
                 <div className="min-w-0">
-                  <p className="m-0 font-display text-[19px] font-bold text-teal-900 dark:text-ink-dark leading-tight">
+                  <p className="m-0 font-display text-[19px] font-bold text-seccion-900 dark:text-ink-dark leading-tight">
                     {dashboard.nombre_corto_prueba || dashboard.nombre_prueba}
                     <span className="text-ink/35 dark:text-ink-dark/35 font-semibold"> · </span>
                     {dashboard.ambito.nombre}
@@ -645,7 +648,7 @@ export default function PruebasPage() {
                   valor={`${avance}%`}
                   detalle={
                     <span className="mt-1.5 block h-1 w-24 rounded-full bg-border dark:bg-border-dark overflow-hidden">
-                      <span className="block h-full rounded-full bg-teal-600 dark:bg-teal-accent-dark" style={{ width: `${avance}%` }} />
+                      <span className="block h-full rounded-full bg-seccion-600 dark:bg-seccion-claro" style={{ width: `${avance}%` }} />
                     </span>
                   }
                 />
@@ -673,8 +676,8 @@ export default function PruebasPage() {
               {dashboard.resumen_estadistico.dimensiones.length > 0 && (
                 <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4">
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
-                      <BarChart3 size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+                    <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
+                      <BarChart3 size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                       Resumen estadístico
                     </h2>
                     <span className="text-[12px] text-ink/45 dark:text-ink-dark/45">
@@ -693,8 +696,8 @@ export default function PruebasPage() {
                       cohortes de campañas distintas en una sola línea). */}
                   <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 space-y-2 min-w-0">
                     <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
-                        <TrendingUp size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+                      <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
+                        <TrendingUp size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                         Tendencia en el tiempo
                       </h2>
                       <Boton variante="secundario" onClick={verTendenciaSeccion} disabled={cargandoTendencia}>
@@ -740,8 +743,8 @@ export default function PruebasPage() {
                   {seccionesVisibles.length > 1 && (
                     <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 space-y-2.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <GitCompare size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
-                        <p className="m-0 text-[14px] font-bold text-teal-900 dark:text-ink-dark">Comparar con otra sección del mismo grado</p>
+                        <GitCompare size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
+                        <p className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">Comparar con otra sección del mismo grado</p>
                         <div className="flex items-center gap-2 w-full">
                           <Select value={compararConSeccionId} onChange={(e) => setCompararConSeccionId(e.target.value)} className="flex-1 min-w-0">
                             <option value="">Elige una sección...</option>
@@ -773,10 +776,10 @@ export default function PruebasPage() {
                     <div
                       key={i}
                       className={`rounded-xl border bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] p-4 ${
-                        i === 0 ? "border-teal-400/70 dark:border-teal-accent-dark/60" : "border-border dark:border-border-dark"
+                        i === 0 ? "border-seccion-400/70 dark:border-seccion-claro/60" : "border-border dark:border-border-dark"
                       }`}
                     >
-                      <p className="m-0 text-[14px] font-bold text-teal-900 dark:text-ink-dark">{dash.ambito.nombre}</p>
+                      <p className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">{dash.ambito.nombre}</p>
                       <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55 mb-2">
                         {dash.total_finalizados} finalizado(s) de {dash.total_inscritos}
                       </p>
@@ -789,8 +792,8 @@ export default function PruebasPage() {
               {/* --- Alumnos --- */}
               <section className="rounded-xl border border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.035] dark:bg-acento-azul-dark/[0.05] overflow-hidden">
                 <div className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-acento-azul/15 dark:border-acento-azul-dark/20 bg-acento-azul/[0.08] dark:bg-acento-azul-dark/[0.08]">
-                  <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
-                    <Users size={16} className="text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+                  <h2 className="m-0 flex items-center gap-2 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
+                    <Users size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                     Alumnos
                     <span className="text-[12px] font-semibold text-ink/40 dark:text-ink-dark/40">
                       {alumnosVisibles.length}/{dashboard.alumnos.length}
@@ -805,7 +808,7 @@ export default function PruebasPage() {
                         placeholder="Buscar alumno…"
                         value={busquedaAlumno}
                         onChange={(e) => setBusquedaAlumno(e.target.value)}
-                        className="w-48 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-teal-400"
+                        className="w-48 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] focus:outline-none focus:ring-2 focus:ring-seccion-400"
                       />
                     </div>
                     <ControlSegmentado<FiltroAlumnos>
@@ -850,7 +853,7 @@ export default function PruebasPage() {
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold ${
                                   finalizado
-                                    ? "bg-teal-600/10 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                                    ? "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
                                     : "bg-border dark:bg-border-dark text-ink/60 dark:text-ink-dark/60"
                                 }`}
                               >

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ACENTOS, ACENTO_POR_RUTA } from "@/lib/acentos";
+import { ACENTOS, acentoDeRuta } from "@/lib/acentos";
 import { AvisoCargando, EsqueletoBloque, EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 
 // 🆕 (2026-11-17, plan de UX fase 1) Pantallas de carga.
@@ -20,18 +20,13 @@ export function PantallaCargaMarca({ texto = "Preparando tu espacio…" }: { tex
     <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-mist dark:bg-mist-dark px-4">
       <Image src="/logo.png" alt="AuroraSoft" width={140} height={99} priority className="h-14 w-auto animate-pulse" />
       <div className="h-1 w-40 overflow-hidden rounded-full bg-border dark:bg-border-dark" aria-hidden="true">
-        <div className="h-full w-1/3 rounded-full bg-teal-600 dark:bg-teal-accent-dark animate-[deslizar_1.2s_ease-in-out_infinite]" />
+        <div className="h-full w-1/3 rounded-full bg-seccion-600 dark:bg-seccion-claro animate-[deslizar_1.2s_ease-in-out_infinite]" />
       </div>
       <p role="status" className="m-0 text-[13px] text-ink/55 dark:text-ink-dark/55">
         {texto}
       </p>
     </div>
   );
-}
-
-function acentoDeRuta(pathname: string | null) {
-  const ruta = Object.keys(ACENTO_POR_RUTA).find((r) => pathname?.startsWith(r));
-  return ruta ? ACENTO_POR_RUTA[ruta] : "teal";
 }
 
 export function EsqueletoSeccion() {

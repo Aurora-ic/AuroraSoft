@@ -45,12 +45,12 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
       aria-label="Pautas de lectura fácil"
       className={`rounded-xl border p-4 text-[12.5px] ${
         destacado
-          ? "border-acento-violeta/30 bg-acento-violeta/[0.06] dark:border-acento-violeta-dark/30 dark:bg-acento-violeta-dark/10"
+          ? "border-seccion-700/30 bg-seccion-600/[0.06] dark:border-seccion-claro/30 dark:bg-seccion-claro/10"
           : "border-border bg-mist/50 dark:border-border-dark dark:bg-surface-raised-dark"
       }`}
     >
       <p className="m-0 flex items-center gap-2 font-semibold text-ink dark:text-ink-dark">
-        <BookOpenCheck size={15} aria-hidden="true" className="text-acento-violeta dark:text-acento-violeta-dark" />
+        <BookOpenCheck size={15} aria-hidden="true" className="text-seccion-700 dark:text-seccion-claro" />
         Lectura fácil {destacado ? "— recomendada para este nivel" : ""}
       </p>
       <p className="m-0 mt-1 text-ink/60 dark:text-ink-dark/60">
@@ -68,9 +68,9 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
           <p className="m-0 mt-1 text-ink/65 dark:text-ink-dark/65">
             {resultado.frases} frase{resultado.frases === 1 ? "" : "s"} ·{" "}
             {resultado.largas.length === 0 ? (
-              <span className="text-teal-800 dark:text-teal-accent-dark">ninguna pasa de {MAX_PALABRAS_FRASE} palabras</span>
+              <span className="text-seccion-900 dark:text-seccion-claro">ninguna pasa de {MAX_PALABRAS_FRASE} palabras</span>
             ) : (
-              <span className="font-semibold text-acento-pizarra dark:text-acento-pizarra-dark">
+              <span className="font-semibold text-seccion-700 dark:text-seccion-claro">
                 {resultado.largas.length} pasa{resultado.largas.length === 1 ? "" : "n"} de {MAX_PALABRAS_FRASE} palabras
               </span>
             )}

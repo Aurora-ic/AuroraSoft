@@ -151,7 +151,7 @@ export function AvisosUrgentes() {
             <Link
               href="/casos-riesgo"
               onClick={() => setAbierto(false)}
-              className="block border-t border-border px-4 py-2.5 text-center text-[12.5px] font-semibold text-teal-700 hover:bg-mist dark:border-border-dark dark:text-teal-accent-dark dark:hover:bg-surface-dark"
+              className="block border-t border-border px-4 py-2.5 text-center text-[12.5px] font-semibold text-seccion-700 hover:bg-mist dark:border-border-dark dark:text-seccion-claro dark:hover:bg-surface-dark"
             >
               Ir a Casos en riesgo
             </Link>
@@ -171,7 +171,7 @@ export function AvisosUrgentes() {
               <Link
                 href="/casos-riesgo"
                 onClick={() => marcarVistos(nuevos.map((c) => c.id))}
-                className="mt-1.5 inline-block text-[12.5px] font-semibold text-teal-700 hover:underline dark:text-teal-accent-dark"
+                className="mt-1.5 inline-block text-[12.5px] font-semibold text-seccion-700 hover:underline dark:text-seccion-claro"
               >
                 Ver en Casos en riesgo
               </Link>

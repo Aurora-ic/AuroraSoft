@@ -21,7 +21,7 @@ type DimensionBarProps = {
 export function DimensionBar({ nombre, puntajeDirecto, minimo, maximo, nivel, esAlerta }: DimensionBarProps) {
   const rango = Math.max(maximo - minimo, 1);
   const posicion = Math.min(Math.max(((puntajeDirecto - minimo) / rango) * 100, 0), 100);
-  const color = esAlerta ? "bg-amber" : "bg-teal-600 dark:bg-teal-accent-dark";
+  const color = esAlerta ? "bg-amber" : "bg-seccion-600 dark:bg-seccion-claro";
 
   return (
     <div className="w-full">

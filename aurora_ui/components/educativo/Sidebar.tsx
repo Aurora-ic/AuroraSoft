@@ -96,8 +96,11 @@ const GRUPOS: Grupo[] = [
 // nombre de la INSTITUCIÓN (Institucion.logo_url, el mismo logo de
 // encabezado que se sube en Configuración); AuroraSoft pasó a la esquina
 // superior derecha del Topbar.
+// 🆕 (2026-11-17, plan de UX fase 2) La pastilla toma los tonos de la
+// sección en la que se está (`seccion-*`, ver app/globals.css): en
+// Estudiantes/Inicio es el mismo teal de antes; en Documentos, violeta.
 const PASTILLA_ACTIVA =
-  "bg-gradient-to-r from-[#2BB3A0] to-[#1C8F80] text-white shadow-[0_6px_16px_-6px_rgba(43,179,160,0.65)]";
+  "bg-gradient-to-r from-seccion-claro to-seccion-600 text-white shadow-[0_6px_16px_-6px] shadow-seccion-claro/70";
 const TEXTO_ENLACE = "text-white/75 hover:bg-white/[0.08] hover:text-white";
 
 // Chip del ícono de cada grupo sobre fondo oscuro: las variantes "-dark" de
@@ -285,7 +288,14 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className={`flex h-6 w-6 items-center justify-center rounded-md ${CHIP_GRUPO[grupo.acento]}`}>
+                    {/* 🆕 (2026-11-17) Solo el grupo de la pantalla actual lleva su
+                        color; los demás en blanco tenue (antes los 4 colores a la
+                        vez, todo el tiempo). */}
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-md ${
+                        contieneActiva ? CHIP_GRUPO[grupo.acento] : "bg-white/[0.08] text-white/60"
+                      }`}
+                    >
                       <Icono size={14} strokeWidth={2.1} aria-hidden="true" />
                     </span>
                     {grupo.titulo}

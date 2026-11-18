@@ -79,7 +79,7 @@ export function EncabezadoPagina({
           <Icono size={19} strokeWidth={2} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h1 className="m-0 font-display text-[22px] font-bold text-teal-900 dark:text-ink-dark leading-tight">{titulo}</h1>
+          <h1 className="m-0 font-display text-[22px] font-bold text-seccion-900 dark:text-ink-dark leading-tight">{titulo}</h1>
           {descripcion && <p className="m-0 mt-0.5 text-[12.5px] text-ink/55 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </div>
@@ -125,8 +125,8 @@ export function TarjetaKpi({
       onClick={onClick}
       aria-pressed={onClick ? activa : undefined}
       className={`text-left border rounded-xl px-4 py-3.5 flex items-center gap-3 transition-colors ${claseFondo} ${
-        activa ? "!border-teal-600 ring-2 ring-teal-600/30 dark:!border-teal-accent-dark dark:ring-teal-accent-dark/30" : ""
-      } ${onClick ? "hover:border-teal-400 dark:hover:border-teal-accent-dark cursor-pointer" : ""}`}
+        activa ? "!border-seccion-600 ring-2 ring-seccion-600/30 dark:!border-seccion-claro dark:ring-seccion-claro/30" : ""
+      } ${onClick ? "hover:border-seccion-400 dark:hover:border-seccion-claro cursor-pointer" : ""}`}
     >
       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${claseIcono}`}>
         <Icono size={16} strokeWidth={2} aria-hidden="true" />
@@ -174,7 +174,7 @@ export function ControlSegmentado<T extends string>({
             onClick={() => onCambiar(o.valor)}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors ${
               activo
-                ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                ? "bg-accion text-white dark:bg-seccion-claro dark:text-mist-dark"
                 : "text-ink/60 hover:text-ink hover:bg-mist dark:text-ink-dark/60 dark:hover:text-ink-dark dark:hover:bg-surface-raised-dark"
             }`}
           >
@@ -196,7 +196,7 @@ export function claseBotonBanner(variante: "primario" | "secundario" = "primario
     "inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-[13px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
   const porVariante =
     variante === "primario"
-      ? "bg-white text-teal-900 hover:bg-white/90 shadow-sm dark:bg-teal-accent-dark dark:text-mist-dark dark:hover:opacity-90"
+      ? "bg-white text-seccion-900 hover:bg-white/90 shadow-sm dark:bg-seccion-claro dark:text-mist-dark dark:hover:opacity-90"
       : "bg-white/10 text-white border border-white/30 hover:bg-white/20 dark:bg-surface-dark dark:text-ink-dark dark:border-border-dark dark:hover:bg-surface-raised-dark";
   return `${base} ${porVariante} ${className}`.trim();
 }

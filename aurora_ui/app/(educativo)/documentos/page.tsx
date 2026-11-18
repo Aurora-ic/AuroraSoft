@@ -843,7 +843,7 @@ function CampoBusqueda({ valor, onCambiar, placeholder }: { valor: string; onCam
         placeholder={placeholder}
         value={valor}
         onChange={(e) => onCambiar(e.target.value)}
-        className="w-48 sm:w-56 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-teal-accent-dark"
+        className="w-48 sm:w-56 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[13px] focus:outline-none focus:ring-2 focus:ring-seccion-400 dark:focus:ring-seccion-claro"
       />
     </div>
   );

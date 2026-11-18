@@ -40,7 +40,7 @@ const DURACIONES_RAPIDAS = [30, 45, 60, 90];
 const DURACION_POR_MODO: Record<ModoActividad, string> = { individual: "45", grupal: "60" };
 
 const COLOR_MODO: Record<ModoActividad, string> = {
-  individual: "bg-teal-600 dark:bg-teal-accent-dark",
+  individual: "bg-seccion-600 dark:bg-seccion-claro",
   grupal: "bg-[#2a78d6] dark:bg-[#5598e7]",
 };
 
@@ -268,7 +268,7 @@ export function ModalNuevaActividad({
       >
         {/* --- Cabecera + selector de modo --- */}
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border dark:border-border-dark">
-          <h2 id="titulo-nueva-actividad" className="m-0 flex items-center gap-2 font-display text-[17px] text-teal-900 dark:text-ink-dark font-semibold">
+          <h2 id="titulo-nueva-actividad" className="m-0 flex items-center gap-2 font-display text-[17px] text-seccion-900 dark:text-ink-dark font-semibold">
             <span className={`flex h-7 w-7 items-center justify-center rounded-lg text-white ${COLOR_MODO[modo]}`}>
               {modo === "individual" ? <User size={15} aria-hidden="true" /> : <UsersRound size={15} aria-hidden="true" />}
             </span>
@@ -284,7 +284,7 @@ export function ModalNuevaActividad({
                   aria-checked={modo === m}
                   onClick={() => cambiarModo(m)}
                   className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    modo === m ? "bg-surface dark:bg-surface-dark text-teal-900 dark:text-ink-dark shadow-sm" : "text-ink/55 dark:text-ink-dark/55"
+                    modo === m ? "bg-surface dark:bg-surface-dark text-seccion-900 dark:text-ink-dark shadow-sm" : "text-ink/55 dark:text-ink-dark/55"
                   }`}
                 >
                   <span aria-hidden="true" className={`h-2 w-2 rounded-full ${COLOR_MODO[m]}`} />
@@ -309,12 +309,12 @@ export function ModalNuevaActividad({
             <div className="flex flex-col gap-1">
               <span className="text-ink/70 dark:text-ink-dark/70 font-medium">Estudiante</span>
               {persona ? (
-                <div className="flex items-center gap-3 rounded-xl border border-teal-600/30 bg-teal-600/[0.05] dark:border-teal-accent-dark/30 dark:bg-teal-accent-dark/10 px-3 py-2.5">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-600/15 text-[12px] font-bold text-teal-800 dark:text-teal-accent-dark">
+                <div className="flex items-center gap-3 rounded-xl border border-seccion-600/30 bg-seccion-600/[0.05] dark:border-seccion-claro/30 dark:bg-seccion-claro/10 px-3 py-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-seccion-600/15 text-[12px] font-bold text-seccion-900 dark:text-seccion-claro">
                     {`${persona.nombres[0] ?? ""}${persona.apellidos[0] ?? ""}`.toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="m-0 font-semibold text-teal-900 dark:text-ink-dark truncate">
+                    <p className="m-0 font-semibold text-seccion-900 dark:text-ink-dark truncate">
                       {persona.nombres} {persona.apellidos}
                     </p>
                     <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55">{ubicacionDe(persona) ?? "Sin matrícula"}</p>
@@ -322,7 +322,7 @@ export function ModalNuevaActividad({
                   <button
                     type="button"
                     onClick={() => setPersona(null)}
-                    className="text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+                    className="text-xs font-semibold text-seccion-700 dark:text-seccion-claro hover:underline"
                   >
                     Cambiar
                   </button>
@@ -420,8 +420,8 @@ export function ModalNuevaActividad({
                     aria-pressed={duracion === String(d)}
                     className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                       duracion === String(d)
-                        ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
-                        : "border-border dark:border-border-dark text-ink/70 dark:text-ink-dark/70 hover:border-teal-400"
+                        ? "border-accion bg-accion text-white dark:border-seccion-claro dark:bg-seccion-claro dark:text-mist-dark"
+                        : "border-border dark:border-border-dark text-ink/70 dark:text-ink-dark/70 hover:border-seccion-400"
                     }`}
                   >
                     {textoDuracion(d)}
@@ -449,7 +449,7 @@ export function ModalNuevaActividad({
             <div className="rounded-xl border border-border dark:border-border-dark overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 bg-mist/60 dark:bg-surface-raised-dark border-b border-border dark:border-border-dark">
                 <div className="min-w-0">
-                  <p className="m-0 text-[12.5px] font-bold text-teal-900 dark:text-ink-dark">
+                  <p className="m-0 text-[12.5px] font-bold text-seccion-900 dark:text-ink-dark">
                     Asistentes <span className="font-normal text-ink/50 dark:text-ink-dark/50">(opcional)</span>
                   </p>
                   <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55" aria-live="polite">

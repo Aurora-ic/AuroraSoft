@@ -94,8 +94,8 @@ export function ModalAplicarPrueba({
         className="relative w-full max-w-2xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-xl text-sm"
       >
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border dark:border-border-dark">
-          <h2 id="titulo-aplicar-prueba" className="m-0 flex items-center gap-2 font-display text-[17px] font-semibold text-teal-900 dark:text-ink-dark">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-acento-azul text-white dark:bg-acento-azul-dark dark:text-mist-dark">
+          <h2 id="titulo-aplicar-prueba" className="m-0 flex items-center gap-2 font-display text-[17px] font-semibold text-seccion-900 dark:text-ink-dark">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-seccion-600 text-white dark:bg-seccion-claro dark:text-mist-dark">
               <ClipboardCheck size={15} aria-hidden="true" />
             </span>
             Aplicar prueba a {nombreAlumno}
@@ -112,7 +112,7 @@ export function ModalAplicarPrueba({
 
         {resultado ? (
           <div className="space-y-4 px-5 py-5">
-            <p className="m-0 flex items-center gap-2 text-[15px] font-semibold text-teal-800 dark:text-teal-accent-dark">
+            <p className="m-0 flex items-center gap-2 text-[15px] font-semibold text-seccion-900 dark:text-seccion-claro">
               <CircleCheck size={18} aria-hidden="true" />
               Prueba lista para {nombreAlumno}
             </p>
@@ -122,7 +122,7 @@ export function ModalAplicarPrueba({
             </p>
             <div className="flex items-center gap-2 rounded-xl border border-border dark:border-border-dark bg-mist/60 dark:bg-surface-raised-dark px-3 py-2">
               <code className="min-w-0 flex-1 truncate text-[12.5px] text-ink/80 dark:text-ink-dark/80">{urlExamen}</code>
-              <button type="button" onClick={copiar} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline">
+              <button type="button" onClick={copiar} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
                 <Copy size={13} aria-hidden="true" />
                 {copiado ? "Copiado ✓" : "Copiar"}
               </button>
@@ -131,7 +131,7 @@ export function ModalAplicarPrueba({
             <div className="flex flex-wrap items-center justify-end gap-3">
               <Link
                 href={`/campanas/${resultado.evaluacion.id}/dashboard`}
-                className="text-[13px] font-semibold text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+                className="text-[13px] font-semibold text-ink/60 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
               >
                 Ver la aplicación
               </Link>
@@ -139,7 +139,7 @@ export function ModalAplicarPrueba({
                 href={urlExamen}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-card bg-accion px-4 py-2 text-[13px] font-semibold text-white hover:bg-accion-hover dark:bg-teal-accent-dark dark:text-mist-dark"
+                className="inline-flex items-center gap-1.5 rounded-card bg-accion px-4 py-2 text-[13px] font-semibold text-white hover:bg-accion-hover dark:bg-seccion-claro dark:text-mist-dark"
               >
                 <ExternalLink size={14} aria-hidden="true" />
                 Abrir el examen en este equipo
@@ -156,7 +156,7 @@ export function ModalAplicarPrueba({
                 placeholder="Buscar prueba…"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+                className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400"
               />
             </div>
 
@@ -173,11 +173,11 @@ export function ModalAplicarPrueba({
                     onClick={() => setPruebaId(p.id)}
                     className={`flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-colors ${
                       elegida
-                        ? "border-acento-azul bg-acento-azul/[0.07] dark:border-acento-azul-dark dark:bg-acento-azul-dark/10"
-                        : "border-border dark:border-border-dark hover:border-acento-azul/50"
+                        ? "border-seccion-700 bg-seccion-600/[0.07] dark:border-seccion-claro dark:bg-seccion-claro/10"
+                        : "border-border dark:border-border-dark hover:border-seccion-700/50"
                     }`}
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-acento-azul/10 text-[12px] font-bold text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-seccion-600/10 text-[12px] font-bold text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro">
                       {siglaPrueba(p).sigla}
                     </span>
                     <span className="min-w-0">
@@ -202,7 +202,7 @@ export function ModalAplicarPrueba({
                     </span>
                   </p>
                 ) : elegibilidad.data ? (
-                  <p className="m-0 flex items-center gap-2 text-teal-800 dark:text-teal-accent-dark">
+                  <p className="m-0 flex items-center gap-2 text-seccion-900 dark:text-seccion-claro">
                     <CircleCheck size={15} aria-hidden="true" />
                     Puede rendirla. Esta prueba se reaplica cada {elegibilidad.data.dias_minimos_entre_aplicaciones} días.
                   </p>
@@ -227,7 +227,7 @@ export function ModalAplicarPrueba({
               <button
                 type="submit"
                 disabled={enviando || pruebaId === null || !!bloqueo || elegibilidad.isPending || fechaPasada}
-                className="rounded-card bg-accion px-4 py-2 text-[13px] font-semibold text-white hover:bg-accion-hover disabled:cursor-not-allowed disabled:opacity-40 dark:bg-teal-accent-dark dark:text-mist-dark"
+                className="rounded-card bg-accion px-4 py-2 text-[13px] font-semibold text-white hover:bg-accion-hover disabled:cursor-not-allowed disabled:opacity-40 dark:bg-seccion-claro dark:text-mist-dark"
               >
                 {enviando ? "Aplicando…" : "Aplicar y generar enlace"}
               </button>

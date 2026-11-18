@@ -108,7 +108,7 @@ export function BloqueoInactividad({ children }: { children: React.ReactNode }) 
       {segundosRestantes !== null && !bloqueado && (
         <div role="alertdialog" aria-live="assertive" aria-labelledby="aviso-inactividad" className="fixed inset-x-0 bottom-4 z-[90] flex justify-center px-4">
           <div className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-4 py-3 shadow-xl">
-            <Lock size={18} className="shrink-0 text-acento-pizarra dark:text-acento-pizarra-dark" aria-hidden="true" />
+            <Lock size={18} className="shrink-0 text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
             <p id="aviso-inactividad" className="m-0 flex-1 text-sm text-ink dark:text-ink-dark">
               Por inactividad, la sesión se bloqueará en <strong>{segundosRestantes} s</strong>.
             </p>
@@ -211,7 +211,7 @@ function PantallaBloqueo({
       <form onSubmit={desbloquear} className="w-full max-w-sm rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-6 shadow-xl sm:p-8">
         <div className="mb-6 flex flex-col items-center text-center">
           <Image src="/logo.png" alt="AuroraSoft" width={140} height={99} className="mb-4 h-12 w-auto" />
-          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-acento-pizarra/15 text-acento-pizarra dark:bg-acento-pizarra-dark/20 dark:text-acento-pizarra-dark">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-seccion-600/15 text-seccion-700 dark:bg-seccion-claro/20 dark:text-seccion-claro">
             <Lock size={20} aria-hidden="true" />
           </span>
           <h1 id="titulo-bloqueo" className="mt-3 font-display text-xl font-semibold text-teal-900 dark:text-ink-dark">

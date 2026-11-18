@@ -56,12 +56,12 @@ function FilaMapa({
       aria-pressed={activa}
       className={`w-full text-left rounded-lg px-3 py-2.5 transition-colors group ${
         activa
-          ? "bg-teal-600/[0.07] ring-1 ring-teal-600/40 dark:bg-teal-accent-dark/10 dark:ring-teal-accent-dark/40"
+          ? "bg-seccion-600/[0.07] ring-1 ring-seccion-600/40 dark:bg-seccion-claro/10 dark:ring-seccion-claro/40"
           : "hover:bg-mist dark:hover:bg-surface-raised-dark"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className={`text-[13px] font-semibold truncate ${activa ? "text-teal-900 dark:text-teal-accent-dark" : "text-ink/85 dark:text-ink-dark/85"}`}>
+        <span className={`text-[13px] font-semibold truncate ${activa ? "text-seccion-900 dark:text-seccion-claro" : "text-ink/85 dark:text-ink-dark/85"}`}>
           {d.nombre}
         </span>
         <span className="flex items-center gap-1.5 shrink-0">
@@ -74,7 +74,7 @@ function FilaMapa({
           <ChevronRight
             size={14}
             aria-hidden="true"
-            className={`transition-transform ${activa ? "text-teal-600 dark:text-teal-accent-dark translate-x-0.5" : "text-ink/25 dark:text-ink-dark/25"}`}
+            className={`transition-transform ${activa ? "text-seccion-600 dark:text-seccion-claro translate-x-0.5" : "text-ink/25 dark:text-ink-dark/25"}`}
           />
         </span>
       </div>
@@ -86,7 +86,7 @@ function FilaMapa({
               serie (teal), sin leyenda — el título de la fila la nombra. */}
           <div className="relative flex-1 h-1.5 rounded-full bg-border dark:bg-border-dark overflow-hidden">
             {posMedia !== null && (
-              <div className="absolute inset-y-0 left-0 rounded-full bg-teal-600 dark:bg-teal-accent-dark" style={{ width: `${Math.max(posMedia, 2)}%` }} />
+              <div className="absolute inset-y-0 left-0 rounded-full bg-seccion-600 dark:bg-seccion-claro" style={{ width: `${Math.max(posMedia, 2)}%` }} />
             )}
           </div>
           <span className="shrink-0 font-mono text-[11.5px] text-ink/50 dark:text-ink-dark/50">
@@ -136,7 +136,7 @@ function DetalleDimension({ d, tieneAlertasPosibles }: { d: DimensionResumenEsta
           className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-[12.5px] ${
             d.en_alerta > 0
               ? "bg-amber/10 text-amber-800 dark:text-amber border border-amber/30"
-              : "bg-teal-600/[0.06] text-teal-900 dark:text-teal-accent-dark border border-teal-600/15"
+              : "bg-seccion-600/[0.06] text-seccion-900 dark:text-seccion-claro border border-seccion-600/15"
           }`}
         >
           <AlertTriangle size={15} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
@@ -185,7 +185,7 @@ function DetalleDimension({ d, tieneAlertasPosibles }: { d: DimensionResumenEsta
                     {/* Ancho relativo al nivel más frecuente — la barra más
                         larga siempre llena la pista; el % real va en texto. */}
                     <div
-                      className={`h-full rounded transition-all ${niv.es_alerta ? "bg-amber" : "bg-teal-600 dark:bg-teal-accent-dark"}`}
+                      className={`h-full rounded transition-all ${niv.es_alerta ? "bg-amber" : "bg-seccion-600 dark:bg-seccion-claro"}`}
                       style={{ width: `${Math.max((niv.pct / maxPct) * 100, 2)}%` }}
                     />
                   </div>
@@ -236,7 +236,7 @@ export function PanelDimensiones({ resumen }: { resumen: ResumenEstadisticoDashb
         ))}
       </div>
       <div className="rounded-xl border border-border dark:border-border-dark p-4 min-w-0">
-        <p className="m-0 mb-3 font-display text-[15px] font-bold text-teal-900 dark:text-ink-dark">{activa.nombre}</p>
+        <p className="m-0 mb-3 font-display text-[15px] font-bold text-seccion-900 dark:text-ink-dark">{activa.nombre}</p>
         <DetalleDimension key={activa.nombre} d={activa} tieneAlertasPosibles={tiene_alertas_posibles} />
       </div>
     </div>

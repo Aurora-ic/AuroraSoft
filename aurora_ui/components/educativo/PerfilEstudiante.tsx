@@ -122,27 +122,27 @@ export function TarjetaPerfil({
 
   return (
     <section className="rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-sm overflow-hidden">
-      <div className="h-1.5 bg-gradient-to-r from-teal-900 via-teal-600 to-teal-400 dark:from-teal-accent-dark/60 dark:to-teal-accent-dark/20" />
+      <div className="h-1.5 bg-gradient-to-r from-seccion-900 via-seccion-600 to-seccion-400 dark:from-seccion-claro/60 dark:to-seccion-claro/20" />
 
       {/* 🔧 (sesión 2026-10-31) Fondo teal suave SOLO en la cabecera del
           perfil, para que se distinga de los bloques de datos del estudiante
           (filiación, abajo, sobre fondo neutro). */}
-      <div className="grid lg:grid-cols-[minmax(16rem,20rem)_1fr_13rem] bg-gradient-to-br from-teal-600/[0.10] via-teal-400/[0.06] to-teal-600/[0.02] dark:from-teal-accent-dark/[0.10] dark:via-teal-accent-dark/[0.04] dark:to-transparent">
+      <div className="grid lg:grid-cols-[minmax(16rem,20rem)_1fr_13rem] bg-gradient-to-br from-seccion-600/[0.10] via-seccion-400/[0.06] to-seccion-600/[0.02] dark:from-seccion-claro/[0.10] dark:via-seccion-claro/[0.04] dark:to-transparent">
         {/* --- 1. Perfil --- */}
-        <div className="flex items-center gap-4 p-6 border-b lg:border-b-0 lg:border-r border-teal-600/15 dark:border-border-dark">
+        <div className="flex items-center gap-4 p-6 border-b lg:border-b-0 lg:border-r border-seccion-600/15 dark:border-border-dark">
           <div className="relative shrink-0">
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-teal-900 to-teal-600 font-display text-[26px] font-bold text-white ring-4 ring-teal-600/10 dark:from-teal-accent-dark/40 dark:to-teal-accent-dark/10 dark:text-teal-accent-dark dark:ring-teal-accent-dark/10">
+            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-seccion-900 to-seccion-600 font-display text-[26px] font-bold text-white ring-4 ring-seccion-600/10 dark:from-seccion-claro/40 dark:to-seccion-claro/10 dark:text-seccion-claro dark:ring-seccion-claro/10">
               {iniciales}
             </span>
             <span
               title={alumno.activo ? "Activo" : "Inactivo"}
               className={`absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full ring-[3px] ring-surface dark:ring-surface-dark ${
-                alumno.activo ? "bg-teal-500 dark:bg-teal-accent-dark" : "bg-ink/30 dark:bg-ink-dark/30"
+                alumno.activo ? "bg-seccion-600 dark:bg-seccion-claro" : "bg-ink/30 dark:bg-ink-dark/30"
               }`}
             />
           </div>
           <div className="min-w-0">
-            <h1 className="m-0 font-display text-[21px] font-bold leading-tight text-teal-900 dark:text-ink-dark break-words">
+            <h1 className="m-0 font-display text-[21px] font-bold leading-tight text-seccion-900 dark:text-ink-dark break-words">
               {alumno.nombres} {alumno.apellidos}
             </h1>
             <div className="mt-1 flex flex-col gap-0.5 text-[12.5px] text-ink/55 dark:text-ink-dark/55">
@@ -162,11 +162,11 @@ export function TarjetaPerfil({
             <span
               className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                 alumno.activo
-                  ? "bg-surface text-teal-800 ring-1 ring-teal-600/20 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark dark:ring-0"
+                  ? "bg-surface text-seccion-900 ring-1 ring-seccion-600/20 dark:bg-seccion-claro/15 dark:text-seccion-claro dark:ring-0"
                   : "bg-surface text-ink/55 ring-1 ring-border dark:bg-border-dark dark:text-ink-dark/55 dark:ring-0"
               }`}
             >
-              <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${alumno.activo ? "bg-teal-500 dark:bg-teal-accent-dark" : "bg-ink/30"}`} />
+              <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${alumno.activo ? "bg-seccion-600 dark:bg-seccion-claro" : "bg-ink/30"}`} />
               {alumno.activo ? "Activo" : "Inactivo"}
             </span>
             {estadoDx === "con-dx" && (
@@ -179,13 +179,13 @@ export function TarjetaPerfil({
         </div>
 
         {/* --- 2. Datos clave (los que no están en filiación) --- */}
-        <dl className="m-0 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 p-6 content-center border-b lg:border-b-0 lg:border-r border-teal-600/15 dark:border-border-dark">
+        <dl className="m-0 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 p-6 content-center border-b lg:border-b-0 lg:border-r border-seccion-600/15 dark:border-border-dark">
           <Dato etiqueta="Edad" valor={edad !== null ? `${edad} años` : null} />
           <Dato
             etiqueta="Nivel · grado · sección"
             valor={
               ubicacion ? (
-                <span className="text-teal-800 dark:text-teal-accent-dark">{ubicacion}</span>
+                <span className="text-seccion-900 dark:text-seccion-claro">{ubicacion}</span>
               ) : (
                 <span className="font-medium text-ink/45 dark:text-ink-dark/45">Sin matrícula</span>
               )
@@ -225,7 +225,7 @@ export function TarjetaPerfil({
       />
 
       {/* --- Datos de filiación editables, dentro del mismo bloque --- */}
-      {children && <div className="border-t border-teal-600/15 dark:border-border-dark bg-surface dark:bg-surface-dark p-5">{children}</div>}
+      {children && <div className="border-t border-seccion-600/15 dark:border-border-dark bg-surface dark:bg-surface-dark p-5">{children}</div>}
     </section>
   );
 }
@@ -237,11 +237,11 @@ function EtiquetaEstado({ tono, children }: { tono: "ok" | "problema"; children:
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12.5px] font-semibold ${
         tono === "ok"
-          ? "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+          ? "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
           : "bg-red-600/10 text-red-700 dark:bg-red-400/15 dark:text-red-300"
       }`}
     >
-      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${tono === "ok" ? "bg-teal-500 dark:bg-teal-accent-dark" : "bg-red-500 dark:bg-red-300"}`} />
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${tono === "ok" ? "bg-seccion-600 dark:bg-seccion-claro" : "bg-red-500 dark:bg-red-300"}`} />
       {children}
     </span>
   );
@@ -289,7 +289,7 @@ function PendientesFicha({
   if (items.length === 0) return null;
 
   return (
-    <div className="border-t border-teal-600/15 dark:border-border-dark px-5 py-3.5">
+    <div className="border-t border-seccion-600/15 dark:border-border-dark px-5 py-3.5">
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
         <p className="m-0 flex shrink-0 items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/50 dark:text-ink-dark/50">
           <ListChecks size={14} aria-hidden="true" />
@@ -300,10 +300,10 @@ function PendientesFicha({
             <li key={it.href}>
               <a
                 href={it.href}
-                className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
+                className={`group inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-seccion-400 ${
                   it.destacado
                     ? "border-amber/50 bg-amber/10 hover:bg-amber/20 dark:border-amber/40"
-                    : "border-border bg-surface hover:border-teal-400 hover:bg-mist dark:border-border-dark dark:bg-surface-dark dark:hover:bg-surface-raised-dark"
+                    : "border-border bg-surface hover:border-seccion-400 hover:bg-mist dark:border-border-dark dark:bg-surface-dark dark:hover:bg-surface-raised-dark"
                 }`}
               >
                 <it.icono
@@ -408,7 +408,7 @@ function SituacionRiesgo({
   return (
     <div className="border-t border-border dark:border-border-dark px-6 py-3">
       <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
-        <ShieldCheck size={15} aria-hidden="true" className="text-teal-600 dark:text-teal-accent-dark" />
+        <ShieldCheck size={15} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
         <span className="font-semibold text-ink/75 dark:text-ink-dark/75">Sin diagnóstico externo registrado</span>
         <span>No recibe terapia psicológica ni atención psiquiátrica externa.</span>
         {enlace}
@@ -421,7 +421,7 @@ function SituacionRiesgo({
 
 type Tono = "ok" | "alerta" | "problema" | "neutro";
 const CLASE_TONO: Record<Tono, string> = {
-  ok: "text-teal-700 dark:text-teal-accent-dark",
+  ok: "text-seccion-700 dark:text-seccion-claro",
   alerta: "text-amber-700 dark:text-amber",
   problema: "text-red-700 dark:text-red-300",
   neutro: "text-ink/50 dark:text-ink-dark/50",
@@ -496,7 +496,7 @@ export function IndicadoresEstudiante({
       <Indicador
         titulo="Pruebas aplicadas"
         icono={ClipboardCheck}
-        acento="azul"
+        acento="teal"
         valor={pruebas ? pruebas.length : "—"}
         unidad={pruebas && pruebas.length === 1 ? "prueba" : "pruebas"}
         estado={
@@ -525,7 +525,7 @@ export function IndicadoresEstudiante({
       <Indicador
         titulo="Próxima cita"
         icono={CalendarClock}
-        acento="pizarra"
+        acento="teal"
         valor={proxima ? new Date(proxima.fecha_hora).toLocaleDateString("es-PE", { day: "numeric", month: "short" }) : "—"}
         unidad={proxima ? new Date(proxima.fecha_hora).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : undefined}
         estado={proxima ? proxima.motivo : "Sin citas programadas"}
@@ -553,7 +553,7 @@ export function TituloGrupoFicha({
     <div id={id} className="flex scroll-mt-24 items-center gap-3 pt-2">
       <span aria-hidden="true" className={`h-6 w-1 rounded-full ${ACENTOS[acento].solido}`} />
       <div className="min-w-0">
-        <h2 className="m-0 font-display text-[18px] font-bold text-teal-900 dark:text-ink-dark">{titulo}</h2>
+        <h2 className="m-0 font-display text-[18px] font-bold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
         {descripcion && <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">{descripcion}</p>}
       </div>
     </div>

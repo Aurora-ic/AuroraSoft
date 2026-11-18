@@ -147,7 +147,7 @@ function TarjetaResumen({
         </h2>
         <Link
           href={enlace}
-          className="text-[12px] font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline whitespace-nowrap"
+          className="text-[12px] font-semibold text-seccion-700 dark:text-seccion-claro hover:underline whitespace-nowrap"
         >
           Ver todo →
         </Link>
@@ -217,9 +217,9 @@ export default function InicioPage() {
   return (
     <div className={CLASE_CONTENEDOR_SECCION}>
       {/* ===== Encabezado ===== */}
-      <div className="bg-gradient-to-br from-teal-900 to-teal-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between flex-wrap gap-5">
+      <div className="bg-gradient-to-br from-seccion-900 to-seccion-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between flex-wrap gap-5">
         <div>
-          <p className="m-0 text-[13px] font-medium text-white/70 dark:text-teal-accent-dark">
+          <p className="m-0 text-[13px] font-medium text-white/70 dark:text-seccion-claro">
             {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
           </p>
           <h1 className="m-0 mt-1 font-display text-[26px] font-bold text-white dark:text-ink-dark">
@@ -232,7 +232,7 @@ export default function InicioPage() {
         {vePerfilClinico && (
           <Link
             href="/campanas/nueva"
-            className="flex items-center gap-2 bg-white dark:bg-teal-accent-dark text-teal-900 dark:text-mist-dark rounded-xl px-5 py-2.5 text-[13px] font-bold hover:bg-white/90 dark:hover:opacity-90 transition-colors"
+            className="flex items-center gap-2 bg-white dark:bg-seccion-claro text-seccion-900 dark:text-mist-dark rounded-xl px-5 py-2.5 text-[13px] font-bold hover:bg-white/90 dark:hover:opacity-90 transition-colors"
           >
             <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
             Nueva campaña
@@ -241,6 +241,10 @@ export default function InicioPage() {
       </div>
 
       {/* ===== Accesos rápidos ===== */}
+      {/* 🆕 (2026-11-17, plan de UX fase 2) "Una pantalla, un color": el
+          Inicio va en tonos teal. Los accesos rápidos son la ÚNICA excepción:
+          su trabajo es llevar a cada sección, así que anticipan su color.
+          Ámbar sigue solo en lo que es riesgo clínico. */}
       <div>
         <h2 className="mb-3 text-[12px] font-bold uppercase tracking-wide text-ink/40 dark:text-ink-dark/40">
           Accesos rápidos
@@ -274,9 +278,9 @@ export default function InicioPage() {
           <TextoError className="mb-2">{errorResumen}</TextoError>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-3.5">
             <TarjetaKpi acento="teal" icono={GraduationCap} label="Alumnos en el padrón" valor={resumen?.total_alumnos ?? null} />
-            <TarjetaKpi acento="azul" icono={Activity} label="Pruebas finalizadas este mes" valor={resumen?.pruebas_finalizadas_mes ?? null} />
+            <TarjetaKpi acento="teal" icono={Activity} label="Pruebas finalizadas este mes" valor={resumen?.pruebas_finalizadas_mes ?? null} />
             <TarjetaKpi acento="teal" icono={HeartHandshake} label="Alumnos con seguimiento este mes" valor={resumen?.estudiantes_con_seguimiento_mes ?? null} />
-            <TarjetaKpi acento="azul" icono={Flag} label="Campañas activas" valor={resumen?.campanas_activas ?? null} />
+            <TarjetaKpi acento="teal" icono={Flag} label="Campañas activas" valor={resumen?.campanas_activas ?? null} />
           </div>
         </div>
       )}
@@ -294,12 +298,12 @@ export default function InicioPage() {
               titulo="Evaluaciones por mes"
               subtitulo="últimos 6 meses"
               enlace="/pruebas"
-              acento="azul"
+              acento="teal"
               className="lg:col-span-2"
             >
               {series ? <GraficoEvaluacionesMes meses={series.meses} /> : <EsqueletoGrafico />}
             </TarjetaResumen>
-            <TarjetaResumen icono={Flag} titulo="Avance de campañas" enlace="/campanas" acento="azul">
+            <TarjetaResumen icono={Flag} titulo="Avance de campañas" enlace="/campanas" acento="teal">
               {series ? <AvanceCampanas campanas={series.campanas} /> : <EsqueletoGrafico bajo />}
             </TarjetaResumen>
           </div>
@@ -336,7 +340,7 @@ export default function InicioPage() {
               )}
               <TextoError className="text-xs">{errorCasos}</TextoError>
             </TarjetaResumen>
-            <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="pizarra">
+            <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="teal">
               {citas === null ? (
                 <EsqueletoLineas cantidad={3} />
               ) : citasHoy.length === 0 ? (
@@ -364,7 +368,7 @@ export default function InicioPage() {
       ) : (
         // 'colegio': sin datos clínicos — dos columnas completas.
         <div className="grid gap-3.5 sm:grid-cols-2">
-          <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="pizarra">
+          <TarjetaResumen icono={Calendar} titulo="Citas de hoy" enlace="/agenda" acento="teal">
             {citas === null ? (
               <EsqueletoLineas cantidad={3} />
             ) : citasHoy.length === 0 ? (
@@ -387,7 +391,7 @@ export default function InicioPage() {
             )}
             <TextoError className="text-xs">{errorCitas}</TextoError>
           </TarjetaResumen>
-          <TarjetaResumen icono={Flag} titulo="Campañas activas" enlace="/campanas" acento="azul">
+          <TarjetaResumen icono={Flag} titulo="Campañas activas" enlace="/campanas" acento="teal">
             {campanas === null ? (
               <EsqueletoLineas cantidad={3} />
             ) : campanasActivas.length === 0 ? (

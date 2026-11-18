@@ -49,8 +49,8 @@ const ETIQUETA_ACCION: Record<ImportacionAccionFila, string> = {
 };
 
 const ESTILO_BADGE_ACCION: Record<ImportacionAccionFila, string> = {
-  nuevo: "bg-teal-600/10 text-teal-900 dark:text-ink-dark",
-  actualizado: "bg-teal-400/20 text-teal-900 dark:text-ink-dark",
+  nuevo: "bg-seccion-600/10 text-seccion-900 dark:text-ink-dark",
+  actualizado: "bg-seccion-400/20 text-seccion-900 dark:text-ink-dark",
   duplicado: "bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300",
   error: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
 };
@@ -96,24 +96,24 @@ function IndicadorPasos({ actual, terminado }: { actual: number; terminado: bool
             aria-current={enCurso ? "step" : undefined}
             className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${
               enCurso
-                ? "border-teal-600 bg-teal-600/[0.06] dark:border-teal-accent-dark dark:bg-teal-accent-dark/10"
+                ? "border-seccion-600 bg-seccion-600/[0.06] dark:border-seccion-claro dark:bg-seccion-claro/10"
                 : hecho
-                  ? "border-teal-600/25 bg-teal-600/[0.04] dark:border-teal-accent-dark/20 dark:bg-teal-accent-dark/[0.05]"
+                  ? "border-seccion-600/25 bg-seccion-600/[0.04] dark:border-seccion-claro/20 dark:bg-seccion-claro/[0.05]"
                   : "border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
             }`}
           >
             <span
               className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
                 hecho
-                  ? "bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                  ? "bg-seccion-600 text-white dark:bg-seccion-claro dark:text-mist-dark"
                   : enCurso
-                    ? "bg-teal-900 text-white dark:bg-teal-accent-dark/30 dark:text-teal-accent-dark"
+                    ? "bg-seccion-900 text-white dark:bg-seccion-claro/30 dark:text-seccion-claro"
                     : "bg-border/70 text-ink/45 dark:bg-border-dark dark:text-ink-dark/45"
               }`}
             >
               {hecho ? <Check size={14} strokeWidth={3} aria-hidden="true" /> : n}
             </span>
-            <span className={`text-[12.5px] font-semibold ${enCurso || hecho ? "text-teal-900 dark:text-ink-dark" : "text-ink/45 dark:text-ink-dark/45"}`}>
+            <span className={`text-[12.5px] font-semibold ${enCurso || hecho ? "text-seccion-900 dark:text-ink-dark" : "text-ink/45 dark:text-ink-dark/45"}`}>
               {paso}
             </span>
           </li>
@@ -139,13 +139,13 @@ function TarjetaPaso({
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden flex flex-col ${className}`}>
-      <header className="flex items-center gap-2.5 px-4 py-3 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08] border-b border-teal-600/15 dark:border-teal-accent-dark/20">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark">
+    <section className={`rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden flex flex-col ${className}`}>
+      <header className="flex items-center gap-2.5 px-4 py-3 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08] border-b border-seccion-600/15 dark:border-seccion-claro/20">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-seccion-600 text-white dark:bg-seccion-claro dark:text-mist-dark">
           <Icono size={16} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h2 className="m-0 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
+          <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
             <span className="text-ink/40 dark:text-ink-dark/40 mr-1">{numero}.</span>
             {titulo}
           </h2>
@@ -337,17 +337,17 @@ export default function ImportarEstudiantesPage() {
 
       {/* =================== Importación aplicada =================== */}
       {resultadoConfirmacion ? (
-        <section className="rounded-2xl border border-teal-600/25 dark:border-teal-accent-dark/20 bg-teal-600/[0.05] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
-          <div className="h-1.5 bg-gradient-to-r from-teal-900 via-teal-600 to-teal-400 dark:from-teal-accent-dark/60 dark:to-teal-accent-dark/20" />
+        <section className="rounded-2xl border border-seccion-600/25 dark:border-seccion-claro/20 bg-seccion-600/[0.05] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-seccion-900 via-seccion-600 to-seccion-400 dark:from-seccion-claro/60 dark:to-seccion-claro/20" />
           <div className="p-6 flex flex-col sm:flex-row sm:items-center gap-5">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-seccion-600/10 text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro">
               <CheckCircle2 size={28} aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="m-0 font-display text-[20px] font-bold text-teal-900 dark:text-ink-dark">Importación aplicada</h2>
+              <h2 className="m-0 font-display text-[20px] font-bold text-seccion-900 dark:text-ink-dark">Importación aplicada</h2>
               <p className="m-0 mt-1 text-sm text-ink/60 dark:text-ink-dark/60">
-                <strong className="text-teal-800 dark:text-teal-accent-dark">{resultadoConfirmacion.resumen.nuevos}</strong> estudiante(s) nuevo(s) y{" "}
-                <strong className="text-teal-800 dark:text-teal-accent-dark">{resultadoConfirmacion.resumen.actualizados}</strong> actualizado(s).
+                <strong className="text-seccion-900 dark:text-seccion-claro">{resultadoConfirmacion.resumen.nuevos}</strong> estudiante(s) nuevo(s) y{" "}
+                <strong className="text-seccion-900 dark:text-seccion-claro">{resultadoConfirmacion.resumen.actualizados}</strong> actualizado(s).
                 {resultadoConfirmacion.filas_con_datos_incompletos > 0 &&
                   ` ${resultadoConfirmacion.filas_con_datos_incompletos} quedaron con datos incompletos: puedes completarlos desde el padrón.`}
               </p>
@@ -370,11 +370,11 @@ export default function ImportarEstudiantesPage() {
           <TarjetaPaso numero={1} icono={Download} titulo="Descarga la plantilla" descripcion="Úsala siempre: el sistema lee sus columnas por nombre.">
             <ul className="m-0 mb-4 list-none p-0 space-y-2 text-[12.5px] text-ink/70 dark:text-ink-dark/70">
               <li className="flex items-start gap-2">
-                <Sheet size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-teal-600 dark:text-teal-accent-dark" />
+                <Sheet size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-seccion-600 dark:text-seccion-claro" />
                 Hoja de estudiantes con filas de ejemplo y qué columnas son obligatorias.
               </li>
               <li className="flex items-start gap-2">
-                <Sheet size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-teal-600 dark:text-teal-accent-dark" />
+                <Sheet size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-seccion-600 dark:text-seccion-claro" />
                 Segunda hoja con la estructura académica (niveles, grados y secciones) ya creada en tu institución.
               </li>
             </ul>
@@ -399,19 +399,19 @@ export default function ImportarEstudiantesPage() {
               }}
               onDragLeave={() => setArrastrando(false)}
               onDrop={soltarArchivo}
-              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-within:ring-2 focus-within:ring-teal-400 ${
+              className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-within:ring-2 focus-within:ring-seccion-400 ${
                 arrastrando
-                  ? "border-teal-600 bg-teal-600/[0.06] dark:border-teal-accent-dark dark:bg-teal-accent-dark/10"
+                  ? "border-seccion-600 bg-seccion-600/[0.06] dark:border-seccion-claro dark:bg-seccion-claro/10"
                   : archivo
-                    ? "border-teal-600/40 bg-teal-600/[0.03] dark:border-teal-accent-dark/40"
-                    : "border-border hover:border-teal-400 hover:bg-mist/50 dark:border-border-dark dark:hover:bg-surface-raised-dark"
+                    ? "border-seccion-600/40 bg-seccion-600/[0.03] dark:border-seccion-claro/40"
+                    : "border-border hover:border-seccion-400 hover:bg-mist/50 dark:border-border-dark dark:hover:bg-surface-raised-dark"
               }`}
             >
               <input key={inputKey} type="file" accept=".xlsx" onChange={(e) => tomarArchivo(e.target.files?.[0] ?? null)} className="sr-only" />
               {archivo ? (
                 <>
-                  <FileSpreadsheet size={28} aria-hidden="true" className="text-teal-600 dark:text-teal-accent-dark" />
-                  <span className="max-w-full truncate text-sm font-semibold text-teal-900 dark:text-ink-dark">{archivo.name}</span>
+                  <FileSpreadsheet size={28} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
+                  <span className="max-w-full truncate text-sm font-semibold text-seccion-900 dark:text-ink-dark">{archivo.name}</span>
                   <span className="text-[12px] text-ink/50 dark:text-ink-dark/50">
                     {tamanoLegible(archivo.size)} · {archivoValidado === archivo ? "validado" : "listo para validar"} · haz clic para cambiarlo
                   </span>
@@ -443,10 +443,10 @@ export default function ImportarEstudiantesPage() {
 
       {/* =================== 3. Revisar =================== */}
       {resultado && !resultadoConfirmacion && (
-        <section className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
-          <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08] border-b border-teal-600/15 dark:border-teal-accent-dark/20">
+        <section className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
+          <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08] border-b border-seccion-600/15 dark:border-seccion-claro/20">
             <div>
-              <h2 className="m-0 text-[14px] font-bold text-teal-900 dark:text-ink-dark">
+              <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
                 <span className="text-ink/40 dark:text-ink-dark/40 mr-1">3.</span>
                 Revisa la vista previa
               </h2>
@@ -455,7 +455,7 @@ export default function ImportarEstudiantesPage() {
               </p>
             </div>
             {filtroFilas !== "todas" && (
-              <button type="button" onClick={() => setFiltroFilas("todas")} className="text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline">
+              <button type="button" onClick={() => setFiltroFilas("todas")} className="text-xs font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
                 Ver todas las filas
               </button>
             )}
@@ -599,7 +599,7 @@ export default function ImportarEstudiantesPage() {
             <div className="text-[12.5px] text-ink/65 dark:text-ink-dark/65">
               <p className="m-0">
                 <span className="text-ink/40 dark:text-ink-dark/40 font-bold mr-1">4.</span>
-                Se aplicarán <strong className="text-teal-800 dark:text-teal-accent-dark">{filasAplicables}</strong> fila(s) en una sola operación
+                Se aplicarán <strong className="text-seccion-900 dark:text-seccion-claro">{filasAplicables}</strong> fila(s) en una sola operación
                 {filasDescartadas > 0 && (
                   <>
                     {" "}

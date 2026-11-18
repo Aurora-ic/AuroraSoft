@@ -74,7 +74,7 @@ export function TerminoAyuda({ termino }: { termino: ClaveTermino }) {
         aria-expanded={abierto}
         aria-label={`Qué significa «${nombre}»`}
         aria-describedby={abierto ? id : undefined}
-        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ink/40 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 dark:text-ink-dark/45 dark:hover:text-teal-accent-dark"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ink/40 hover:text-seccion-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-seccion-400 dark:text-ink-dark/45 dark:hover:text-seccion-claro"
       >
         <HelpCircle size={14} strokeWidth={2.2} aria-hidden="true" />
       </button>

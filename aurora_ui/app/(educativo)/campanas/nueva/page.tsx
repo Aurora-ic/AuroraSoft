@@ -455,17 +455,17 @@ export default function NuevaCampanaPage() {
                       <Link href="/estudiantes/importar" className="rounded-card border border-border dark:border-border-dark px-4 py-2 text-sm font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark">
                         Importar Excel
                       </Link>
-                      <Link href="/estudiantes/nuevo" className="rounded-card bg-accion dark:bg-teal-accent-dark px-4 py-2 text-sm font-medium text-white dark:text-mist-dark hover:bg-accion-hover">
+                      <Link href="/estudiantes/nuevo" className="rounded-card bg-accion dark:bg-seccion-claro px-4 py-2 text-sm font-medium text-white dark:text-mist-dark hover:bg-accion-hover">
                         + Registrar alumno
                       </Link>
                     </div>
                   </div>
                 ) : sinEstructura ? (
                   <div className="flex items-start gap-3 rounded-xl border border-dashed border-border dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark/50 px-4 py-3 text-xs text-ink/65 dark:text-ink-dark/65">
-                    <Info size={15} className="mt-px shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+                    <Info size={15} className="mt-px shrink-0 text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                     <p>
                       Ningún alumno tiene salón asignado todavía. Créalos en{" "}
-                      <Link href="/academico" className="font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline">
+                      <Link href="/academico" className="font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
                         Estructura académica
                       </Link>{" "}
                       y matricúlalos; mientras tanto, elige a los estudiantes uno por uno abajo.
@@ -496,7 +496,7 @@ export default function NuevaCampanaPage() {
                             type="checkbox"
                             checked={elegido}
                             onChange={() => alternarSalon(s)}
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-teal-600"
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-seccion-600"
                             aria-label={`Salón ${etiquetaSalon(s)}`}
                           />
                           <span className="min-w-0">
@@ -518,7 +518,7 @@ export default function NuevaCampanaPage() {
                 )}
                 {cargandoElegibilidad && (
                   <p className="flex items-center gap-2 text-xs text-ink/50 dark:text-ink-dark/50">
-                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" aria-hidden="true" />
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-seccion-600 border-t-transparent" aria-hidden="true" />
                     Revisando quién puede rendir esta prueba...
                   </p>
                 )}
@@ -536,7 +536,7 @@ export default function NuevaCampanaPage() {
                 <div className="px-5 pb-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                     <p className="m-0 text-ink/70 dark:text-ink-dark/70">
-                      <span className="font-display text-lg font-semibold text-teal-900 dark:text-ink-dark">{efectivas.length}</span>{" "}
+                      <span className="font-display text-lg font-semibold text-seccion-900 dark:text-ink-dark">{efectivas.length}</span>{" "}
                       estudiante{efectivas.length === 1 ? "" : "s"} seleccionado{efectivas.length === 1 ? "" : "s"}
                       {bloqueadasMarcadas > 0 && (
                         <span className="text-red-700 dark:text-red-300"> · {bloqueadasMarcadas} de tus salones no pueden rendirla</span>
@@ -546,7 +546,7 @@ export default function NuevaCampanaPage() {
                       type="button"
                       onClick={() => setVerLista((v) => !v)}
                       aria-expanded={verLista}
-                      className="text-[13px] font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+                      className="text-[13px] font-semibold text-seccion-700 dark:text-seccion-claro hover:underline"
                     >
                       {verLista ? "Ocultar la lista" : "Ver y ajustar la lista"}
                     </button>
@@ -583,7 +583,7 @@ export default function NuevaCampanaPage() {
                         <label className="flex items-center gap-3 bg-mist/70 dark:bg-surface-raised-dark px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink/55 dark:text-ink-dark/55 cursor-pointer">
                           <input
                             type="checkbox"
-                            className="h-4 w-4 accent-teal-600"
+                            className="h-4 w-4 accent-seccion-600"
                             checked={todasVisiblesMarcadas}
                             onChange={alternarTodasVisibles}
                             disabled={idsFiltroElegibles.length === 0 || !!campana}
@@ -607,18 +607,18 @@ export default function NuevaCampanaPage() {
                                     bloqueo
                                       ? "cursor-not-allowed bg-mist/40 dark:bg-surface-raised-dark/40"
                                       : marcada
-                                        ? "cursor-pointer bg-teal-600/[0.05] dark:bg-teal-accent-dark/[0.07]"
+                                        ? "cursor-pointer bg-seccion-600/[0.05] dark:bg-seccion-claro/[0.07]"
                                         : "cursor-pointer hover:bg-mist/50 dark:hover:bg-surface-raised-dark/60"
                                   }`}
                                 >
                                   <input
                                     type="checkbox"
-                                    className="h-4 w-4 shrink-0 accent-teal-600"
+                                    className="h-4 w-4 shrink-0 accent-seccion-600"
                                     checked={marcada}
                                     disabled={!!bloqueo || !!campana}
                                     onChange={() => alternarSeleccion(p.id)}
                                   />
-                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-[12px] font-bold text-teal-700 dark:text-teal-accent-dark">
+                                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-[12px] font-bold text-seccion-700 dark:text-seccion-claro">
                                     {`${p.nombres[0] ?? ""}${p.apellidos[0] ?? ""}`.toUpperCase()}
                                   </span>
                                   <span className="min-w-0 flex-1">
@@ -649,7 +649,7 @@ export default function NuevaCampanaPage() {
                               type="button"
                               onClick={() => lista.cargarMas()}
                               disabled={lista.cargando}
-                              className="w-full px-4 py-2.5 text-center text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:bg-mist/50 dark:hover:bg-surface-raised-dark/60 disabled:opacity-50"
+                              className="w-full px-4 py-2.5 text-center text-xs font-semibold text-seccion-700 dark:text-seccion-claro hover:bg-mist/50 dark:hover:bg-surface-raised-dark/60 disabled:opacity-50"
                             >
                               {lista.cargando ? "Cargando..." : `Cargar más (${lista.items.length} de ${lista.total})`}
                             </button>
@@ -682,7 +682,7 @@ export default function NuevaCampanaPage() {
                         if (!nombreManual) setForm({ ...form, nombre_grupo: nombreSugerido });
                         setNombreManual((v) => !v);
                       }}
-                      className="self-start text-xs font-medium text-teal-700 dark:text-teal-accent-dark hover:underline"
+                      className="self-start text-xs font-medium text-seccion-700 dark:text-seccion-claro hover:underline"
                     >
                       {nombreManual ? "Usar el nombre automático" : "Editar el nombre"}
                     </button>
@@ -710,7 +710,7 @@ export default function NuevaCampanaPage() {
           {/* Resumen lateral */}
           <aside className="lg:sticky lg:top-0 space-y-4">
             <section className={`${CLASE_TARJETA} overflow-hidden`}>
-              <div className="bg-gradient-to-br from-teal-900 to-acento-azul dark:from-surface-raised-dark dark:to-surface-dark px-5 py-4">
+              <div className="bg-gradient-to-br from-seccion-900 to-acento-azul dark:from-surface-raised-dark dark:to-surface-dark px-5 py-4">
                 <p className="text-[12px] font-semibold uppercase tracking-wider text-white/60 dark:text-acento-azul-dark">Resumen</p>
                 <p className="mt-0.5 font-display text-lg font-semibold leading-snug text-white dark:text-ink-dark break-words">
                   {nombreEfectivo || "Campaña sin nombre"}
@@ -809,8 +809,8 @@ export default function NuevaCampanaPage() {
       {campana && resultadoMatricula && (
         <div className="space-y-6">
           <section className={`${CLASE_TARJETA} overflow-hidden`}>
-            <div className="bg-gradient-to-br from-teal-900 to-acento-azul dark:from-surface-raised-dark dark:to-surface-dark px-6 py-7 text-center">
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 dark:bg-teal-accent-dark/15">
+            <div className="bg-gradient-to-br from-seccion-900 to-acento-azul dark:from-surface-raised-dark dark:to-surface-dark px-6 py-7 text-center">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-white/15 dark:bg-seccion-claro/15">
                 <CircleCheck size={28} className="text-white dark:text-acento-azul-dark" aria-hidden="true" />
               </span>
               <h2 className="mt-3 font-display text-xl sm:text-2xl font-semibold text-white dark:text-ink-dark">¡Campaña lista!</h2>
@@ -818,11 +818,11 @@ export default function NuevaCampanaPage() {
             </div>
             <div className="grid grid-cols-2 divide-x divide-border dark:divide-border-dark">
               <div className="px-5 py-4 text-center">
-                <p className="font-display text-2xl font-semibold text-teal-900 dark:text-ink-dark">{resultadoMatricula.generados.length}</p>
+                <p className="font-display text-2xl font-semibold text-seccion-900 dark:text-ink-dark">{resultadoMatricula.generados.length}</p>
                 <p className="text-xs text-ink/55 dark:text-ink-dark/55">links generados</p>
               </div>
               <div className="px-5 py-4 text-center">
-                <p className={`font-display text-2xl font-semibold ${resultadoMatricula.rechazados.length > 0 ? "text-red-700 dark:text-red-300" : "text-teal-900 dark:text-ink-dark"}`}>
+                <p className={`font-display text-2xl font-semibold ${resultadoMatricula.rechazados.length > 0 ? "text-red-700 dark:text-red-300" : "text-seccion-900 dark:text-ink-dark"}`}>
                   {resultadoMatricula.rechazados.length}
                 </p>
                 <p className="text-xs text-ink/55 dark:text-ink-dark/55">rechazados</p>
@@ -849,7 +849,7 @@ export default function NuevaCampanaPage() {
           {resultadoMatricula.generados.length > 0 && (
             <section className={`${CLASE_TARJETA} overflow-hidden`}>
               <div className="flex flex-col gap-3 px-5 py-4 border-b border-border dark:border-border-dark sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="flex items-center gap-2 font-display text-base font-semibold text-teal-900 dark:text-ink-dark">
+                <h3 className="flex items-center gap-2 font-display text-base font-semibold text-seccion-900 dark:text-ink-dark">
                   <Link2 size={17} aria-hidden="true" className="text-acento-azul dark:text-acento-azul-dark" />
                   Links de examen
                 </h3>
@@ -869,7 +869,7 @@ export default function NuevaCampanaPage() {
                   const url = urlExamen(ins.token);
                   return (
                     <li key={ins.id} className="flex items-center gap-3 px-5 py-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-[12px] font-bold text-teal-700 dark:text-teal-accent-dark">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist dark:bg-surface-raised-dark text-[12px] font-bold text-seccion-700 dark:text-seccion-claro">
                         {(ins.nombre_completo?.[0] || "?").toUpperCase()}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -881,8 +881,8 @@ export default function NuevaCampanaPage() {
                         onClick={() => copiar(url, ins.id)}
                         className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                           copiado === ins.id
-                            ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
-                            : "bg-mist text-teal-700 hover:bg-teal-600/10 dark:bg-surface-raised-dark dark:text-teal-accent-dark"
+                            ? "bg-accion text-white dark:bg-seccion-claro dark:text-mist-dark"
+                            : "bg-mist text-seccion-700 hover:bg-seccion-600/10 dark:bg-surface-raised-dark dark:text-seccion-claro"
                         }`}
                       >
                         {copiado === ins.id ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
@@ -923,7 +923,7 @@ function IndicadorPasos({ actual }: { actual: number }) {
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-colors ${
                   hecho
-                    ? "bg-white/90 text-teal-900 dark:bg-acento-azul-dark dark:text-mist-dark"
+                    ? "bg-white/90 text-seccion-900 dark:bg-acento-azul-dark dark:text-mist-dark"
                     : activo
                       ? "bg-white text-acento-azul ring-4 ring-white/25 dark:bg-acento-azul-dark dark:text-mist-dark dark:ring-acento-azul-dark/25"
                       : "bg-white/10 text-white/70 ring-1 ring-white/30 dark:bg-surface-dark dark:text-ink-dark/40 dark:ring-border-dark"
@@ -958,7 +958,7 @@ function EncabezadoSeccion({ numero, titulo, subtitulo }: { numero: number; titu
         {numero}
       </span>
       <div>
-        <h2 className="m-0 font-display text-[15px] font-semibold text-teal-900 dark:text-ink-dark">{titulo}</h2>
+        <h2 className="m-0 font-display text-[15px] font-semibold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
         <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">{subtitulo}</p>
       </div>
     </div>

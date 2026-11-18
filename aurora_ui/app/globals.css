@@ -55,8 +55,9 @@
      un neutro junto a los 4 acentos de sección y ya no se confunde con el
      teal de "Estudiantes". Texto blanco a 8.1:1 (el teal-600 daba 5.3:1).
      En oscuro los botones siguen usando teal-accent-dark. */
-  --color-accion: #0F5A4F;
-  --color-accion-hover: #0B3D34;
+  /* (2026-11-17) --color-accion/--color-accion-hover pasaron al bloque
+     "@theme inline" del final: toman el tono de la sección. En teal son
+     los mismos #0F5A4F / #0B3D34 de siempre. */
 
   --color-acento-azul: #2A78D6;
   --color-acento-azul-dark: #5598E7;
@@ -64,6 +65,14 @@
   --color-acento-violeta-dark: #B86CC6;
   --color-acento-pizarra: #4F6475;
   --color-acento-pizarra-dark: #9AACBA;
+
+  /* 🆕 (2026-11-17, plan de UX fase 2) Tono profundo de cada acento, para
+     que la franja del encabezado vaya del oscuro al claro DEL MISMO color
+     (antes todas arrancaban en teal-900 y mezclaban dos colores). */
+  --color-acento-azul-900: #12345E;
+  --color-acento-violeta-900: #4A1F52;
+  --color-acento-pizarra-900: #24313B;
+  --color-amber-900: #5C3D0A;
 
   --font-display: "Space Grotesk", sans-serif;
   --font-body: "Inter", sans-serif;
@@ -138,4 +147,47 @@ h1, h2, h3, h4 {
 @media (prefers-reduced-motion: reduce) {
   .animar-aparecer { animation: none; }
   [class*="animate-[deslizar"] { animation: none; }
+}
+
+/* 🆕 (2026-11-17, plan de UX fase 2) "Una pantalla, un color" — tonos de la
+   SECCIÓN en la que se está. ShellEducativo pone <html data-seccion="…">
+   según la ruta (lib/acentos.ts, ACENTO_POR_RUTA); sin atributo (login,
+   examen, /master) vale el teal de marca, así que usar estas clases fuera
+   del área educativa es seguro.
+   - seccion-900: títulos y énfasis · seccion-700: enlaces y texto de acento
+   - seccion-600: base (chips sólidos, seleccionado) · seccion-400: bordes,
+     anillos de foco · seccion-50/100/200: fondos suaves
+   - seccion-claro: el acento en modo oscuro
+   - accion/accion-hover: botón primario (texto blanco ≥ 4.5:1 en todos).
+   Teal reproduce exactamente los valores de antes, así que las pantallas
+   de Estudiantes e Inicio no cambian. El ámbar NO es una sección (ni
+   siquiera Casos en riesgo, que es azul como su grupo): sigue reservado a
+   las cifras y marcas de riesgo clínico. */
+@theme inline {
+  --color-seccion-900: var(--sec-900);
+  --color-seccion-700: var(--sec-700);
+  --color-seccion-600: var(--sec-600);
+  --color-seccion-400: var(--sec-400);
+  --color-seccion-200: color-mix(in oklab, var(--sec-600) 30%, white);
+  --color-seccion-100: color-mix(in oklab, var(--sec-600) 16%, white);
+  --color-seccion-50: color-mix(in oklab, var(--sec-600) 7%, white);
+  --color-seccion-claro: var(--sec-claro);
+  --color-accion: var(--sec-accion);
+  --color-accion-hover: var(--sec-accion-hover);
+}
+:root {
+  --sec-900: #0B3D34; --sec-700: #0F766E; --sec-600: #12796B; --sec-400: #35A794;
+  --sec-claro: #2FB49D; --sec-accion: #0F5A4F; --sec-accion-hover: #0B3D34;
+}
+:root[data-seccion="azul"] {
+  --sec-900: #12345E; --sec-700: #1F5DAA; --sec-600: #2A78D6; --sec-400: #6FA4E6;
+  --sec-claro: #5598E7; --sec-accion: #1F5DAA; --sec-accion-hover: #17487F;
+}
+:root[data-seccion="violeta"] {
+  --sec-900: #4A1F52; --sec-700: #7E3A8A; --sec-600: #A24FB0; --sec-400: #C68ACF;
+  --sec-claro: #B86CC6; --sec-accion: #7E3A8A; --sec-accion-hover: #63296D;
+}
+:root[data-seccion="pizarra"] {
+  --sec-900: #24313B; --sec-700: #3E505E; --sec-600: #4F6475; --sec-400: #8A9DAC;
+  --sec-claro: #9AACBA; --sec-accion: #3E505E; --sec-accion-hover: #2E3C47;
 }

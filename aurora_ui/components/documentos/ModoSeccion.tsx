@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { ClipboardCheck, PenLine, Printer, Wand2 } from "lucide-react";
-import { ACENTOS, type Acento } from "@/lib/acentos";
+import { ACENTOS } from "@/lib/acentos";
 import { INFO_MODO, MODO_TIPO_SECCION, type ModoSeccion } from "@/lib/documentos-constantes";
 import type { TipoSeccionDocumento } from "@/types/api";
 
@@ -9,19 +9,30 @@ import type { TipoSeccionDocumento } from "@/types/api";
 // mismo color, mismo ícono, misma frase. Ámbar NO se usa aquí: en AuroraSoft
 // es solo riesgo clínico (docs/frontend.md).
 
-export const ESTILO_MODO: Record<ModoSeccion, { acento: Acento; icono: LucideIcon }> = {
-  escribes: { acento: "violeta", icono: PenLine },
-  eliges: { acento: "azul", icono: ClipboardCheck },
-  automatica: { acento: "pizarra", icono: Wand2 },
-  imprimir: { acento: "teal", icono: Printer },
+// 🆕 (2026-11-17, plan de UX fase 2) "Una pantalla, un color": los 4 modos
+// van en TONOS del violeta de Documentos (antes violeta, azul, pizarra y
+// teal en la misma pantalla). Los distinguen el ícono, la palabra y el
+// relleno: sólido = lo escribes tú, suave = eliges, contorno = se imprime en
+// blanco, gris = sale solo (lo que menos atención pide).
+export const ESTILO_MODO: Record<ModoSeccion, { clase: string; icono: LucideIcon }> = {
+  escribes: {
+    clase: "bg-acento-violeta text-white dark:bg-acento-violeta-dark dark:text-mist-dark",
+    icono: PenLine,
+  },
+  eliges: { clase: ACENTOS.violeta.chip, icono: ClipboardCheck },
+  automatica: { clase: "bg-ink/[0.06] text-ink/60 dark:bg-white/[0.06] dark:text-ink-dark/60", icono: Wand2 },
+  imprimir: {
+    clase: "border border-acento-violeta/50 text-acento-violeta dark:border-acento-violeta-dark/50 dark:text-acento-violeta-dark",
+    icono: Printer,
+  },
 };
 
 export function ChipModo({ modo, tipo, className = "" }: { modo?: ModoSeccion; tipo?: TipoSeccionDocumento; className?: string }) {
   const m = modo ?? (tipo ? MODO_TIPO_SECCION[tipo] : "escribes");
-  const { acento, icono: Icono } = ESTILO_MODO[m];
+  const { clase, icono: Icono } = ESTILO_MODO[m];
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold whitespace-nowrap ${ACENTOS[acento].chip} ${className}`}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold whitespace-nowrap ${clase} ${className}`}
     >
       <Icono size={11} aria-hidden="true" />
       {INFO_MODO[m].etiqueta}
@@ -64,7 +75,7 @@ export function MiniaturaSeccion({ tipo, className = "" }: { tipo: TipoSeccionDo
     case "encabezado":
       dibujo = (
         <div className="flex items-center gap-2">
-          <span className="h-6 w-6 rounded bg-acento-pizarra/25" />
+          <span className="h-6 w-6 rounded bg-acento-violeta/20" />
           <div className="flex-1 space-y-1">
             <Linea w="70%" oscura />
             <Linea w="45%" />
@@ -124,7 +135,7 @@ export function MiniaturaSeccion({ tipo, className = "" }: { tipo: TipoSeccionDo
           {(tipo === "resultados_prueba" ? [1] : [1, 2]).map((i) => (
             <div key={i} className="flex items-center gap-1.5">
               <Linea w="30%" />
-              <span className="h-2 w-10 rounded-sm bg-acento-azul/40" />
+              <span className="h-2 w-10 rounded-sm bg-acento-violeta/35" />
               <Linea w="25%" />
             </div>
           ))}
@@ -135,7 +146,7 @@ export function MiniaturaSeccion({ tipo, className = "" }: { tipo: TipoSeccionDo
       dibujo = (
         <div className="flex h-8 items-end gap-1.5 border-b border-l border-ink/25 pl-1 dark:border-ink-dark/30">
           {[60, 85, 40, 70].map((h, i) => (
-            <span key={i} className="w-3 rounded-t-sm bg-acento-azul/45" style={{ height: `${h}%` }} />
+            <span key={i} className="w-3 rounded-t-sm bg-acento-violeta/40" style={{ height: `${h}%` }} />
           ))}
         </div>
       );

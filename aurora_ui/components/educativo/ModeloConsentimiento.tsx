@@ -28,7 +28,7 @@ function TextoConMarcadores({ texto }: { texto: string }) {
     <>
       {partes.map((p, i) =>
         /^\{\{/.test(p) ? (
-          <span key={i} className="rounded bg-teal-600/10 dark:bg-teal-accent-dark/15 px-1 font-mono text-[12px] text-teal-800 dark:text-teal-accent-dark">
+          <span key={i} className="rounded bg-seccion-600/10 dark:bg-seccion-claro/15 px-1 font-mono text-[12px] text-seccion-900 dark:text-seccion-claro">
             {p}
           </span>
         ) : (
@@ -100,7 +100,7 @@ export function ModeloConsentimiento({
       <p className="m-0 flex items-center gap-1.5 text-[12px] text-ink/50 dark:text-ink-dark/50">
         <FileText size={13} aria-hidden="true" />
         Tu colegio todavía no configuró el modelo de {tipo === "apoderado" ? "consentimiento" : "asentimiento"}.{" "}
-        <Link href="/asentimiento" className="font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline">
+        <Link href="/asentimiento" className="font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
           Configurarlo
         </Link>
       </p>
@@ -114,7 +114,7 @@ export function ModeloConsentimiento({
           type="button"
           onClick={() => setAbierto((v) => !v)}
           aria-expanded={abierto}
-          className="flex items-center gap-1.5 text-xs text-ink/70 dark:text-ink-dark/70 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+          className="flex items-center gap-1.5 text-xs text-ink/70 dark:text-ink-dark/70 hover:text-seccion-700 dark:hover:text-seccion-claro"
         >
           <ChevronDown size={13} aria-hidden="true" className={`transition-transform ${abierto ? "rotate-180" : ""}`} />
           <FileText size={13} aria-hidden="true" />
@@ -126,7 +126,7 @@ export function ModeloConsentimiento({
           type="button"
           onClick={descargarPdf}
           disabled={descargando}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2.5 py-1 text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:border-teal-400 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-2.5 py-1 text-xs font-semibold text-seccion-700 dark:text-seccion-claro hover:border-seccion-400 disabled:opacity-50"
         >
           <FileDown size={13} aria-hidden="true" />
           {descargando ? "Generando…" : "PDF para firmar"}

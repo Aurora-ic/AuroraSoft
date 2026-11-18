@@ -160,7 +160,7 @@ function CasosRiesgoPageContenido() {
         />
         <TarjetaKpi
           icono={Stethoscope}
-          tono="pizarra"
+          tono="azul"
           etiqueta="Seguimiento"
           valor={cargando ? "…" : conteo("seguimiento")}
           detalle="antecedentes"
@@ -187,7 +187,7 @@ function CasosRiesgoPageContenido() {
             placeholder="Buscar alumno…"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+            className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400"
           />
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -322,7 +322,7 @@ function TarjetaCaso({
         <div className="min-w-0 flex-1">
           <Link
             href={`/estudiantes/${caso.persona_id}`}
-            className="block text-[14px] font-bold text-ink dark:text-ink-dark hover:text-teal-700 dark:hover:text-teal-accent-dark truncate"
+            className="block text-[14px] font-bold text-ink dark:text-ink-dark hover:text-seccion-700 dark:hover:text-seccion-claro truncate"
           >
             {caso.nombre_completo}
           </Link>
@@ -422,7 +422,7 @@ function TarjetaCaso({
             value={motivo}
             onChange={(e) => setMotivo(e.target.value)}
             placeholder="Ej.: síntomas remitidos tras la intervención; alta en terapia externa…"
-            className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+            className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400"
           />
           <div className="flex items-center justify-end gap-3">
             <button type="button" onClick={() => setCerrando(false)} className="text-[12.5px] text-ink/60 dark:text-ink-dark/60 hover:underline">
@@ -431,7 +431,7 @@ function TarjetaCaso({
             <button
               type="submit"
               disabled={guardando || motivo.trim().length < 3}
-              className="rounded-card bg-accion px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-accion-hover disabled:opacity-40 dark:bg-teal-accent-dark dark:text-mist-dark"
+              className="rounded-card bg-accion px-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-accion-hover disabled:opacity-40 dark:bg-seccion-claro dark:text-mist-dark"
             >
               {guardando ? "Cerrando…" : "Cerrar caso"}
             </button>
@@ -454,21 +454,21 @@ function TarjetaCaso({
           type="button"
           onClick={() => setVerHistorial((v) => !v)}
           aria-expanded={verHistorial}
-          className="mr-auto inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+          className="mr-auto inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
         >
           <History size={14} aria-hidden="true" />
           {verHistorial ? "Ocultar historial" : "Historial"}
         </button>
         <Link
           href={`/estudiantes/${caso.persona_id}/seguimiento/nuevo`}
-          className="inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-teal-700 dark:hover:text-teal-accent-dark"
+          className="inline-flex items-center gap-1.5 text-ink/60 dark:text-ink-dark/60 hover:text-seccion-700 dark:hover:text-seccion-claro"
         >
           <HeartHandshake size={14} aria-hidden="true" />
           Registrar seguimiento
         </Link>
         <Link
           href={`/estudiantes/${caso.persona_id}`}
-          className="inline-flex items-center gap-1 text-teal-700 dark:text-teal-accent-dark hover:underline"
+          className="inline-flex items-center gap-1 text-seccion-700 dark:text-seccion-claro hover:underline"
         >
           Ver ficha
           <ArrowRight size={13} aria-hidden="true" />

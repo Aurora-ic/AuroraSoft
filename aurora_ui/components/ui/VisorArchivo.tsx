@@ -192,14 +192,14 @@ export function VisorArchivoModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border dark:border-border-dark px-4 py-3 gap-3">
-          <span className="text-sm font-semibold text-teal-900 dark:text-ink-dark truncate">
+          <span className="text-sm font-semibold text-seccion-900 dark:text-ink-dark truncate">
             {titulo || archivo?.nombreArchivo || "Vista previa"}
           </span>
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={() => archivo && descargar(archivo.blob, archivo.nombreArchivo)}
               disabled={!archivo}
-              className="text-xs text-teal-600 dark:text-teal-accent-dark hover:underline font-medium disabled:opacity-40"
+              className="text-xs text-seccion-600 dark:text-seccion-claro hover:underline font-medium disabled:opacity-40"
             >
               Descargar
             </button>

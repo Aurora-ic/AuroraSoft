@@ -9,7 +9,7 @@ import type { ComponentProps } from "react";
 export function Textarea({ className = "", ...props }: ComponentProps<"textarea">) {
   return (
     <textarea
-      className={`rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-teal-accent-dark ${className}`}
+      className={`rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400 dark:focus:ring-seccion-claro ${className}`}
       {...props}
     />
   );

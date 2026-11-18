@@ -2,7 +2,7 @@ import type { InputHTMLAttributes } from "react";
 
 // Fase 6 del plan de remodelación — la cadena de clases
 // "rounded-card border border-border px-3 py-2 text-sm focus:outline-none
-// focus:ring-2 focus:ring-teal-400" está pegada a mano en 50+ <input>/
+// focus:ring-2 focus:ring-seccion-400" está pegada a mano en 50+ <input>/
 // <select> de este proyecto (ver también Select.tsx). Envolver <input> una
 // vez no cambia ningún comportamiento ni estilo, solo deja de repetir la
 // cadena — se adopta en código NUEVO primero; el código ya escrito se
@@ -10,7 +10,7 @@ import type { InputHTMLAttributes } from "react";
 export function Input({ className = "", ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
-      className={`rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 dark:focus:ring-teal-accent-dark ${className}`}
+      className={`rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400 dark:focus:ring-seccion-claro ${className}`}
       {...props}
     />
   );

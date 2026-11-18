@@ -1,8 +1,8 @@
 export type TonoBadge = "teal" | "teal-suave" | "neutro" | "error" | "riesgo";
 
 const CLASES_TONO: Record<TonoBadge, string> = {
-  teal: "bg-teal-600/10 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark",
-  "teal-suave": "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/10 dark:text-teal-accent-dark",
+  teal: "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro",
+  "teal-suave": "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/10 dark:text-seccion-claro",
   neutro: "bg-border text-ink/60 dark:bg-border-dark dark:text-ink-dark/60",
   error: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300",
   // Único tono cálido del sistema — resérvalo para una alerta de riesgo

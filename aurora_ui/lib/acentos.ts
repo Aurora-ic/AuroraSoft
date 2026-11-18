@@ -4,8 +4,13 @@
 // Reglas de uso (para que el color sume orden y no ruido):
 // - El acento va en el ÍCONO y su "chip", y como mucho en una franja o
 //   degradado de encabezado. Nunca en fondos de tarjeta completos, nunca en
-//   texto de lectura, nunca en botones primarios (esos siguen en teal de
-//   marca en toda la app: una acción se ve igual en cualquier sección).
+//   texto de lectura.
+// - 🆕 (2026-11-17, plan de UX fase 2) "Una pantalla, un color": una
+//   pantalla usa SOLO el acento de su sección, en distintos tonos (el
+//   degradado va del tono profundo al base del mismo color, y botones,
+//   enlaces y seleccionados toman la sección vía `seccion-*`/`accion`, ver
+//   app/globals.css). Un bloque que trae datos de otra sección NO toma el
+//   color de esa otra sección. Antes los botones eran teal en toda la app.
 // - "riesgo" (ámbar) NO es un acento de sección: es semántico, solo para
 //   pantallas/cifras de alerta clínica real.
 // - Clases escritas completas (no armadas con template strings) para que
@@ -56,7 +61,7 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     chip: "bg-acento-azul/10 text-acento-azul dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark",
     chipOscuro: "dark:bg-acento-azul-dark/15 dark:text-acento-azul-dark",
     texto: "text-acento-azul dark:text-acento-azul-dark",
-    degradado: "from-teal-900 to-acento-azul",
+    degradado: "from-acento-azul-900 to-acento-azul",
     solido: "bg-acento-azul dark:bg-acento-azul-dark",
     borde: "border-l-acento-azul dark:border-l-acento-azul-dark",
     fondo: "bg-acento-azul/[0.07] border-acento-azul/20 dark:bg-acento-azul-dark/[0.07] dark:border-acento-azul-dark/25",
@@ -68,7 +73,7 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     chip: "bg-acento-violeta/10 text-acento-violeta dark:bg-acento-violeta-dark/15 dark:text-acento-violeta-dark",
     chipOscuro: "dark:bg-acento-violeta-dark/15 dark:text-acento-violeta-dark",
     texto: "text-acento-violeta dark:text-acento-violeta-dark",
-    degradado: "from-teal-900 to-acento-violeta",
+    degradado: "from-acento-violeta-900 to-acento-violeta",
     solido: "bg-acento-violeta dark:bg-acento-violeta-dark",
     borde: "border-l-acento-violeta dark:border-l-acento-violeta-dark",
     fondo: "bg-acento-violeta/[0.07] border-acento-violeta/20 dark:bg-acento-violeta-dark/[0.07] dark:border-acento-violeta-dark/25",
@@ -80,7 +85,7 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     chip: "bg-acento-pizarra/10 text-acento-pizarra dark:bg-acento-pizarra-dark/15 dark:text-acento-pizarra-dark",
     chipOscuro: "dark:bg-acento-pizarra-dark/15 dark:text-acento-pizarra-dark",
     texto: "text-acento-pizarra dark:text-acento-pizarra-dark",
-    degradado: "from-teal-900 to-acento-pizarra",
+    degradado: "from-acento-pizarra-900 to-acento-pizarra",
     solido: "bg-acento-pizarra dark:bg-acento-pizarra-dark",
     borde: "border-l-acento-pizarra dark:border-l-acento-pizarra-dark",
     fondo: "bg-acento-pizarra/[0.08] border-acento-pizarra/20 dark:bg-acento-pizarra-dark/[0.08] dark:border-acento-pizarra-dark/25",
@@ -92,7 +97,7 @@ export const ACENTOS: Record<Acento, ClasesAcento> = {
     chip: "bg-amber/15 text-amber",
     chipOscuro: "dark:bg-amber/15 dark:text-amber",
     texto: "text-amber-700 dark:text-amber",
-    degradado: "from-teal-900 to-amber",
+    degradado: "from-amber-900 to-amber",
     solido: "bg-amber",
     borde: "border-l-amber",
     fondo: "bg-amber/[0.09] border-amber/30 dark:bg-amber/[0.07] dark:border-amber/25",
@@ -108,9 +113,18 @@ export const ACENTO_POR_RUTA: Record<string, Acento> = {
   "/academico": "teal",
   "/campanas": "azul",
   "/pruebas": "azul",
-  "/casos-riesgo": "riesgo",
+  // 🆕 (2026-11-17) Azul, el de su grupo (Evaluación): el ámbar NO es un
+  // acento de sección (ver arriba). Antes figuraba "riesgo" aquí aunque la
+  // pantalla ya pintaba su encabezado en azul.
+  "/casos-riesgo": "azul",
   "/documentos": "violeta",
   "/asentimiento": "violeta",
   "/agenda": "pizarra",
   "/configuracion": "pizarra",
 };
+
+/** Acento de la sección de una ruta (Inicio y rutas sin sección: teal). */
+export function acentoDeRuta(pathname: string | null | undefined): Acento {
+  const ruta = Object.keys(ACENTO_POR_RUTA).find((r) => pathname?.startsWith(r));
+  return ruta ? ACENTO_POR_RUTA[ruta] : "teal";
+}

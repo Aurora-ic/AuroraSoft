@@ -126,7 +126,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
       >
         <div className="flex items-center justify-between gap-3 px-6 py-5 border-b border-border dark:border-border-dark">
           <h2 className="font-display text-[17px] font-bold text-ink dark:text-ink-dark flex items-center gap-2">
-            <HelpCircle size={19} strokeWidth={2} className="text-teal-600 dark:text-teal-accent-dark" aria-hidden="true" />
+            <HelpCircle size={19} strokeWidth={2} className="text-seccion-600 dark:text-seccion-claro" aria-hidden="true" />
             Centro de ayuda
           </h2>
           <button

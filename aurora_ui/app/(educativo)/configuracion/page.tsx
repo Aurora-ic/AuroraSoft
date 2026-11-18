@@ -190,7 +190,7 @@ export default function ConfiguracionPage() {
               <span
                 aria-hidden="true"
                 className={`h-2 w-2 rounded-full ${
-                  estadoLicencia.tono === "error" ? "bg-red-400" : estadoLicencia.tono === "teal" ? "bg-teal-400" : "bg-white/60"
+                  estadoLicencia.tono === "error" ? "bg-red-400" : estadoLicencia.tono === "teal" ? "bg-seccion-400" : "bg-white/60"
                 }`}
               />
               {estadoLicencia.texto}
@@ -239,7 +239,7 @@ export default function ConfiguracionPage() {
             <div className="flex items-end justify-between gap-3 flex-wrap">
               <div>
                 <p className="m-0 text-[12px] font-semibold uppercase tracking-wide text-ink/45 dark:text-ink-dark/45">Actual</p>
-                <p className="m-0 font-display text-[28px] font-bold leading-none text-teal-900 dark:text-ink-dark">
+                <p className="m-0 font-display text-[28px] font-bold leading-none text-seccion-900 dark:text-ink-dark">
                   {institucion.anio_escolar_activo ?? <span className="text-base text-ink/40 dark:text-ink-dark/40">No configurado</span>}
                 </p>
               </div>
@@ -290,7 +290,7 @@ export default function ConfiguracionPage() {
                 onClick={() => alternarPolitica(!institucion.exigir_asentimiento_estudiante)}
                 className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   institucion.exigir_asentimiento_estudiante
-                    ? "bg-teal-600 dark:bg-teal-accent-dark"
+                    ? "bg-seccion-600 dark:bg-seccion-claro"
                     : "bg-border dark:bg-border-dark"
                 }`}
               >
@@ -353,7 +353,7 @@ export default function ConfiguracionPage() {
                       />
                       <label
                         htmlFor={idInput}
-                        className={`mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-border dark:border-border-dark px-3 py-1.5 text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:border-teal-400 transition-colors ${
+                        className={`mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-border dark:border-border-dark px-3 py-1.5 text-xs font-semibold text-seccion-700 dark:text-seccion-claro hover:border-seccion-400 transition-colors ${
                           subiendoBranding === tipo ? "opacity-50 pointer-events-none" : "cursor-pointer"
                         }`}
                       >

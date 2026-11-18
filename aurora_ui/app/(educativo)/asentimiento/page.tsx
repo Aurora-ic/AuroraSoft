@@ -270,11 +270,11 @@ function ConsentimientoYAsentimientoPageContenido() {
                   aria-current={seleccionado ? "true" : undefined}
                   className={`w-full text-left flex items-center gap-2.5 rounded-lg px-2.5 py-2 transition-colors ${
                     seleccionado
-                      ? "bg-teal-600/[0.08] ring-1 ring-teal-600/40 dark:bg-teal-accent-dark/10 dark:ring-teal-accent-dark/40"
+                      ? "bg-seccion-600/[0.08] ring-1 ring-seccion-600/40 dark:bg-seccion-claro/10 dark:ring-seccion-claro/40"
                       : "hover:bg-mist dark:hover:bg-surface-raised-dark"
                   } ${!esGeneral ? "ml-3 w-[calc(100%-0.75rem)]" : ""}`}
                 >
-                  <Icono size={15} className="shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+                  <Icono size={15} className="shrink-0 text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13px] font-semibold text-ink dark:text-ink-dark">{nombre}</span>
                     <span className="block text-[12px] text-ink/50 dark:text-ink-dark/50">
@@ -283,7 +283,7 @@ function ConsentimientoYAsentimientoPageContenido() {
                   </span>
                   <span
                     aria-hidden="true"
-                    className={`h-2 w-2 shrink-0 rounded-full ${activa ? "bg-teal-600 dark:bg-teal-accent-dark" : "bg-border dark:bg-border-dark"}`}
+                    className={`h-2 w-2 shrink-0 rounded-full ${activa ? "bg-seccion-600 dark:bg-seccion-claro" : "bg-border dark:bg-border-dark"}`}
                   />
                 </button>
               );
@@ -299,7 +299,7 @@ function ConsentimientoYAsentimientoPageContenido() {
           <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden min-w-0">
             <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark">
               <div className="min-w-0">
-                <h2 className="m-0 text-[15px] font-bold text-teal-900 dark:text-ink-dark">
+                <h2 className="m-0 text-[15px] font-bold text-seccion-900 dark:text-ink-dark">
                   {INFO_TIPO[tipo].titulo} — {nombreAmbito}
                 </h2>
                 <p className="m-0 text-[12px] text-ink/55 dark:text-ink-dark/55">
@@ -315,7 +315,7 @@ function ConsentimientoYAsentimientoPageContenido() {
               <span
                 className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${
                   activaAmbito
-                    ? "bg-teal-600/10 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                    ? "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
                     : "bg-border text-ink/60 dark:bg-border-dark dark:text-ink-dark/60"
                 }`}
               >
@@ -334,7 +334,7 @@ function ConsentimientoYAsentimientoPageContenido() {
                     type="button"
                     title={m.descripcion}
                     onClick={() => insertarMarcador(m.clave)}
-                    className="rounded-md border border-border dark:border-border-dark px-2 py-0.5 font-mono text-[12px] text-teal-800 dark:text-teal-accent-dark hover:border-teal-400 hover:bg-teal-600/5"
+                    className="rounded-md border border-border dark:border-border-dark px-2 py-0.5 font-mono text-[12px] text-seccion-900 dark:text-seccion-claro hover:border-seccion-400 hover:bg-seccion-600/5"
                   >
                     {`{{${m.clave}}}`}
                   </button>
@@ -392,7 +392,7 @@ function ConsentimientoYAsentimientoPageContenido() {
                           <span className="font-semibold text-ink dark:text-ink-dark">
                             v{v.version}{" "}
                             {v.activo && (
-                              <span className="ml-1 rounded-full bg-teal-600/10 px-2 py-0.5 text-[11.5px] font-semibold text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                              <span className="ml-1 rounded-full bg-seccion-600/10 px-2 py-0.5 text-[11.5px] font-semibold text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro">
                                 activa
                               </span>
                             )}

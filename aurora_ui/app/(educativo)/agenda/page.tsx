@@ -106,27 +106,27 @@ function idsQueSeCruzan(citasDelDia: Cita[]): Set<number> {
 const DURACIONES_RAPIDAS = [30, 45, 60, 90];
 
 // --- Codificación visual por tipo de evento ---
-// 🆕 Agenda tipo calendario (sesión 2026-10-30). Dos colores validados con
-// el validador de paleta (daltonismo/visión normal/contraste, claro y
-// oscuro): teal = cita individual, azul = actividad grupal. El tipo de
-// actividad (Taller/Charla/Reunión/Otro) va por ícono + etiqueta, nunca por
-// un tercer/cuarto color — con 4 tonos fríos no hubo combinación que
-// pasara la separación para daltonismo. El ámbar sigue reservado para
-// alerta clínica: nada de esta pantalla lo usa.
+// 🆕 Agenda tipo calendario (sesión 2026-10-30). El tipo de actividad
+// (Taller/Charla/Reunión/Otro) va por ícono + etiqueta, nunca por color.
+// 🆕 (2026-11-17, plan de UX fase 2, "una pantalla, un color") Individual y
+// grupal ya no son teal frente a azul: dos TONOS del pizarra de Gestión —
+// individual en el tono profundo con borde continuo, grupal en el tono
+// claro con borde DISCONTINUO —, además de su ícono (persona / grupo). El
+// ámbar sigue reservado para alerta clínica: nada de esta pantalla lo usa.
 type Categoria = "individual" | "grupal";
 
 const ESTILO_CATEGORIA: Record<Categoria, { borde: string; texto: string; fondo: string; muestra: string }> = {
   individual: {
-    borde: "border-l-teal-600 dark:border-l-teal-accent-dark",
-    texto: "text-teal-700 dark:text-teal-accent-dark",
-    fondo: "bg-teal-600/[0.05] dark:bg-teal-accent-dark/[0.07]",
-    muestra: "bg-teal-600 dark:bg-teal-accent-dark",
+    borde: "border-l-seccion-700 dark:border-l-seccion-claro",
+    texto: "text-seccion-900 dark:text-seccion-claro",
+    fondo: "bg-seccion-600/[0.09] dark:bg-seccion-claro/[0.1]",
+    muestra: "bg-seccion-700 dark:bg-seccion-claro",
   },
   grupal: {
-    borde: "border-l-[#2a78d6] dark:border-l-[#5598e7]",
-    texto: "text-[#1f63b8] dark:text-[#5598e7]",
-    fondo: "bg-[#2a78d6]/[0.06] dark:bg-[#5598e7]/[0.08]",
-    muestra: "bg-[#2a78d6] dark:bg-[#5598e7]",
+    borde: "border-l-seccion-400 border-dashed dark:border-l-seccion-400",
+    texto: "text-seccion-700 dark:text-seccion-400",
+    fondo: "bg-seccion-400/[0.07] dark:bg-seccion-400/[0.06]",
+    muestra: "bg-seccion-400 dark:bg-seccion-400",
   },
 };
 
@@ -384,7 +384,7 @@ export default function AgendaPage() {
   const claseNav =
     "inline-flex items-center justify-center rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark transition-colors disabled:opacity-40";
   const claseInputCompacto =
-    "w-full rounded border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-teal-400";
+    "w-full rounded border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark px-1.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-seccion-400";
 
   const rangoSemana = `${inicioSemanaVisible.toLocaleDateString("es-PE", { day: "numeric", month: "short" })} → ${finSemana.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}`;
 
@@ -459,13 +459,13 @@ export default function AgendaPage() {
                       onClick={() => irAFecha(d)}
                       aria-label={d.toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
                       className={`relative h-8 text-[12px] transition-colors ${
-                        enSemana ? "bg-teal-600/[0.08] dark:bg-teal-accent-dark/10" : "rounded-lg hover:bg-mist dark:hover:bg-surface-raised-dark"
+                        enSemana ? "bg-seccion-600/[0.08] dark:bg-seccion-claro/10" : "rounded-lg hover:bg-mist dark:hover:bg-surface-raised-dark"
                       } ${enSemana && d.getDay() === 1 ? "rounded-l-lg" : ""} ${enSemana && d.getDay() === 0 ? "rounded-r-lg" : ""}`}
                     >
                       <span
                         className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${
                           esHoy
-                            ? "bg-accion text-white font-bold dark:bg-teal-accent-dark dark:text-mist-dark"
+                            ? "bg-accion text-white font-bold dark:bg-seccion-claro dark:text-mist-dark"
                             : enMes
                               ? "text-ink dark:text-ink-dark"
                               : "text-ink/25 dark:text-ink-dark/25"
@@ -474,7 +474,7 @@ export default function AgendaPage() {
                         {d.getDate()}
                       </span>
                       {tieneCitas && !esHoy && (
-                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-teal-600 dark:bg-teal-accent-dark" />
+                        <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-seccion-600 dark:bg-seccion-claro" />
                       )}
                     </button>
                   );
@@ -495,7 +495,7 @@ export default function AgendaPage() {
                     aria-hidden="true"
                     className={`flex h-4 w-4 items-center justify-center rounded ${
                       f.valor ? ESTILO_CATEGORIA[f.cat].muestra : "border border-border dark:border-border-dark"
-                    } peer-focus-visible:ring-2 peer-focus-visible:ring-teal-400`}
+                    } peer-focus-visible:ring-2 peer-focus-visible:ring-seccion-400`}
                   >
                     {f.valor && <span className="block h-1.5 w-1.5 rounded-sm bg-white" />}
                   </span>
@@ -522,7 +522,7 @@ export default function AgendaPage() {
                 placeholder="Nombre o documento…"
                 value={busquedaCita}
                 onChange={(e) => setBusquedaCita(e.target.value)}
-                className="w-full rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 focus:outline-none focus:ring-2 focus:ring-teal-400"
+                className="w-full rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 focus:outline-none focus:ring-2 focus:ring-seccion-400"
               />
             </div>
             {errorPersonas && <p className="m-0 mt-2 text-[12px] text-red-700 dark:text-red-300">{errorPersonas}</p>}
@@ -533,9 +533,9 @@ export default function AgendaPage() {
                     <button
                       type="button"
                       onClick={() => abrirModal({ modo: "individual", persona: p })}
-                      className="group w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-teal-600/[0.07] dark:hover:bg-teal-accent-dark/10"
+                      className="group w-full text-left flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-seccion-600/[0.07] dark:hover:bg-seccion-claro/10"
                     >
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-600/10 text-[11.5px] font-bold text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-seccion-600/10 text-[11.5px] font-bold text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro">
                         {`${p.nombres[0] ?? ""}${p.apellidos[0] ?? ""}`.toUpperCase()}
                       </span>
                       <span className="min-w-0 flex-1">
@@ -548,7 +548,7 @@ export default function AgendaPage() {
                             : "Sin matrícula"}
                         </span>
                       </span>
-                      <CalendarPlus size={14} aria-hidden="true" className="shrink-0 text-ink/30 group-hover:text-teal-700 dark:group-hover:text-teal-accent-dark" />
+                      <CalendarPlus size={14} aria-hidden="true" className="shrink-0 text-ink/30 group-hover:text-seccion-700 dark:group-hover:text-seccion-claro" />
                     </button>
                   </li>
                 ))}
@@ -607,7 +607,7 @@ export default function AgendaPage() {
         <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden min-w-0">
           <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark">
             <div className="min-w-0">
-              <p className="m-0 text-[15px] font-semibold text-teal-700 dark:text-teal-accent-dark">{rangoSemana}</p>
+              <p className="m-0 text-[15px] font-semibold text-seccion-700 dark:text-seccion-claro">{rangoSemana}</p>
               <p className="m-0 text-[12px] text-ink/50 dark:text-ink-dark/50">
                 Citas individuales: búscalas en el panel lateral o desde la ficha del alumno. Talleres y charlas los ve todo tu equipo.
               </p>
@@ -644,7 +644,7 @@ export default function AgendaPage() {
                     key={dia.getTime()}
                     className={`group/dia relative flex min-w-0 flex-col border-b md:border-b-0 border-border dark:border-border-dark md:min-h-[30rem] ${
                       esHoy
-                        ? "bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05]"
+                        ? "bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05]"
                         : esFinDeSemana
                           ? "bg-mist/40 dark:bg-surface-raised-dark/50"
                           : ""
@@ -654,14 +654,14 @@ export default function AgendaPage() {
                     <div className="flex items-center gap-3 md:flex-col md:gap-0 px-3 py-2.5 md:py-4">
                       <span
                         className={`font-display text-[26px] md:text-[34px] font-bold leading-none ${
-                          esHoy ? "text-teal-600 dark:text-teal-accent-dark" : "text-ink/30 dark:text-ink-dark/30"
+                          esHoy ? "text-seccion-600 dark:text-seccion-claro" : "text-ink/30 dark:text-ink-dark/30"
                         }`}
                       >
                         {dia.getDate()}
                       </span>
                       <span
                         className={`text-[12px] font-bold uppercase tracking-wider md:mt-1 ${
-                          esHoy ? "text-teal-700 dark:text-teal-accent-dark" : "text-ink/45 dark:text-ink-dark/45"
+                          esHoy ? "text-seccion-700 dark:text-seccion-claro" : "text-ink/45 dark:text-ink-dark/45"
                         }`}
                       >
                         <span className="md:hidden">{NOMBRES_DIA[i]}</span>
@@ -675,7 +675,7 @@ export default function AgendaPage() {
                         onClick={() => abrirModal({ modo: "grupal", fecha: fechaInputLocal(dia) })}
                         aria-label={`Nueva actividad el ${NOMBRES_DIA[i].toLowerCase()} ${dia.getDate()}`}
                         title="Nueva actividad este día"
-                        className={`${citasDelDia.length === 0 ? "" : "ml-auto"} md:ml-0 md:absolute md:top-2 md:right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink/40 dark:text-ink-dark/40 hover:bg-accion hover:text-white dark:hover:bg-teal-accent-dark dark:hover:text-mist-dark md:opacity-0 md:group-hover/dia:opacity-100 focus:opacity-100 transition-all`}
+                        className={`${citasDelDia.length === 0 ? "" : "ml-auto"} md:ml-0 md:absolute md:top-2 md:right-2 flex h-7 w-7 items-center justify-center rounded-full text-ink/40 dark:text-ink-dark/40 hover:bg-accion hover:text-white dark:hover:bg-seccion-claro dark:hover:text-mist-dark md:opacity-0 md:group-hover/dia:opacity-100 focus:opacity-100 transition-all`}
                       >
                         <Plus size={15} aria-hidden="true" />
                       </button>
@@ -722,7 +722,7 @@ export default function AgendaPage() {
                               con{" "}
                               <Link
                                 href={`/estudiantes/${cita.persona_id}`}
-                                className="font-semibold text-ink dark:text-ink-dark hover:text-teal-700 dark:hover:text-teal-accent-dark hover:underline"
+                                className="font-semibold text-ink dark:text-ink-dark hover:text-seccion-700 dark:hover:text-seccion-claro hover:underline"
                               >
                                 {cita.persona_nombre}
                               </Link>
@@ -750,7 +750,7 @@ export default function AgendaPage() {
                           )}
                           {cita.estado === "Programada" && reprogramandoId !== cita.id && (
                             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-0.5 text-[12px] font-semibold">
-                              <button onClick={() => abrirReprogramar(cita)} className="text-teal-700 dark:text-teal-accent-dark hover:underline">
+                              <button onClick={() => abrirReprogramar(cita)} className="text-seccion-700 dark:text-seccion-claro hover:underline">
                                 {esGrupal ? "Editar" : "Reprogramar"}
                               </button>
                               <button onClick={() => cancelar(cita.id)} className="text-ink/50 dark:text-ink-dark/50 hover:text-ink dark:hover:text-ink-dark hover:underline">
@@ -837,7 +837,7 @@ export default function AgendaPage() {
                                 <button
                                   type="submit"
                                   disabled={guardando}
-                                  className="rounded bg-accion dark:bg-teal-accent-dark px-2 py-1 text-white dark:text-mist-dark hover:bg-accion-hover disabled:opacity-40"
+                                  className="rounded bg-accion dark:bg-seccion-claro px-2 py-1 text-white dark:text-mist-dark hover:bg-accion-hover disabled:opacity-40"
                                 >
                                   {guardando ? "..." : "Guardar"}
                                 </button>

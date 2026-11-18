@@ -101,9 +101,9 @@ export function IndiceFicha({ grupos }: { grupos: GrupoIndice[] }) {
                 type="button"
                 onClick={() => ir(g.id)}
                 aria-current={activo === g.id ? "location" : undefined}
-                className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 ${
+                className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-seccion-400 ${
                   activo === g.id
-                    ? "bg-accion text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+                    ? "bg-accion text-white dark:bg-seccion-claro dark:text-mist-dark"
                     : "text-ink/65 hover:bg-mist hover:text-ink dark:text-ink-dark/65 dark:hover:bg-surface-raised-dark dark:hover:text-ink-dark"
                 }`}
               >

@@ -38,7 +38,7 @@ function FilaSeleccionable({
       onClick={onClick}
       className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-colors ${
         activo
-          ? "bg-teal-900 text-white dark:bg-teal-accent-dark dark:text-mist-dark"
+          ? "bg-seccion-900 text-white dark:bg-seccion-claro dark:text-mist-dark"
           : "text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark"
       }`}
     >
@@ -61,7 +61,7 @@ function BotonEditar({ onClick, etiqueta }: { onClick: () => void; etiqueta: str
       onClick={onClick}
       aria-label={etiqueta}
       title={etiqueta}
-      className="shrink-0 rounded-lg p-1.5 text-ink/35 dark:text-ink-dark/35 hover:bg-mist dark:hover:bg-surface-raised-dark hover:text-teal-700 dark:hover:text-teal-accent-dark transition-colors"
+      className="shrink-0 rounded-lg p-1.5 text-ink/35 dark:text-ink-dark/35 hover:bg-mist dark:hover:bg-surface-raised-dark hover:text-seccion-700 dark:hover:text-seccion-claro transition-colors"
     >
       <Pencil size={14} aria-hidden="true" />
     </button>
@@ -154,7 +154,7 @@ function EditorEnLinea({
         e.preventDefault();
         onGuardar();
       }}
-      className="rounded-card border border-teal-400 dark:border-teal-accent-dark bg-teal-600/[0.04] dark:bg-teal-accent-dark/5 p-3 space-y-2.5"
+      className="rounded-card border border-seccion-400 dark:border-seccion-claro bg-seccion-600/[0.04] dark:bg-seccion-claro/5 p-3 space-y-2.5"
     >
       <div className="grid grid-cols-[1fr_6rem] gap-2 text-sm">
         <CampoEditable etiqueta="Nombre">
@@ -220,14 +220,14 @@ function Columna({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
-      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08]">
+    <section className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
+      <header className="flex items-center justify-between gap-2 px-4 py-3 border-b border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08]">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600 text-white dark:bg-teal-accent-dark dark:text-mist-dark">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-seccion-600 text-white dark:bg-seccion-claro dark:text-mist-dark">
             <Icono size={16} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h2 className="m-0 text-sm font-semibold text-teal-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
+            <h2 className="m-0 text-sm font-semibold text-seccion-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
               {titulo}
               {cantidad !== null && (
                 <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[11.5px] font-bold text-ink/55 dark:text-ink-dark/60">
@@ -256,8 +256,8 @@ function Columna({
             aria-expanded={agregando}
             className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
               agregando
-                ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
-                : "border-border bg-surface text-ink/70 hover:border-teal-400 hover:text-teal-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-teal-accent-dark"
+                ? "border-accion bg-accion text-white dark:border-seccion-claro dark:bg-seccion-claro dark:text-mist-dark"
+                : "border-border bg-surface text-ink/70 hover:border-seccion-400 hover:text-seccion-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-seccion-claro"
             }`}
           >
             {agregando ? <X size={13} aria-hidden="true" /> : <Plus size={13} aria-hidden="true" />}
@@ -289,7 +289,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
           <span
             title={`${sinDx} sin diagnóstico`}
             className={`inline-flex min-w-[1.6rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11.5px] font-bold tabular-nums ${
-              activo ? "bg-white/15 text-white dark:bg-mist-dark/20 dark:text-mist-dark" : "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/10 dark:text-teal-accent-dark"
+              activo ? "bg-white/15 text-white dark:bg-mist-dark/20 dark:text-mist-dark" : "bg-seccion-600/10 text-seccion-700 dark:bg-seccion-claro/10 dark:text-seccion-claro"
             }`}
           >
             <span className="sr-only">Sin diagnóstico: </span>
@@ -303,7 +303,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
                   ? "bg-white/10 text-white/60"
                   : "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
                 : activo
-                  ? "bg-amber text-teal-900"
+                  ? "bg-amber text-seccion-900"
                   : "bg-amber/20 text-amber-800 dark:bg-amber/15 dark:text-amber"
             }`}
           >
@@ -320,7 +320,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
             ? "bg-white/20 text-white dark:bg-mist-dark/25 dark:text-mist-dark"
             : n === 0
               ? "bg-border/60 text-ink/40 dark:bg-border-dark dark:text-ink-dark/40"
-              : "bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+              : "bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
         }`}
       >
         <Users size={11} aria-hidden="true" />
@@ -677,8 +677,8 @@ export default function EstructuraAcademicaPage() {
         }
       />
 
-      <div className="flex items-start gap-2 rounded-xl border border-teal-600/15 dark:border-border-dark bg-teal-600/[0.04] dark:bg-surface-dark px-3.5 py-2.5 text-[12px] text-ink/65 dark:text-ink-dark/65">
-        <Info size={14} className="mt-0.5 shrink-0 text-teal-700 dark:text-teal-accent-dark" aria-hidden="true" />
+      <div className="flex items-start gap-2 rounded-xl border border-seccion-600/15 dark:border-border-dark bg-seccion-600/[0.04] dark:bg-surface-dark px-3.5 py-2.5 text-[12px] text-ink/65 dark:text-ink-dark/65">
+        <Info size={14} className="mt-0.5 shrink-0 text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
         <span>
           Una sección existe para un año escolar concreto: para reabrir un grado en un año nuevo, crea secciones nuevas en vez de
           reutilizar las del año pasado.
@@ -688,7 +688,7 @@ export default function EstructuraAcademicaPage() {
       {/* 🆕 Leyenda del recuento de cada fila: sin Dx + con Dx = total. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink/60 dark:text-ink-dark/60">
         <span className="inline-flex items-center gap-1.5">
-          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-teal-600/30 dark:bg-teal-accent-dark/40" />
+          <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-seccion-600/30 dark:bg-seccion-claro/40" />
           Sin diagnóstico
         </span>
         <span className="inline-flex items-center gap-1.5">
@@ -710,7 +710,7 @@ export default function EstructuraAcademicaPage() {
             setGrados([]);
             setSecciones([]);
           }}
-          className="font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+          className="font-semibold text-seccion-700 dark:text-seccion-claro hover:underline"
         >
           Todos los niveles
         </button>
@@ -737,7 +737,7 @@ export default function EstructuraAcademicaPage() {
           etiquetaAgregar="nivel"
         >
           {esAdmin && formAbierto === "nivel" && (
-            <form onSubmit={crearNivel} className="rounded-lg border border-teal-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
+            <form onSubmit={crearNivel} className="rounded-lg border border-seccion-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
               <div className="grid grid-cols-[1fr_5.5rem] gap-2">
                 <CampoEditable etiqueta="Nombre">
                   <Input
@@ -824,7 +824,7 @@ export default function EstructuraAcademicaPage() {
           ) : (
             <>
               {esAdmin && formAbierto === "grado" && (
-                <form onSubmit={crearGrado} className="rounded-lg border border-teal-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
+                <form onSubmit={crearGrado} className="rounded-lg border border-seccion-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
                   <div className="grid grid-cols-[1fr_5.5rem] gap-2">
                     <CampoEditable etiqueta="Nombre">
                       <Input
@@ -913,7 +913,7 @@ export default function EstructuraAcademicaPage() {
           ) : (
             <>
               {esAdmin && formAbierto === "seccion" && (
-                <form onSubmit={crearSeccion} className="rounded-lg border border-teal-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
+                <form onSubmit={crearSeccion} className="rounded-lg border border-seccion-400/50 dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark p-3 space-y-2.5 text-sm">
                   <div className="grid grid-cols-3 gap-2">
                     <CampoEditable etiqueta="Nombre">
                       <Input
@@ -969,7 +969,7 @@ export default function EstructuraAcademicaPage() {
                         key={seccion.id}
                         className="flex items-center gap-2 rounded-lg border border-border dark:border-border-dark px-3 py-2"
                       >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-600/10 text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark font-display text-[13px] font-bold">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-seccion-600/10 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro font-display text-[13px] font-bold">
                           {seccion.nombre.slice(0, 2)}
                         </span>
                         <div className="min-w-0 flex-1">

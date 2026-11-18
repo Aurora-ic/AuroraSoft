@@ -94,7 +94,7 @@ function Dialogo({ opciones, onCerrar }: { opciones: OpcionesConfirmacion; onCer
         <div className="flex items-start gap-3">
           <span
             className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-              peligro ? "bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300" : "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+              peligro ? "bg-red-50 text-red-600 dark:bg-red-500/15 dark:text-red-300" : "bg-seccion-600/10 text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro"
             }`}
           >
             {peligro ? <AlertTriangle size={19} aria-hidden="true" /> : <HelpCircle size={19} aria-hidden="true" />}
@@ -115,7 +115,7 @@ function Dialogo({ opciones, onCerrar }: { opciones: OpcionesConfirmacion; onCer
             ref={refCancelar}
             type="button"
             onClick={() => onCerrar(false)}
-            className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-4 py-2 text-sm font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+            className="rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-4 py-2 text-sm font-medium text-ink dark:text-ink-dark hover:bg-mist dark:hover:bg-surface-raised-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-seccion-400"
           >
             {opciones.textoCancelar ?? "Volver"}
           </button>
@@ -126,7 +126,7 @@ function Dialogo({ opciones, onCerrar }: { opciones: OpcionesConfirmacion; onCer
             className={`rounded-card px-4 py-2 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
               peligro
                 ? "bg-red-600 hover:bg-red-700 focus-visible:ring-red-400"
-                : "bg-accion hover:bg-accion-hover focus-visible:ring-teal-400 dark:bg-teal-accent-dark dark:text-mist-dark"
+                : "bg-accion hover:bg-accion-hover focus-visible:ring-seccion-400 dark:bg-seccion-claro dark:text-mist-dark"
             }`}
           >
             {opciones.textoConfirmar ?? "Confirmar"}

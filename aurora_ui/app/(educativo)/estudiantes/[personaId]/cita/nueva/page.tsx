@@ -114,8 +114,8 @@ export default function NuevaCitaPage() {
   const claseChip = (activo: boolean) =>
     `rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
       activo
-        ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
-        : "border-border dark:border-border-dark text-ink/70 dark:text-ink-dark/70 hover:border-teal-400"
+        ? "border-accion bg-accion text-white dark:border-seccion-claro dark:bg-seccion-claro dark:text-mist-dark"
+        : "border-border dark:border-border-dark text-ink/70 dark:text-ink-dark/70 hover:border-seccion-400"
     }`;
 
   return (
@@ -146,7 +146,7 @@ export default function NuevaCitaPage() {
       <TextoError>{error}</TextoError>
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-5 items-start">
-        <section className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
+        <section className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
           <CabeceraBloque icono={CalendarPlus} titulo="Detalles de la cita" descripcion="Para qué es y cuándo." />
           <div className="p-4 space-y-4 text-sm">
             <CampoEditable etiqueta="Motivo">
@@ -222,7 +222,7 @@ export default function NuevaCitaPage() {
                   const f = new Date(c.fecha_hora);
                   return (
                     <li key={c.id} className="flex items-start gap-2 text-[12px]">
-                      <Clock size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-teal-600 dark:text-teal-accent-dark" />
+                      <Clock size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-seccion-600 dark:text-seccion-claro" />
                       <span className="min-w-0">
                         <span className="block font-semibold text-ink dark:text-ink-dark">
                           {f.toLocaleDateString("es-PE", { weekday: "short", day: "numeric", month: "short" })} ·{" "}

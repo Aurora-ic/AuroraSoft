@@ -49,7 +49,7 @@ export function BloqueFicha({
             <Icono size={16} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-teal-900 dark:text-ink-dark leading-tight">{titulo}</h3>
+            <h3 className="text-sm font-semibold text-seccion-900 dark:text-ink-dark leading-tight">{titulo}</h3>
             {descripcion && <p className="text-[12px] text-ink/50 dark:text-ink-dark/50 leading-tight mt-0.5">{descripcion}</p>}
           </div>
         </div>
@@ -132,8 +132,8 @@ export function BotonAccionFicha({
       type="button"
       className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
         activo
-          ? "border-accion bg-accion text-white dark:border-teal-accent-dark dark:bg-teal-accent-dark dark:text-mist-dark"
-          : "border-border bg-surface text-ink/70 hover:border-teal-400 hover:text-teal-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-teal-accent-dark"
+          ? "border-accion bg-accion text-white dark:border-seccion-claro dark:bg-seccion-claro dark:text-mist-dark"
+          : "border-border bg-surface text-ink/70 hover:border-seccion-400 hover:text-seccion-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-seccion-claro"
       } ${className}`}
       {...props}
     >

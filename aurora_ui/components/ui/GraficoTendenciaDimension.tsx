@@ -73,7 +73,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
     <div className="py-2 space-y-1.5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-ink/80 dark:text-ink-dark/80">{nombreDimension}</p>
-        <button onClick={() => setMostrarTabla((v) => !v)} className="text-xs text-teal-700 dark:text-teal-accent-dark hover:underline">
+        <button onClick={() => setMostrarTabla((v) => !v)} className="text-xs text-seccion-700 dark:text-seccion-claro hover:underline">
           {mostrarTabla ? "Ver gráfico" : "Ver como tabla"}
         </button>
       </div>
@@ -111,7 +111,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
             </text>
 
             {lineaPoints && (
-              <polyline points={lineaPoints} fill="none" stroke="var(--color-teal-600)" strokeWidth={2} strokeLinecap="round" />
+              <polyline points={lineaPoints} fill="none" stroke="var(--color-seccion-600)" strokeWidth={2} strokeLinecap="round" />
             )}
 
             {puntosConValor.map((p) => (
@@ -121,7 +121,7 @@ export function GraficoTendenciaDimension({ nombreDimension, puntos }: Props) {
                     cx={p.cx}
                     cy={p.cy}
                     r={indiceHover === p.i ? 5 : 4}
-                    fill="var(--color-teal-600)"
+                    fill="var(--color-seccion-600)"
                     stroke="white"
                     strokeWidth={1.5}
                     onMouseEnter={() => setIndiceHover(p.i)}

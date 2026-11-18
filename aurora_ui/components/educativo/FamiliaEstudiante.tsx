@@ -194,7 +194,7 @@ export function FormularioFamiliar({
         <label className="inline-flex items-center gap-2 font-medium text-ink/80 dark:text-ink-dark/80">
           <input
             type="checkbox"
-            className="h-4 w-4 accent-teal-600"
+            className="h-4 w-4 accent-seccion-600"
             checked={valor.es_apoderado}
             onChange={(e) => set("es_apoderado", e.target.checked)}
           />
@@ -203,7 +203,7 @@ export function FormularioFamiliar({
         <label className="inline-flex items-center gap-2 font-medium text-ink/80 dark:text-ink-dark/80">
           <input
             type="checkbox"
-            className="h-4 w-4 accent-teal-600"
+            className="h-4 w-4 accent-seccion-600"
             checked={valor.es_contacto}
             onChange={(e) => set("es_contacto", e.target.checked)}
           />
@@ -329,7 +329,7 @@ export function ComposicionFamiliar({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-accent-dark">
+                    <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-seccion-700 dark:text-seccion-claro">
                       {c.relacion || "Familiar"}
                     </p>
                     <p className="m-0 mt-0.5 font-semibold text-ink dark:text-ink-dark break-words">{nombreFamiliar(c)}</p>
@@ -338,7 +338,7 @@ export function ComposicionFamiliar({
                     <button
                       type="button"
                       onClick={() => onEditar(c)}
-                      className="shrink-0 text-xs font-medium text-teal-600 hover:underline dark:text-teal-accent-dark"
+                      className="shrink-0 text-xs font-medium text-seccion-600 hover:underline dark:text-seccion-claro"
                       aria-label={`Editar a ${nombreFamiliar(c)}`}
                     >
                       Editar
@@ -348,7 +348,7 @@ export function ComposicionFamiliar({
                 {(c.es_apoderado || c.vive_con_estudiante !== null) && (
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {c.es_apoderado && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-teal-600/10 px-2 py-0.5 text-[11.5px] font-semibold text-teal-800 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-seccion-600/10 px-2 py-0.5 text-[11.5px] font-semibold text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro">
                         <ShieldCheck size={11} aria-hidden="true" /> Apoderado
                       </span>
                     )}
@@ -383,7 +383,7 @@ export function ComposicionFamiliar({
               key={a.etiqueta}
               type="button"
               onClick={() => onAgregar(a.relacion, !!a.apoderado)}
-              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70 hover:border-teal-400 hover:text-teal-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-teal-accent-dark"
+              className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-ink/70 hover:border-seccion-400 hover:text-seccion-700 dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70 dark:hover:text-seccion-claro"
             >
               <Plus size={12} aria-hidden="true" /> {a.etiqueta}
             </button>

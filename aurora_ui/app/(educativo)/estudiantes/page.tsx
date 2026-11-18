@@ -274,9 +274,9 @@ export default function PadronPage() {
       <TextoError>{error}</TextoError>
       <TextoError>{errorAccion}</TextoError>
 
-      <div className="rounded-xl border border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.035] dark:bg-teal-accent-dark/[0.05] shadow-sm overflow-hidden">
+      <div className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
         {/* Barra de herramientas — dentro de la misma tarjeta que la tabla */}
-        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.08] dark:bg-teal-accent-dark/[0.08]">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between px-4 py-3 border-b border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08]">
           <div className="relative w-full md:max-w-sm">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink/35 dark:text-ink-dark/35" aria-hidden="true" />
             <input
@@ -284,7 +284,7 @@ export default function PadronPage() {
               placeholder="Buscar por nombre, apellido o documento…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+              className="w-full rounded-card border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-seccion-400"
             />
           </div>
 
@@ -297,7 +297,7 @@ export default function PadronPage() {
                   cambiarSeccion("todas");
                   cambiarIncompletos(false);
                 }}
-                className="text-xs font-semibold text-teal-700 dark:text-teal-accent-dark hover:underline"
+                className="text-xs font-semibold text-seccion-700 dark:text-seccion-claro hover:underline"
               >
                 Limpiar filtros
               </button>
@@ -359,10 +359,10 @@ export default function PadronPage() {
                     <tr
                       key={persona.id}
                       onClick={() => router.push(`/estudiantes/${persona.id}`)}
-                      className={`cursor-pointer border-b border-border dark:border-border-dark last:border-0 transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-teal-400 ${
+                      className={`cursor-pointer border-b border-border dark:border-border-dark last:border-0 transition-colors focus-within:ring-1 focus-within:ring-inset focus-within:ring-seccion-400 ${
                         conDx
                           ? "bg-amber/[0.09] shadow-[inset_3px_0_0_var(--color-amber)] hover:bg-amber/15"
-                          : "hover:bg-mist dark:hover:bg-surface-raised-dark focus-within:bg-teal-400/10"
+                          : "hover:bg-mist dark:hover:bg-surface-raised-dark focus-within:bg-seccion-400/10"
                       }`}
                     >
                       <td className="px-4 py-2.5">
@@ -373,7 +373,7 @@ export default function PadronPage() {
                               conDx
                                 ? "bg-amber/25 text-amber-800 dark:bg-amber/20 dark:text-amber"
                                 : persona.activo
-                                ? "bg-teal-600/10 text-teal-700 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                                ? "bg-seccion-600/10 text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro"
                                 : "bg-border text-ink/45 dark:bg-border-dark dark:text-ink-dark/45"
                             }`}
                           >
@@ -382,7 +382,7 @@ export default function PadronPage() {
                           <Link
                             href={`/estudiantes/${persona.id}`}
                             onClick={(e) => e.stopPropagation()}
-                            className="font-semibold text-teal-900 dark:text-ink-dark hover:text-teal-600 dark:hover:text-teal-accent-dark focus:outline-none"
+                            className="font-semibold text-seccion-900 dark:text-ink-dark hover:text-seccion-600 dark:hover:text-seccion-claro focus:outline-none"
                           >
                             {persona.nombres} {persona.apellidos}
                           </Link>
@@ -416,13 +416,13 @@ export default function PadronPage() {
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                             persona.activo
-                              ? "bg-teal-400/20 text-teal-900 dark:bg-teal-accent-dark/15 dark:text-teal-accent-dark"
+                              ? "bg-seccion-400/20 text-seccion-900 dark:bg-seccion-claro/15 dark:text-seccion-claro"
                               : "bg-border text-ink/50 dark:bg-border-dark dark:text-ink-dark/50"
                           }`}
                         >
                           <span
                             aria-hidden="true"
-                            className={`h-1.5 w-1.5 rounded-full ${persona.activo ? "bg-teal-600 dark:bg-teal-accent-dark" : "bg-ink/30 dark:bg-ink-dark/30"}`}
+                            className={`h-1.5 w-1.5 rounded-full ${persona.activo ? "bg-seccion-600 dark:bg-seccion-claro" : "bg-ink/30 dark:bg-ink-dark/30"}`}
                           />
                           {persona.activo ? "Activo" : "Inactivo"}
                         </span>
@@ -450,7 +450,7 @@ export default function PadronPage() {
         </div>
 
         {!cargando && totalFiltrado > 0 && (
-          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-teal-600/15 dark:border-teal-accent-dark/20 bg-teal-600/[0.06] dark:bg-teal-accent-dark/[0.06]">
+          <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.06] dark:bg-seccion-claro/[0.06]">
             <p className="m-0 text-xs text-ink/50 dark:text-ink-dark/50">
               {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, totalFiltrado)} de{" "}
               {totalFiltrado} alumnos
