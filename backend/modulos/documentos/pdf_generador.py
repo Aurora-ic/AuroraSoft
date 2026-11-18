@@ -11,6 +11,7 @@
 # Entrada: generar_pdf_documento(contenido: dict) -> io.BytesIO, donde
 # `contenido` es el dict que arma crud.construir_contenido_documento().
 import io
+import time
 import logging
 import re
 from html import escape
@@ -193,6 +194,7 @@ def _dibujar_marco_pagina(
     canvas_obj, doc,
     imagen_encabezado: ImageReader | None, imagen_pie: ImageReader | None,
     imagen_fondo: ImageReader | None = None,
+    marca_agua: list[str] | None = None,
 ):
     """Membrete/pie de cada página — SOLO las imágenes institucionales,
     sin ningún texto superpuesto (ni nombre de institución, ni rótulo, ni
@@ -225,7 +227,39 @@ def _dibujar_marco_pagina(
         alto_pie = _alto_a_todo_el_ancho(imagen_pie, es_pie=True)
         _dibujar_imagen_contenida(canvas_obj, imagen_pie, 0, alto_pie, ancho, _tope_de_alto(imagen_pie, True))
 
+    # 🆕 (2026-11-18) Vista previa del borrador: marca de agua en diagonal,
+    # ENCIMA de todo, para que nadie imprima o reenvíe una vista previa como
+    # si fuera el documento emitido. Las versiones emitidas nunca la llevan.
+    if marca_agua:
+        canvas_obj.saveState()
+        canvas_obj.setFillColorRGB(0.55, 0.55, 0.55, alpha=0.22)
+        canvas_obj.translate(ancho / 2, alto / 2)
+        canvas_obj.rotate(40)
+        canvas_obj.setFont("Helvetica-Bold", 64)
+        canvas_obj.drawCentredString(0, 10, marca_agua[0])
+        for i, linea in enumerate(marca_agua[1:]):
+            canvas_obj.setFont("Helvetica-Bold", 15)
+            canvas_obj.drawCentredString(0, -26 - 22 * i, linea)
+        canvas_obj.restoreState()
+
     canvas_obj.restoreState()
+
+
+_CACHE_LOGOS: dict[str, tuple[float, bytes | None]] = {}
+_TTL_CACHE_LOGOS = 60.0
+
+
+def _logo_de_cache(url: str) -> bytes | None:
+    """Solo para la vista previa (ver generar_pdf_documento)."""
+    ahora = time.monotonic()
+    guardado = _CACHE_LOGOS.get(url)
+    if guardado and ahora - guardado[0] < _TTL_CACHE_LOGOS:
+        return guardado[1]
+    datos = descargar_logo_seguro(url)
+    if len(_CACHE_LOGOS) > 200:
+        _CACHE_LOGOS.clear()
+    _CACHE_LOGOS[url] = (ahora, datos)
+    return datos
 
 
 def _placeholder(texto: str, estilos: dict) -> Paragraph:
@@ -831,7 +865,12 @@ def generar_pdf_documento(contenido: dict) -> io.BytesIO:
     def _leer_imagen_institucional(url):
         if not url:
             return None
-        datos_imagen = descargar_logo_seguro(url)
+        # 🆕 (2026-11-18) La vista previa se redibuja cada pocos segundos
+        # mientras se escribe: el membrete se reutiliza 60 s en vez de
+        # descargarlo cada vez. Las versiones emitidas siempre lo descargan.
+        datos_imagen = (
+            _logo_de_cache(url) if contenido.get("marca_agua") else descargar_logo_seguro(url)
+        )
         if not datos_imagen:
             return None
         try:
@@ -922,8 +961,9 @@ def generar_pdf_documento(contenido: dict) -> io.BytesIO:
         topMargin=margen_superior,
         bottomMargin=margen_inferior,
     )
+    marca_agua = contenido.get("marca_agua") or None
     marco = lambda canvas_obj, doc_obj: _dibujar_marco_pagina(  # noqa: E731
-        canvas_obj, doc_obj, imagen_encabezado, imagen_pie, imagen_fondo,
+        canvas_obj, doc_obj, imagen_encabezado, imagen_pie, imagen_fondo, marca_agua,
     )
     doc.build(elementos, onFirstPage=marco, onLaterPages=marco)
     buffer.seek(0)

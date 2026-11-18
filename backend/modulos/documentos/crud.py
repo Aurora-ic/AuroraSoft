@@ -1702,6 +1702,58 @@ def construir_contenido_documento(
     }
 
 
+TEXTO_CORRELATIVO_VISTA_PREVIA = "N.º — se asigna al emitir"
+
+
+def generar_vista_previa_documento(
+    db: Session, documento: models.DocumentoInstitucional, usuario: auth_models.Usuario,
+) -> bytes:
+    """🆕 (2026-11-18) El PDF del BORRADOR tal como quedaría, para verlo al
+    lado del formulario mientras se rellena. Usa exactamente el mismo
+    armado (construir_contenido_documento) y el mismo dibujante que una
+    emisión real — la vista previa no puede "parecerse" al PDF: ES el PDF —,
+    con tres diferencias deliberadas:
+
+    - no crea versión, no guarda archivo, no toca el expediente;
+    - NO consume correlativo (nunca se llama a bloquear_correlativo_para_emision):
+      el número se muestra como "se asigna al emitir";
+    - lleva marca de agua BORRADOR / VISTA PREVIA en cada página.
+
+    El consentimiento NO se exige aquí (decisión 2026-11-18): la persona ya
+    está viendo ese contenido en el formulario. Si falta, la marca de agua lo
+    dice, y emitir lo sigue bloqueando en generar_version_documento.
+    Tampoco agrega fila a RegistroLecturaDocumento: abrir el borrador
+    (GET .../secciones) ya la registró y muestra el mismo contenido.
+    """
+    plantilla = db.query(models.PlantillaDocumento).filter(
+        models.PlantillaDocumento.id == documento.plantilla_documento_id,
+    ).first()
+    estudiantes = listar_estudiantes_de_documento(db, documento.id)
+    tipo = db.query(models.TipoDocumento).filter(models.TipoDocumento.id == documento.tipo_documento_id).first()
+    usuario_responsable = db.query(auth_models.Usuario).filter(
+        auth_models.Usuario.id == documento.creado_por_usuario_id,
+    ).first()
+    correlativo_texto = TEXTO_CORRELATIVO_VISTA_PREVIA if plantilla and plantilla.formato_correlativo else None
+
+    try:
+        contenido = construir_contenido_documento(
+            db, documento, plantilla, estudiantes, correlativo_texto, 0, None, usuario, usuario_responsable,
+        )
+    finally:
+        # Armar el contenido solo lee; esto garantiza que una vista previa
+        # nunca deje nada pendiente en la sesión.
+        db.rollback()
+
+    marca = ["BORRADOR", "VISTA PREVIA — NO VÁLIDO COMO DOCUMENTO EMITIDO"]
+    if tipo and tipo.requiere_consentimiento_individual and any(
+        not superadmin_crud.tiene_consentimiento_vigente(db, est.persona_id, documento.institucion_id)
+        for est in estudiantes
+    ):
+        marca.append("FALTA EL CONSENTIMIENTO DEL APODERADO PARA EMITIR")
+    contenido["marca_agua"] = marca
+    return pdf_generador.generar_pdf_documento(contenido).getvalue()
+
+
 def generar_version_documento(
     db: Session, documento_id: int, usuario_id: int, motivo: Optional[str] = None,
 ) -> models.DocumentoInstitucionalVersion:

@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from core.limiter import limiter
 from core.deps import obtener_usuario_actual, ip_del_cliente
 from core import permisos
 from core.schemas_comunes import RespuestaPaginada
@@ -533,6 +534,32 @@ def reemitir_documento_endpoint(
 ):
     _obtener_documento_o_404_con_acceso(db, documento_id, usuario_actual)
     return crud.generar_version_documento(db, documento_id, usuario_actual.id, motivo=datos.motivo)
+
+
+# 🆕 (2026-11-18) Vista previa del borrador (ver crud.generar_vista_previa_documento):
+# mismo permiso que generar (staff clínico + acceso al documento), sin versión,
+# sin correlativo, con marca de agua. Límite por IP: la pantalla la pide unos
+# segundos después de cada guardado; 30/min sobra para escribir y corta un uso
+# como generador masivo de PDF.
+@router.get("/{documento_id}/vista-previa")
+@limiter.limit("30/minute")
+def vista_previa_documento_endpoint(
+    request: Request,  # requerido por el limiter
+    documento_id: int,
+    db: Session = Depends(get_db),
+    usuario_actual: auth_models.Usuario = Depends(permisos.STAFF_CLINICO),
+):
+    documento = _obtener_documento_o_404_con_acceso(db, documento_id, usuario_actual)
+    pdf = crud.generar_vista_previa_documento(db, documento, usuario_actual)
+    return StreamingResponse(
+        io.BytesIO(pdf),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": content_disposition(f"vista_previa_documento_{documento_id}.pdf", disposicion="inline"),
+            # Datos clínicos: que ningún navegador ni proxy la guarde.
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 # ==========================================

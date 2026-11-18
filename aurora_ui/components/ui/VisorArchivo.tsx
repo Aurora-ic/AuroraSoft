@@ -11,7 +11,7 @@
 //
 // react-pdf vive en PaginaPdf.tsx, cargado solo en el cliente (ver ahí el
 // porqué y la nota sobre el worker de pdf.js en /public).
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { EsqueletoHoja } from "@/components/ui/Esqueleto";
 
@@ -95,6 +95,19 @@ export function ContenidoVisorArchivo({
 
   const errorAMostrar = error || errorPdf;
 
+  // 🆕 (2026-11-18) En pantallas angostas (celular) el PDF abre AJUSTADO AL
+  // ANCHO: antes abría al 100 % (una hoja A4 mide ~600 px) y en un celular
+  // quedaba más ancha que la pantalla. Medir el contenedor es justamente
+  // sincronizar con el DOM, por eso es un efecto de layout.
+  const refContenedor = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!archivo || tipo !== "pdf") return;
+    const ancho = refContenedor.current?.clientWidth ?? 0;
+    if (ancho > 0 && ancho - 24 < 600) {
+      setZoom(Math.max(0.5, Math.floor(((ancho - 24) / 600) * 20) / 20));
+    }
+  }, [archivo, tipo]);
+
   return (
     <div className="flex flex-col gap-2">
       {tipo === "pdf" && archivo && !cargando && !errorAMostrar && (
@@ -109,7 +122,13 @@ export function ContenidoVisorArchivo({
         </div>
       )}
 
-      <div className={`${alturaClase} overflow-auto rounded-card border border-border dark:border-border-dark bg-mist/20 dark:bg-surface-raised-dark flex items-start justify-center p-3`}>
+      {/* 🔧 (2026-11-18) "safe center": con un centrado flex normal, una hoja
+          más ancha que el contenedor quedaba cortada por la IZQUIERDA sin
+          poder desplazarse hasta ese borde (se veía en celular). */}
+      <div
+        ref={refContenedor}
+        className={`${alturaClase} overflow-auto rounded-card border border-border dark:border-border-dark bg-mist/20 dark:bg-surface-raised-dark flex items-start [justify-content:safe_center] p-3`}
+      >
         {cargando && <EsqueletoHoja />}
         {!cargando && errorAMostrar && <p className="text-sm text-red-700 dark:text-red-300 py-8 px-4 text-center">{errorAMostrar}</p>}
 

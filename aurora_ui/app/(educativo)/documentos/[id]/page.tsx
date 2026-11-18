@@ -2,7 +2,7 @@
 
 import { useAvisoSinGuardar } from "@/lib/useAvisoSinGuardar";
 import { useConfirmar } from "@/components/ui/DialogoConfirmacion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   FileText,
@@ -38,6 +38,8 @@ import { CabeceraInterna, Insignia, TarjetaLateral, BarraAvance, CampoFormulario
 import { ETIQUETAS_TIPO_SECCION, ORIGEN_AUTOMATICA, MODO_TIPO_SECCION, instruccionPorDefecto } from "@/lib/documentos-constantes";
 import { ChipModo, MiniaturaSeccion } from "@/components/documentos/ModoSeccion";
 import { VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
+import { PanelVistaPrevia, useVistaPreviaPdf } from "@/components/documentos/VistaPreviaDocumento";
+import { useAuth } from "@/contexts/AuthContext";
 import type {
   DocumentoInstitucionalDetalle,
   DocumentoInstitucionalSeccionContenido,
@@ -496,6 +498,48 @@ export default function DetalleDocumentoPage() {
     ordenadas.some((s) => !esAutomatica(s) && sinGuardar(s)),
     "Hay secciones del documento con cambios sin guardar; si sales ahora se perderán.",
   );
+  // 🆕 (2026-11-18) Vista previa en vivo (components/documentos/VistaPreviaDocumento.tsx):
+  // en pantallas anchas, el PDF del borrador al lado del formulario; se
+  // puede ocultar (queda recordado en este navegador). En celular, un botón
+  // la abre en el visor. Solo staff clínico (la ruta rechaza a colegio).
+  const { sesion } = useAuth();
+  const puedeVerVistaPrevia = sesion?.rol !== "colegio";
+  const pantallaAncha = useSyncExternalStore(suscribirAncho, leerPantallaAncha, () => false);
+  const [preferenciaVista, setPreferenciaVista] = useState<boolean>(leerPreferenciaVista);
+  function cambiarPreferenciaVista(valor: boolean) {
+    setPreferenciaVista(valor);
+    try {
+      window.localStorage.setItem(CLAVE_VISTA_PREVIA, valor ? "1" : "0");
+    } catch {
+      // sin almacenamiento: dura esta visita
+    }
+  }
+  const mostrarVistaPrevia = puedeVerVistaPrevia && pantallaAncha && preferenciaVista;
+  const hayCambiosSinGuardar = ordenadas.some((s) => !esAutomatica(s) && sinGuardar(s));
+  const firmaVistaPrevia = useMemo(() => JSON.stringify(secciones), [secciones]);
+  const vistaPrevia = useVistaPreviaPdf(
+    documentoId,
+    firmaVistaPrevia,
+    guardandoSeccionId === null && !hayCambiosSinGuardar,
+    mostrarVistaPrevia && !cargando && !!documento,
+  );
+  async function verVistaPreviaEnVisor() {
+    // Antes de mostrarla, se guarda lo pendiente: así incluye lo último escrito.
+    await guardarPendientes.current();
+    setVisorAbierto(true);
+    setVisorArchivo(null);
+    setVisorError(null);
+    setVisorCargando(true);
+    try {
+      const blob = await apiClient.descargarArchivo(`/documentos/${documentoId}/vista-previa`);
+      setVisorArchivo({ blob, contentType: "application/pdf", nombreArchivo: `vista_previa_${documentoId}.pdf` });
+    } catch (err) {
+      setVisorError(mensajeDe(err) || "No se pudo armar la vista previa.");
+    } finally {
+      setVisorCargando(false);
+    }
+  }
+
   const migas = [{ label: "Documentos", href: "/documentos" }, { label: "Documentos generados", href: "/documentos" }, { label: documento?.titulo ?? "Documento" }];
 
   if (cargando) {
@@ -522,6 +566,129 @@ export default function DetalleDocumentoPage() {
   const nombreTipo = tipos.find((t) => t.id === documento.tipo_documento_id)?.nombre;
   const versionesOrdenadas = versiones.slice().sort((a, b) => b.numero_version - a.numero_version);
 
+  // Emitir, versiones y destinatarios: a la derecha, o debajo del formulario
+  // cuando la derecha la ocupa la vista previa.
+  const columnaLateral = (
+    <div className={`flex flex-col gap-4 ${mostrarVistaPrevia ? "" : "lg:sticky lg:top-4"}`}>
+    <TarjetaLateral icono={Send} titulo={borrador ? "Emitir documento" : "Reemitir"}>
+      {borrador ? (
+        <div className="space-y-3">
+          <p className="text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+            Genera el PDF oficial con el contenido guardado. Después ya no se puede descartar; los cambios se emiten como una versión nueva.
+          </p>
+          {editables.length - completas > 0 && (
+            <div className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
+              <p className="text-[12px] font-semibold text-ink/70 dark:text-ink-dark/70">
+                {editables.length - completas === 1 ? "Falta 1 parte por completar:" : `Faltan ${editables.length - completas} partes por completar:`}
+              </p>
+              <ul className="mt-1 list-none space-y-0.5 p-0">
+                {editables
+                  .filter((s) => !estaCompleta(s))
+                  .map((s) => (
+                    <li key={s.plantilla_seccion_id}>
+                      <a
+                        href={`#seccion-${s.plantilla_seccion_id}`}
+                        className={`text-[12.5px] font-medium hover:underline ${VIOLETA.texto}`}
+                      >
+                        {s.titulo || ETIQUETAS_TIPO_SECCION[s.tipo_seccion]}
+                      </a>
+                    </li>
+                  ))}
+              </ul>
+              <p className="mt-1 text-[11.5px] text-ink/65 dark:text-ink-dark/55">Puedes generar igual: las vacías salen en blanco.</p>
+            </div>
+          )}
+          <Boton onClick={generarOReemitir} disabled={generando || descartando} className="w-full">
+            {generando ? "Generando..." : "Generar versión 1"}
+          </Boton>
+          <button
+            type="button"
+            onClick={descartarBorrador}
+            disabled={generando || descartando}
+            className="w-full text-center text-[12.5px] font-medium text-red-700 dark:text-red-300 hover:underline disabled:opacity-40"
+          >
+            {descartando ? "Descartando..." : "Descartar borrador"}
+          </button>
+        </div>
+      ) : mostrarReemision ? (
+        <div className="space-y-2.5">
+          <Input
+            value={motivoReemision}
+            onChange={(e) => setMotivoReemision(e.target.value)}
+            placeholder="Motivo de la reemisión..."
+            className="w-full"
+          />
+          <Boton onClick={generarOReemitir} disabled={generando || !motivoReemision} className="w-full">
+            {generando ? "Generando..." : "Confirmar reemisión"}
+          </Boton>
+          <button
+            type="button"
+            onClick={() => setMostrarReemision(false)}
+            className="w-full text-center text-[12.5px] text-ink/65 dark:text-ink-dark/55 hover:underline"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+            Para corregir algo, edita las secciones y reemite: se crea una versión nueva con su motivo y las anteriores se conservan.
+          </p>
+          <Boton onClick={() => setMostrarReemision(true)} className="w-full">
+            Reemitir (v{(documento.version_actual ?? 0) + 1})
+          </Boton>
+        </div>
+      )}
+    </TarjetaLateral>
+
+    {versionesOrdenadas.length > 0 && (
+      <TarjetaLateral icono={History} titulo="Versiones">
+        <ul className="p-0 list-none space-y-2">
+          {versionesOrdenadas.map((v) => (
+            <li key={v.id} className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
+              <p className="text-[12.5px] font-semibold text-ink dark:text-ink-dark">
+                v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
+              </p>
+              {v.motivo_version && <p className="mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{v.motivo_version}</p>}
+              <div className="mt-1.5 flex items-center gap-3">
+                <button type="button" onClick={() => ver(v)} className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${VIOLETA.texto}`}>
+                  <Eye size={12} aria-hidden="true" />
+                  Ver
+                </button>
+                <button
+                  type="button"
+                  onClick={() => descargar(v)}
+                  disabled={descargandoVersionId === v.id}
+                  className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline disabled:opacity-50 ${VIOLETA.texto}`}
+                >
+                  <Download size={12} aria-hidden="true" />
+                  {descargandoVersionId === v.id ? "Descargando..." : "Descargar PDF"}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </TarjetaLateral>
+    )}
+
+    <TarjetaLateral icono={Users} titulo={documento.estudiantes.length === 1 ? "Alumno" : `Alumnos (${documento.estudiantes.length})`}>
+      {documento.estudiantes.length === 0 ? (
+        <p className="text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin estudiantes vinculados.</p>
+      ) : (
+        <ul className="p-0 list-none space-y-1.5 max-h-64 overflow-y-auto">
+          {documento.estudiantes.map((e) => (
+            <li key={e.persona_id} className="flex items-center justify-between gap-2 text-[13px]">
+              <span className="min-w-0 truncate font-medium text-ink dark:text-ink-dark">{e.nombre_completo_historico}</span>
+              {e.grado_seccion_historico && <span className="shrink-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{e.grado_seccion_historico}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="mt-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Lista congelada al crear el documento.</p>
+    </TarjetaLateral>
+  </div>
+  );
+
   return (
     <div className={CLASE_CONTENEDOR_SECCION}>
       <CabeceraInterna
@@ -541,7 +708,11 @@ export default function DetalleDocumentoPage() {
 
       <TextoError>{error}</TextoError>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+      <div
+        className={`grid gap-4 items-start ${
+          mostrarVistaPrevia ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,1fr)_320px]"
+        }`}
+      >
         {/* ===== Secciones ===== */}
         <div className="flex flex-col gap-3 min-w-0">
           {/* 🆕 (2026-11-17) Guía corta + avance: qué se hace en esta pantalla. */}
@@ -550,7 +721,7 @@ export default function DetalleDocumentoPage() {
               <ListChecks size={15} className={VIOLETA.texto} aria-hidden="true" />
               Cómo completar este documento
             </p>
-            <ol className="mt-2 grid list-none gap-2 p-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70 sm:grid-cols-3">
+            <ol className={`mt-2 grid list-none gap-2 p-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70 ${mostrarVistaPrevia ? "" : "sm:grid-cols-3"}`}>
               <li className="flex gap-2">
                 <PasoGuia n={1} />
                 <span>
@@ -588,6 +759,16 @@ export default function DetalleDocumentoPage() {
                     />
                     Mostrar solo lo que me falta
                   </label>
+                  {puedeVerVistaPrevia && !mostrarVistaPrevia && (
+                    <button
+                      type="button"
+                      onClick={() => (pantallaAncha ? cambiarPreferenciaVista(true) : void verVistaPreviaEnVisor())}
+                      className={`inline-flex items-center gap-1.5 text-[12.5px] font-semibold hover:underline ${VIOLETA.texto}`}
+                    >
+                      <Eye size={13} aria-hidden="true" />
+                      {pantallaAncha ? "Mostrar cómo queda el PDF" : "Ver cómo queda el PDF"}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -801,127 +982,26 @@ export default function DetalleDocumentoPage() {
           {soloPendientes && editables.length > 0 && completas === editables.length && (
             <VacioFicha icono={CheckCircle2} texto="No te falta nada: todas las partes que completas tú tienen contenido." />
           )}
+          {mostrarVistaPrevia && columnaLateral}
         </div>
 
-        {/* ===== Columna lateral ===== */}
-        <div className="flex flex-col gap-4 lg:sticky lg:top-4">
-          <TarjetaLateral icono={Send} titulo={borrador ? "Emitir documento" : "Reemitir"}>
-            {borrador ? (
-              <div className="space-y-3">
-                <p className="text-[12.5px] text-ink/65 dark:text-ink-dark/60">
-                  Genera el PDF oficial con el contenido guardado. Después ya no se puede descartar; los cambios se emiten como una versión nueva.
-                </p>
-                {editables.length - completas > 0 && (
-                  <div className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
-                    <p className="text-[12px] font-semibold text-ink/70 dark:text-ink-dark/70">
-                      {editables.length - completas === 1 ? "Falta 1 parte por completar:" : `Faltan ${editables.length - completas} partes por completar:`}
-                    </p>
-                    <ul className="mt-1 list-none space-y-0.5 p-0">
-                      {editables
-                        .filter((s) => !estaCompleta(s))
-                        .map((s) => (
-                          <li key={s.plantilla_seccion_id}>
-                            <a
-                              href={`#seccion-${s.plantilla_seccion_id}`}
-                              className={`text-[12.5px] font-medium hover:underline ${VIOLETA.texto}`}
-                            >
-                              {s.titulo || ETIQUETAS_TIPO_SECCION[s.tipo_seccion]}
-                            </a>
-                          </li>
-                        ))}
-                    </ul>
-                    <p className="mt-1 text-[11.5px] text-ink/65 dark:text-ink-dark/55">Puedes generar igual: las vacías salen en blanco.</p>
-                  </div>
-                )}
-                <Boton onClick={generarOReemitir} disabled={generando || descartando} className="w-full">
-                  {generando ? "Generando..." : "Generar versión 1"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={descartarBorrador}
-                  disabled={generando || descartando}
-                  className="w-full text-center text-[12.5px] font-medium text-red-700 dark:text-red-300 hover:underline disabled:opacity-40"
-                >
-                  {descartando ? "Descartando..." : "Descartar borrador"}
-                </button>
-              </div>
-            ) : mostrarReemision ? (
-              <div className="space-y-2.5">
-                <Input
-                  value={motivoReemision}
-                  onChange={(e) => setMotivoReemision(e.target.value)}
-                  placeholder="Motivo de la reemisión..."
-                  className="w-full"
-                />
-                <Boton onClick={generarOReemitir} disabled={generando || !motivoReemision} className="w-full">
-                  {generando ? "Generando..." : "Confirmar reemisión"}
-                </Boton>
-                <button
-                  type="button"
-                  onClick={() => setMostrarReemision(false)}
-                  className="w-full text-center text-[12.5px] text-ink/65 dark:text-ink-dark/55 hover:underline"
-                >
-                  Cancelar
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-[12.5px] text-ink/65 dark:text-ink-dark/60">
-                  Para corregir algo, edita las secciones y reemite: se crea una versión nueva con su motivo y las anteriores se conservan.
-                </p>
-                <Boton onClick={() => setMostrarReemision(true)} className="w-full">
-                  Reemitir (v{(documento.version_actual ?? 0) + 1})
-                </Boton>
-              </div>
-            )}
-          </TarjetaLateral>
-
-          {versionesOrdenadas.length > 0 && (
-            <TarjetaLateral icono={History} titulo="Versiones">
-              <ul className="p-0 list-none space-y-2">
-                {versionesOrdenadas.map((v) => (
-                  <li key={v.id} className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
-                    <p className="text-[12.5px] font-semibold text-ink dark:text-ink-dark">
-                      v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
-                    </p>
-                    {v.motivo_version && <p className="mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{v.motivo_version}</p>}
-                    <div className="mt-1.5 flex items-center gap-3">
-                      <button type="button" onClick={() => ver(v)} className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${VIOLETA.texto}`}>
-                        <Eye size={12} aria-hidden="true" />
-                        Ver
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => descargar(v)}
-                        disabled={descargandoVersionId === v.id}
-                        className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline disabled:opacity-50 ${VIOLETA.texto}`}
-                      >
-                        <Download size={12} aria-hidden="true" />
-                        {descargandoVersionId === v.id ? "Descargando..." : "Descargar PDF"}
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </TarjetaLateral>
-          )}
-
-          <TarjetaLateral icono={Users} titulo={documento.estudiantes.length === 1 ? "Alumno" : `Alumnos (${documento.estudiantes.length})`}>
-            {documento.estudiantes.length === 0 ? (
-              <p className="text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin estudiantes vinculados.</p>
-            ) : (
-              <ul className="p-0 list-none space-y-1.5 max-h-64 overflow-y-auto">
-                {documento.estudiantes.map((e) => (
-                  <li key={e.persona_id} className="flex items-center justify-between gap-2 text-[13px]">
-                    <span className="min-w-0 truncate font-medium text-ink dark:text-ink-dark">{e.nombre_completo_historico}</span>
-                    {e.grado_seccion_historico && <span className="shrink-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{e.grado_seccion_historico}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Lista congelada al crear el documento.</p>
-          </TarjetaLateral>
-        </div>
+        {/* ===== Columna derecha: vista previa en vivo, o el panel de emitir/versiones ===== */}
+        {mostrarVistaPrevia ? (
+          <PanelVistaPrevia
+            vista={vistaPrevia}
+            pendiente={hayCambiosSinGuardar || guardandoSeccionId !== null}
+            onAmpliar={() => {
+              if (!vistaPrevia.pdf) return;
+              setVisorAbierto(true);
+              setVisorError(null);
+              setVisorCargando(false);
+              setVisorArchivo({ blob: vistaPrevia.pdf, contentType: "application/pdf", nombreArchivo: `vista_previa_${documentoId}.pdf` });
+            }}
+            onOcultar={() => cambiarPreferenciaVista(false)}
+          />
+        ) : (
+          columnaLateral
+        )}
       </div>
 
       <VisorArchivoModal abierto={visorAbierto} onCerrar={() => setVisorAbierto(false)} archivo={visorArchivo} cargando={visorCargando} error={visorError} />
@@ -1380,4 +1460,26 @@ function EditorResultadosMultiplesVinculables({
       </Boton>
     </div>
   );
+}
+
+// 🆕 (2026-11-18) Preferencia de la vista previa y ancho de pantalla.
+const CLAVE_VISTA_PREVIA = "aurora.documento.vista-previa";
+
+function leerPreferenciaVista(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    return window.localStorage.getItem(CLAVE_VISTA_PREVIA) !== "0";
+  } catch {
+    return true;
+  }
+}
+
+function leerPantallaAncha(): boolean {
+  return window.matchMedia("(min-width: 1024px)").matches;
+}
+
+function suscribirAncho(alCambiar: () => void) {
+  const consulta = window.matchMedia("(min-width: 1024px)");
+  consulta.addEventListener("change", alCambiar);
+  return () => consulta.removeEventListener("change", alCambiar);
 }
