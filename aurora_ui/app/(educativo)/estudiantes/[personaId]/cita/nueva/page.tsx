@@ -211,13 +211,13 @@ export default function NuevaCitaPage() {
 
         <aside className="lg:sticky lg:top-4 space-y-4">
           <TarjetaAlumnoLateral personaId={personaId} alumno={alumno} seccion={seccion}>
-            <p className="m-0 mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Próximas citas</p>
+            <p className="mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Próximas citas</p>
             {proximas === null ? (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">—</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">—</p>
             ) : proximas.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">No tiene citas programadas.</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">No tiene citas programadas.</p>
             ) : (
-              <ul className="m-0 list-none p-0 space-y-2">
+              <ul className="list-none p-0 space-y-2">
                 {proximas.map((c) => {
                   const f = new Date(c.fecha_hora);
                   return (

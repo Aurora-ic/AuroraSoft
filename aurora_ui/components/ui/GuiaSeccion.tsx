@@ -79,11 +79,11 @@ export function GuiaSeccion({
         <X size={12} aria-hidden="true" />
         Entendido, ocultar
       </button>
-      <h2 className="m-0 flex items-center gap-2 pr-32 text-[14.5px] font-bold text-ink dark:text-ink-dark">
+      <h2 className="flex items-center gap-2 pr-32 text-[14.5px] font-bold text-ink dark:text-ink-dark">
         <BookOpen size={16} className="text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
         {titulo}
       </h2>
-      <ol className="m-0 mt-3 grid list-none gap-2.5 p-0 md:grid-cols-3">
+      <ol className="mt-3 grid list-none gap-2.5 p-0 md:grid-cols-3">
         {pasos.map(({ icono: Icono, titulo: t, texto }) => (
           <li key={t} className="flex gap-2.5 rounded-lg border border-border bg-surface px-3 py-2.5 dark:border-border-dark dark:bg-surface-dark">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-seccion-600/10 text-seccion-700 dark:bg-seccion-claro/15 dark:text-seccion-claro">

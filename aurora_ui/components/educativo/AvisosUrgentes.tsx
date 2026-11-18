@@ -120,15 +120,15 @@ export function AvisosUrgentes() {
 
         {abierto && (
           <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-xl border border-border bg-surface shadow-xl dark:border-border-dark dark:bg-surface-raised-dark">
-            <p className="m-0 border-b border-border px-4 py-3 text-[13px] font-bold text-ink dark:border-border-dark dark:text-ink-dark">
+            <p className="border-b border-border px-4 py-3 text-[13px] font-bold text-ink dark:border-border-dark dark:text-ink-dark">
               Casos urgentes sin atender
             </p>
             {casos.length === 0 ? (
-              <p className="m-0 px-4 py-4 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+              <p className="px-4 py-4 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
                 No hay casos urgentes nuevos para ti. Te avisaremos aquí cuando entre uno.
               </p>
             ) : (
-              <ul className="m-0 max-h-80 list-none divide-y divide-border overflow-y-auto p-0 dark:divide-border-dark">
+              <ul className="max-h-80 list-none divide-y divide-border overflow-y-auto p-0 dark:divide-border-dark">
                 {casos.map((c) => (
                   <li key={c.id}>
                     <Link
@@ -164,10 +164,10 @@ export function AvisosUrgentes() {
           <div className="flex items-start gap-2.5">
             <Siren size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" />
             <div className="min-w-0 flex-1">
-              <p className="m-0 text-[13px] font-bold text-ink dark:text-ink-dark">
+              <p className="text-[13px] font-bold text-ink dark:text-ink-dark">
                 {nuevos.length === 1 ? "Nuevo caso urgente" : `${nuevos.length} casos urgentes nuevos`}
               </p>
-              <p className="m-0 mt-0.5 truncate text-[12.5px] text-ink/65 dark:text-ink-dark/65">{nuevos.map((c) => c.nombre_completo).join(", ")}</p>
+              <p className="mt-0.5 truncate text-[12.5px] text-ink/65 dark:text-ink-dark/65">{nuevos.map((c) => c.nombre_completo).join(", ")}</p>
               <Link
                 href="/casos-riesgo"
                 onClick={() => marcarVistos(nuevos.map((c) => c.id))}

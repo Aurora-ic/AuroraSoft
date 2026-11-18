@@ -99,7 +99,7 @@ export default function CampanasPage() {
           { icono: BarChart3, titulo: "3. Revisa los resultados", texto: "En la campaña ves el avance. Si un resultado indica riesgo, el informe queda retenido hasta que lo revises." },
         ]}
       >
-        <p className="m-0 mt-3 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+        <p className="mt-3 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
           Para evaluar a un solo alumno, usa «Aplicar prueba» desde su ficha.
         </p>
       </GuiaSeccion>
@@ -120,7 +120,7 @@ export default function CampanasPage() {
           ]}
         />
         {tipo === "individual" && (
-          <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
+          <p className="text-xs text-ink/65 dark:text-ink-dark/55">
             Se crean desde el perfil del estudiante con «Aplicar prueba». No cuentan en las estadísticas por salón.
           </p>
         )}

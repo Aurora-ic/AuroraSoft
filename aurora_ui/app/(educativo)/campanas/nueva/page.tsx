@@ -535,7 +535,7 @@ export default function NuevaCampanaPage() {
                 />
                 <div className="px-5 pb-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                    <p className="m-0 text-ink/70 dark:text-ink-dark/70">
+                    <p className="text-ink/70 dark:text-ink-dark/70">
                       <span className="font-display text-lg font-semibold text-seccion-900 dark:text-ink-dark">{efectivas.length}</span>{" "}
                       estudiante{efectivas.length === 1 ? "" : "s"} seleccionado{efectivas.length === 1 ? "" : "s"}
                       {bloqueadasMarcadas > 0 && (
@@ -913,7 +913,7 @@ export default function NuevaCampanaPage() {
 // círculos blancos/translúcidos en vez de teal sobre teal.
 function IndicadorPasos({ actual }: { actual: number }) {
   return (
-    <ol className="m-0 mt-3.5 flex max-w-xl list-none items-center gap-2 p-0 sm:gap-3">
+    <ol className="mt-3.5 flex max-w-xl list-none items-center gap-2 p-0 sm:gap-3">
       {PASOS.map((paso, i) => {
         const hecho = i < actual;
         const activo = i === actual;
@@ -958,8 +958,8 @@ function EncabezadoSeccion({ numero, titulo, subtitulo }: { numero: number; titu
         {numero}
       </span>
       <div>
-        <h2 className="m-0 font-display text-[15px] font-semibold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
-        <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">{subtitulo}</p>
+        <h2 className="font-display text-[15px] font-semibold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
+        <p className="text-xs text-ink/65 dark:text-ink-dark/55">{subtitulo}</p>
       </div>
     </div>
   );

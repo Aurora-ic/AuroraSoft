@@ -546,11 +546,11 @@ export default function DetalleDocumentoPage() {
         <div className="flex flex-col gap-3 min-w-0">
           {/* 🆕 (2026-11-17) Guía corta + avance: qué se hace en esta pantalla. */}
           <div className={`rounded-xl border px-4 py-3.5 ${VIOLETA.fondoSuave}`}>
-            <p className="m-0 flex items-center gap-1.5 text-[13.5px] font-bold text-ink dark:text-ink-dark">
+            <p className="flex items-center gap-1.5 text-[13.5px] font-bold text-ink dark:text-ink-dark">
               <ListChecks size={15} className={VIOLETA.texto} aria-hidden="true" />
               Cómo completar este documento
             </p>
-            <ol className="m-0 mt-2 grid list-none gap-2 p-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70 sm:grid-cols-3">
+            <ol className="mt-2 grid list-none gap-2 p-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70 sm:grid-cols-3">
               <li className="flex gap-2">
                 <PasoGuia n={1} />
                 <span>
@@ -572,7 +572,7 @@ export default function DetalleDocumentoPage() {
               <div className="mt-3 border-t border-acento-violeta/15 pt-3 dark:border-acento-violeta-dark/20">
                 <BarraAvance hechos={completas} total={editables.length} etiqueta="Partes que completas tú" />
                 <div className="mt-2 flex items-center justify-between gap-3 flex-wrap">
-                  <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+                  <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                     {guardandoSeccionId !== null
                       ? "Guardando…"
                       : pendientesDeGuardar > 0
@@ -592,7 +592,7 @@ export default function DetalleDocumentoPage() {
               </div>
             )}
             {!borrador && (
-              <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Lo que cambies aquí se incluye en la próxima versión al reemitir; las versiones ya emitidas no cambian.
               </p>
             )}
@@ -649,7 +649,7 @@ export default function DetalleDocumentoPage() {
                     {completa ? <CheckCircle2 size={14} /> : idx + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <h3 className="m-0 text-[14.5px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h3>
+                    <h3 className="text-[14.5px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h3>
                     <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                       <ChipModo modo={MODO_TIPO_SECCION[seccion.tipo_seccion] === "automatica" ? "escribes" : MODO_TIPO_SECCION[seccion.tipo_seccion]} />
                       {seccion.titulo && <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>}
@@ -660,7 +660,7 @@ export default function DetalleDocumentoPage() {
 
                 <div className="p-4 space-y-3">
                   {instruccion && (
-                    <p className="m-0 flex items-start gap-2 rounded-lg bg-acento-violeta/[0.06] px-3 py-2 text-[13px] leading-snug text-ink/80 dark:bg-acento-violeta-dark/10 dark:text-ink-dark/80">
+                    <p className="flex items-start gap-2 rounded-lg bg-acento-violeta/[0.06] px-3 py-2 text-[13px] leading-snug text-ink/80 dark:bg-acento-violeta-dark/10 dark:text-ink-dark/80">
                       <Lightbulb size={14} className={`mt-0.5 shrink-0 ${VIOLETA.texto}`} aria-hidden="true" />
                       <span>{instruccion}</span>
                     </p>
@@ -767,11 +767,11 @@ export default function DetalleDocumentoPage() {
                     <div className="flex items-center justify-between gap-3 flex-wrap rounded-lg border border-dashed border-border dark:border-border-dark px-3.5 py-3">
                       <div className="min-w-0 text-sm">
                         {(seccion.contenido as ContenidoImagenAnexo | null)?.storage_key ? (
-                          <p className={`m-0 font-medium ${VIOLETA.texto}`}>{(seccion.contenido as ContenidoImagenAnexo | null)?.nombre_archivo ?? "Imagen cargada"}</p>
+                          <p className={`font-medium ${VIOLETA.texto}`}>{(seccion.contenido as ContenidoImagenAnexo | null)?.nombre_archivo ?? "Imagen cargada"}</p>
                         ) : (
-                          <p className="m-0 text-ink/65 dark:text-ink-dark/55">Sin imagen todavía.</p>
+                          <p className="text-ink/65 dark:text-ink-dark/55">Sin imagen todavía.</p>
                         )}
-                        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
+                        <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">JPG o PNG. También puedes pegarla (Ctrl+V) con el foco en el botón.</p>
                       </div>
                       <label
                         className={claseBoton("secundario", "inline-flex items-center gap-1.5 !py-1.5 cursor-pointer")}
@@ -808,15 +808,15 @@ export default function DetalleDocumentoPage() {
           <TarjetaLateral icono={Send} titulo={borrador ? "Emitir documento" : "Reemitir"}>
             {borrador ? (
               <div className="space-y-3">
-                <p className="m-0 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+                <p className="text-[12.5px] text-ink/65 dark:text-ink-dark/60">
                   Genera el PDF oficial con el contenido guardado. Después ya no se puede descartar; los cambios se emiten como una versión nueva.
                 </p>
                 {editables.length - completas > 0 && (
                   <div className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
-                    <p className="m-0 text-[12px] font-semibold text-ink/70 dark:text-ink-dark/70">
+                    <p className="text-[12px] font-semibold text-ink/70 dark:text-ink-dark/70">
                       {editables.length - completas === 1 ? "Falta 1 parte por completar:" : `Faltan ${editables.length - completas} partes por completar:`}
                     </p>
-                    <ul className="m-0 mt-1 list-none space-y-0.5 p-0">
+                    <ul className="mt-1 list-none space-y-0.5 p-0">
                       {editables
                         .filter((s) => !estaCompleta(s))
                         .map((s) => (
@@ -830,7 +830,7 @@ export default function DetalleDocumentoPage() {
                           </li>
                         ))}
                     </ul>
-                    <p className="m-0 mt-1 text-[11.5px] text-ink/65 dark:text-ink-dark/55">Puedes generar igual: las vacías salen en blanco.</p>
+                    <p className="mt-1 text-[11.5px] text-ink/65 dark:text-ink-dark/55">Puedes generar igual: las vacías salen en blanco.</p>
                   </div>
                 )}
                 <Boton onClick={generarOReemitir} disabled={generando || descartando} className="w-full">
@@ -866,7 +866,7 @@ export default function DetalleDocumentoPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                <p className="m-0 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+                <p className="text-[12.5px] text-ink/65 dark:text-ink-dark/60">
                   Para corregir algo, edita las secciones y reemite: se crea una versión nueva con su motivo y las anteriores se conservan.
                 </p>
                 <Boton onClick={() => setMostrarReemision(true)} className="w-full">
@@ -878,13 +878,13 @@ export default function DetalleDocumentoPage() {
 
           {versionesOrdenadas.length > 0 && (
             <TarjetaLateral icono={History} titulo="Versiones">
-              <ul className="m-0 p-0 list-none space-y-2">
+              <ul className="p-0 list-none space-y-2">
                 {versionesOrdenadas.map((v) => (
                   <li key={v.id} className="rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
-                    <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">
+                    <p className="text-[12.5px] font-semibold text-ink dark:text-ink-dark">
                       v{v.numero_version} — {new Date(v.generado_en).toLocaleString("es-PE")}
                     </p>
-                    {v.motivo_version && <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{v.motivo_version}</p>}
+                    {v.motivo_version && <p className="mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{v.motivo_version}</p>}
                     <div className="mt-1.5 flex items-center gap-3">
                       <button type="button" onClick={() => ver(v)} className={`inline-flex items-center gap-1 text-xs font-semibold hover:underline ${VIOLETA.texto}`}>
                         <Eye size={12} aria-hidden="true" />
@@ -908,9 +908,9 @@ export default function DetalleDocumentoPage() {
 
           <TarjetaLateral icono={Users} titulo={documento.estudiantes.length === 1 ? "Alumno" : `Alumnos (${documento.estudiantes.length})`}>
             {documento.estudiantes.length === 0 ? (
-              <p className="m-0 text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin estudiantes vinculados.</p>
+              <p className="text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin estudiantes vinculados.</p>
             ) : (
-              <ul className="m-0 p-0 list-none space-y-1.5 max-h-64 overflow-y-auto">
+              <ul className="p-0 list-none space-y-1.5 max-h-64 overflow-y-auto">
                 {documento.estudiantes.map((e) => (
                   <li key={e.persona_id} className="flex items-center justify-between gap-2 text-[13px]">
                     <span className="min-w-0 truncate font-medium text-ink dark:text-ink-dark">{e.nombre_completo_historico}</span>
@@ -919,7 +919,7 @@ export default function DetalleDocumentoPage() {
                 ))}
               </ul>
             )}
-            <p className="m-0 mt-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Lista congelada al crear el documento.</p>
+            <p className="mt-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Lista congelada al crear el documento.</p>
           </TarjetaLateral>
         </div>
       </div>
@@ -1007,7 +1007,7 @@ function SeccionAutomatica({
             <span className="text-[13.5px] font-semibold text-ink/75 dark:text-ink-dark/75">{titulo}</span>
             <ChipModo modo={esTablaAutomatica ? "automatica" : MODO_TIPO_SECCION[tipo]} />
           </div>
-          <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55">{origen}</p>
+          <p className="mt-0.5 text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55">{origen}</p>
           {esImprimible && partes.length > 0 && (
             <button
               type="button"
@@ -1020,7 +1020,7 @@ function SeccionAutomatica({
             </button>
           )}
           {abierta && (
-            <ul className="m-0 mt-1.5 list-disc space-y-0.5 pl-5 text-[12px] text-ink/65 dark:text-ink-dark/60">
+            <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-[12px] text-ink/65 dark:text-ink-dark/60">
               {partes.map((p, i) => (
                 <li key={i}>{p}</li>
               ))}
@@ -1100,7 +1100,7 @@ function EditorTablaLibre({
   pendiente: boolean;
 }) {
   if (columnas.length === 0) {
-    return <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Esta tabla no tiene columnas configuradas en la plantilla.</p>;
+    return <p className="text-xs italic text-ink/65 dark:text-ink-dark/55">Esta tabla no tiene columnas configuradas en la plantilla.</p>;
   }
   return (
     <div className="space-y-2.5">
@@ -1219,12 +1219,12 @@ function EditorResultadoVinculable({
   return (
     <div className="space-y-3 text-sm">
       {!puedeVincular ? (
-        <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">
+        <p className="text-xs italic text-ink/65 dark:text-ink-dark/55">
           Solo se puede vincular una prueba cuando el documento es de un único alumno.
         </p>
       ) : (
         <div className="space-y-2">
-          <p className="m-0 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">Prueba vinculada</p>
+          <p className="text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">Prueba vinculada</p>
           {vinculada ? (
             <FilaAplicacion
               h={vinculada}
@@ -1236,11 +1236,11 @@ function EditorResultadoVinculable({
               }
             />
           ) : (
-            <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">{historial.length === 0 ? "Este alumno todavía no tiene ninguna prueba aplicada." : "Ninguna todavía. Elige una:"}</p>
+            <p className="text-xs text-ink/65 dark:text-ink-dark/55">{historial.length === 0 ? "Este alumno todavía no tiene ninguna prueba aplicada." : "Ninguna todavía. Elige una:"}</p>
           )}
           {otras.length > 0 && (
             <div className="space-y-1.5">
-              {vinculada && <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Otras aplicaciones del alumno:</p>}
+              {vinculada && <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">Otras aplicaciones del alumno:</p>}
               {otras.map((h) => (
                 <FilaAplicacion
                   key={h.inscripcion_id}
@@ -1265,7 +1265,7 @@ function EditorResultadoVinculable({
 
       {tipo === "grafico_barras" && (
         <div className="space-y-2 border-t border-border dark:border-border-dark pt-3">
-          <p className="m-0 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">O valores manuales (si no hay una prueba vinculada)</p>
+          <p className="text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">O valores manuales (si no hay una prueba vinculada)</p>
           {valoresManual.map((d, i) => (
             <div key={i} className="flex items-center gap-2">
               <Input
@@ -1339,7 +1339,7 @@ function EditorResultadosMultiplesVinculables({
   }
 
   if (!puedeVincular) {
-    return <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Solo se puede usar cuando el documento es de un único alumno.</p>;
+    return <p className="text-xs italic text-ink/65 dark:text-ink-dark/55">Solo se puede usar cuando el documento es de un único alumno.</p>;
   }
 
   function alternar(inscripcionId: number) {
@@ -1350,11 +1350,11 @@ function EditorResultadosMultiplesVinculables({
 
   return (
     <div className="space-y-2 text-sm">
-      <p className="m-0 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">
+      <p className="text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">
         Pruebas a consolidar <span className="font-normal text-ink/65 dark:text-ink-dark/55">({marcados.length} elegidas)</span>
       </p>
       {historial.length === 0 ? (
-        <p className="m-0 text-xs italic text-ink/65 dark:text-ink-dark/55">Este alumno todavía no tiene ninguna prueba aplicada.</p>
+        <p className="text-xs italic text-ink/65 dark:text-ink-dark/55">Este alumno todavía no tiene ninguna prueba aplicada.</p>
       ) : (
         <div className="space-y-1.5">
           {historial.map((h) => (

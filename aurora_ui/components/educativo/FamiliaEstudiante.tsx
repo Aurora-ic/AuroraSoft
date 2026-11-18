@@ -307,11 +307,14 @@ export function ComposicionFamiliar({
   const hermanos = activos.filter((c) => /^herman/i.test((c.relacion ?? "").trim())).length;
 
   return (
-    <div className="space-y-3">
+    // 🔧 (2026-11-17) gap y no space-y: en Tailwind 4 space-y pone margen
+    // inferior a cada hijo y el `m-0` de la lista lo anulaba, así que los
+    // botones de "Agregar" quedaban pegados a las tarjetas.
+    <div className="flex flex-col gap-4">
       {activos.length === 0 ? (
         <VacioFicha icono={UsersRound} texto="Aún no hay familiares registrados." />
       ) : (
-        <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid list-none gap-3 p-0 sm:grid-cols-2 xl:grid-cols-3">
           {activos.map((c) => {
             const edad = edadDesde(c.fecha_nacimiento);
             const detalles = [
@@ -329,10 +332,10 @@ export function ComposicionFamiliar({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-seccion-700 dark:text-seccion-claro">
+                    <p className="text-[11.5px] font-semibold uppercase tracking-wide text-seccion-700 dark:text-seccion-claro">
                       {c.relacion || "Familiar"}
                     </p>
-                    <p className="m-0 mt-0.5 font-semibold text-ink dark:text-ink-dark break-words">{nombreFamiliar(c)}</p>
+                    <p className="mt-0.5 font-semibold text-ink dark:text-ink-dark break-words">{nombreFamiliar(c)}</p>
                   </div>
                   {puedeEditar && (
                     <button
@@ -360,7 +363,7 @@ export function ComposicionFamiliar({
                   </div>
                 )}
                 {detalles.length > 0 && (
-                  <ul className="m-0 mt-2.5 list-none space-y-1 p-0 text-[13px] text-ink/70 dark:text-ink-dark/70">
+                  <ul className="mt-2.5 list-none space-y-1 p-0 text-[13px] text-ink/70 dark:text-ink-dark/70">
                     {detalles.map(({ icono: Icono, texto }) => (
                       <li key={texto} className="flex items-start gap-1.5">
                         <Icono size={13} className="mt-0.5 shrink-0 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
@@ -376,7 +379,7 @@ export function ComposicionFamiliar({
       )}
 
       {puedeEditar && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/70 pt-3.5 dark:border-border-dark">
           <span className="text-[12.5px] font-medium text-ink/65 dark:text-ink-dark/55">Agregar:</span>
           {ATAJOS_FAMILIAR.map((a) => (
             <button
@@ -391,7 +394,7 @@ export function ComposicionFamiliar({
         </div>
       )}
       {hermanos > 0 && (
-        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+        <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
           {hermanos === 1 ? "1 hermano/a registrado/a" : `${hermanos} hermanos/as registrados/as`} en la composición familiar.
         </p>
       )}

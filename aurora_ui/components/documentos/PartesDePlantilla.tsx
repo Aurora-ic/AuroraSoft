@@ -33,13 +33,13 @@ export function PartesDePlantilla({ plantillaId }: { plantillaId: number }) {
   return (
     <div className="mt-3 grid gap-3 rounded-lg border border-border bg-surface p-3 dark:border-border-dark dark:bg-surface-dark sm:grid-cols-2">
       <div>
-        <p className="m-0 mb-1.5 text-[12.5px] font-bold text-ink dark:text-ink-dark">
+        <p className="mb-1.5 text-[12.5px] font-bold text-ink dark:text-ink-dark">
           Vas a completar {tuyas.length === 1 ? "1 parte" : `${tuyas.length} partes`}
         </p>
         {tuyas.length === 0 ? (
-          <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Ninguna: este documento sale completo solo.</p>
+          <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">Ninguna: este documento sale completo solo.</p>
         ) : (
-          <ul className="m-0 list-none space-y-1 p-0">
+          <ul className="list-none space-y-1 p-0">
             {tuyas.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 text-[12.5px]">
                 <span className="min-w-0 truncate text-ink/80 dark:text-ink-dark/80">{p.titulo || ETIQUETAS_TIPO_SECCION[p.tipo_seccion]}</span>
@@ -50,13 +50,13 @@ export function PartesDePlantilla({ plantillaId }: { plantillaId: number }) {
         )}
       </div>
       <div>
-        <p className="m-0 mb-1.5 text-[12.5px] font-bold text-ink dark:text-ink-dark">
+        <p className="mb-1.5 text-[12.5px] font-bold text-ink dark:text-ink-dark">
           {solas.length === 1 ? "1 parte sale sola" : `${solas.length} partes salen solas`}
         </p>
         {solas.length === 0 ? (
-          <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Ninguna.</p>
+          <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">Ninguna.</p>
         ) : (
-          <ul className="m-0 list-none space-y-1 p-0">
+          <ul className="list-none space-y-1 p-0">
             {solas.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-2 text-[12.5px]">
                 <span className="min-w-0 truncate text-ink/65 dark:text-ink-dark/60">{p.titulo || ETIQUETAS_TIPO_SECCION[p.tipo_seccion]}</span>

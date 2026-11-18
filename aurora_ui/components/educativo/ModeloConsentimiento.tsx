@@ -97,7 +97,7 @@ export function ModeloConsentimiento({
 
   if (estado === "sin_modelo" || !modelo) {
     return (
-      <p className="m-0 flex items-center gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
+      <p className="flex items-center gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
         <FileText size={13} aria-hidden="true" />
         Tu colegio todavía no configuró el modelo de {tipo === "apoderado" ? "consentimiento" : "asentimiento"}.{" "}
         <Link href="/asentimiento" className="font-semibold text-seccion-700 dark:text-seccion-claro hover:underline">
@@ -132,19 +132,19 @@ export function ModeloConsentimiento({
           {descargando ? "Generando…" : "PDF para firmar"}
         </button>
       </div>
-      {errorPdf && <p className="m-0 px-3 pb-2 text-xs text-red-700 dark:text-red-300">{errorPdf}</p>}
+      {errorPdf && <p className="px-3 pb-2 text-xs text-red-700 dark:text-red-300">{errorPdf}</p>}
       {abierto && (
         <div className="border-t border-border dark:border-border-dark px-3 py-2.5 max-h-64 overflow-y-auto space-y-1.5">
           {modelo.contenido
             .split("\n")
             .filter((l) => l.trim())
             .map((linea, i) => (
-              <p key={i} className="m-0 text-[12.5px] leading-relaxed text-ink/80 dark:text-ink-dark/80">
+              <p key={i} className="text-[12.5px] leading-relaxed text-ink/80 dark:text-ink-dark/80">
                 <TextoConMarcadores texto={linea} />
               </p>
             ))}
           {expandido && (
-            <p className="m-0 pt-1 text-[12px] italic text-ink/65 dark:text-ink-dark/55">
+            <p className="pt-1 text-[12px] italic text-ink/65 dark:text-ink-dark/55">
               Al registrar, queda guardado que se usó esta versión del modelo.
             </p>
           )}

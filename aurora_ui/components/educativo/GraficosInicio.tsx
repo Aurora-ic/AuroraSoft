@@ -56,7 +56,7 @@ function Leyenda({ items }: { items: { color: string; etiqueta: string }[] }) {
 function SinDatos({ texto }: { texto: string }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <p className="m-0 rounded-lg bg-surface/90 dark:bg-surface-dark/90 px-3 py-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{texto}</p>
+      <p className="rounded-lg bg-surface/90 dark:bg-surface-dark/90 px-3 py-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{texto}</p>
     </div>
   );
 }
@@ -135,18 +135,18 @@ export function GraficoEvaluacionesMes({ meses }: { meses: MesSerieInicio[] }) {
                     role="tooltip"
                     className="absolute bottom-full mb-1 z-10 w-40 -translate-y-6 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark px-3 py-2 text-[12px] shadow-lg pointer-events-none"
                   >
-                    <p className="m-0 mb-1 font-semibold capitalize text-ink dark:text-ink-dark">{mesLargo(m.mes)}</p>
-                    <p className="m-0 flex justify-between text-ink/70 dark:text-ink-dark/70">
+                    <p className="mb-1 font-semibold capitalize text-ink dark:text-ink-dark">{mesLargo(m.mes)}</p>
+                    <p className="flex justify-between text-ink/70 dark:text-ink-dark/70">
                       Evaluaciones <strong className="tabular-nums text-ink dark:text-ink-dark">{m.evaluaciones}</strong>
                     </p>
-                    <p className="m-0 flex justify-between text-ink/70 dark:text-ink-dark/70">
+                    <p className="flex justify-between text-ink/70 dark:text-ink-dark/70">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-sm bg-seccion-600 dark:bg-seccion-claro" />
                         Sin alerta
                       </span>
                       <span className="tabular-nums">{m.sin_alerta}</span>
                     </p>
-                    <p className="m-0 flex justify-between text-ink/70 dark:text-ink-dark/70">
+                    <p className="flex justify-between text-ink/70 dark:text-ink-dark/70">
                       <span className="inline-flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-sm bg-amber" />
                         Con alerta
@@ -271,9 +271,9 @@ export function GraficoSeguimientoMes({ meses }: { meses: MesSerieInicio[] }) {
             className="absolute top-0 z-10 w-36 -translate-x-1/2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-raised-dark px-3 py-2 text-[12px] shadow-lg pointer-events-none"
             style={{ left: `${Math.min(Math.max((x(hover) / ANCHO) * 100, 18), 82)}%` }}
           >
-            <p className="m-0 mb-1 font-semibold capitalize text-ink dark:text-ink-dark">{mesLargo(activo.mes)}</p>
+            <p className="mb-1 font-semibold capitalize text-ink dark:text-ink-dark">{mesLargo(activo.mes)}</p>
             {series.map((s) => (
-              <p key={s.clave} className="m-0 flex justify-between text-ink/70 dark:text-ink-dark/70">
+              <p key={s.clave} className="flex justify-between text-ink/70 dark:text-ink-dark/70">
                 <span className="inline-flex items-center gap-1.5">
                   <span className={`h-2 w-2 rounded-sm ${s.muestra}`} />
                   {s.etiqueta}
@@ -309,10 +309,10 @@ function diasHasta(iso: string | null): number | null {
 
 export function AvanceCampanas({ campanas }: { campanas: CampanaAvanceInicio[] }) {
   if (campanas.length === 0) {
-    return <p className="m-0 text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin campañas activas.</p>;
+    return <p className="text-[12.5px] italic text-ink/65 dark:text-ink-dark/55">Sin campañas activas.</p>;
   }
   return (
-    <ul className="m-0 p-0 list-none flex flex-col gap-3.5">
+    <ul className="p-0 list-none flex flex-col gap-3.5">
       {campanas.map((c) => {
         const pct = c.inscritos > 0 ? Math.round((c.finalizados / c.inscritos) * 100) : 0;
         const dias = diasHasta(c.fecha_fin);

@@ -114,7 +114,7 @@ export default function NuevaSesionSeguimientoPage() {
         <section className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
           <CabeceraBloque icono={NotebookPen} titulo="Registro de la sesión" descripcion="Lo trabajado y lo que se decidió." />
           <div className="p-4 space-y-4 text-sm">
-            <p className="m-0 inline-flex items-center gap-1.5 rounded-lg bg-mist dark:bg-surface-raised-dark px-2.5 py-1 text-[12px] text-ink/65 dark:text-ink-dark/60">
+            <p className="inline-flex items-center gap-1.5 rounded-lg bg-mist dark:bg-surface-raised-dark px-2.5 py-1 text-[12px] text-ink/65 dark:text-ink-dark/60">
               <CalendarCheck2 size={13} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
               <span className="capitalize">{hoy}</span> · se registra como <strong className="font-semibold">Atendido</strong>
             </p>
@@ -138,7 +138,7 @@ export default function NuevaSesionSeguimientoPage() {
               />
             </CampoEditable>
 
-            <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
+            <p className="flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
               <Info size={13} aria-hidden="true" className="mt-0.5 shrink-0" />
               Acuerdos, compromisos y la próxima cita se completan después con “Editar” en el historial de la ficha.
             </p>
@@ -147,21 +147,21 @@ export default function NuevaSesionSeguimientoPage() {
 
         <aside className="lg:sticky lg:top-4 space-y-4">
           <TarjetaAlumnoLateral personaId={personaId} alumno={alumno} seccion={seccion}>
-            <p className="m-0 mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+            <p className="mb-2 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
               Última sesión{totalSesiones > 1 ? ` · ${totalSesiones} en total` : ""}
             </p>
             {ultima === undefined ? (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">—</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">—</p>
             ) : ultima === null ? (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">Esta será su primera sesión registrada.</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">Esta será su primera sesión registrada.</p>
             ) : (
               <div className="text-[12px]">
-                <p className="m-0 font-semibold text-ink dark:text-ink-dark">{fechaCorta(ultima.fecha)}</p>
-                <p className="m-0 mt-1 text-ink/65 dark:text-ink-dark/60 line-clamp-4" title={ultima.observaciones}>
+                <p className="font-semibold text-ink dark:text-ink-dark">{fechaCorta(ultima.fecha)}</p>
+                <p className="mt-1 text-ink/65 dark:text-ink-dark/60 line-clamp-4" title={ultima.observaciones}>
                   {ultima.observaciones}
                 </p>
                 {ultima.acuerdos_compromisos && (
-                  <p className="m-0 mt-1.5 text-ink/65 dark:text-ink-dark/55 line-clamp-2">
+                  <p className="mt-1.5 text-ink/65 dark:text-ink-dark/55 line-clamp-2">
                     <span className="font-semibold">Acuerdos:</span> {ultima.acuerdos_compromisos}
                   </p>
                 )}

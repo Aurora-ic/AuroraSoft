@@ -140,10 +140,10 @@ function ContenidoNavegacion({ pathname }: { pathname: string | null }) {
             {(sesion?.email?.[0] || "?").toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark truncate" title={sesion?.email}>
+            <p className="text-[12.5px] font-semibold text-ink dark:text-ink-dark truncate" title={sesion?.email}>
               {sesion?.email}
             </p>
-            <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 capitalize">{sesion?.rol}</p>
+            <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 capitalize">{sesion?.rol}</p>
           </div>
           <button
             type="button"

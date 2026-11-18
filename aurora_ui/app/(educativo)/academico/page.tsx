@@ -228,7 +228,7 @@ function Columna({
             <Icono size={16} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h2 className="m-0 text-sm font-semibold text-seccion-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-seccion-900 dark:text-ink-dark leading-tight flex items-center gap-1.5">
               {titulo}
               {cantidad !== null && (
                 <span className="rounded-full bg-border/80 dark:bg-border-dark px-1.5 text-[11.5px] font-bold text-ink/65 dark:text-ink-dark/60">
@@ -237,7 +237,7 @@ function Columna({
               )}
             </h2>
             {(subtitulo || (totalEstudiantes !== null && totalEstudiantes !== undefined)) && (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 truncate">
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 truncate">
                 {[
                   subtitulo,
                   totalEstudiantes !== null && totalEstudiantes !== undefined
@@ -334,7 +334,7 @@ function Recuento({ n, nDx = null, activo = false }: { n: number | null; nDx?: n
 
 function VacioColumna({ texto }: { texto: string }) {
   return (
-    <p className="m-0 rounded-lg border border-dashed border-border dark:border-border-dark px-3 py-5 text-center text-[12.5px] text-ink/65 dark:text-ink-dark/55">
+    <p className="rounded-lg border border-dashed border-border dark:border-border-dark px-3 py-5 text-center text-[12.5px] text-ink/65 dark:text-ink-dark/55">
       {texto}
     </p>
   );

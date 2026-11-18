@@ -43,7 +43,7 @@ export function ChipModo({ modo, tipo, className = "" }: { modo?: ModoSeccion; t
 /** Las 4 maneras de llenar una sección, con su frase — para guías e inducción. */
 export function LeyendaModos({ modos = ["escribes", "eliges", "automatica", "imprimir"] }: { modos?: ModoSeccion[] }) {
   return (
-    <ul className="m-0 grid list-none gap-2 p-0 sm:grid-cols-2">
+    <ul className="grid list-none gap-2 p-0 sm:grid-cols-2">
       {modos.map((m) => (
         <li key={m} className="flex items-start gap-2 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70">
           <ChipModo modo={m} className="mt-px" />

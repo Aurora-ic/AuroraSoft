@@ -49,14 +49,14 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
           : "border-border bg-mist/50 dark:border-border-dark dark:bg-surface-raised-dark"
       }`}
     >
-      <p className="m-0 flex items-center gap-2 font-semibold text-ink dark:text-ink-dark">
+      <p className="flex items-center gap-2 font-semibold text-ink dark:text-ink-dark">
         <BookOpenCheck size={15} aria-hidden="true" className="text-seccion-700 dark:text-seccion-claro" />
         Lectura fácil {destacado ? "— recomendada para este nivel" : ""}
       </p>
-      <p className="m-0 mt-1 text-ink/65 dark:text-ink-dark/60">
+      <p className="mt-1 text-ink/65 dark:text-ink-dark/60">
         El contenido lo decide el colegio. Estas pautas solo ayudan a que un estudiante pequeño lo entienda.
       </p>
-      <ul className="m-0 mt-2 list-disc space-y-1 pl-4 text-ink/70 dark:text-ink-dark/70">
+      <ul className="mt-2 list-disc space-y-1 pl-4 text-ink/70 dark:text-ink-dark/70">
         {PAUTAS.map((p) => (
           <li key={p}>{p}</li>
         ))}
@@ -64,8 +64,8 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
 
       {contenido.trim().length > 0 && (
         <div className="mt-3 border-t border-border/70 pt-3 dark:border-border-dark" aria-live="polite">
-          <p className="m-0 font-semibold text-ink dark:text-ink-dark">Revisión de este texto</p>
-          <p className="m-0 mt-1 text-ink/65 dark:text-ink-dark/65">
+          <p className="font-semibold text-ink dark:text-ink-dark">Revisión de este texto</p>
+          <p className="mt-1 text-ink/65 dark:text-ink-dark/65">
             {resultado.frases} frase{resultado.frases === 1 ? "" : "s"} ·{" "}
             {resultado.largas.length === 0 ? (
               <span className="text-seccion-900 dark:text-seccion-claro">ninguna pasa de {MAX_PALABRAS_FRASE} palabras</span>
@@ -76,7 +76,7 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
             )}
           </p>
           {resultado.largas.length > 0 && (
-            <ul className="m-0 mt-1.5 list-disc space-y-1 pl-4 text-ink/65 dark:text-ink-dark/60">
+            <ul className="mt-1.5 list-disc space-y-1 pl-4 text-ink/65 dark:text-ink-dark/60">
               {resultado.largas.slice(0, 4).map((f) => (
                 <li key={f} className="line-clamp-2">
                   {f}
@@ -85,7 +85,7 @@ export function PautasLecturaFacil({ contenido, destacado }: { contenido: string
             </ul>
           )}
           {resultado.palabrasLargas.length > 0 && (
-            <p className="m-0 mt-1.5 text-ink/65 dark:text-ink-dark/60">
+            <p className="mt-1.5 text-ink/65 dark:text-ink-dark/60">
               Palabras largas que quizá convenga explicar: {resultado.palabrasLargas.slice(0, 8).join(", ")}.
             </p>
           )}

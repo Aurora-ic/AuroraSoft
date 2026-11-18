@@ -53,15 +53,15 @@ export function TarjetaAlumnoLateral({
             {iniciales || <UserRound size={20} aria-hidden="true" />}
           </span>
           <div className="min-w-0">
-            <p className="m-0 font-display text-[15.5px] font-bold leading-tight text-seccion-900 dark:text-ink-dark break-words">
+            <p className="font-display text-[15.5px] font-bold leading-tight text-seccion-900 dark:text-ink-dark break-words">
               {alumno ? `${alumno.nombres} ${alumno.apellidos}` : "Cargando…"}
             </p>
             {alumno?.documento_identidad && (
-              <p className="m-0 mt-0.5 font-mono text-[12px] text-ink/65 dark:text-ink-dark/55">{alumno.documento_identidad}</p>
+              <p className="mt-0.5 font-mono text-[12px] text-ink/65 dark:text-ink-dark/55">{alumno.documento_identidad}</p>
             )}
           </div>
         </div>
-        <p className="m-0 mt-3 inline-flex items-center gap-1.5 rounded-lg bg-surface/80 dark:bg-surface-dark px-2.5 py-1 text-[12px] text-seccion-900 dark:text-seccion-claro ring-1 ring-seccion-600/15 dark:ring-0">
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-surface/80 dark:bg-surface-dark px-2.5 py-1 text-[12px] text-seccion-900 dark:text-seccion-claro ring-1 ring-seccion-600/15 dark:ring-0">
           <GraduationCap size={12} aria-hidden="true" />
           {ubicacion ?? "Sin matrícula"}
         </p>
@@ -84,8 +84,8 @@ export function CabeceraBloque({ icono: Icono, titulo, descripcion }: { icono: R
         <Icono size={16} aria-hidden={true} />
       </span>
       <div className="min-w-0">
-        <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
-        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>
+        <h2 className="text-[14px] font-bold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
+        <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>
       </div>
     </header>
   );

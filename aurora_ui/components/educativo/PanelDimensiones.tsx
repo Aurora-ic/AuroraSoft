@@ -79,7 +79,7 @@ function FilaMapa({
         </span>
       </div>
       {d.n === 0 ? (
-        <p className="m-0 mt-1 text-[12px] italic text-ink/65 dark:text-ink-dark/55">Sin datos todavía</p>
+        <p className="mt-1 text-[12px] italic text-ink/65 dark:text-ink-dark/55">Sin datos todavía</p>
       ) : (
         <div className="mt-1.5 flex items-center gap-2">
           {/* Pista = escala completa; relleno = media del grupo. Una sola
@@ -102,8 +102,8 @@ function FilaMapa({
 function Estadistico({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   return (
     <div className="rounded-lg bg-mist/70 dark:bg-surface-raised-dark px-3 py-2">
-      <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{etiqueta}</p>
-      <p className="m-0 mt-0.5 font-display text-[17px] font-bold text-ink dark:text-ink-dark leading-tight">{valor}</p>
+      <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{etiqueta}</p>
+      <p className="mt-0.5 font-display text-[17px] font-bold text-ink dark:text-ink-dark leading-tight">{valor}</p>
     </div>
   );
 }
@@ -153,8 +153,8 @@ function DetalleDimension({ d, tieneAlertasPosibles }: { d: DimensionResumenEsta
       {d.distribucion.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2 gap-2">
-            <p className="m-0 text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Distribución por nivel</p>
-            <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 min-h-[1em]" aria-live="polite">
+            <p className="text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Distribución por nivel</p>
+            <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 min-h-[1em]" aria-live="polite">
               {hover ? (
                 <>
                   <span className="font-semibold text-ink dark:text-ink-dark">{hover.nivel}</span>: {hover.cantidad} de {totalConNivel} alumnos
@@ -164,7 +164,7 @@ function DetalleDimension({ d, tieneAlertasPosibles }: { d: DimensionResumenEsta
               )}
             </p>
           </div>
-          <ul className="m-0 p-0 list-none space-y-1" onMouseLeave={() => setNivelHover(null)}>
+          <ul className="p-0 list-none space-y-1" onMouseLeave={() => setNivelHover(null)}>
             {d.distribucion.map((niv) => {
               const atenuado = nivelHover !== null && nivelHover !== niv.nivel;
               return (
@@ -236,7 +236,7 @@ export function PanelDimensiones({ resumen }: { resumen: ResumenEstadisticoDashb
         ))}
       </div>
       <div className="rounded-xl border border-border dark:border-border-dark p-4 min-w-0">
-        <p className="m-0 mb-3 font-display text-[15px] font-bold text-seccion-900 dark:text-ink-dark">{activa.nombre}</p>
+        <p className="mb-3 font-display text-[15px] font-bold text-seccion-900 dark:text-ink-dark">{activa.nombre}</p>
         <DetalleDimension key={activa.nombre} d={activa} tieneAlertasPosibles={tiene_alertas_posibles} />
       </div>
     </div>

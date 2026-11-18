@@ -231,7 +231,7 @@ function CasosRiesgoPageContenido() {
       )}
 
       {!cargando && (filtroEstado !== "abiertos" || abiertos.length > 0) && visibles.length === 0 && (
-        <p className="m-0 text-sm text-ink/65 dark:text-ink-dark/55 italic">Ningún caso coincide con el filtro.</p>
+        <p className="text-sm text-ink/65 dark:text-ink-dark/55 italic">Ningún caso coincide con el filtro.</p>
       )}
 
       <div className="grid gap-3 xl:grid-cols-2">
@@ -332,7 +332,7 @@ function TarjetaCaso({
           {/* 🔧 (2026-11-17) En celular, un nombre técnico de prueba o campaña sin
               espacios (p. ej. "COLEGIO-2026-PHQ9-1RO-A") estiraba la tarjeta
               147 px fuera de la pantalla: se deja partir en cualquier punto. */}
-          <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55 [overflow-wrap:anywhere]">
+          <p className="mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55 [overflow-wrap:anywhere]">
             {caso.origen === "prueba"
               ? [caso.prueba, caso.campana, caso.fecha_evaluacion ? `evaluado el ${fecha(caso.fecha_evaluacion)}` : null]
                   .filter(Boolean)
@@ -354,7 +354,7 @@ function TarjetaCaso({
       </div>
 
       {caso.origen === "prueba" && (caso.alertas ?? []).length > 0 && (
-        <ul className="m-0 p-0 list-none flex flex-col gap-1.5">
+        <ul className="p-0 list-none flex flex-col gap-1.5">
           {(caso.alertas ?? []).map((a, i) => (
             <li key={i} className="rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 px-2.5 py-1.5 text-[12.5px]">
               <span className="text-ink/70 dark:text-ink-dark/70">{a.dimension || "Resultado"}</span>{" "}
@@ -371,7 +371,7 @@ function TarjetaCaso({
       )}
 
       {caso.origen === "antecedentes" && (
-        <p className="m-0 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 px-2.5 py-1.5 text-[12.5px] text-ink/75 dark:text-ink-dark/75">
+        <p className="rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 px-2.5 py-1.5 text-[12.5px] text-ink/75 dark:text-ink-dark/75">
           {(caso.motivos ?? []).join(" · ") || "Antecedentes en «Sí»"}
           {caso.diagnostico_reportado ? ` — ${caso.diagnostico_reportado}` : ""}
         </p>
@@ -446,7 +446,7 @@ function TarjetaCaso({
       )}
 
       {caso.estado === "cerrado" && caso.motivo_cierre && (
-        <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/60">
+        <p className="text-[12px] text-ink/65 dark:text-ink-dark/60">
           <strong className="font-semibold">Cerrado el {fecha(caso.cerrado_en)}:</strong> {caso.motivo_cierre}
         </p>
       )}
@@ -492,7 +492,7 @@ function HistorialCaso({ casoId }: { casoId: number }) {
   if (consulta.isPending) return <EsqueletoLineas cantidad={3} />;
   if (consulta.error) return <TextoError className="text-xs">No se pudo cargar el historial.</TextoError>;
   return (
-    <ol className="m-0 flex flex-col gap-1.5 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 p-3 list-none">
+    <ol className="flex flex-col gap-1.5 rounded-lg border border-border/70 dark:border-border-dark bg-surface/70 dark:bg-surface-dark/70 p-3 list-none">
       {(consulta.data ?? []).map((e) => (
         <li key={e.id} className="text-[12px] text-ink/70 dark:text-ink-dark/70">
           <span className="text-ink/65 dark:text-ink-dark/55">{new Date(e.creado_en).toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })}</span>{" "}
@@ -528,8 +528,8 @@ export default function CasosRiesgoPage() {
   if (sesion?.rol === "colegio") {
     return (
       <div className="mx-auto max-w-xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-6 text-sm text-ink/70 dark:text-ink-dark/70">
-        <p className="m-0 font-semibold text-ink dark:text-ink-dark">Casos en riesgo</p>
-        <p className="m-0 mt-1">Esta sección es solo para el equipo de psicología del colegio.</p>
+        <p className="font-semibold text-ink dark:text-ink-dark">Casos en riesgo</p>
+        <p className="mt-1">Esta sección es solo para el equipo de psicología del colegio.</p>
       </div>
     );
   }

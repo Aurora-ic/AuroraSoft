@@ -326,10 +326,10 @@ export function SidebarEducativo({ abierto = false, onCerrar }: { abierto?: bool
           </div>
           <div className="min-w-0 flex-1">
             {/* 🆕 Nombre del profesional y rol legible (antes: correo y "psicologo"). */}
-            <p className="m-0 text-[12.5px] font-semibold text-white truncate" title={sesion?.email}>
+            <p className="text-[12.5px] font-semibold text-white truncate" title={sesion?.email}>
               {usuario?.nombre_completo || sesion?.email}
             </p>
-            <p className="m-0 text-[12px] text-white/55 truncate">
+            <p className="text-[12px] text-white/55 truncate">
               {usuario?.cargo || (sesion?.rol ? ETIQUETA_ROL[sesion.rol] : "")}
             </p>
           </div>

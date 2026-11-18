@@ -97,7 +97,7 @@ export function ModalAplicarPrueba({
         className="relative w-full max-w-2xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark shadow-xl text-sm"
       >
         <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-border dark:border-border-dark">
-          <h2 id="titulo-aplicar-prueba" className="m-0 flex items-center gap-2 font-display text-[17px] font-semibold text-seccion-900 dark:text-ink-dark">
+          <h2 id="titulo-aplicar-prueba" className="flex items-center gap-2 font-display text-[17px] font-semibold text-seccion-900 dark:text-ink-dark">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-seccion-600 text-white dark:bg-seccion-claro dark:text-mist-dark">
               <ClipboardCheck size={15} aria-hidden="true" />
             </span>
@@ -115,11 +115,11 @@ export function ModalAplicarPrueba({
 
         {resultado ? (
           <div className="space-y-4 px-5 py-5">
-            <p className="m-0 flex items-center gap-2 text-[15px] font-semibold text-seccion-900 dark:text-seccion-claro">
+            <p className="flex items-center gap-2 text-[15px] font-semibold text-seccion-900 dark:text-seccion-claro">
               <CircleCheck size={18} aria-hidden="true" />
               Prueba lista para {nombreAlumno}
             </p>
-            <p className="m-0 text-ink/65 dark:text-ink-dark/65">
+            <p className="text-ink/65 dark:text-ink-dark/65">
               Comparte el enlace con el estudiante, o ábrelo en este equipo si la aplicas ahora en sesión. El resultado aparecerá
               en su perfil al terminar.
             </p>
@@ -195,9 +195,9 @@ export function ModalAplicarPrueba({
             {pruebaId !== null && (
               <div aria-live="polite">
                 {elegibilidad.isPending ? (
-                  <p className="m-0 text-ink/65 dark:text-ink-dark/55">Revisando si puede rendirla…</p>
+                  <p className="text-ink/65 dark:text-ink-dark/55">Revisando si puede rendirla…</p>
                 ) : bloqueo ? (
-                  <p className="m-0 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-800 dark:border-red-400/30 dark:bg-red-950/40 dark:text-red-200">
+                  <p className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-800 dark:border-red-400/30 dark:bg-red-950/40 dark:text-red-200">
                     <CircleAlert size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
                     <span>
                       No puede rendirla ahora: {bloqueo.detalle}
@@ -205,7 +205,7 @@ export function ModalAplicarPrueba({
                     </span>
                   </p>
                 ) : elegibilidad.data ? (
-                  <p className="m-0 flex items-center gap-2 text-seccion-900 dark:text-seccion-claro">
+                  <p className="flex items-center gap-2 text-seccion-900 dark:text-seccion-claro">
                     <CircleCheck size={15} aria-hidden="true" />
                     Puede rendirla. Esta prueba se reaplica cada {elegibilidad.data.dias_minimos_entre_aplicaciones} días.
                   </p>

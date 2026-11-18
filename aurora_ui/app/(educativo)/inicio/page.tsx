@@ -101,7 +101,7 @@ function TarjetaKpi({
         <Icono size={20} strokeWidth={2} aria-hidden="true" />
       </div>
       <div className="min-w-0">
-        <p className="m-0 font-display text-[26px] font-bold text-ink dark:text-ink-dark leading-none">
+        <p className="font-display text-[26px] font-bold text-ink dark:text-ink-dark leading-none">
           {valor === null ? (
             <span className="inline-block w-10 h-6 bg-mist dark:bg-surface-raised-dark rounded animate-pulse align-middle" />
           ) : (
@@ -111,7 +111,7 @@ function TarjetaKpi({
             </>
           )}
         </p>
-        <p className="m-0 mt-1 text-[12px] font-medium leading-snug text-ink/65 dark:text-ink-dark/60">{label}</p>
+        <p className="mt-1 text-[12px] font-medium leading-snug text-ink/65 dark:text-ink-dark/60">{label}</p>
       </div>
     </div>
   );
@@ -138,7 +138,7 @@ function TarjetaResumen({
   return (
     <div className={`border rounded-xl p-5 flex flex-col gap-3.5 min-w-0 ${ACENTOS[acento].fondoSuave} ${className}`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="m-0 flex items-center gap-2 text-[13px] font-bold text-ink dark:text-ink-dark">
+        <h2 className="flex items-center gap-2 text-[13px] font-bold text-ink dark:text-ink-dark">
           <span className={`flex h-6 w-6 items-center justify-center rounded-md ${ACENTOS[acento].chip}`}>
             <Icono size={13} strokeWidth={2.2} aria-hidden="true" />
           </span>
@@ -219,13 +219,13 @@ export default function InicioPage() {
       {/* ===== Encabezado ===== */}
       <div className="bg-gradient-to-br from-seccion-900 to-seccion-600 dark:from-surface-raised-dark dark:to-surface-dark rounded-2xl px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between flex-wrap gap-5">
         <div>
-          <p className="m-0 text-[13px] font-medium text-white/70 dark:text-seccion-claro">
+          <p className="text-[13px] font-medium text-white/70 dark:text-seccion-claro">
             {new Date().toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
           </p>
-          <h1 className="m-0 mt-1 font-display text-[26px] font-bold text-white dark:text-ink-dark">
+          <h1 className="mt-1 font-display text-[26px] font-bold text-white dark:text-ink-dark">
             Hola{saludo ? `, ${saludo}` : ""}
           </h1>
-          <p className="m-0 mt-1.5 text-[13px] text-white/75 dark:text-ink-dark/60 max-w-md">
+          <p className="mt-1.5 text-[13px] text-white/75 dark:text-ink-dark/60 max-w-md">
             Esto es lo que está pasando en tu institución este {nombreMes}.
           </p>
         </div>
@@ -322,9 +322,9 @@ export default function InicioPage() {
               {casos === null ? (
                 <EsqueletoLineas cantidad={3} />
               ) : casos.length === 0 ? (
-                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin casos pendientes.</p>
+                <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin casos pendientes.</p>
               ) : (
-                <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                <ul className="p-0 list-none flex flex-col gap-2">
                   {casos.slice(0, 4).map((c) => (
                     <li key={c.persona_id} className="flex items-center justify-between gap-2 text-[12.5px]">
                       <span className="truncate text-ink/80 dark:text-ink-dark/80">{c.nombre_completo}</span>
@@ -344,9 +344,9 @@ export default function InicioPage() {
               {citas === null ? (
                 <EsqueletoLineas cantidad={3} />
               ) : citasHoy.length === 0 ? (
-                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin citas agendadas para hoy.</p>
+                <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin citas agendadas para hoy.</p>
               ) : (
-                <ul className="m-0 p-0 list-none flex flex-col gap-2">
+                <ul className="p-0 list-none flex flex-col gap-2">
                   {citasHoy.slice(0, 4).map((c) => (
                     <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
                       <Clock size={12} strokeWidth={2} className="text-ink/65 dark:text-ink-dark/55 flex-shrink-0" aria-hidden="true" />
@@ -372,9 +372,9 @@ export default function InicioPage() {
             {citas === null ? (
               <EsqueletoLineas cantidad={3} />
             ) : citasHoy.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin citas agendadas para hoy.</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin citas agendadas para hoy.</p>
             ) : (
-              <ul className="m-0 p-0 list-none flex flex-col gap-2">
+              <ul className="p-0 list-none flex flex-col gap-2">
                 {citasHoy.slice(0, 4).map((c) => (
                   <li key={c.id} className="flex items-center gap-2 text-[12.5px] text-ink/80 dark:text-ink-dark/80">
                     <Clock size={12} strokeWidth={2} className="text-ink/65 dark:text-ink-dark/55 flex-shrink-0" aria-hidden="true" />
@@ -395,12 +395,12 @@ export default function InicioPage() {
             {campanas === null ? (
               <EsqueletoLineas cantidad={3} />
             ) : campanasActivas.length === 0 ? (
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin campañas activas.</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55 italic">Sin campañas activas.</p>
             ) : (
               <>
-                <p className="m-0 font-display text-2xl font-bold text-ink dark:text-ink-dark">{campanasActivas.length}</p>
+                <p className="font-display text-2xl font-bold text-ink dark:text-ink-dark">{campanasActivas.length}</p>
                 {campanasPorCerrar.length > 0 && (
-                  <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/60">
+                  <p className="text-[12px] text-ink/65 dark:text-ink-dark/60">
                     <span className="font-semibold text-ink dark:text-ink-dark">{campanasPorCerrar.length}</span> cierra
                     {campanasPorCerrar.length === 1 ? "" : "n"} en los próximos 7 días.
                   </p>

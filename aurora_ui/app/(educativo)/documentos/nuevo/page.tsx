@@ -322,7 +322,7 @@ export default function NuevoDocumentoPage() {
               </Select>
             </CampoFormulario>
             {plantillaElegida && tipoElegido && (
-              <p className="m-0 mt-2 flex items-center gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="mt-2 flex items-center gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 <LayoutTemplate size={13} className={VIOLETA.texto} aria-hidden="true" />
                 {tipoElegido.nombre}
                 {tipoElegido.requiere_consentimiento_individual && " · requiere consentimiento vigente del apoderado para emitirse"}
@@ -330,7 +330,7 @@ export default function NuevoDocumentoPage() {
             )}
             {plantillaElegida && <PartesDePlantilla plantillaId={plantillaElegida.id} />}
             {plantillas.length === 0 && (
-              <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Tu institución todavía no tiene ninguna plantilla activa.{" "}
                 <Link href="/documentos" className={`font-semibold hover:underline ${VIOLETA.texto}`}>
                   Clona una del catálogo →
@@ -370,7 +370,7 @@ export default function NuevoDocumentoPage() {
               ) : (
                 <div className="space-y-2.5">
                   {seleccionadas.size > 0 && (
-                    <ul className="m-0 p-0 list-none flex flex-wrap gap-1.5" aria-label="Alumnos elegidos">
+                    <ul className="p-0 list-none flex flex-wrap gap-1.5" aria-label="Alumnos elegidos">
                       {Array.from(seleccionadas).map((id) => {
                         const p = personasPorId.get(id);
                         return (
@@ -417,16 +417,16 @@ export default function NuevoDocumentoPage() {
                       );
                     })}
                     {!buscandoAlumnos && personasFiltradas.length === 0 && (
-                      <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55 italic px-3 py-3">
+                      <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic px-3 py-3">
                         {busqueda.trim() ? "Ningún alumno coincide con la búsqueda." : "No hay alumnos en el padrón de tu institución."}
                       </p>
                     )}
                     {buscandoAlumnos && personasFiltradas.length === 0 && (
-                      <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55 italic px-3 py-3">Buscando...</p>
+                      <p className="text-xs text-ink/65 dark:text-ink-dark/55 italic px-3 py-3">Buscando...</p>
                     )}
                   </div>
                   {totalResultados > personasFiltradas.length && (
-                    <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+                    <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                       Mostrando {personasFiltradas.length} de {totalResultados}. Escribe nombre, apellido o DNI para afinar.
                     </p>
                   )}
@@ -466,7 +466,7 @@ export default function NuevoDocumentoPage() {
                     </Select>
                   </CampoFormulario>
                 </div>
-                <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
+                <p className="flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
                   <Info size={12} className="mt-px shrink-0" aria-hidden="true" />
                   Se usa lo más específico que elijas: una sección, o todo el grado/nivel si dejas la sección o el grado en blanco.
                 </p>
@@ -490,7 +490,7 @@ export default function NuevoDocumentoPage() {
               />
             </CampoFormulario>
             {tituloSugerido && plantillaElegida && titulo && (
-              <p className="m-0 mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Sugerido a partir de la plantilla; puedes cambiarlo.</p>
+              <p className="mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Sugerido a partir de la plantilla; puedes cambiarlo.</p>
             )}
           </PasoFormulario>
         </div>
@@ -498,7 +498,7 @@ export default function NuevoDocumentoPage() {
         {/* ---- Resumen lateral ---- */}
         <div className="flex flex-col gap-4 lg:sticky lg:top-4">
           <TarjetaLateral icono={ClipboardList} titulo="Resumen">
-            <dl className="m-0 space-y-2.5 text-[13px]">
+            <dl className="space-y-2.5 text-[13px]">
               <FilaResumen etiqueta="Plantilla" valor={plantillaElegida?.nombre} />
               <FilaResumen etiqueta="Para" valor={destinatariosListos ? resumenDestino() : undefined} />
               <FilaResumen etiqueta="Título" valor={tituloListo ? titulo : undefined} />
@@ -506,10 +506,10 @@ export default function NuevoDocumentoPage() {
 
             {borradoresVisibles.length > 0 && (
               <div role="status" className="mt-3.5 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2.5 text-[12.5px]">
-                <p className="m-0 font-semibold text-ink dark:text-ink-dark">
+                <p className="font-semibold text-ink dark:text-ink-dark">
                   Ya hay {borradoresVisibles.length === 1 ? "un borrador" : `${borradoresVisibles.length} borradores`} de esta plantilla:
                 </p>
-                <ul className="m-0 mt-1.5 p-0 list-none space-y-1.5">
+                <ul className="mt-1.5 p-0 list-none space-y-1.5">
                   {borradoresVisibles.map((d) => (
                     <li key={d.id}>
                       <Link href={`/documentos/${d.id}`} className={`inline-flex items-center gap-1 font-semibold hover:underline ${VIOLETA.texto}`}>
@@ -522,7 +522,7 @@ export default function NuevoDocumentoPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="m-0 mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Puedes crear otro igual si lo necesitas.</p>
+                <p className="mt-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Puedes crear otro igual si lo necesitas.</p>
               </div>
             )}
 
@@ -530,7 +530,7 @@ export default function NuevoDocumentoPage() {
             <Boton type="submit" disabled={!puedeCrear} className="mt-4 w-full">
               {creando ? "Creando..." : "Crear documento"}
             </Boton>
-            <p className="m-0 mt-2 text-[12px] text-center text-ink/65 dark:text-ink-dark/55">
+            <p className="mt-2 text-[12px] text-center text-ink/65 dark:text-ink-dark/55">
               Se crea como borrador: después completas el contenido y generas el PDF.
             </p>
           </TarjetaLateral>
@@ -549,7 +549,7 @@ function FilaResumen({ etiqueta, valor }: { etiqueta: string; valor?: string }) 
   return (
     <div>
       <dt className="text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{etiqueta}</dt>
-      <dd className={`m-0 mt-0.5 break-words ${valor ? "font-medium text-ink dark:text-ink-dark" : "italic text-ink/65 dark:text-ink-dark/55"}`}>
+      <dd className={`mt-0.5 break-words ${valor ? "font-medium text-ink dark:text-ink-dark" : "italic text-ink/65 dark:text-ink-dark/55"}`}>
         {valor || "Sin elegir"}
       </dd>
     </div>

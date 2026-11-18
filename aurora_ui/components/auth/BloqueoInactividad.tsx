@@ -109,7 +109,7 @@ export function BloqueoInactividad({ children }: { children: React.ReactNode }) 
         <div role="alertdialog" aria-live="assertive" aria-labelledby="aviso-inactividad" className="fixed inset-x-0 bottom-4 z-[90] flex justify-center px-4">
           <div className="flex w-full max-w-md items-center gap-3 rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-4 py-3 shadow-xl">
             <Lock size={18} className="shrink-0 text-seccion-700 dark:text-seccion-claro" aria-hidden="true" />
-            <p id="aviso-inactividad" className="m-0 flex-1 text-sm text-ink dark:text-ink-dark">
+            <p id="aviso-inactividad" className="flex-1 text-sm text-ink dark:text-ink-dark">
               Por inactividad, la sesión se bloqueará en <strong>{segundosRestantes} s</strong>.
             </p>
             <button

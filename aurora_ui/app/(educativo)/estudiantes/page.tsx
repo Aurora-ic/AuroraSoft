@@ -454,7 +454,7 @@ export default function PadronPage() {
 
         {!cargando && totalFiltrado > 0 && (
           <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.06] dark:bg-seccion-claro/[0.06]">
-            <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
+            <p className="text-xs text-ink/65 dark:text-ink-dark/55">
               {pagina * TAMANO_PAGINA + 1}–{Math.min((pagina + 1) * TAMANO_PAGINA, totalFiltrado)} de{" "}
               {totalFiltrado} alumnos
             </p>

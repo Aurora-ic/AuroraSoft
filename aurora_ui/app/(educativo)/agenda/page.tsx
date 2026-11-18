@@ -433,7 +433,7 @@ export default function AgendaPage() {
                 >
                   <ChevronLeft size={15} aria-hidden="true" />
                 </button>
-                <p className="m-0 text-[12px] font-bold uppercase tracking-wide text-ink/70 dark:text-ink-dark/70">
+                <p className="text-[12px] font-bold uppercase tracking-wide text-ink/70 dark:text-ink-dark/70">
                   {mesMini.toLocaleDateString("es-PE", { month: "long", year: "numeric" })}
                 </p>
                 <button
@@ -488,7 +488,7 @@ export default function AgendaPage() {
 
             {/* --- Filtros por tipo (muestra de color + ícono + conteo) --- */}
             <div className="mt-4 pt-4 border-t border-border dark:border-border-dark space-y-1">
-              <p className="m-0 mb-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Mostrar</p>
+              <p className="mb-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Mostrar</p>
               {filtrosTipo.map((f) => (
                 <label
                   key={f.cat}
@@ -513,11 +513,11 @@ export default function AgendaPage() {
 
           {/* --- 🆕 Agendar cita individual sin salir de la agenda --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
-            <p className="m-0 mb-1 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+            <p className="mb-1 flex items-center gap-1.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
               <User size={12} aria-hidden="true" className={ESTILO_CATEGORIA.individual.texto} />
               Agendar cita individual
             </p>
-            <p className="m-0 mb-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Busca al estudiante y agenda sin entrar a su ficha.</p>
+            <p className="mb-2.5 text-[12px] text-ink/65 dark:text-ink-dark/55">Busca al estudiante y agenda sin entrar a su ficha.</p>
             <div className="relative">
               <Search size={13} aria-hidden="true" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ink/65 dark:text-ink-dark/55" />
               <input
@@ -529,9 +529,9 @@ export default function AgendaPage() {
                 className="w-full rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark text-ink dark:text-ink-dark pl-8 pr-2.5 py-1.5 text-[12.5px] placeholder:text-ink/40 dark:placeholder:text-ink-dark/40 focus:outline-none focus:ring-2 focus:ring-seccion-400"
               />
             </div>
-            {errorPersonas && <p className="m-0 mt-2 text-[12px] text-red-700 dark:text-red-300">{errorPersonas}</p>}
+            {errorPersonas && <p className="mt-2 text-[12px] text-red-700 dark:text-red-300">{errorPersonas}</p>}
             {resultadosCita.length > 0 && (
-              <ul className="m-0 mt-2 p-0 list-none flex flex-col gap-0.5">
+              <ul className="mt-2 p-0 list-none flex flex-col gap-0.5">
                 {resultadosCita.map((p) => (
                   <li key={p.id}>
                     <button
@@ -559,19 +559,19 @@ export default function AgendaPage() {
               </ul>
             )}
             {busquedaCita.trim() && !cargandoPersonas && personasCargadas && resultadosCita.length === 0 && (
-              <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">Ningún estudiante activo coincide.</p>
+              <p className="mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">Ningún estudiante activo coincide.</p>
             )}
           </div>
 
           {/* --- Próximas --- */}
           <div className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-4">
-            <p className="m-0 mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Próximas</p>
+            <p className="mb-2.5 text-[11.5px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Próximas</p>
             {cargando ? (
               <EsqueletoLineas cantidad={3} />
             ) : proximas.length === 0 ? (
-              <p className="m-0 text-[12px] italic text-ink/65 dark:text-ink-dark/55">Nada agendado de aquí en adelante.</p>
+              <p className="text-[12px] italic text-ink/65 dark:text-ink-dark/55">Nada agendado de aquí en adelante.</p>
             ) : (
-              <ul className="m-0 p-0 list-none flex flex-col gap-1">
+              <ul className="p-0 list-none flex flex-col gap-1">
                 {proximas.map((c) => {
                   const cat = categoriaDe(c);
                   const Icono = iconoDe(c);
@@ -611,8 +611,8 @@ export default function AgendaPage() {
         <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden min-w-0">
           <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark">
             <div className="min-w-0">
-              <p className="m-0 text-[15px] font-semibold text-seccion-700 dark:text-seccion-claro">{rangoSemana}</p>
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="text-[15px] font-semibold text-seccion-700 dark:text-seccion-claro">{rangoSemana}</p>
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Citas individuales: búscalas en el panel lateral o desde la ficha del alumno. Talleres y charlas los ve todo tu equipo.
               </p>
             </div>
@@ -703,18 +703,18 @@ export default function AgendaPage() {
                             cancelada ? "border-l-border dark:border-l-border-dark bg-mist/60 dark:bg-surface-raised-dark" : `${estilo.borde} ${estilo.fondo}`
                           }`}
                         >
-                          <p className="m-0 flex items-center gap-1 font-mono text-[12px] text-ink/65 dark:text-ink-dark/60">
+                          <p className="flex items-center gap-1 font-mono text-[12px] text-ink/65 dark:text-ink-dark/60">
                             <Clock size={10} aria-hidden="true" className="shrink-0" />
                             {rangoHorario(cita)}
                           </p>
                           {cruzadas.has(cita.id) && (
-                            <p className="m-0 inline-flex items-center gap-1 rounded bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[11.5px] font-semibold text-red-700 dark:text-red-300">
+                            <p className="inline-flex items-center gap-1 rounded bg-red-50 dark:bg-red-500/15 px-1.5 py-0.5 text-[11.5px] font-semibold text-red-700 dark:text-red-300">
                               <AlertTriangle size={10} aria-hidden="true" />
                               Se cruza con otra cita
                             </p>
                           )}
                           <p
-                            className={`m-0 flex items-start gap-1 font-semibold leading-snug ${
+                            className={`flex items-start gap-1 font-semibold leading-snug ${
                               cancelada ? "text-ink/65 dark:text-ink-dark/55 line-through" : estilo.texto
                             }`}
                           >
@@ -722,7 +722,7 @@ export default function AgendaPage() {
                             <span className="min-w-0 break-words">{esGrupal ? cita.titulo : cita.motivo}</span>
                           </p>
                           {!esGrupal && cita.persona_nombre && (
-                            <p className="m-0 text-ink/65 dark:text-ink-dark/60 leading-snug">
+                            <p className="text-ink/65 dark:text-ink-dark/60 leading-snug">
                               con{" "}
                               <Link
                                 href={`/estudiantes/${cita.persona_id}`}
@@ -733,19 +733,19 @@ export default function AgendaPage() {
                             </p>
                           )}
                           {esGrupal && (
-                            <p className="m-0 text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+                            <p className="text-[11.5px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                               {cita.tipo_actividad || "Actividad"}
                             </p>
                           )}
                           {esGrupal && cita.lugar && (
-                            <p className="m-0 flex items-center gap-1 text-ink/65 dark:text-ink-dark/55">
+                            <p className="flex items-center gap-1 text-ink/65 dark:text-ink-dark/55">
                               <MapPin size={10} aria-hidden="true" className="shrink-0" />
                               {cita.lugar}
                             </p>
                           )}
                           {esGrupal && cita.participantes.length > 0 && (
                             <p
-                              className="m-0 flex items-center gap-1 text-ink/65 dark:text-ink-dark/55"
+                              className="flex items-center gap-1 text-ink/65 dark:text-ink-dark/55"
                               title={cita.participantes.map((p) => p.nombre_completo).join(", ")}
                             >
                               <UsersRound size={10} aria-hidden="true" className="shrink-0" />
@@ -763,7 +763,7 @@ export default function AgendaPage() {
                             </div>
                           )}
                           {cita.estado !== "Programada" && (
-                            <p className="m-0 text-ink/65 dark:text-ink-dark/55 italic">{cita.estado}</p>
+                            <p className="text-ink/65 dark:text-ink-dark/55 italic">{cita.estado}</p>
                           )}
 
                           {reprogramandoId === cita.id && (

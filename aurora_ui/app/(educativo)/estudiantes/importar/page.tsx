@@ -85,7 +85,7 @@ const PASOS = ["Plantilla", "Subir y validar", "Revisar", "Confirmar"];
 
 function IndicadorPasos({ actual, terminado }: { actual: number; terminado: boolean }) {
   return (
-    <ol className="m-0 grid grid-cols-2 sm:grid-cols-4 gap-3 list-none p-0" aria-label="Progreso de la importación">
+    <ol className="grid grid-cols-2 sm:grid-cols-4 gap-3 list-none p-0" aria-label="Progreso de la importación">
       {PASOS.map((paso, i) => {
         const n = i + 1;
         const hecho = terminado || n < actual;
@@ -145,11 +145,11 @@ function TarjetaPaso({
           <Icono size={16} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
+          <h2 className="text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
             <span className="text-ink/65 dark:text-ink-dark/55 mr-1">{numero}.</span>
             {titulo}
           </h2>
-          {descripcion && <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
+          {descripcion && <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </header>
       <div className="p-5 flex-1">{children}</div>
@@ -344,8 +344,8 @@ export default function ImportarEstudiantesPage() {
               <CheckCircle2 size={28} aria-hidden="true" />
             </span>
             <div className="min-w-0 flex-1">
-              <h2 className="m-0 font-display text-[20px] font-bold text-seccion-900 dark:text-ink-dark">Importación aplicada</h2>
-              <p className="m-0 mt-1 text-sm text-ink/65 dark:text-ink-dark/60">
+              <h2 className="font-display text-[20px] font-bold text-seccion-900 dark:text-ink-dark">Importación aplicada</h2>
+              <p className="mt-1 text-sm text-ink/65 dark:text-ink-dark/60">
                 <strong className="text-seccion-900 dark:text-seccion-claro">{resultadoConfirmacion.resumen.nuevos}</strong> estudiante(s) nuevo(s) y{" "}
                 <strong className="text-seccion-900 dark:text-seccion-claro">{resultadoConfirmacion.resumen.actualizados}</strong> actualizado(s).
                 {resultadoConfirmacion.filas_con_datos_incompletos > 0 &&
@@ -368,7 +368,7 @@ export default function ImportarEstudiantesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-6 items-stretch">
           {/* =================== 1. Plantilla =================== */}
           <TarjetaPaso numero={1} icono={Download} titulo="Descarga la plantilla" descripcion="Úsala siempre: el sistema lee sus columnas por nombre.">
-            <ul className="m-0 mb-4 list-none p-0 space-y-2 text-[12.5px] text-ink/70 dark:text-ink-dark/70">
+            <ul className="mb-4 list-none p-0 space-y-2 text-[12.5px] text-ink/70 dark:text-ink-dark/70">
               <li className="flex items-start gap-2">
                 <Sheet size={14} aria-hidden="true" className="mt-0.5 shrink-0 text-seccion-600 dark:text-seccion-claro" />
                 Hoja de estudiantes con filas de ejemplo y qué columnas son obligatorias.
@@ -446,11 +446,11 @@ export default function ImportarEstudiantesPage() {
         <section className="rounded-xl border border-seccion-600/15 dark:border-seccion-claro/20 bg-seccion-600/[0.035] dark:bg-seccion-claro/[0.05] shadow-sm overflow-hidden">
           <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 bg-seccion-600/[0.08] dark:bg-seccion-claro/[0.08] border-b border-seccion-600/15 dark:border-seccion-claro/20">
             <div>
-              <h2 className="m-0 text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
+              <h2 className="text-[14px] font-bold text-seccion-900 dark:text-ink-dark">
                 <span className="text-ink/65 dark:text-ink-dark/55 mr-1">3.</span>
                 Revisa la vista previa
               </h2>
-              <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                 {resultado.total_filas} filas leídas del archivo · toca una tarjeta para filtrar la tabla.
               </p>
             </div>
@@ -561,7 +561,7 @@ export default function ImportarEstudiantesPage() {
                         </td>
                         <td className="px-4 py-2.5">
                           {fila.errores.length > 0 && (
-                            <ul className="m-0 list-none p-0 space-y-1">
+                            <ul className="list-none p-0 space-y-1">
                               {fila.errores.map((e, i) => (
                                 <li key={i} className="text-xs text-red-700 dark:text-red-300">
                                   <span className="font-medium">{e.campo}:</span> {e.correccion_esperada}
@@ -597,7 +597,7 @@ export default function ImportarEstudiantesPage() {
           {/* =================== 4. Confirmar =================== */}
           <div className="sticky bottom-0 border-t border-border dark:border-border-dark bg-surface/95 dark:bg-surface-dark/95 backdrop-blur px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="text-[12.5px] text-ink/65 dark:text-ink-dark/65">
-              <p className="m-0">
+              <p>
                 <span className="text-ink/65 dark:text-ink-dark/55 font-bold mr-1">4.</span>
                 Se aplicarán <strong className="text-seccion-900 dark:text-seccion-claro">{filasAplicables}</strong> fila(s) en una sola operación
                 {filasDescartadas > 0 && (

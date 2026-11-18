@@ -68,7 +68,7 @@ export function BloqueFicha({
 export function VacioFicha({ icono: Icono, texto, children }: { icono: LucideIcon; texto: string; children?: ReactNode }) {
   return (
     <div className="rounded-lg border border-dashed border-border dark:border-border-dark bg-surface/50 dark:bg-surface-dark/40 px-4 py-3.5 text-center">
-      <p className="m-0 inline-flex items-center justify-center gap-2 text-sm text-ink/65 dark:text-ink-dark/55">
+      <p className="inline-flex items-center justify-center gap-2 text-sm text-ink/65 dark:text-ink-dark/55">
         <Icono size={16} className="shrink-0 text-ink/30 dark:text-ink-dark/30" aria-hidden="true" />
         {texto}
       </p>

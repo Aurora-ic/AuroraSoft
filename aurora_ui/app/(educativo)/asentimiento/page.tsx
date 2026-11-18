@@ -197,7 +197,7 @@ function ConsentimientoYAsentimientoPageContenido() {
         <EncabezadoPagina variante="destacado" icono={ShieldCheck} acento="violeta" titulo="Consentimiento y asentimiento" />
         <div className="flex items-start gap-3 rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-5">
           <Lock size={18} className="mt-0.5 shrink-0 text-ink/65 dark:text-ink-dark/55" aria-hidden="true" />
-          <p className="m-0 text-sm text-ink/70 dark:text-ink-dark/70">
+          <p className="text-sm text-ink/70 dark:text-ink-dark/70">
             Los modelos de consentimiento y asentimiento los configura el administrador de tu colegio. Contacta a tu
             administrador para configurar un texto propio. Desde la ficha de cada alumno puedes ver el modelo que le corresponde
             y descargarlo en PDF para firmar.
@@ -230,7 +230,7 @@ function ConsentimientoYAsentimientoPageContenido() {
         ]}
       />
 
-      <p className="m-0 -mt-1 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
+      <p className="-mt-1 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
         <Info size={13} className="mt-px shrink-0" aria-hidden="true" />
         {INFO_TIPO[tipo].uso}
       </p>
@@ -239,7 +239,7 @@ function ConsentimientoYAsentimientoPageContenido() {
           pequeños: el colegio lo redacta (decisión del usuario); aquí solo se
           avisa qué niveles todavía usan el texto general. */}
       {tipo === "asentimiento" && nivelesPequenosSinModelo.length > 0 && (
-        <p className="m-0 flex items-start gap-1.5 rounded-xl border border-acento-violeta/25 bg-acento-violeta/[0.06] px-3 py-2.5 text-[12.5px] text-ink/70 dark:border-acento-violeta-dark/30 dark:bg-acento-violeta-dark/10 dark:text-ink-dark/75">
+        <p className="flex items-start gap-1.5 rounded-xl border border-acento-violeta/25 bg-acento-violeta/[0.06] px-3 py-2.5 text-[12.5px] text-ink/70 dark:border-acento-violeta-dark/30 dark:bg-acento-violeta-dark/10 dark:text-ink-dark/75">
           <Baby size={14} className="mt-px shrink-0 text-acento-violeta-700 dark:text-acento-violeta-dark" aria-hidden="true" />
           <span>
             {nivelesPequenosSinModelo.map((n) => n.nombre).join(" y ")} usa{nivelesPequenosSinModelo.length === 1 ? "" : "n"} hoy el
@@ -292,7 +292,7 @@ function ConsentimientoYAsentimientoPageContenido() {
               );
             })}
             {niveles.length === 0 && (
-              <p className="m-0 px-2.5 py-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="px-2.5 py-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Crea niveles en Estructura académica para tener un modelo distinto por nivel.
               </p>
             )}
@@ -302,10 +302,10 @@ function ConsentimientoYAsentimientoPageContenido() {
           <section className="rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark overflow-hidden min-w-0">
             <header className="flex items-center justify-between gap-3 flex-wrap px-4 py-3 border-b border-border dark:border-border-dark bg-mist/50 dark:bg-surface-raised-dark">
               <div className="min-w-0">
-                <h2 className="m-0 text-[15px] font-bold text-seccion-900 dark:text-ink-dark">
+                <h2 className="text-[15px] font-bold text-seccion-900 dark:text-ink-dark">
                   {INFO_TIPO[tipo].titulo} — {nombreAmbito}
                 </h2>
-                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+                <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                   {activaAmbito
                     ? `Versión activa: v${activaAmbito.version}, desde el ${new Date(activaAmbito.creado_en).toLocaleDateString("es-PE")}`
                     : heredadaDe
@@ -352,7 +352,7 @@ function ConsentimientoYAsentimientoPageContenido() {
                 placeholder="Un párrafo por línea..."
                 className="w-full font-[inherit] leading-relaxed"
               />
-              <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
+              <p className="text-xs text-ink/65 dark:text-ink-dark/55">
                 Un párrafo por línea. Los datos entre llaves se completan solos en el PDF con los del alumno. Guardar crea una
                 versión NUEVA de este ámbito y desactiva la anterior — nunca se edita una versión ya existente, para que quede
                 registro de qué texto se usó en cada caso.
@@ -402,7 +402,7 @@ function ConsentimientoYAsentimientoPageContenido() {
                           </span>
                           <span className="text-xs text-ink/65 dark:text-ink-dark/55">{new Date(v.creado_en).toLocaleString("es-PE")}</span>
                         </div>
-                        <p className="m-0 mt-1 text-xs text-ink/70 dark:text-ink-dark/70 whitespace-pre-line line-clamp-6">{v.contenido}</p>
+                        <p className="mt-1 text-xs text-ink/70 dark:text-ink-dark/70 whitespace-pre-line line-clamp-6">{v.contenido}</p>
                       </div>
                     ))}
                   </div>
@@ -424,8 +424,8 @@ export default function ConsentimientoYAsentimientoPage() {
   if (sesion?.rol === "colegio") {
     return (
       <div className="mx-auto max-w-xl rounded-2xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-6 text-sm text-ink/70 dark:text-ink-dark/70">
-        <p className="m-0 font-semibold text-ink dark:text-ink-dark">Consentimiento y asentimiento</p>
-        <p className="m-0 mt-1">Esta sección es solo para el equipo de psicología del colegio.</p>
+        <p className="font-semibold text-ink dark:text-ink-dark">Consentimiento y asentimiento</p>
+        <p className="mt-1">Esta sección es solo para el equipo de psicología del colegio.</p>
       </div>
     );
   }

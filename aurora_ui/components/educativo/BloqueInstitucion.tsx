@@ -168,10 +168,10 @@ export function BloqueInstitucion({ institucion, cargando = false }: { instituci
           </div>
         ) : (
         <div className="min-w-0">
-          <p className="m-0 font-display text-[14.5px] font-bold leading-snug text-white line-clamp-2" title={nombre}>
+          <p className="font-display text-[14.5px] font-bold leading-snug text-white line-clamp-2" title={nombre}>
             {nombre}
           </p>
-          <p className="m-0 mt-1 inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-black/20 px-2 py-0.5 text-[11.5px] text-white/75">
+          <p className="mt-1 inline-flex max-w-full items-center gap-1.5 truncate rounded-full bg-black/20 px-2 py-0.5 text-[11.5px] text-white/75">
             <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: claro }} aria-hidden="true" />
             <span className="truncate">{detalle}</span>
           </p>

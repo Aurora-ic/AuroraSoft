@@ -142,7 +142,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
         <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
           {orden.map((grupo) => (
             <section key={grupo.clave} className="flex flex-col gap-2.5">
-              <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{grupo.titulo}</h3>
+              <h3 className="text-[11px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">{grupo.titulo}</h3>
               {PREGUNTAS.filter((p) => p.grupo === grupo.clave).map((item) => {
                 const abiertaEsta = preguntaAbierta === item.pregunta;
                 return (
@@ -162,7 +162,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
                       />
                     </button>
                     {abiertaEsta && (
-                      <p className="m-0 px-4 py-3 text-[12px] leading-relaxed text-ink/65 dark:text-ink-dark/65">{item.respuesta}</p>
+                      <p className="px-4 py-3 text-[12px] leading-relaxed text-ink/65 dark:text-ink-dark/65">{item.respuesta}</p>
                     )}
                   </div>
                 );
@@ -171,7 +171,7 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
           ))}
 
           <section className="flex flex-col gap-2.5">
-            <h3 className="m-0 text-[11px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Glosario</h3>
+            <h3 className="text-[11px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Glosario</h3>
             <div className="border border-border dark:border-border-dark rounded-xl overflow-hidden">
               <button
                 type="button"
@@ -188,11 +188,11 @@ export function CentroAyuda({ abierto, onCerrar }: { abierto: boolean; onCerrar:
                 />
               </button>
               {glosarioAbierto && (
-                <dl className="m-0 px-4 py-3 flex flex-col gap-3">
+                <dl className="px-4 py-3 flex flex-col gap-3">
                   {Object.values(GLOSARIO).map((t) => (
                     <div key={t.termino}>
                       <dt className="text-[12px] font-semibold text-ink dark:text-ink-dark">{t.termino}</dt>
-                      <dd className="m-0 mt-0.5 text-[12px] leading-relaxed text-ink/65 dark:text-ink-dark/65">{t.definicion}</dd>
+                      <dd className="mt-0.5 text-[12px] leading-relaxed text-ink/65 dark:text-ink-dark/65">{t.definicion}</dd>
                     </div>
                   ))}
                 </dl>

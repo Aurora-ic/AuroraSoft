@@ -70,7 +70,7 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: ReactNode }) {
   return (
     <div className="min-w-0">
       <dt className="text-[12px] text-ink/65 dark:text-ink-dark/55">{etiqueta}</dt>
-      <dd className={`m-0 mt-1 text-[14px] font-semibold break-words ${vacio ? "text-ink/30 dark:text-ink-dark/30" : "text-ink dark:text-ink-dark"}`}>
+      <dd className={`mt-1 text-[14px] font-semibold break-words ${vacio ? "text-ink/30 dark:text-ink-dark/30" : "text-ink dark:text-ink-dark"}`}>
         {vacio ? "—" : valor}
       </dd>
     </div>
@@ -142,7 +142,7 @@ export function TarjetaPerfil({
             />
           </div>
           <div className="min-w-0">
-            <h1 className="m-0 font-display text-[21px] font-bold leading-tight text-seccion-900 dark:text-ink-dark break-words">
+            <h1 className="font-display text-[21px] font-bold leading-tight text-seccion-900 dark:text-ink-dark break-words">
               {alumno.nombres} {alumno.apellidos}
             </h1>
             <div className="mt-1 flex flex-col gap-0.5 text-[12.5px] text-ink/65 dark:text-ink-dark/55">
@@ -179,7 +179,7 @@ export function TarjetaPerfil({
         </div>
 
         {/* --- 2. Datos clave (los que no están en filiación) --- */}
-        <dl className="m-0 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 p-6 content-center border-b lg:border-b-0 lg:border-r border-seccion-600/15 dark:border-border-dark">
+        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-5 p-6 content-center border-b lg:border-b-0 lg:border-r border-seccion-600/15 dark:border-border-dark">
           <Dato etiqueta="Edad" valor={edad !== null ? `${edad} años` : null} />
           <Dato
             etiqueta="Nivel · grado · sección"
@@ -291,11 +291,11 @@ function PendientesFicha({
   return (
     <div className="border-t border-seccion-600/15 dark:border-border-dark px-5 py-3.5">
       <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
-        <p className="m-0 flex shrink-0 items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+        <p className="flex shrink-0 items-center gap-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
           <ListChecks size={14} aria-hidden="true" />
           Pendiente en esta ficha
         </p>
-        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+        <ul className="flex list-none flex-wrap gap-2 p-0">
           {items.map((it) => (
             <li key={it.href}>
               <a
@@ -379,8 +379,8 @@ function SituacionRiesgo({
             <Stethoscope size={17} aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="m-0 font-display text-[15px] font-bold text-amber-800 dark:text-amber">Situación de riesgo: estudiante con diagnóstico</p>
-            <ul className="m-0 mt-1.5 list-none p-0 space-y-1 text-[13px] text-ink/80 dark:text-ink-dark/80">
+            <p className="font-display text-[15px] font-bold text-amber-800 dark:text-amber">Situación de riesgo: estudiante con diagnóstico</p>
+            <ul className="mt-1.5 list-none p-0 space-y-1 text-[13px] text-ink/80 dark:text-ink-dark/80">
               {motivos.map((m) => (
                 <li key={m.etiqueta}>
                   <span className="font-semibold">{m.etiqueta}</span>
@@ -394,7 +394,7 @@ function SituacionRiesgo({
                 </li>
               )}
             </ul>
-            <p className="m-0 mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
+            <p className="mt-2 text-[12px] text-ink/65 dark:text-ink-dark/55">
               Se marca automáticamente a partir de los antecedentes clínicos externos — aparece en amarillo en el Padrón y en la
               Estructura académica. {enlace}
             </p>
@@ -407,7 +407,7 @@ function SituacionRiesgo({
   // "sin-completar" ya no llega aquí: se muestra en PendientesFicha.
   return (
     <div className="border-t border-border dark:border-border-dark px-6 py-3">
-      <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] text-ink/65 dark:text-ink-dark/60">
         <ShieldCheck size={15} aria-hidden="true" className="text-seccion-600 dark:text-seccion-claro" />
         <span className="font-semibold text-ink/75 dark:text-ink-dark/75">Sin diagnóstico externo registrado</span>
         <span>No recibe terapia psicológica ni atención psiquiátrica externa.</span>
@@ -447,16 +447,16 @@ function Indicador({
   return (
     <div className={`rounded-xl border p-4 flex flex-col gap-2 ${ACENTOS[acento].fondo}`}>
       <div className="flex items-center justify-between gap-2">
-        <p className="m-0 text-[12.5px] font-medium text-ink/65 dark:text-ink-dark/65">{titulo}</p>
+        <p className="text-[12.5px] font-medium text-ink/65 dark:text-ink-dark/65">{titulo}</p>
         <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${ACENTOS[acento].chipSolido}`}>
           <Icono size={14} aria-hidden="true" />
         </span>
       </div>
-      <p className="m-0 flex items-baseline gap-1.5">
+      <p className="flex items-baseline gap-1.5">
         <span className="font-display text-[28px] font-bold leading-none text-ink dark:text-ink-dark tabular-nums">{valor}</span>
         {unidad && <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">{unidad}</span>}
       </p>
-      <p className={`m-0 text-[12px] font-medium ${CLASE_TONO[tono]}`}>{estado}</p>
+      <p className={`text-[12px] font-medium ${CLASE_TONO[tono]}`}>{estado}</p>
     </div>
   );
 }
@@ -553,8 +553,8 @@ export function TituloGrupoFicha({
     <div id={id} className="flex scroll-mt-24 items-center gap-3 pt-2">
       <span aria-hidden="true" className={`h-6 w-1 rounded-full ${ACENTOS[acento].solido}`} />
       <div className="min-w-0">
-        <h2 className="m-0 font-display text-[18px] font-bold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
-        {descripcion && <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
+        <h2 className="font-display text-[18px] font-bold text-seccion-900 dark:text-ink-dark">{titulo}</h2>
+        {descripcion && <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
       </div>
     </div>
   );

@@ -31,7 +31,7 @@ const PASOS = [
 export function GuiaDocumentos() {
   return (
     <GuiaSeccion clave="aurora.guia-documentos.oculta" titulo="¿Cómo funcionan los documentos?" pasos={PASOS}>
-      <p className="m-0 mt-3.5 mb-2 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">
+      <p className="mt-3.5 mb-2 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">
         Cada parte de un documento lleva una etiqueta que dice cómo se llena:
       </p>
       <LeyendaModos />

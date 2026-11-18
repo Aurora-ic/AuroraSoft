@@ -443,7 +443,7 @@ export default function DocumentosPage() {
               <Boton onClick={crearPlantilla} disabled={!tipoNuevaPlantilla || creandoPlantilla}>
                 {creandoPlantilla ? "Creando..." : "Crear y abrir el constructor"}
               </Boton>
-              <p className="basis-full m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="basis-full text-[12px] text-ink/65 dark:text-ink-dark/55">
                 ¿Prefieres partir de un formato ya armado? Usa el{" "}
                 <button type="button" onClick={() => setTab("catalogo")} className={`font-semibold hover:underline ${VIOLETA.texto}`}>
                   catálogo para clonar
@@ -485,8 +485,8 @@ export default function DocumentosPage() {
                         <FileText size={17} aria-hidden="true" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h3 className="m-0 text-sm font-semibold text-ink dark:text-ink-dark leading-snug">{p.nombre}</h3>
-                        <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{nombreTipo(p.tipo_documento_id)}</p>
+                        <h3 className="text-sm font-semibold text-ink dark:text-ink-dark leading-snug">{p.nombre}</h3>
+                        <p className="mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{nombreTipo(p.tipo_documento_id)}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <PildoraEstado activa={p.activa} />
@@ -519,7 +519,7 @@ export default function DocumentosPage() {
 
                     {/* Activa + sin secciones = generaría un documento vacío. */}
                     {p.activa && n === 0 && (
-                      <p className="m-0 text-[12px] text-red-700 dark:text-red-300 font-medium">
+                      <p className="text-[12px] text-red-700 dark:text-red-300 font-medium">
                         Sin secciones: no generará contenido. Agrégalas en Editar.
                       </p>
                     )}
@@ -588,7 +588,7 @@ export default function DocumentosPage() {
           ) : (
             gruposCatalogo.map((g) => (
               <div key={g.tipo.id}>
-                <h3 className="m-0 mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+                <h3 className="mb-2 flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                   <span className={`h-1.5 w-1.5 rounded-full ${VIOLETA.solido}`} aria-hidden="true" />
                   {g.tipo.nombre}
                   <span className="font-semibold text-ink/30 dark:text-ink-dark/30">{g.items.length}</span>
@@ -670,7 +670,7 @@ export default function DocumentosPage() {
           ) : documentosFiltrados.length === 0 ? (
             <VacioFicha icono={Search} texto="Ningún documento coincide con el filtro." />
           ) : (
-            <ul className="m-0 p-0 list-none rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark divide-y divide-border dark:divide-border-dark overflow-hidden">
+            <ul className="p-0 list-none rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark divide-y divide-border dark:divide-border-dark overflow-hidden">
               {documentosFiltrados.map((d) => {
                 const borrador = d.version_actual === null;
                 const alumnos = d.estudiantes_resumen ?? [];
@@ -690,7 +690,7 @@ export default function DocumentosPage() {
                       >
                         {d.titulo}
                       </Link>
-                      <p className="m-0 mt-0.5 flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-[12px] text-ink/65 dark:text-ink-dark/55">
+                      <p className="mt-0.5 flex items-center gap-x-2.5 gap-y-0.5 flex-wrap text-[12px] text-ink/65 dark:text-ink-dark/55">
                         {alumnos.length > 0 && (
                           <span className="inline-flex items-center gap-1 text-ink/70 dark:text-ink-dark/70 font-medium" title={alumnos.join(", ")}>
                             <Users size={11} aria-hidden="true" />
@@ -737,7 +737,7 @@ export default function DocumentosPage() {
 
           {totalDocumentos > TAMANO_PAGINA && (
             <div className="flex items-center justify-between pt-1">
-              <p className="m-0 text-xs text-ink/65 dark:text-ink-dark/55">
+              <p className="text-xs text-ink/65 dark:text-ink-dark/55">
                 {paginaDocumentos * TAMANO_PAGINA + 1}–{Math.min((paginaDocumentos + 1) * TAMANO_PAGINA, totalDocumentos)} de {totalDocumentos}{" "}
                 documentos
               </p>

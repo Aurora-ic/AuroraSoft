@@ -100,7 +100,7 @@ function Dialogo({ opciones, onCerrar }: { opciones: OpcionesConfirmacion; onCer
             {peligro ? <AlertTriangle size={19} aria-hidden="true" /> : <HelpCircle size={19} aria-hidden="true" />}
           </span>
           <div className="min-w-0">
-            <h2 id="titulo-confirmacion" className="m-0 font-display text-[17px] font-semibold text-ink dark:text-ink-dark">
+            <h2 id="titulo-confirmacion" className="font-display text-[17px] font-semibold text-ink dark:text-ink-dark">
               {opciones.titulo}
             </h2>
             {opciones.mensaje && (

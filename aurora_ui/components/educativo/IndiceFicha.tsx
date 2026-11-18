@@ -94,7 +94,7 @@ export function IndiceFicha({ grupos }: { grupos: GrupoIndice[] }) {
         aria-label="Secciones de la ficha"
         className="mx-auto max-w-7xl rounded-xl border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-1 shadow-sm"
       >
-        <ul ref={refLista} className="m-0 flex list-none gap-1 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ul ref={refLista} className="flex list-none gap-1 overflow-x-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {grupos.map((g) => (
             <li key={g.id} className="shrink-0">
               <button

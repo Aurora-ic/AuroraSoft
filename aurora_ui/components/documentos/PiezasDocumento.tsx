@@ -38,7 +38,7 @@ export function CabeceraInterna({
             <Icono size={20} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h1 className="m-0 font-display text-[21px] font-bold leading-tight text-ink dark:text-ink-dark break-words">{titulo}</h1>
+            <h1 className="font-display text-[21px] font-bold leading-tight text-ink dark:text-ink-dark break-words">{titulo}</h1>
             {(subtitulo || insignias) && (
               <div className="mt-1 flex items-center gap-2 flex-wrap text-[12.5px] text-ink/65 dark:text-ink-dark/55">
                 {subtitulo}
@@ -97,8 +97,8 @@ export function PasoFormulario({
           {completo ? <Check size={14} strokeWidth={3} /> : numero}
         </span>
         <div className="min-w-0">
-          <h2 className="m-0 text-[14px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h2>
-          {descripcion && <p className="m-0 mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
+          <h2 className="text-[14px] font-bold text-ink dark:text-ink-dark leading-tight">{titulo}</h2>
+          {descripcion && <p className="mt-0.5 text-[12px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </header>
       {children}
@@ -121,7 +121,7 @@ export function TarjetaLateral({
   return (
     <section className={`rounded-xl border overflow-hidden ${VIOLETA.fondoSuave}`}>
       <header className={`flex items-center justify-between gap-2 px-4 py-2.5 border-b ${VIOLETA.cabecera}`}>
-        <h2 className="m-0 flex items-center gap-2 text-[13px] font-bold text-ink dark:text-ink-dark">
+        <h2 className="flex items-center gap-2 text-[13px] font-bold text-ink dark:text-ink-dark">
           <span className={`flex h-6 w-6 items-center justify-center rounded-md ${VIOLETA.chipSolido}`}>
             <Icono size={13} strokeWidth={2.2} aria-hidden="true" />
           </span>

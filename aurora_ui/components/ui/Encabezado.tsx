@@ -55,11 +55,11 @@ export function EncabezadoPagina({
             <Icono size={21} strokeWidth={2} aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <h1 className="m-0 font-display text-[24px] font-bold text-white dark:text-ink-dark leading-tight">{titulo}</h1>
+            <h1 className="font-display text-[24px] font-bold text-white dark:text-ink-dark leading-tight">{titulo}</h1>
             {descripcion && (
               <p
                 title={typeof descripcion === "string" ? descripcion : undefined}
-                className="m-0 mt-1 text-[13px] leading-snug text-white/75 dark:text-ink-dark/60 max-w-2xl line-clamp-2"
+                className="mt-1 text-[13px] leading-snug text-white/75 dark:text-ink-dark/60 max-w-2xl line-clamp-2"
               >
                 {descripcion}
               </p>
@@ -79,8 +79,8 @@ export function EncabezadoPagina({
           <Icono size={19} strokeWidth={2} aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <h1 className="m-0 font-display text-[22px] font-bold text-seccion-900 dark:text-ink-dark leading-tight">{titulo}</h1>
-          {descripcion && <p className="m-0 mt-0.5 text-[12.5px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
+          <h1 className="font-display text-[22px] font-bold text-seccion-900 dark:text-ink-dark leading-tight">{titulo}</h1>
+          {descripcion && <p className="mt-0.5 text-[12.5px] text-ink/65 dark:text-ink-dark/55">{descripcion}</p>}
         </div>
       </div>
       {acciones && <div className="flex items-center gap-2 flex-wrap">{acciones}</div>}

@@ -83,7 +83,7 @@ export function DialogoCambiarPassword({ onCerrar }: { onCerrar: () => void }) {
             {listo ? <CheckCircle2 size={19} aria-hidden="true" /> : <KeyRound size={19} aria-hidden="true" />}
           </span>
           <div className="min-w-0">
-            <h2 id="titulo-cambiar-password" className="m-0 font-display text-[17px] font-semibold text-ink dark:text-ink-dark">
+            <h2 id="titulo-cambiar-password" className="font-display text-[17px] font-semibold text-ink dark:text-ink-dark">
               {listo ? "Contraseña actualizada" : "Cambiar contraseña"}
             </h2>
             <p className="mt-1 text-sm leading-relaxed text-ink/65 dark:text-ink-dark/65">

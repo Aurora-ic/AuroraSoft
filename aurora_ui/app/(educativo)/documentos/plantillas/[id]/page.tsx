@@ -408,14 +408,14 @@ export default function ConstructorPlantillaPage() {
 
       {/* Qué significa "activa" + aviso de plantilla vacía. */}
       <div className="flex flex-col gap-1.5 -mt-1">
-        <p className="m-0 flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
+        <p className="flex items-start gap-1.5 text-[12px] text-ink/65 dark:text-ink-dark/55">
           <Info size={13} className="mt-px shrink-0" aria-hidden="true" />
           {esPredeterminada
             ? "Plantilla predeterminada del catálogo global: las instituciones la clonan, nunca la usan directo."
             : "Activa = aparece al crear un documento nuevo. Puedes tener varias activas del mismo tipo (por ejemplo, informe para padres y para docentes)."}
         </p>
         {plantilla.activa && secciones.length === 0 && (
-          <p className="m-0 text-[12px] font-medium text-red-700 dark:text-red-300">
+          <p className="text-[12px] font-medium text-red-700 dark:text-red-300">
             Está activa pero no tiene ninguna sección: un documento generado con ella saldría vacío.
           </p>
         )}
@@ -435,7 +435,7 @@ export default function ConstructorPlantillaPage() {
           {secciones.length === 0 ? (
             <VacioFicha icono={ListOrdered} texto="Esta plantilla todavía no tiene secciones. Agrega la primera abajo." />
           ) : (
-            <ol className="m-0 p-0 list-none space-y-2.5">
+            <ol className="p-0 list-none space-y-2.5">
               {secciones.map((seccion, idx) => {
                 const configurable = TIPOS_CON_CONFIG_SIMPLE.includes(seccion.tipo_seccion);
                 const abierta = seccionAbierta === seccion.id;
@@ -458,7 +458,7 @@ export default function ConstructorPlantillaPage() {
                           <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[seccion.tipo_seccion]}</span>
                           <ChipModo tipo={seccion.tipo_seccion} />
                         </div>
-                        <p className="m-0 mt-0.5 text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55">{DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}</p>
+                        <p className="mt-0.5 text-[12px] leading-snug text-ink/65 dark:text-ink-dark/55">{DESCRIPCION_TIPO_SECCION[seccion.tipo_seccion]}</p>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         <BotonIcono etiqueta="Subir" onClick={() => moverSeccion(seccion, -1)} disabled={idx === 0} icono={ChevronUp} />
@@ -534,7 +534,7 @@ export default function ConstructorPlantillaPage() {
           {/* Agregar sección — 🆕 catálogo agrupado por cómo se llena, con
               miniatura del PDF (antes un desplegable de 14 nombres técnicos). */}
           <div className="rounded-lg border border-dashed border-acento-violeta/35 dark:border-acento-violeta-dark/35 bg-surface/60 dark:bg-surface-dark/60 p-3.5 space-y-3.5">
-            <p className="m-0 flex items-center gap-1.5 text-[13px] font-bold text-ink dark:text-ink-dark">
+            <p className="flex items-center gap-1.5 text-[13px] font-bold text-ink dark:text-ink-dark">
               <Plus size={14} className={VIOLETA.texto} aria-hidden="true" />
               Agregar una sección
             </p>
@@ -542,7 +542,7 @@ export default function ConstructorPlantillaPage() {
             <div role="radiogroup" aria-label="Tipo de sección" className="space-y-3">
               {GRUPOS_CATALOGO.map((grupo) => (
                 <div key={grupo.modo}>
-                  <p className="m-0 mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+                  <p className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
                     {grupo.titulo}
                     <ChipModo modo={grupo.modo} className="normal-case tracking-normal" />
                   </p>
@@ -579,7 +579,7 @@ export default function ConstructorPlantillaPage() {
             {/* Lo elegido, explicado: cómo sale en el PDF y quién lo llena. */}
             <div className="grid gap-3 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark p-3 sm:grid-cols-[150px_minmax(0,1fr)]">
               <div>
-                <p className="m-0 mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Así sale en el PDF</p>
+                <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">Así sale en el PDF</p>
                 <MiniaturaSeccion tipo={nuevoTipo} />
               </div>
               <div className="min-w-0 space-y-1.5">
@@ -587,11 +587,11 @@ export default function ConstructorPlantillaPage() {
                   <span className="text-[13.5px] font-bold text-ink dark:text-ink-dark">{ETIQUETAS_TIPO_SECCION[nuevoTipo]}</span>
                   <ChipModo tipo={nuevoTipo} />
                 </div>
-                <p className="m-0 text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
-                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">
+                <p className="text-[12.5px] leading-snug text-ink/70 dark:text-ink-dark/70">{DESCRIPCION_TIPO_SECCION[nuevoTipo]}</p>
+                <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">
                   <span className="font-semibold">Ejemplo:</span> {EJEMPLO_TIPO_SECCION[nuevoTipo]}
                 </p>
-                <p className="m-0 text-[12px] text-ink/65 dark:text-ink-dark/55">{INFO_MODO[MODO_TIPO_SECCION[nuevoTipo]].frase}</p>
+                <p className="text-[12px] text-ink/65 dark:text-ink-dark/55">{INFO_MODO[MODO_TIPO_SECCION[nuevoTipo]].frase}</p>
               </div>
             </div>
 
@@ -611,7 +611,7 @@ export default function ConstructorPlantillaPage() {
         <div className="flex flex-col gap-4">
           {/* 🆕 Inducción: qué es una plantilla y cómo se llena cada parte. */}
           <TarjetaLateral icono={Info} titulo="Cómo funciona una plantilla">
-            <p className="m-0 mb-3 text-[12.5px] leading-snug text-ink/65 dark:text-ink-dark/65">
+            <p className="mb-3 text-[12.5px] leading-snug text-ink/65 dark:text-ink-dark/65">
               La plantilla es el <strong>molde</strong>: aquí decides qué partes tiene el documento y en qué orden. Cada documento que generes con
               ella se llena aparte, para un alumno.
             </p>
@@ -648,7 +648,7 @@ export default function ConstructorPlantillaPage() {
               </Casilla>
 
               <div className="border-t border-acento-violeta/15 dark:border-acento-violeta-dark/20 pt-3 space-y-2">
-                <p className="m-0 text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">Título del documento</p>
+                <p className="text-[12.5px] font-semibold text-ink/70 dark:text-ink-dark/70">Título del documento</p>
                 <div className="flex items-center gap-4 flex-wrap">
                   <Casilla checked={!!form.titulo_negrita} onChange={(v) => cambiarForm({ titulo_negrita: v })}>
                     Negrita
@@ -705,12 +705,12 @@ export default function ConstructorPlantillaPage() {
           {/* Membrete / pie / fondo de página del colegio */}
           {puedeEditarBranding && (
             <TarjetaLateral icono={ImageIcon} titulo="Membrete, pie y fondo">
-              <p className="m-0 mb-3 text-[12px] text-ink/65 dark:text-ink-dark/55">
+              <p className="mb-3 text-[12px] text-ink/65 dark:text-ink-dark/55">
                 Valen para todos los documentos de tu institución, no solo esta plantilla. El membrete y el pie van pegados al borde
                 superior e inferior de cada hoja, a todo el ancho: sube franjas anchas (ej. 2480 × 350 px).
               </p>
               <TextoError>{errorBranding}</TextoError>
-              <ul className="m-0 p-0 list-none space-y-2">
+              <ul className="p-0 list-none space-y-2">
                 {(["encabezado", "pie", "fondo"] as const).map((tipo) => {
                   const urlActual =
                     tipo === "encabezado" ? institucion?.logo_url : tipo === "pie" ? institucion?.logo_pie_pagina_url : institucion?.fondo_documento_url;
@@ -718,8 +718,8 @@ export default function ConstructorPlantillaPage() {
                   return (
                     <li key={tipo} className="flex items-center justify-between gap-2 rounded-lg border border-border dark:border-border-dark bg-surface dark:bg-surface-dark px-3 py-2">
                       <div className="min-w-0">
-                        <p className="m-0 text-[12.5px] font-semibold text-ink dark:text-ink-dark">{etiqueta}</p>
-                        <p className={`m-0 text-[12px] ${urlActual ? VIOLETA.texto : "text-ink/65 dark:text-ink-dark/55"}`}>
+                        <p className="text-[12.5px] font-semibold text-ink dark:text-ink-dark">{etiqueta}</p>
+                        <p className={`text-[12px] ${urlActual ? VIOLETA.texto : "text-ink/65 dark:text-ink-dark/55"}`}>
                           {subiendoBranding === tipo ? "Subiendo..." : urlActual ? "Imagen cargada" : "Sin imagen"}
                         </p>
                       </div>
@@ -883,7 +883,7 @@ function EditorConfigSeccion({
     return (
       <div className="space-y-4">
         <div>
-          <p className="m-0 mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
+          <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-ink/65 dark:text-ink-dark/55">
             Vista previa de la hoja impresa (se actualiza mientras editas)
           </p>
           <VistaPreviaFicha config={config} titulo={seccion.titulo} />
@@ -1129,7 +1129,7 @@ function EditorFichaImprimibleConfig({ config, onGuardar }: { config: ConfigFich
   }
   return (
     <div className="space-y-4 text-sm">
-      <p className="m-0 rounded-lg bg-seccion-600/[0.06] px-3 py-2 text-[12.5px] leading-snug text-ink/70 dark:bg-seccion-claro/10 dark:text-ink-dark/70">
+      <p className="rounded-lg bg-seccion-600/[0.06] px-3 py-2 text-[12.5px] leading-snug text-ink/70 dark:bg-seccion-claro/10 dark:text-ink-dark/70">
         Este formato sale <strong>vacío</strong> en el PDF para llenarlo a mano en papel. En el sistema no se escribe nada en él: lo que
         pongas aquí son solo las etiquetas que se imprimen. Usa solo las partes que necesites; las vacías no salen.
       </p>
@@ -1210,19 +1210,19 @@ function VistaPreviaFicha({ config, titulo }: { config: ConfigFichaImprimible; t
     !config.firmas_en_blanco?.length;
   return (
     <div className="rounded-lg border border-border bg-white p-4 text-[11.5px] leading-snug text-neutral-800 shadow-sm dark:border-border-dark">
-      {titulo && <p className="m-0 mb-2 font-bold uppercase">{titulo}</p>}
-      {vacio && <p className="m-0 italic text-neutral-400">Agrega partes a la izquierda y aquí verás cómo queda la hoja.</p>}
+      {titulo && <p className="mb-2 font-bold uppercase">{titulo}</p>}
+      {vacio && <p className="italic text-neutral-400">Agrega partes a la izquierda y aquí verás cómo queda la hoja.</p>}
       {!!config.campos_encabezado?.length && (
         <div className="mb-2.5 grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
           {config.campos_encabezado.map((c, i) => (
-            <p key={i} className="m-0 flex min-w-0 items-end gap-1">
+            <p key={i} className="flex min-w-0 items-end gap-1">
               <span className="font-semibold break-words">{c}:</span>
               <span className="mb-0.5 min-w-[3rem] flex-1 border-b border-neutral-400" />
             </p>
           ))}
         </div>
       )}
-      {config.leyenda && <p className="m-0 mb-2 italic text-neutral-600">{config.leyenda}</p>}
+      {config.leyenda && <p className="mb-2 italic text-neutral-600">{config.leyenda}</p>}
       {!!config.columnas?.length && !!config.filas?.length && (
         <table className="mb-2.5 w-full border-collapse">
           <thead>
@@ -1249,7 +1249,7 @@ function VistaPreviaFicha({ config, titulo }: { config: ConfigFichaImprimible; t
       )}
       {(config.listas_checkbox ?? []).map((l, i) => (
         <div key={i} className="mb-2">
-          {l.titulo && <p className="m-0 font-semibold">{l.titulo}</p>}
+          {l.titulo && <p className="font-semibold">{l.titulo}</p>}
           <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
             {l.opciones.map((o, j) => (
               <span key={j}>[&nbsp;&nbsp;] {o}</span>
@@ -1259,7 +1259,7 @@ function VistaPreviaFicha({ config, titulo }: { config: ConfigFichaImprimible; t
       ))}
       {(config.preguntas_abiertas ?? []).map((p, i) => (
         <div key={i} className="mb-2">
-          <p className="m-0 font-semibold">{p}</p>
+          <p className="font-semibold">{p}</p>
           <span className="mt-3 block border-b border-neutral-400" />
           <span className="mt-3 block border-b border-neutral-400" />
         </div>

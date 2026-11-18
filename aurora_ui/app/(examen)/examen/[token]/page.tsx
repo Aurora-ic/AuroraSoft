@@ -575,7 +575,7 @@ export default function ExamenPage() {
               <img src={intakePrevio.institucion_logo_url} alt="" className="h-12 w-12 shrink-0 rounded-lg object-contain" />
             )}
             {intakePrevio.institucion_nombre && (
-              <p className="m-0 text-sm font-semibold text-teal-900">{intakePrevio.institucion_nombre}</p>
+              <p className="text-sm font-semibold text-teal-900">{intakePrevio.institucion_nombre}</p>
             )}
           </div>
         )}
@@ -947,7 +947,7 @@ export default function ExamenPage() {
             {finalizando ? (
               <div className="rounded-xl border border-teal-100 bg-teal-50 p-5">
                 <EsperaExamen texto="Estamos guardando tu evaluación…" />
-                <p className="m-0 mt-2 text-sm text-ink/75">
+                <p className="mt-2 text-sm text-ink/75">
                   No cierres esta pestaña. Puede tardar unos segundos.
                 </p>
               </div>
@@ -1051,7 +1051,7 @@ export default function ExamenPage() {
 function EsperaExamen({ texto }: { texto: string }) {
   return (
     <div role="status" className="space-y-2.5">
-      <p className="m-0 text-sm font-medium text-teal-900">{texto}</p>
+      <p className="text-sm font-medium text-teal-900">{texto}</p>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-mist" aria-hidden="true">
         <div className="h-full w-1/3 rounded-full bg-teal-600 animate-[deslizar_1.2s_ease-in-out_infinite]" />
       </div>
