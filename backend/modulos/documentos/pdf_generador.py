@@ -416,49 +416,95 @@ def _renderizar_datos_familiares(datos: dict, estilos: dict) -> list:
     return elementos
 
 
-_PATRON_LINEA_VINETA = re.compile(r"^\s*[•\-\*]\s+(.*)$")
-# 🆕 Negrita manual: **texto** -> <b>texto</b>. Se aplica SIEMPRE sobre la
-# línea YA escapada (escape() de html, nunca antes) — una psicóloga no
-# puede abrir una etiqueta HTML real escribiendo texto, solo marcar negrita
-# con este patrón. No-greedy y sin DOTALL: nunca cruza un salto de línea.
+# 🆕 (2026-11-18, editor con formato) El texto se sigue guardando como TEXTO
+# con unas pocas marcas — nunca HTML: lo que una persona escribe no puede abrir
+# una etiqueta real, porque cada línea se escapa ANTES de convertir las marcas.
+# El editor visual del frontend (components/documentos/EditorTextoDocumento.tsx,
+# lib/textoFormato.ts) lee y escribe exactamente este mismo formato:
+#   **negrita**   *cursiva*   ++subrayado++
+#   "• " / "- " / "* " al inicio de línea → viñeta
+#   "1. " al inicio de línea → lista numerada (el número se imprime tal cual)
+#   2 espacios delante por cada nivel → lista dentro de lista (sangría)
+# Un texto viejo (solo **negrita** y "• ") se ve exactamente igual que antes.
+_PATRON_LINEA_VINETA = re.compile(r"^(\s*)[•\-\*]\s+(.*)$")
+_PATRON_LINEA_NUMERADA = re.compile(r"^(\s*)(\d{1,3})[.)]\s+(.*)$")
+# No-greedy y sin DOTALL: ninguna marca cruza un salto de línea.
 _PATRON_NEGRITA_MANUAL = re.compile(r"\*\*(.+?)\*\*")
+_PATRON_SUBRAYADO_MANUAL = re.compile(r"\+\+(.+?)\+\+")
+# *cursiva*: el * de apertura no va seguido de espacio ni el de cierre
+# precedido de uno (así "3 * 4 * 5" no se vuelve cursiva).
+_PATRON_CURSIVA_MANUAL = re.compile(r"(?<![\*\w])\*(?![\s\*])(.+?)(?<![\s\*])\*(?![\*\w])")
+_SANGRIA_POR_NIVEL = 14
 
 
 def _aplicar_negrita_manual(texto_escapado: str) -> str:
-    return _PATRON_NEGRITA_MANUAL.sub(r"<b>\1</b>", texto_escapado)
+    """Convierte las marcas de formato de UNA línea YA escapada (nombre
+    histórico: hoy también cursiva y subrayado)."""
+    texto = _PATRON_NEGRITA_MANUAL.sub(r"<b>\1</b>", texto_escapado)
+    texto = _PATRON_SUBRAYADO_MANUAL.sub(r"<u>\1</u>", texto)
+    return _PATRON_CURSIVA_MANUAL.sub(r"<i>\1</i>", texto)
+
+
+def _nivel_de_sangria(espacios: str) -> int:
+    return min(len(espacios.replace("\t", "  ")) // 2, 6)
+
+
+def _estilo_con_sangria(estilos: dict, base: str, nivel: int, sangria_francesa: int):
+    """Estilo de lista para un nivel de sangría (cacheado en el propio dict
+    de estilos, que vive solo durante este PDF)."""
+    clave = f"{base}_{nivel}_{sangria_francesa}"
+    if clave not in estilos:
+        padre = estilos[base]
+        estilos[clave] = ParagraphStyle(
+            clave, parent=padre,
+            leftIndent=sangria_francesa + _SANGRIA_POR_NIVEL * nivel,
+            firstLineIndent=-sangria_francesa,
+        )
+    return estilos[clave]
 
 
 def _renderizar_texto_libre(datos: dict, estilos: dict) -> list:
-    """Texto libre redactado por la psicóloga. Una línea que empieza con
-    "•", "-" o "*" (tecleado a mano, o insertado por el botón "+ Viñeta"
-    del frontend) se renderiza como punto de viñeta real — con sangría
-    francesa, no como el carácter "•" suelto dentro de un párrafo corrido
-    — el resto del texto sigue siendo párrafos normales, exactamente como
-    antes. Varias líneas de viñeta seguidas salen como varios puntos
-    separados, no como un solo párrafo con saltos de línea. Dentro de
-    cualquier línea, `**texto**` sale en negrita (ver
-    _aplicar_negrita_manual) — la psicóloga decide manualmente qué resaltar,
-    el resto del contenido nunca sale en negrita por su cuenta."""
+    """Texto libre redactado por la psicóloga (formato: ver arriba). Las
+    líneas comunes seguidas forman un párrafo; cada línea de lista es su
+    propio punto con sangría francesa (el texto que da la vuelta queda bajo
+    el texto, no bajo el punto o el número)."""
     texto = (datos or {}).get("texto")
     if not texto:
         return [_placeholder("Pendiente de registro.", estilos)]
 
     elementos = []
     lineas_parrafo: list[str] = []
+    nivel_parrafo = 0
 
     def _cerrar_parrafo():
+        nonlocal nivel_parrafo
         if lineas_parrafo:
-            html = "<br/>".join(_aplicar_negrita_manual(escape(linea)) for linea in lineas_parrafo)
-            elementos.append(Paragraph(html, estilos["normal"]))
+            html = "<br/>".join(_aplicar_negrita_manual(escape(linea.strip())) for linea in lineas_parrafo)
+            estilo = estilos["normal"] if nivel_parrafo == 0 else _estilo_con_sangria(estilos, "normal", nivel_parrafo, 0)
+            elementos.append(Paragraph(html, estilo))
             lineas_parrafo.clear()
+        nivel_parrafo = 0
 
     for linea in texto.split("\n"):
-        coincidencia = _PATRON_LINEA_VINETA.match(linea)
-        if coincidencia:
+        vineta = _PATRON_LINEA_VINETA.match(linea)
+        numerada = None if vineta else _PATRON_LINEA_NUMERADA.match(linea)
+        if vineta:
             _cerrar_parrafo()
-            texto_vineta = _aplicar_negrita_manual(escape(coincidencia.group(1)))
-            elementos.append(Paragraph(f"•&nbsp;&nbsp;{texto_vineta}", estilos["vineta"]))
+            nivel = _nivel_de_sangria(vineta.group(1))
+            contenido = _aplicar_negrita_manual(escape(vineta.group(2)))
+            elementos.append(Paragraph(f"•&nbsp;&nbsp;{contenido}", _estilo_con_sangria(estilos, "vineta", nivel, 14)))
+        elif numerada:
+            _cerrar_parrafo()
+            nivel = _nivel_de_sangria(numerada.group(1))
+            contenido = _aplicar_negrita_manual(escape(numerada.group(3)))
+            elementos.append(Paragraph(
+                f"{numerada.group(2)}.&nbsp;&nbsp;{contenido}", _estilo_con_sangria(estilos, "vineta", nivel, 18),
+            ))
         else:
+            nivel = _nivel_de_sangria(linea[: len(linea) - len(linea.lstrip())]) if linea.strip() else nivel_parrafo
+            if lineas_parrafo and nivel != nivel_parrafo:
+                _cerrar_parrafo()
+            nivel_parrafo = nivel
             lineas_parrafo.append(linea)
     _cerrar_parrafo()
 

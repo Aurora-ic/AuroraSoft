@@ -39,6 +39,7 @@ import { ETIQUETAS_TIPO_SECCION, ORIGEN_AUTOMATICA, MODO_TIPO_SECCION, instrucci
 import { ChipModo, MiniaturaSeccion } from "@/components/documentos/ModoSeccion";
 import { VisorArchivoModal, type ArchivoParaVisor } from "@/components/ui/VisorArchivo";
 import { PanelVistaPrevia, useVistaPreviaPdf } from "@/components/documentos/VistaPreviaDocumento";
+import { EditorTextoDocumento } from "@/components/documentos/EditorTextoDocumento";
 import { useAuth } from "@/contexts/AuthContext";
 import type {
   DocumentoInstitucionalDetalle,
@@ -849,32 +850,15 @@ export default function DetalleDocumentoPage() {
 
                   {seccion.tipo_seccion === "texto_libre" && (
                     <>
-                      <Textarea
-                        rows={6}
-                        aria-label={titulo}
-                        placeholder="Escribe aquí…"
-                        value={edicionesTexto[id] ?? ""}
-                        onChange={(e) => setEdicionesTexto({ ...edicionesTexto, [id]: e.target.value })}
-                        onBlur={() => pendiente && guardarSeccion(seccion)}
-                        className="w-full leading-relaxed"
+                      {/* 🆕 (2026-11-18) Editor con formato (negrita, cursiva,
+                          subrayado, listas) en vez de un cuadro de texto con
+                          **marcas**: se guarda el mismo formato que antes. */}
+                      <EditorTextoDocumento
+                        etiqueta={titulo}
+                        valor={edicionesTexto[id] ?? ""}
+                        onCambio={(texto) => setEdicionesTexto((prev) => ({ ...prev, [id]: texto }))}
+                        onSalir={() => pendiente && guardarSeccion(seccion)}
                       />
-                      <div className="flex items-center justify-between gap-3 flex-wrap">
-                        <button
-                          type="button"
-                          title="Agrega una línea nueva que empieza con viñeta (•) — se imprime como punto en el PDF"
-                          onClick={() => {
-                            const actual = edicionesTexto[id] ?? "";
-                            const separador = actual && !actual.endsWith("\n") ? "\n" : "";
-                            setEdicionesTexto({ ...edicionesTexto, [id]: `${actual}${separador}• ` });
-                          }}
-                          className={`text-xs font-semibold hover:underline ${VIOLETA.texto}`}
-                        >
-                          • Agregar viñeta
-                        </button>
-                        <span className="text-[12px] text-ink/65 dark:text-ink-dark/55">
-                          <code className="font-mono">**así**</code> sale en <strong>negrita</strong> en el PDF
-                        </span>
-                      </div>
                       <BotonGuardar onClick={() => guardarSeccion(seccion)} guardando={guardando} pendiente={pendiente} />
                     </>
                   )}

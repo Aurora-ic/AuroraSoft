@@ -197,3 +197,21 @@ h1, h2, h3, h4 {
   --sec-900: #24313B; --sec-700: #3E505E; --sec-600: #4F6475; --sec-400: #8A9DAC;
   --sec-claro: #9AACBA; --sec-accion: #3E505E; --sec-accion-hover: #2E3C47;
 }
+
+/* 🆕 (2026-11-18) Contenido del editor de texto de los documentos
+   (components/documentos/EditorTextoDocumento.tsx). El preflight de Tailwind
+   quita viñetas y números a las listas: aquí se devuelven, con la misma idea
+   de sangría que el PDF. */
+.editor-documento p { margin: 0 0 0.35rem; }
+.editor-documento ul { list-style: disc; padding-left: 1.4rem; margin: 0.1rem 0 0.35rem; }
+.editor-documento ul ul { list-style: circle; }
+.editor-documento ol { list-style: decimal; padding-left: 1.6rem; margin: 0.1rem 0 0.35rem; }
+.editor-documento li > p { margin: 0 0 0.15rem; }
+.editor-documento strong { font-weight: 700; }
+.editor-documento p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: color-mix(in oklab, currentColor 45%, transparent);
+}
