@@ -23,6 +23,7 @@ import type {
 } from "@/types/api";
 import { useCargaDiferida } from "@/lib/useCargaDiferida";
 import { EsqueletoChips } from "@/components/ui/Esqueleto";
+import { useAvisar } from "@/components/ui/Avisos";
 
 function FilaSeleccionable({
   activo,
@@ -346,6 +347,7 @@ function ordenarPorOrden<T extends { orden: number; nombre: string }>(lista: T[]
 }
 
 export default function EstructuraAcademicaPage() {
+  const avisar = useAvisar();
   const { sesion } = useAuth();
   const esAdmin = sesion?.rol === "admin";
 
@@ -412,6 +414,7 @@ export default function EstructuraAcademicaPage() {
     try {
       if (tipo === "nivel") {
         await apiClient.delete(`/admin/personas/academico/niveles/${id}`);
+        avisar("Nivel eliminado.");
         setNiveles((prev) => prev.filter((n) => n.id !== id));
         if (nivelSeleccionado?.id === id) {
           setNivelSeleccionado(null);
@@ -421,6 +424,7 @@ export default function EstructuraAcademicaPage() {
         }
       } else if (tipo === "grado") {
         await apiClient.delete(`/admin/personas/academico/grados/${id}`);
+        avisar("Grado eliminado.");
         setGrados((prev) => prev.filter((g) => g.id !== id));
         if (gradoSeleccionado?.id === id) {
           setGradoSeleccionado(null);
@@ -428,6 +432,7 @@ export default function EstructuraAcademicaPage() {
         }
       } else {
         await apiClient.delete(`/admin/personas/academico/secciones/${id}`);
+        avisar("Sección eliminada.");
         setSecciones((prev) => prev.filter((s) => s.id !== id));
       }
       setEliminandoItem(null);
@@ -477,6 +482,7 @@ export default function EstructuraAcademicaPage() {
           orden: formEdicion.segundo ? Number(formEdicion.segundo) : 0,
         };
         const nivel = await apiClient.patch<NivelEducativo>(`/admin/personas/academico/niveles/${editando.id}`, payload);
+        avisar("Cambios guardados.");
         setNiveles((prev) => ordenarPorOrden(prev.map((n) => (n.id === nivel.id ? nivel : n))));
         if (nivelSeleccionado?.id === nivel.id) setNivelSeleccionado(nivel);
       } else if (editando.tipo === "grado") {
@@ -485,11 +491,13 @@ export default function EstructuraAcademicaPage() {
           orden: formEdicion.segundo ? Number(formEdicion.segundo) : 0,
         };
         const grado = await apiClient.patch<Grado>(`/admin/personas/academico/grados/${editando.id}`, payload);
+        avisar("Cambios guardados.");
         setGrados((prev) => ordenarPorOrden(prev.map((g) => (g.id === grado.id ? grado : g))));
         if (gradoSeleccionado?.id === grado.id) setGradoSeleccionado(grado);
       } else {
         const payload: SeccionUpdate = { nombre: formEdicion.nombre, turno: formEdicion.segundo || null };
         const seccion = await apiClient.patch<Seccion>(`/admin/personas/academico/secciones/${editando.id}`, payload);
+        avisar("Cambios guardados.");
         setSecciones((prev) => prev.map((s) => (s.id === seccion.id ? seccion : s)));
       }
       setEditando(null);
@@ -577,6 +585,7 @@ export default function EstructuraAcademicaPage() {
         orden: formNivel.orden ? Number(formNivel.orden) : 0,
       };
       await apiClient.post<NivelEducativo>("/admin/personas/academico/niveles", payload);
+      avisar("Nivel creado.");
       const datos = await apiClient.get<NivelEducativo[]>(
         `/admin/personas/academico/niveles/${sesion.institucionId}`,
       );
@@ -601,6 +610,7 @@ export default function EstructuraAcademicaPage() {
         orden: formGrado.orden ? Number(formGrado.orden) : 0,
       };
       await apiClient.post<Grado>("/admin/personas/academico/grados", payload);
+      avisar("Grado creado.");
       const datos = await apiClient.get<Grado[]>(`/admin/personas/academico/grados/${nivelSeleccionado.id}`);
       setGrados(datos);
       setFormGrado({ nombre: "", orden: "" });
@@ -629,6 +639,7 @@ export default function EstructuraAcademicaPage() {
         anio_escolar: anio,
       };
       await apiClient.post<Seccion>("/admin/personas/academico/secciones", payload);
+      avisar("Sección creada.");
       const datos = await apiClient.get<Seccion[]>(`/admin/personas/academico/secciones/${gradoSeleccionado.id}`);
       setSecciones(datos);
       setFormSeccion({ nombre: "", turno: "", anio_escolar: "" });

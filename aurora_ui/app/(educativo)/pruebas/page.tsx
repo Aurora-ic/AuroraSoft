@@ -1,23 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  ClipboardList,
-  BarChart3,
-  LayoutGrid,
-  Users,
-  CheckCircle2,
-  Clock,
-  AlertTriangle,
-  Gauge,
-  Download,
-  TrendingUp,
-  GitCompare,
-  Search,
-  ChevronDown,
-  ArrowRight,
-  Layers,
-} from "lucide-react";
+import { ClipboardList, BarChart3, LayoutGrid, Users, CheckCircle2, Clock, AlertTriangle, Gauge, Download, TrendingUp, GitCompare, Search, ChevronDown, ArrowRight, Layers, Library } from "lucide-react";
 import { apiClient, descargarBlob, mensajeDe } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Boton } from "@/components/ui/Boton";
@@ -41,6 +25,7 @@ import type {
   AlumnoDashboard,
 } from "@/types/api";
 import { siglaPrueba, textoReaplicacion } from "@/lib/pruebas";
+import { GuiaSeccion } from "@/components/ui/GuiaSeccion";
 
 // Catálogo de solo lectura — cargar una prueba nueva (ítems, dimensiones,
 // baremos) es un ejercicio de datos vía seed/API directa (ver CLAUDE.md
@@ -334,6 +319,16 @@ export default function PruebasPage() {
             <span className="text-[12px] opacity-75">instrumentos</span>
           </div>
         }
+      />
+
+      <GuiaSeccion
+        clave="aurora.guia-pruebas.oculta"
+        titulo="¿Cómo se usa esta sección?"
+        pasos={[
+          { icono: BarChart3, titulo: "1. Resultados del grupo", texto: "Elige una prueba y un salón, un grado o todo el colegio: combina todas las campañas en las que se aplicó." },
+          { icono: TrendingUp, titulo: "2. Evolución y comparación", texto: "Con dos o más campañas ves la tendencia en el tiempo, y puedes comparar con otra sección del grado." },
+          { icono: Library, titulo: "3. Catálogo", texto: "Los instrumentos disponibles para tus campañas, con sus dimensiones." },
+        ]}
       />
 
       <ControlSegmentado<Vista>

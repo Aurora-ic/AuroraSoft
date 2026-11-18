@@ -30,6 +30,7 @@ import { EncabezadoPagina, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/
 import { ModalNuevaActividad, type InicialActividad } from "@/components/educativo/ModalNuevaActividad";
 import { useConsultaApi, LISTA_VACIA } from "@/lib/consultas";
 import { AvisoCargando, EsqueletoLineas, EsqueletoSemana } from "@/components/ui/Esqueleto";
+import { useAvisar } from "@/components/ui/Avisos";
 
 const TIPOS_ACTIVIDAD = ["Taller", "Charla", "Reunión", "Otro"];
 
@@ -155,6 +156,7 @@ function iconoDe(cita: Cita): LucideIcon {
 // ("16:45", una sola vez) y "Cancelar"/"Cancelada" — no envolver el
 // contenido de la tarjeta en un <div> interno.
 export default function AgendaPage() {
+  const avisar = useAvisar();
   // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
   const confirmar = useConfirmar();
   const { sesion } = useAuth();
@@ -275,6 +277,7 @@ export default function AgendaPage() {
       return;
     try {
       await apiClient.delete(`/admin/personas/citas/${citaId}`);
+      avisar("Cita cancelada.");
       cargar();
     } catch (err) {
       setError(mensajeDe(err) || "No se pudo cancelar la cita.");
@@ -326,6 +329,7 @@ export default function AgendaPage() {
         payload.lugar = lugar || null;
       }
       await apiClient.patch(`/admin/personas/citas/${cita.id}`, payload);
+      avisar("Cambios guardados.");
       setReprogramandoId(null);
       cargar();
     } catch (err) {

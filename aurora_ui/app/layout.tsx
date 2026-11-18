@@ -4,6 +4,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { QueryProvider } from "@/contexts/QueryProvider";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProveedorConfirmacion } from "@/components/ui/DialogoConfirmacion";
+import { ProveedorAvisos } from "@/components/ui/Avisos";
 
 export const metadata: Metadata = {
   title: "AuroraSoft",
@@ -26,7 +27,10 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               {/* 🆕 Diálogo de confirmación propio (reemplaza window.confirm). */}
-              <ProveedorConfirmacion>{children}</ProveedorConfirmacion>
+              <ProveedorConfirmacion>
+                {/* 🆕 (2026-11-17) Avisos de "listo" (components/ui/Avisos.tsx). */}
+                <ProveedorAvisos>{children}</ProveedorAvisos>
+              </ProveedorConfirmacion>
             </AuthProvider>
           </QueryProvider>
         </ThemeProvider>

@@ -44,6 +44,7 @@ import type {
 import { claveApi, invalidarApi, useConsultaApi, LISTA_VACIA } from "@/lib/consultas";
 import { useQueryClient } from "@tanstack/react-query";
 import { GuiaDocumentos } from "@/components/documentos/GuiaDocumentos";
+import { useAvisar } from "@/components/ui/Avisos";
 
 const TAMANO_PAGINA = 50;
 const VIOLETA = ACENTOS.violeta;
@@ -71,6 +72,7 @@ type FiltroEstado = "todos" | "borradores" | "emitidos";
 // usa e2e/documentos.spec.ts ("+ Nueva desde cero", la etiqueta del select
 // de tipo, "Crear y abrir el constructor").
 export default function DocumentosPage() {
+  const avisar = useAvisar();
   // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
   const confirmar = useConfirmar();
   const { sesion } = useAuth();
@@ -184,6 +186,7 @@ export default function DocumentosPage() {
     setErrorPlantilla(null);
     try {
       await apiClient.delete(`/documentos/plantillas/${p.id}`);
+      avisar("Plantilla eliminada.");
       cambiarPlantillas((prev) => prev.filter((x) => x.id !== p.id));
     } catch (err) {
       setErrorPlantilla(mensajeDe(err) || "No se pudo eliminar la plantilla.");
@@ -197,6 +200,7 @@ export default function DocumentosPage() {
     setErrorPlantilla(null);
     try {
       const actualizada = await apiClient.patch<PlantillaDocumento>(`/documentos/plantillas/${p.id}`, { activa: true });
+      avisar("Plantilla activada.");
       // 🆕 (sesión 2026-11-01) Sin exclusividad por tipo: activar esta no
       // apaga ninguna otra, solo cambia ella.
       cambiarPlantillas((prev) => prev.map((x) => (x.id === actualizada.id ? actualizada : x)));
@@ -266,6 +270,7 @@ export default function DocumentosPage() {
     setErrorDocumentos(null);
     try {
       await apiClient.delete(`/documentos/${d.id}`);
+      avisar("Borrador descartado.");
       // Si era el último de la página, retrocede una para no quedar en blanco.
       if (documentos.length === 1 && paginaDocumentos > 0) setPaginaDocumentos((p) => p - 1);
       void invalidarApi(queryClient, "/documentos/?");

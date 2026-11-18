@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Flag, Plus, UserRound } from "lucide-react";
+import { Flag, Plus, UserRound, ClipboardList, Link2, BarChart3 } from "lucide-react";
 import { EncabezadoPagina, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
@@ -10,6 +10,7 @@ import { EsqueletoTarjetas } from "@/components/ui/Esqueleto";
 import type { RespuestaPaginada } from "@/types/api";
 import { estadoVisibleCampana, etiquetaEstadoCampana, claseBadgeEstadoCampana } from "@/lib/campanas";
 import { useConsultaApi } from "@/lib/consultas";
+import { GuiaSeccion } from "@/components/ui/GuiaSeccion";
 
 // Refleja schemas.EvaluacionResponse tal cual está en el backend —
 // no tiene "nombre_grupo" separado de nombre de prueba, ni conteo de
@@ -88,6 +89,20 @@ export default function CampanasPage() {
           )
         }
       />
+
+      <GuiaSeccion
+        clave="aurora.guia-campanas.oculta"
+        titulo="¿Cómo funcionan las campañas?"
+        pasos={[
+          { icono: ClipboardList, titulo: "1. Crea la campaña", texto: "Eliges la prueba y los salones. Cada alumno recibe su enlace personal." },
+          { icono: Link2, titulo: "2. Comparte los enlaces", texto: "El alumno responde sin iniciar sesión; sus respuestas se guardan solas." },
+          { icono: BarChart3, titulo: "3. Revisa los resultados", texto: "En la campaña ves el avance. Si un resultado indica riesgo, el informe queda retenido hasta que lo revises." },
+        ]}
+      >
+        <p className="m-0 mt-3 text-[12.5px] text-ink/60 dark:text-ink-dark/60">
+          Para evaluar a un solo alumno, usa «Aplicar prueba» desde su ficha.
+        </p>
+      </GuiaSeccion>
 
       <TextoError className="mb-4">{error}</TextoError>
 

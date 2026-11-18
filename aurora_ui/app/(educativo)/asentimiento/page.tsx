@@ -17,6 +17,7 @@ import type {
 import { useCargaDiferida } from "@/lib/useCargaDiferida";
 import { PautasLecturaFacil } from "@/components/educativo/PautasLecturaFacil";
 import { EsqueletoBloque } from "@/components/ui/Esqueleto";
+import { useAvisar } from "@/components/ui/Avisos";
 
 // Modelos de CONSENTIMIENTO (lo firma el apoderado) y ASENTIMIENTO (lo
 // acepta el propio alumno) de cada colegio — versionados, nunca editados.
@@ -61,6 +62,7 @@ const INFO_TIPO: Record<TipoTextoConsentimiento, { titulo: string; uso: string }
 type Ambito = "general" | number;
 
 function ConsentimientoYAsentimientoPageContenido() {
+  const avisar = useAvisar();
   const { sesion } = useAuth();
   const puedeEditar = sesion?.rol === "admin" || sesion?.rol === "superadmin";
 
@@ -154,6 +156,7 @@ function ConsentimientoYAsentimientoPageContenido() {
         nivel_educativo_id: nivelDe(ambito),
       };
       await apiClient.post("/educativo/asentimiento-textos", payload);
+      avisar("Texto guardado.");
       cargar();
     } catch (err) {
       setErrorGuardar(mensajeDe(err) || "No se pudo guardar la nueva versión.");

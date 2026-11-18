@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import type { CitaCreate, Persona } from "@/types/api";
 import { usePadronPaginado, useResumenPadron, useValorDiferido } from "@/lib/padron";
 import { EsqueletoLineas } from "@/components/ui/Esqueleto";
+import { useAvisar } from "@/components/ui/Avisos";
 
 // 🆕 (sesión 2026-10-31, a pedido del usuario) Un solo modal para lo que se
 // agenda desde la Agenda, con dos modos:
@@ -111,6 +112,7 @@ export function ModalNuevaActividad({
   onCerrar: () => void;
   onCreada: (fechaHora: Date) => void;
 }) {
+  const avisar = useAvisar();
   const [modo, setModo] = useState<ModoActividad>(inicial.modo);
   const [fecha, setFecha] = useState(inicial.fecha ?? "");
   const [hora, setHora] = useState("");
@@ -241,6 +243,7 @@ export function ModalNuevaActividad({
     setError(null);
     try {
       await apiClient.post("/admin/personas/citas/", payload);
+      avisar("Agendado.");
       onCreada(fechaHora);
     } catch (err) {
       setError((err instanceof Error && err.message) || "No se pudo agendar.");

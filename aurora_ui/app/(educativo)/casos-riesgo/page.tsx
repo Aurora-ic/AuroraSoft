@@ -3,18 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  AlertTriangle,
-  Siren,
-  Hourglass,
-  Search,
-  ArrowRight,
-  HeartHandshake,
-  CheckCircle2,
-  Stethoscope,
-  History,
-  UserRound,
-} from "lucide-react";
+import { AlertTriangle, Siren, Hourglass, Search, ArrowRight, HeartHandshake, CheckCircle2, Stethoscope, History, UserRound, Inbox, UserCheck, CircleCheck } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuth } from "@/contexts/AuthContext";
 import { TextoError } from "@/components/ui/TextoError";
@@ -32,6 +21,8 @@ import {
 import type { BandejaCasosRiesgo, CasoRiesgo, EstadoCaso, EventoCasoRiesgo, UrgenciaCaso } from "@/types/api";
 import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
 import { CLAVE_AVISOS_URGENTES } from "@/components/educativo/AvisosUrgentes";
+import { useAvisar } from "@/components/ui/Avisos";
+import { GuiaSeccion } from "@/components/ui/GuiaSeccion";
 
 // 🆕 (sesión 2026-11-01, decisiones del usuario) Bandeja de casos con
 // urgencia, estado y responsable — GET/PATCH /educativo/casos-riesgo (ver
@@ -137,6 +128,16 @@ function CasosRiesgoPageContenido() {
         acento="azul"
         titulo="Casos en riesgo"
         descripcion="Casos ordenados por urgencia. Un caso sale de esta lista solo cuando lo cierras, indicando el motivo."
+      />
+
+      <GuiaSeccion
+        clave="aurora.guia-casos-riesgo.oculta"
+        titulo="¿Cómo funciona esta bandeja?"
+        pasos={[
+          { icono: Inbox, titulo: "1. Los casos llegan solos", texto: "Se abren cuando un resultado sale en alerta, se marca un ítem crítico o los antecedentes lo indican." },
+          { icono: UserCheck, titulo: "2. Asigna y da seguimiento", texto: "Cambia el estado, elige quién es responsable y registra el seguimiento desde cada tarjeta." },
+          { icono: CircleCheck, titulo: "3. Ciérralo con un motivo", texto: "Un caso sale de la lista solo cuando lo cierras. Su historial queda guardado." },
+        ]}
       />
 
       <div className="grid grid-cols-1 min-[480px]:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -251,6 +252,7 @@ function TarjetaCaso({
   profesionales: { id: number; nombre: string }[];
   onActualizado: (c: CasoRiesgo) => void;
 }) {
+  const avisar = useAvisar();
   const [guardando, setGuardando] = useState(false);
   const [errorAccion, setErrorAccion] = useState<string | null>(null);
   const [cerrando, setCerrando] = useState(false);
@@ -276,6 +278,7 @@ function TarjetaCaso({
     setErrorAccion(null);
     try {
       onActualizado(await apiClient.patch<CasoRiesgo>(`/educativo/casos-riesgo/${caso.id}`, cambios));
+      avisar("Caso actualizado.");
       return true;
     } catch (err: unknown) {
       setErrorAccion(err instanceof Error ? err.message : "No se pudo guardar el cambio.");

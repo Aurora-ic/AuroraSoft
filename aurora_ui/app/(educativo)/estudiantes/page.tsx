@@ -15,6 +15,7 @@ import { TheadFila, Th } from "@/components/ui/Tabla";
 import { EsqueletoFilasTabla } from "@/components/ui/Esqueleto";
 import { EncabezadoPagina, TarjetaKpi, ControlSegmentado, claseBotonBanner, CLASE_CONTENEDOR_SECCION } from "@/components/ui/Encabezado";
 import { claveApi, invalidarApi, useConsultaApi } from "@/lib/consultas";
+import { useAvisar } from "@/components/ui/Avisos";
 
 // 🆕 (sesión 2026-10-31) "con-dx" = activos con diagnóstico — derivado en
 // el backend (Persona.con_diagnostico) de los antecedentes clínicos externos
@@ -51,6 +52,7 @@ function iniciales(persona: Persona): string {
 }
 
 export default function PadronPage() {
+  const avisar = useAvisar();
   // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
   const confirmar = useConfirmar();
   const { sesion } = useAuth();
@@ -174,6 +176,7 @@ export default function PadronPage() {
       const actualizado = await apiClient.patch<Persona>(`/admin/personas/${persona.id}`, {
         activo: !persona.activo,
       });
+      avisar(persona.activo ? "Alumno desactivado." : "Alumno reactivado.");
       // La fila cambia al instante; tarjetas y filtro (p. ej. "Activos")
       // cambian también: se vuelven a pedir todas las lecturas del padrón.
       if (urlPagina)

@@ -11,6 +11,7 @@ import { siglaPrueba } from "@/lib/pruebas";
 import { ahoraParaInputLocal, fechaCierreEsPasada, MENSAJE_FECHA_CIERRE_PASADA } from "@/lib/campanas";
 import type { AplicacionIndividual, ElegibilidadPrueba, Prueba } from "@/types/api";
 import { EsqueletoLineas } from "@/components/ui/Esqueleto";
+import { useAvisar } from "@/components/ui/Avisos";
 
 // 🆕 (sesión 2026-11-01) "Aplicar prueba" desde el perfil del estudiante,
 // sin armar una campaña a mano. Por detrás, POST
@@ -28,6 +29,7 @@ export function ModalAplicarPrueba({
   nombreAlumno: string;
   onCerrar: () => void;
 }) {
+  const avisar = useAvisar();
   const [busqueda, setBusqueda] = useState("");
   const [pruebaId, setPruebaId] = useState<number | null>(null);
   const [fechaFin, setFechaFin] = useState("");
@@ -67,6 +69,7 @@ export function ModalAplicarPrueba({
           fecha_fin: fechaFin ? new Date(fechaFin).toISOString() : null,
         }),
       );
+        avisar("Prueba asignada al alumno.");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "No se pudo aplicar la prueba.");
     } finally {

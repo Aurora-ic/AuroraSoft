@@ -106,16 +106,49 @@ function avisarNoAutorizado() {
 // CUALQUIER POST/PATCH/PUT de la app que dispare una validación de Pydantic,
 // no solo a un formulario puntual — por eso se arregla acá, en el único
 // lugar que construye el mensaje, no en cada página que lo muestra.
-function extraerMensajeError(cuerpo: unknown): string {
+// 🆕 (2026-11-17, plan de UX fase 3) Mensajes de validación de Pydantic que
+// llegaban en inglés a la pantalla ("Field required", "String should have
+// at least 2 characters"). Se traducen los frecuentes, con el nombre del
+// campo cuando viene en `loc`; uno desconocido se muestra tal cual.
+function traducirValidacion(d: { msg?: unknown; loc?: unknown; type?: unknown }): string | null {
+  if (typeof d?.msg !== "string") return null;
+  const loc = Array.isArray(d.loc) ? d.loc : [];
+  const campoCrudo = loc.length ? String(loc[loc.length - 1]) : "";
+  const campo = campoCrudo && !/^\d+$/.test(campoCrudo) && campoCrudo !== "body" ? `«${campoCrudo.replace(/_/g, " ")}»` : "";
+  const tipo = typeof d.type === "string" ? d.type : "";
+  const minimo = d.msg.match(/at least (\d+)/)?.[1];
+  const maximo = d.msg.match(/at most (\d+)/)?.[1];
+  if (tipo === "missing" || d.msg === "Field required") return campo ? `Falta completar ${campo}.` : "Falta completar un campo obligatorio.";
+  if (tipo === "string_too_short" && minimo) return `${campo || "Un campo"} debe tener al menos ${minimo} caracteres.`;
+  if (tipo === "string_too_long" && maximo) return `${campo || "Un campo"} admite como máximo ${maximo} caracteres.`;
+  if (tipo.startsWith("int_") || tipo.startsWith("float_")) return `${campo || "Un campo"} debe ser un número válido.`;
+  if (tipo.startsWith("date") || tipo.startsWith("datetime")) return `${campo || "Una fecha"} no tiene un formato de fecha válido.`;
+  if (tipo === "value_error" || tipo === "assertion_error") return d.msg.replace(/^(Value|Assertion) error, /, "");
+  return d.msg;
+}
+
+// 🆕 (2026-11-17) Cuando el servidor no explica el error, un mensaje según
+// el código que diga qué pasó y qué hacer (antes: "Error inesperado del
+// servidor." para todo).
+function mensajePorEstado(estado: number | undefined): string {
+  if (estado === 403) return "No tienes permiso para hacer esto con tu cuenta. Si crees que deberías, consulta al administrador.";
+  if (estado === 404) return "No se encontró lo que buscabas. Puede que se haya borrado; recarga la página.";
+  if (estado === 409) return "No se pudo hacer porque algo cambió mientras tanto. Recarga la página y vuelve a intentarlo.";
+  if (estado === 413) return "El archivo es demasiado grande para subirlo.";
+  if (estado === 429) return "Demasiados intentos seguidos. Espera un minuto y vuelve a intentarlo.";
+  if (estado !== undefined && estado >= 500)
+    return "El servidor tuvo un problema y no pudo completar la acción. Inténtalo de nuevo en unos minutos; si sigue pasando, avisa a soporte.";
+  return "Error inesperado del servidor.";
+}
+
+function extraerMensajeError(cuerpo: unknown, estado?: number): string {
   const detail = (cuerpo as { detail?: unknown } | null)?.detail;
   if (typeof detail === "string" && detail.trim()) return detail;
   if (Array.isArray(detail)) {
-    const mensajes = detail
-      .map((d: { msg?: unknown } | null) => (typeof d?.msg === "string" ? d.msg : null))
-      .filter(Boolean);
-    if (mensajes.length > 0) return mensajes.join(" — ");
+    const mensajes = detail.map((d) => traducirValidacion(d)).filter(Boolean);
+    if (mensajes.length > 0) return [...new Set(mensajes)].join(" ");
   }
-  return "Error inesperado del servidor.";
+  return mensajePorEstado(estado);
 }
 
 async function lanzarSiError(res: Response): Promise<void> {
@@ -125,7 +158,7 @@ async function lanzarSiError(res: Response): Promise<void> {
   // sigue en la página y se recupera al desbloquear con la contraseña.
   if (res.status === 401 && !estaBloqueado()) avisarNoAutorizado();
   const cuerpo = await res.json().catch(() => ({}));
-  throw new ApiError(res.status, extraerMensajeError(cuerpo));
+  throw new ApiError(res.status, extraerMensajeError(cuerpo, res.status));
 }
 
 // 🆕 Distinto del bug de arriba: acá `fetch()` ni siquiera llega a recibir
@@ -301,7 +334,7 @@ async function postPublico(path: string, cuerpo: unknown, mensaje429: string): P
   });
   if (!res.ok) {
     const datos = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, res.status === 429 ? mensaje429 : extraerMensajeError(datos));
+    throw new ApiError(res.status, res.status === 429 ? mensaje429 : extraerMensajeError(datos, res.status));
   }
   return res.json();
 }

@@ -92,6 +92,7 @@ import type {
 } from "@/types/api";
 import { TerminoAyuda } from "@/components/ui/TerminoAyuda";
 import { AvisoCargando, EsqueletoBloque, EsqueletoLineas } from "@/components/ui/Esqueleto";
+import { useAvisar } from "@/components/ui/Avisos";
 
 // Debe coincidir con crud.TIPOS_ENTRADA_CON_CONTENIDO_PROPIO del backend:
 // los otros 2 tipos son puente (enlazan a SesionSeguimiento/Informe, sin
@@ -215,6 +216,7 @@ const GRUPOS_INDICE_FICHA: GrupoIndice[] = [
 ];
 
 export default function FichaAlumnoPage() {
+  const avisar = useAvisar();
   // 🆕 Diálogo de confirmación propio (reemplaza window.confirm).
   const confirmar = useConfirmar();
   const params = useParams();
@@ -672,6 +674,7 @@ export default function FichaAlumnoPage() {
     setErrorRevision(null);
     try {
       await apiClient.patch(`/educativo/inscripciones/${inscripcionId}/revision-informe`, formRevision);
+      avisar("Revisión del informe guardada.");
       const detalle = await apiClient.get<DetalleInforme>(`/educativo/inscripciones/${inscripcionId}/informe`);
       setDetalleInforme(detalle);
       await recargarPruebasAplicadas();
@@ -693,6 +696,7 @@ export default function FichaAlumnoPage() {
       await apiClient.post(`/educativo/inscripciones/${inscripcionId}/informe/reemitir`, {
         motivo: motivoReemision.trim(),
       });
+      avisar("Informe reemitido.");
       setMotivoReemision("");
       const detalle = await apiClient.get<DetalleInforme>(`/educativo/inscripciones/${inscripcionId}/informe`);
       setDetalleInforme(detalle);
@@ -743,6 +747,7 @@ export default function FichaAlumnoPage() {
         genero: form.genero || null,
       };
       const actualizado = await apiClient.patch<Persona>(`/admin/personas/${personaId}`, payload);
+      avisar("Datos de identidad guardados.");
       setAlumno((prev) => (prev ? { ...prev, ...actualizado } : actualizado));
       setEditando(false);
     } catch (err) {
@@ -797,6 +802,7 @@ export default function FichaAlumnoPage() {
         `/admin/personas/${personaId}/datos-familiares`,
         payload,
       );
+      avisar("Datos familiares guardados.");
       setDatosFamiliares(actualizado);
       setEditandoDatosFamiliares(false);
     } catch (err) {
@@ -834,6 +840,7 @@ export default function FichaAlumnoPage() {
         `/admin/personas/${personaId}/antecedentes-clinicos`,
         payload,
       );
+      avisar("Antecedentes clínicos guardados.");
       setAntecedentesClinicos(actualizado);
       setEditandoAntecedentesClinicos(false);
     } catch (err) {
@@ -909,6 +916,7 @@ export default function FichaAlumnoPage() {
     try {
       const payload: MatriculaCreate = { seccion_id: Number(seccionSeleccionada) };
       await apiClient.post<MatriculaResponse>(`/admin/personas/${personaId}/matricula`, payload);
+      avisar("Matrícula registrada.");
       // La matrícula vigente/historial se derivan del historial completo,
       // nunca de la respuesta del POST — se recarga desde la fuente.
       const datos = await apiClient.get<SeccionActual[]>(`/admin/personas/${personaId}/historial-academico`);
@@ -945,6 +953,7 @@ export default function FichaAlumnoPage() {
       if (formularioContacto.id === null) {
         const payload: ContactoFamiliarCreate = payloadFamiliar(formularioContacto);
         const nuevo = await apiClient.post<ContactoFamiliar>(`/admin/personas/${personaId}/contactos`, payload);
+        avisar("Contacto agregado.");
         setContactos((prev) => [...prev, nuevo]);
       } else {
         const payload: ContactoFamiliarUpdate = payloadFamiliar(formularioContacto);
@@ -952,6 +961,7 @@ export default function FichaAlumnoPage() {
           `/admin/personas/contactos/${formularioContacto.id}`,
           payload,
         );
+        avisar("Contacto actualizado.");
         setContactos((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
       }
       setFormularioContacto(null);
@@ -977,6 +987,7 @@ export default function FichaAlumnoPage() {
     setErrorContactos(null);
     try {
       const actualizado = await apiClient.delete<ContactoFamiliar>(`/admin/personas/contactos/${id}`);
+      avisar("Contacto desactivado.");
       setContactos((prev) => prev.map((c) => (c.id === actualizado.id ? actualizado : c)));
     } catch (err) {
       setErrorContactos(mensajeDe(err) || "No se pudo desactivar el contacto.");
@@ -999,6 +1010,7 @@ export default function FichaAlumnoPage() {
     setErrorCitas(null);
     try {
       await apiClient.delete(`/admin/personas/citas/${id}`);
+      avisar("Cita cancelada.");
       // El DELETE del backend solo confirma con un mensaje, no devuelve la
       // fila — se actualiza localmente en vez de volver a pedir la lista
       // completa (mismo criterio que agenda/page.tsx tras cancelar).
@@ -1038,6 +1050,7 @@ export default function FichaAlumnoPage() {
       const actualizada = await apiClient.patch<Cita>(`/admin/personas/citas/${citaId}`, {
         fecha_hora: fechaHora.toISOString(),
       });
+      avisar("Cita reprogramada.");
       setCitas((prev) => prev.map((c) => (c.id === citaId ? actualizada : c)));
       setReprogramandoCitaId(null);
     } catch (err) {
@@ -1078,6 +1091,7 @@ export default function FichaAlumnoPage() {
         proxima_cita: proximaCitaIso,
         estado: resto.estado,
       });
+      avisar("Sesión de seguimiento actualizada.");
       setSeguimientos((prev) => prev.map((s) => (s.id === sesionId ? actualizada : s)));
       setEditandoSesionId(null);
     } catch (err) {
@@ -1159,6 +1173,7 @@ export default function FichaAlumnoPage() {
             : null,
       };
       const nueva = await apiClient.post<EntradaExpediente>(`/admin/personas/${personaId}/expediente`, payload);
+      avisar("Entrada agregada al expediente.");
       setEntradas((prev) =>
         [nueva, ...prev].sort((a, b) => new Date(b.fecha_entrada).getTime() - new Date(a.fecha_entrada).getTime()),
       );
@@ -1200,6 +1215,7 @@ export default function FichaAlumnoPage() {
       fd.append("incluir_en_pdf_informe", String(formEvidencia.informe_id ? formEvidencia.incluir_en_pdf_informe : false));
 
       const nueva = await apiClient.postForm<EntradaExpediente>(`/admin/personas/${personaId}/expediente/evidencia`, fd);
+      avisar("Evidencia subida al expediente.");
       setEntradas((prev) =>
         [nueva, ...prev].sort((a, b) => new Date(b.fecha_entrada).getTime() - new Date(a.fecha_entrada).getTime()),
       );
@@ -1217,6 +1233,7 @@ export default function FichaAlumnoPage() {
       const actualizada = await apiClient.patch<EntradaExpediente>(`/admin/personas/expediente/evidencia/${entrada.id}`, {
         incluir_en_pdf_informe: valor,
       });
+      avisar("Evidencia actualizada.");
       setEntradas((prev) => prev.map((en) => (en.id === entrada.id ? actualizada : en)));
     } catch (err) {
       setErrorEntradas(mensajeDe(err) || "No se pudo actualizar la evidencia.");
@@ -1260,6 +1277,7 @@ export default function FichaAlumnoPage() {
         `/admin/personas/expediente/${detalleEntrada.id}/versiones`,
         payload,
       );
+      avisar("Nueva versión guardada en el expediente.");
       setEntradas((prev) =>
         prev.map((en) => (en.id === detalleEntrada.id ? { ...en, version_actual: nuevaVersion.numero_version } : en)),
       );
@@ -1291,6 +1309,7 @@ export default function FichaAlumnoPage() {
         `/admin/personas/${personaId}/autorizacion-colegio`,
         payload,
       );
+      avisar("Acceso del colegio otorgado.");
       setAutorizacionVigente(nueva);
       setFormularioAutorizacion(null);
     } catch (err) {
@@ -1318,6 +1337,7 @@ export default function FichaAlumnoPage() {
       const actualizada = await apiClient.post<AutorizacionAccesoColegio>(
         `/admin/personas/autorizacion-colegio/${autorizacionVigente.id}/revocar`,
       );
+      avisar("Acceso del colegio revocado.");
       setAutorizacionVigente(actualizada.vigente ? actualizada : null);
     } catch (err) {
       setErrorAutorizacion(mensajeDe(err) || "No se pudo revocar la autorización.");
@@ -1357,6 +1377,7 @@ export default function FichaAlumnoPage() {
           otorgante_relacion: formularioConsentimiento.otorgante_relacion || null,
         };
         nuevo = await apiClient.post<ConsentimientoInformado>(`/admin/personas/${personaId}/consentimiento`, payload);
+        avisar("Consentimiento registrado.");
       } else {
         const payload: ConsentimientoAsentimientoCreate = {
           referencia_documento: formularioConsentimiento.referencia_documento || null,
@@ -1365,6 +1386,7 @@ export default function FichaAlumnoPage() {
           `/admin/personas/${personaId}/consentimiento/asentimiento`,
           payload,
         );
+        avisar("Asentimiento registrado.");
       }
       setConsentimientos((actual) => {
         const base = consentimientosOVacio(actual, personaId as string);
@@ -1401,6 +1423,7 @@ export default function FichaAlumnoPage() {
           ? `/admin/personas/${personaId}/consentimiento/revocar`
           : `/admin/personas/${personaId}/consentimiento/asentimiento/revocar`;
       const actualizado = await apiClient.post<ConsentimientoInformado>(path);
+      avisar("Consentimiento revocado.");
       setConsentimientos((actual) => {
         const base = consentimientosOVacio(actual, personaId as string);
         return {
@@ -1431,6 +1454,7 @@ export default function FichaAlumnoPage() {
         `/admin/personas/consentimiento/${consentimientoId}/evidencia`,
         fd,
       );
+      avisar("Documento firmado subido.");
       setConsentimientos((actual) => {
         const base = consentimientosOVacio(actual, personaId as string);
         return {
@@ -1553,16 +1577,31 @@ export default function FichaAlumnoPage() {
               <CalendarPlus size={15} aria-hidden="true" />
               Nueva cita
             </Boton>
-            <Boton
-              onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}
-              className="inline-flex items-center gap-1.5"
-            >
-              <NotebookPen size={15} aria-hidden="true" />
-              Registrar sesión
-            </Boton>
+            {/* 🆕 (2026-11-17) Las sesiones son clínicas: el rol colegio no las
+                registra (el servidor se lo rechaza). */}
+            {puedeEscribirDatosPrincipales && (
+              <Boton
+                onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}
+                className="inline-flex items-center gap-1.5"
+              >
+                <NotebookPen size={15} aria-hidden="true" />
+                Registrar sesión
+              </Boton>
+            )}
           </>
         }
       />
+
+      {/* 🆕 (2026-11-17, plan de UX fase 3) Indicadores justo debajo del
+          perfil: lo que importa en plena sesión (alertas, próxima cita,
+          sesiones) ya no queda debajo de todos los datos de filiación. La
+          ficha sigue siendo UNA página, a pedido del usuario. */}
+      {puedeEscribirDatosPrincipales && (
+        <section className="space-y-3">
+          <TituloGrupoFicha titulo="Indicadores actuales" descripcion="El estado del estudiante de un vistazo." acento="teal" />
+          <IndicadoresEstudiante pruebas={pruebasAplicadas} seguimientos={seguimientos} citas={citas} />
+        </section>
+      )}
 
       {/* Datos de filiación del estudiante — identidad + familiares +
           antecedentes clínicos + contactos, unificados en un solo apartado
@@ -1587,9 +1626,12 @@ export default function FichaAlumnoPage() {
           titulo="Identidad"
           acciones={
             <>
-              <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
-                Historial
-              </BotonAccionFicha>
+              {/* El historial de cambios es solo del equipo clínico (403 para colegio). */}
+              {puedeEscribirDatosPrincipales && (
+                <BotonAccionFicha icono={History} activo={mostrarHistorial} onClick={alternarHistorial}>
+                  Historial
+                </BotonAccionFicha>
+              )}
               {!editando && (
                 <BotonAccionFicha icono={Pencil} onClick={abrirEdicion}>
                   Editar
@@ -1991,13 +2033,6 @@ export default function FichaAlumnoPage() {
         </BloqueFicha>
       </section>
 
-      {puedeEscribirDatosPrincipales && (
-        <section className="space-y-3">
-          <TituloGrupoFicha titulo="Indicadores actuales" descripcion="El estado del estudiante de un vistazo." acento="teal" />
-          <IndicadoresEstudiante pruebas={pruebasAplicadas} seguimientos={seguimientos} citas={citas} />
-        </section>
-      )}
-
       <TituloGrupoFicha
         id="grupo-evaluacion"
         titulo="Evaluación y seguimiento"
@@ -2039,7 +2074,15 @@ export default function FichaAlumnoPage() {
         {pruebasAplicadas === null ? (
           <EsqueletoLineas cantidad={3} />
         ) : pruebasAplicadas.length === 0 ? (
-          <VacioFicha icono={ClipboardList} texto="Este estudiante todavía no tiene pruebas aplicadas." />
+          <VacioFicha
+            icono={ClipboardList}
+            texto={
+              puedeEscribirDatosPrincipales
+                ? "Este estudiante todavía no tiene pruebas aplicadas."
+                : // 🆕 (2026-11-17) Colegio solo recibe los informes ya liberados.
+                  "No hay informes liberados para este estudiante. Los resultados en revisión solo los ve el equipo de psicología."
+            }
+          />
         ) : (
           <div className="space-y-3">
             {pruebasAplicadas.map((fila) => (
@@ -2409,14 +2452,23 @@ export default function FichaAlumnoPage() {
         titulo="Historial de sesiones de seguimiento"
         cuerpoClassName="space-y-4"
         acciones={
-          <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}>
-            Registrar sesión
-          </BotonAccionFicha>
+          puedeEscribirDatosPrincipales ? (
+            <BotonAccionFicha icono={Plus} onClick={() => router.push(`/estudiantes/${personaId}/seguimiento/nuevo`)}>
+              Registrar sesión
+            </BotonAccionFicha>
+          ) : undefined
         }
       >
         <TextoError>{errorSesiones}</TextoError>
 
-        {seguimientos.length === 0 ? (
+        {/* 🆕 (2026-11-17) Para colegio el servidor no entrega las sesiones:
+            antes se leía "No se han registrado sesiones", que es falso. */}
+        {!puedeEscribirDatosPrincipales ? (
+          <VacioFicha
+            icono={MessagesSquare}
+            texto="Las sesiones de seguimiento son información clínica: solo las ve el equipo de psicología."
+          />
+        ) : seguimientos.length === 0 ? (
           <VacioFicha icono={MessagesSquare} texto="No se han registrado sesiones de seguimiento clínico." />
         ) : (
           <div className="space-y-3">
@@ -3491,15 +3543,18 @@ export default function FichaAlumnoPage() {
         descripcion="Informes, planes y fichas generados con plantillas."
         cuerpoClassName="space-y-4"
         acciones={
-          <Link
-            href={`/documentos/nuevo?persona_id=${personaId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink/70 hover:border-seccion-400 hover:text-seccion-700 transition-colors dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70"
-          >
-            <Plus size={13} aria-hidden="true" />
-            Nuevo documento ↗
-          </Link>
+          // Crear documentos es del equipo clínico (403 para colegio).
+          puedeEscribirDatosPrincipales ? (
+            <Link
+              href={`/documentos/nuevo?persona_id=${personaId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink/70 hover:border-seccion-400 hover:text-seccion-700 transition-colors dark:border-border-dark dark:bg-surface-dark dark:text-ink-dark/70"
+            >
+              <Plus size={13} aria-hidden="true" />
+              Nuevo documento ↗
+            </Link>
+          ) : undefined
         }
       >
         <TextoError>{errorDocumentos}</TextoError>
